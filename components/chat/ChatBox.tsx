@@ -12,6 +12,17 @@ const QUICK_CHIPS = [
   'Para almorzar hoy',
 ]
 
+const ZONE_CHIPS = [
+  'Providencia',
+  'Barrio Italia',
+  'Bellavista',
+  'Lastarria',
+  'Las Condes',
+  'Ñuñoa',
+  'Santiago Centro',
+  'Vitacura',
+]
+
 interface ChatBoxProps {
   onResults: (results: RestaurantResult[], query: string) => void
   onStatusChange: (status: string) => void
@@ -50,6 +61,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
   const [intent, setIntent]             = useState<ChapiIntent>({})
   const [chapiMessage, setChapiMessage] = useState('')
   const [needsLocation, setNeedsLocation] = useState(false)
+  const [askingForZone, setAskingForZone] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
 
   async function requestLocation(): Promise<{ user_lat: number; user_lng: number } | null> {
@@ -72,6 +84,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
     setInput('')
     onStatusChange('')
     setChapiMessage('')
+    setAskingForZone(false)
 
     let currentIntent = { ...intent }
     if (needsLocation && !currentIntent.user_lat) {
@@ -131,6 +144,8 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
               }
               setChapiMessage(data.message)
               setNeedsLocation(data.needs_location)
+              // Show zone chips when Chapi hasn't got a zone yet and isn't searching
+              setAskingForZone(!data.ready_to_search || (!data.intent?.zone && !data.needs_location))
 
               if (data.results?.length > 0) {
                 onResults(data.results, message)
@@ -228,20 +243,40 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
       </div>
 
       {/* Chips */}
-      <div className="flex flex-wrap gap-2 mt-3 justify-center">
-        {QUICK_CHIPS.map(chip => (
-          <button
-            key={chip}
-            onClick={() => sendMessage(chip)}
-            disabled={loading}
-            className="text-xs px-3 py-1.5 rounded-full bg-white border border-neutral-200
-                       text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35]
-                       disabled:opacity-50 transition-colors duration-150"
-          >
-            {chip}
-          </button>
-        ))}
-      </div>
+      {askingForZone ? (
+        <div className="mt-3">
+          <p className="text-[11px] text-neutral-400 text-center mb-2">¿En qué barrio?</p>
+          <div className="flex flex-wrap gap-2 justify-center">
+            {ZONE_CHIPS.map(zone => (
+              <button
+                key={zone}
+                onClick={() => sendMessage(zone)}
+                disabled={loading}
+                className="text-xs px-3 py-1.5 rounded-full bg-white border border-[#FF6B35]/30
+                           text-[#FF6B35] font-medium hover:bg-[#FF6B35] hover:text-white
+                           disabled:opacity-50 transition-colors duration-150"
+              >
+                {zone}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-wrap gap-2 mt-3 justify-center">
+          {QUICK_CHIPS.map(chip => (
+            <button
+              key={chip}
+              onClick={() => sendMessage(chip)}
+              disabled={loading}
+              className="text-xs px-3 py-1.5 rounded-full bg-white border border-neutral-200
+                         text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35]
+                         disabled:opacity-50 transition-colors duration-150"
+            >
+              {chip}
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* Hint de ubicación */}
       {needsLocation && (

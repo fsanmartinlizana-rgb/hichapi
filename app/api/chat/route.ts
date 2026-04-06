@@ -279,6 +279,12 @@ export async function POST(req: NextRequest) {
             }
           }
         }
+        // Save Claude's own readiness decision BEFORE we override with hasSignal.
+        // This matters for searched_but_empty: if Claude itself says ready_to_search:false
+        // (i.e. it's still asking a clarifying question), we must NOT show the no-results
+        // banner even if accumulated intent has some signal.
+        const claudeSaysReady = chapiResponse.ready_to_search
+
         const hasSignal =
           (mergedIntent.zone && mergedIntent.zone !== null) ||
           (mergedIntent.budget_clp && mergedIntent.budget_clp > 0) ||
@@ -302,8 +308,8 @@ export async function POST(req: NextRequest) {
           results,
           ready_to_search: chapiResponse.ready_to_search,
           needs_location: chapiResponse.needs_location,
-          // Signal empty search so client can offer on-demand fetch
-          searched_but_empty: chapiResponse.ready_to_search && !chapiResponse.needs_location && results.length === 0,
+          // Only signal empty if Claude itself decided to search (not just asking clarifying Qs)
+          searched_but_empty: claudeSaysReady && !chapiResponse.needs_location && results.length === 0,
         })
       } catch (err) {
         await send('error', { message: 'Error procesando tu mensaje. Intenta de nuevo.' })
