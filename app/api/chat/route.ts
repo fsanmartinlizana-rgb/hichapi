@@ -101,7 +101,10 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
       }
       if (candidateItems.length === 0) return null
 
-      const bestDish = candidateItems.sort((a: any, b: any) => b.price - a.price)[0]
+      // Sort by price desc (best value within budget first)
+      const sorted = candidateItems.sort((a: any, b: any) => b.price - a.price)
+      const bestDish  = sorted[0]
+      const menuItems = sorted.slice(0, 3) // up to 3 dishes for the card
 
       return {
         restaurant: {
@@ -112,6 +115,7 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
           rating: restaurant.rating, review_count: restaurant.review_count,
         },
         suggested_dish: bestDish,
+        menu_items: menuItems,
         match_reason: `Cocina ${restaurant.cuisine_type} en ${restaurant.neighborhood}`,
       }
     })
@@ -139,6 +143,58 @@ async function searchRestaurants(intent: Intent) {
 
   queryCache.set(cacheKey, results)
   return results
+}
+
+// ── Rule-based parser: zero AI cost, used as fallback ─────────────────────────
+function ruleBasedParser(message: string, prevIntent: Intent) {
+  const msg = message.toLowerCase()
+
+  // Budget
+  const lucasMatch = msg.match(/(\d+)\s*lucas/)
+  const milMatch   = msg.match(/(\d+)\s*mil/)
+  const budget_clp = lucasMatch ? parseInt(lucasMatch[1]) * 1000
+    : milMatch ? parseInt(milMatch[1]) * 1000
+    : prevIntent.budget_clp ?? null
+
+  // Zone
+  const ZONES = ['providencia','barrio italia','bellavista','lastarria','santiago centro',
+    'las condes','vitacura','nunoa','ñuñoa','miraflores','recoleta','san miguel']
+  const zone = ZONES.find(z => msg.includes(z)) ?? prevIntent.zone ?? null
+
+  // Cuisine
+  const CUISINES: [string, string][] = [
+    ['japan','japonesa'],['ramen','japonesa'],['sushi','japonesa'],
+    ['ital','italiana'],['pizza','italiana'],['pasta','italiana'],
+    ['peruano','peruana'],['peruane','peruana'],['ceviche','peruana'],
+    ['mexic','mexicana'],['taco','mexicana'],
+    ['chil','chilena'],['cazuela','chilena'],['empanada','chilena'],
+    ['vegano','vegana'],['vegane','vegana'],
+    ['vegetar','vegetariana'],
+    ['burger','hamburgueseria'],['hambur','hamburgueseria'],
+    ['thai','tailandesa'],['tailand','tailandesa'],
+    ['parril','parrilla'],['asado','parrilla'],
+    ['maris','mariscos'],['pescado','mariscos'],
+  ]
+  const cuisine_type = CUISINES.find(([k]) => msg.includes(k))?.[1] ?? prevIntent.cuisine_type ?? null
+
+  // Dietary
+  const dietary_restrictions: string[] = []
+  if (msg.includes('sin gluten') || msg.includes('celiaco')) dietary_restrictions.push('sin gluten')
+  if (msg.includes('vegano') || msg.includes('vegana')) dietary_restrictions.push('vegano')
+  if (msg.includes('vegetar')) dietary_restrictions.push('vegetariano')
+  if (msg.includes('sin lactosa')) dietary_restrictions.push('sin lactosa')
+
+  const hasSignal = zone || budget_clp || cuisine_type || dietary_restrictions.length > 0
+
+  return {
+    message: hasSignal
+      ? '¡Buscando opciones para ti! 🍽️'
+      : '¿Me dices en qué barrio o qué tipo de comida buscas?',
+    intent: { budget_clp, zone, cuisine_type, dietary_restrictions,
+      user_lat: prevIntent.user_lat ?? null, user_lng: prevIntent.user_lng ?? null },
+    ready_to_search: !!hasSignal,
+    needs_location: msg.includes('cerca de mi') || msg.includes('cerca de mí'),
+  }
 }
 
 export async function POST(req: NextRequest) {
@@ -173,52 +229,42 @@ export async function POST(req: NextRequest) {
           await send('token', { text: chapiResponse.message })
         } else {
 
-        // Stream Claude response token by token
+        // ── Stream Claude (primary model) ────────────────────────────────────
         let fullText = ''
-        const claudeStream = anthropic.messages.stream({
-          model: 'claude-haiku-4-5-20251001',
-          max_tokens: 400,
-          system: SYSTEM_PROMPT,
-          messages: [
-            {
+        try {
+          const claudeStream = anthropic.messages.stream({
+            model: 'claude-haiku-4-5-20251001',
+            max_tokens: 400,
+            system: SYSTEM_PROMPT,
+            messages: [{
               role: 'user',
               content: intent
                 ? `Contexto previo: ${JSON.stringify(intent)}\n\nNuevo mensaje: ${message}`
                 : message,
-            },
-          ],
-        })
+            }],
+          })
 
-        for await (const chunk of claudeStream) {
-          if (
-            chunk.type === 'content_block_delta' &&
-            chunk.delta.type === 'text_delta'
-          ) {
-            fullText += chunk.delta.text
-            // Stream partial message tokens for display
-            // Only stream once we have a "message" field value forming
-            const msgMatch = fullText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)/)
-            if (msgMatch) {
-              await send('token', { text: msgMatch[1] })
+          for await (const chunk of claudeStream) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              fullText += chunk.delta.text
+              const msgMatch = fullText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)/)
+              if (msgMatch) await send('token', { text: msgMatch[1] })
             }
           }
-        }
 
-        // Parse final JSON
-        try {
           const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
           chapiResponse = JSON.parse(cleaned)
-        } catch {
-          chapiResponse = {
-            message: '¿Me puedes decir en qué barrio estás y cuánto tienes para gastar?',
-            intent: intent || {},
-            ready_to_search: false,
-            needs_location: false,
-          }
+
+        } catch (aiErr) {
+          // ── Fallback: rule-based parser, zero AI cost ─────────────────────
+          // Triggered when: Claude API is down, timeout, rate limit, parse error
+          console.error('Claude fallback triggered:', aiErr)
+          chapiResponse = ruleBasedParser(message, intent || {})
+          await send('token', { text: chapiResponse.message })
         }
 
-        // Guardar respuesta de Claude en caché
-        claudeCache.set(ck, chapiResponse)
+        // Save to cache (only if we got a real Claude response)
+        if (fullText) claudeCache.set(ck, chapiResponse)
 
         } // end if (cachedClaude) else
 
@@ -256,6 +302,8 @@ export async function POST(req: NextRequest) {
           results,
           ready_to_search: chapiResponse.ready_to_search,
           needs_location: chapiResponse.needs_location,
+          // Signal empty search so client can offer on-demand fetch
+          searched_but_empty: chapiResponse.ready_to_search && !chapiResponse.needs_location && results.length === 0,
         })
       } catch (err) {
         await send('error', { message: 'Error procesando tu mensaje. Intenta de nuevo.' })

@@ -50,6 +50,8 @@ export default function AdminPage() {
   const [loading, setLoading]         = useState(false)
   const [expanded, setExpanded]       = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
+  const [selected, setSelected]       = useState<Set<string>>(new Set())  // #4 bulk
+  const [bulkLoading, setBulkLoading] = useState(false)
   const [toast, setToast]             = useState<{ msg: string; ok: boolean } | null>(null)
 
   function showToast(msg: string, ok = true) {
@@ -95,13 +97,51 @@ export default function AdminPage() {
     if (res.ok || res.status === 207) {
       showToast(
         action === 'approve'
-          ? `✅ ${json.submission?.name ?? ''} aprobado y creado en restaurants`
+          ? `✅ ${json.submission?.name ?? ''} aprobado`
           : `❌ Solicitud rechazada`,
         res.ok
       )
       setSubmissions(prev => prev.filter(s => s.id !== id))
+      setSelected(prev => { const n = new Set(prev); n.delete(id); return n })
     } else {
       showToast('Error: ' + (json.error ?? 'algo salió mal'), false)
+    }
+  }
+
+  // #4 — bulk approve all selected
+  async function handleBulkApprove() {
+    if (selected.size === 0) return
+    setBulkLoading(true)
+    const ids = [...selected]
+    let ok = 0
+    for (const id of ids) {
+      const res = await fetch('/api/admin/submissions', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body:    JSON.stringify({ id, action: 'approve' }),
+      })
+      if (res.ok || res.status === 207) ok++
+    }
+    setSubmissions(prev => prev.filter(s => !selected.has(s.id)))
+    setSelected(new Set())
+    setBulkLoading(false)
+    showToast(`✅ ${ok} solicitud${ok > 1 ? 'es' : ''} aprobada${ok > 1 ? 's' : ''}`)
+  }
+
+  function toggleSelect(id: string) {
+    setSelected(prev => {
+      const n = new Set(prev)
+      n.has(id) ? n.delete(id) : n.add(id)
+      return n
+    })
+  }
+
+  function toggleSelectAll() {
+    const pendingIds = submissions.filter(s => s.status === 'pending').map(s => s.id)
+    if (selected.size === pendingIds.length) {
+      setSelected(new Set())
+    } else {
+      setSelected(new Set(pendingIds))
     }
   }
 
@@ -174,21 +214,50 @@ export default function AdminPage() {
 
       {/* Tabs */}
       <div className="max-w-4xl mx-auto px-6 pt-6">
-        <div className="flex gap-1 mb-6 bg-white rounded-xl border border-neutral-100 p-1 w-fit">
-          {STATUSES.map(s => (
-            <button
-              key={s}
-              onClick={() => { setTab(s); setExpanded(null) }}
-              className={[
-                'px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all',
-                tab === s
-                  ? 'bg-[#FF6B35] text-white shadow-sm'
-                  : 'text-neutral-400 hover:text-[#1A1A2E]',
-              ].join(' ')}
-            >
-              {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Rechazados'}
-            </button>
-          ))}
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+          <div className="flex gap-1 bg-white rounded-xl border border-neutral-100 p-1 w-fit">
+            {STATUSES.map(s => (
+              <button
+                key={s}
+                onClick={() => { setTab(s); setExpanded(null); setSelected(new Set()) }}
+                className={[
+                  'px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all',
+                  tab === s
+                    ? 'bg-[#FF6B35] text-white shadow-sm'
+                    : 'text-neutral-400 hover:text-[#1A1A2E]',
+                ].join(' ')}
+              >
+                {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Rechazados'}
+              </button>
+            ))}
+          </div>
+
+          {/* Bulk controls — only on pending tab */}
+          {tab === 'pending' && submissions.length > 0 && (
+            <div className="flex items-center gap-2">
+              <button
+                onClick={toggleSelectAll}
+                className="text-xs px-3 py-1.5 rounded-full border border-neutral-200
+                           text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors"
+              >
+                {selected.size === submissions.filter(s => s.status === 'pending').length
+                  ? 'Deseleccionar todo'
+                  : 'Seleccionar todo'}
+              </button>
+              {selected.size > 0 && (
+                <button
+                  onClick={handleBulkApprove}
+                  disabled={bulkLoading}
+                  className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full
+                             bg-green-500 hover:bg-green-600 disabled:bg-neutral-200
+                             text-white font-semibold transition-colors"
+                >
+                  <CheckCircle size={12} />
+                  {bulkLoading ? 'Aprobando…' : `Aprobar ${selected.size}`}
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Content */}
@@ -213,10 +282,21 @@ export default function AdminPage() {
               return (
                 <div key={sub.id} className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
                   {/* Row header */}
-                  <button
-                    className="w-full flex items-center gap-4 px-5 py-4 text-left hover:bg-neutral-50 transition-colors"
-                    onClick={() => setExpanded(isOpen ? null : sub.id)}
-                  >
+                  <div className="w-full flex items-center gap-3 px-5 py-4 hover:bg-neutral-50 transition-colors">
+                    {/* Checkbox — only for pending */}
+                    {sub.status === 'pending' && (
+                      <input
+                        type="checkbox"
+                        checked={selected.has(sub.id)}
+                        onChange={() => toggleSelect(sub.id)}
+                        onClick={e => e.stopPropagation()}
+                        className="w-4 h-4 rounded accent-[#FF6B35] shrink-0 cursor-pointer"
+                      />
+                    )}
+                    <button
+                      className="flex-1 flex items-center gap-4 text-left min-w-0"
+                      onClick={() => setExpanded(isOpen ? null : sub.id)}
+                    >
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
                         <p className="font-semibold text-[#1A1A2E] text-sm truncate">{sub.name}</p>
@@ -235,7 +315,8 @@ export default function AdminPage() {
                       </p>
                       {isOpen ? <ChevronUp size={14} className="text-neutral-400" /> : <ChevronDown size={14} className="text-neutral-400" />}
                     </div>
-                  </button>
+                    </button>
+                  </div>
 
                   {/* Detail panel */}
                   {isOpen && (

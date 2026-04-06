@@ -36,7 +36,8 @@ export interface ChapiIntent {
 
 export interface RestaurantResult {
   restaurant: Restaurant
-  suggested_dish: MenuItem
+  suggested_dish: MenuItem        // best match (backward compat)
+  menu_items: MenuItem[]          // up to 3 dishes for the card
   distance_m?: number
   match_reason: string
 }
