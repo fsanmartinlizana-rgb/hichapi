@@ -2,6 +2,8 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { resolveZone } from '@/lib/landmarks'
+import { queryCache, claudeCache, intentCacheKey, claudeCacheKey } from '@/lib/cache'
 
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
@@ -80,7 +82,6 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
   const { data: restaurants, error } = await query
   if (error || !restaurants) return []
 
-  // Ordenar por rating descendente
   const sorted = [...restaurants].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
 
   return sorted
@@ -100,7 +101,6 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
       }
       if (candidateItems.length === 0) return null
 
-      // Ordenar platos por precio (mejor relación dentro del presupuesto)
       const bestDish = candidateItems.sort((a: any, b: any) => b.price - a.price)[0]
 
       return {
@@ -120,13 +120,25 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
 }
 
 async function searchRestaurants(intent: Intent) {
-  // Intenta con zona primero, si no hay resultados busca sin restricción de zona
-  let results = await fetchAndFilter(intent, true)
-  if (results.length === 0 && intent.zone) {
-    results = await fetchAndFilter(intent, false)
+  // ── Resolver landmarks/metro → barrio canónico ───────────────────────────
+  const resolvedIntent: Intent = {
+    ...intent,
+    zone: resolveZone(intent.zone),
   }
-  return results
 
+  // ── Caché de resultados por intent ───────────────────────────────────────
+  const cacheKey = intentCacheKey(resolvedIntent)
+  const cached = queryCache.get(cacheKey)
+  if (cached) return cached
+
+  // ── Query Supabase ────────────────────────────────────────────────────────
+  let results = await fetchAndFilter(resolvedIntent, true)
+  if (results.length === 0 && resolvedIntent.zone) {
+    results = await fetchAndFilter(resolvedIntent, false)
+  }
+
+  queryCache.set(cacheKey, results)
+  return results
 }
 
 export async function POST(req: NextRequest) {
@@ -144,6 +156,23 @@ export async function POST(req: NextRequest) {
 
     ;(async () => {
       try {
+        // ── Caché de Claude: mismo mensaje + mismo contexto = skip API ──────
+        const ck = claudeCacheKey(message, intent)
+        const cachedClaude = claudeCache.get(ck)
+
+        let chapiResponse: {
+          message: string
+          intent: Intent
+          ready_to_search: boolean
+          needs_location: boolean
+        }
+
+        if (cachedClaude) {
+          // Hit: emitir mensaje cacheado directamente, sin llamar a Claude
+          chapiResponse = cachedClaude as typeof chapiResponse
+          await send('token', { text: chapiResponse.message })
+        } else {
+
         // Stream Claude response token by token
         let fullText = ''
         const claudeStream = anthropic.messages.stream({
@@ -176,13 +205,6 @@ export async function POST(req: NextRequest) {
         }
 
         // Parse final JSON
-        let chapiResponse: {
-          message: string
-          intent: Intent
-          ready_to_search: boolean
-          needs_location: boolean
-        }
-
         try {
           const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
           chapiResponse = JSON.parse(cleaned)
@@ -194,6 +216,11 @@ export async function POST(req: NextRequest) {
             needs_location: false,
           }
         }
+
+        // Guardar respuesta de Claude en caché
+        claudeCache.set(ck, chapiResponse)
+
+        } // end if (cachedClaude) else
 
         // Merge intents: Claude's explicit null/value wins over accumulated context.
         // Only fall back to previous if Claude left a field undefined (not in response JSON).
