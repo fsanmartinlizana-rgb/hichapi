@@ -4,12 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield, Check, X, AlertCircle } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createClient } from '@/lib/supabase/client'
 
 // ── Password strength rules ───────────────────────────────────────────────────
 
@@ -91,6 +86,7 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
+      const supabase = createClient()
       // 1. Create auth user
       const { data, error: authErr } = await supabase.auth.signUp({
         email: email.trim().toLowerCase(),

@@ -2,14 +2,9 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield, AlertCircle } from 'lucide-react'
-import { createClient } from '@supabase/supabase-js'
-
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-)
+import { createClient } from '@/lib/supabase/client'
 
 // Rate limiting — client-side guard (real limiting is server-side via Supabase)
 const attempts: { count: number; since: number } = { count: 0, since: Date.now() }
@@ -25,7 +20,8 @@ function checkRateLimit(): boolean {
 }
 
 export default function LoginPage() {
-  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo   = searchParams.get('redirect') ?? '/dashboard'
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')
@@ -46,6 +42,7 @@ export default function LoginPage() {
 
     setLoading(true)
     try {
+      const supabase = createClient()
       const { data, error: authErr } = await supabase.auth.signInWithPassword({
         email: email.trim().toLowerCase(),
         password,
@@ -53,9 +50,10 @@ export default function LoginPage() {
 
       if (authErr) {
         // Normalize error messages — never leak internal details
-        if (authErr.message.includes('Invalid login')) {
+        if (authErr.message.toLowerCase().includes('invalid login') ||
+            authErr.message.toLowerCase().includes('invalid credentials')) {
           setError('Email o contraseña incorrectos.')
-        } else if (authErr.message.includes('Email not confirmed')) {
+        } else if (authErr.message.toLowerCase().includes('email not confirmed')) {
           setError('Debes verificar tu email antes de ingresar. Revisa tu bandeja.')
         } else {
           setError('No pudimos iniciar sesión. Intenta de nuevo.')
@@ -71,8 +69,9 @@ export default function LoginPage() {
       // Reset attempts on success
       attempts.count = 0
 
-      router.push('/dashboard')
-      router.refresh()
+      // Hard navigation ensures middleware reads fresh cookies
+      const safe = redirectTo.startsWith('/') ? redirectTo : '/dashboard'
+      window.location.href = safe
 
     } catch {
       setError('Error de conexión. Revisa tu internet.')
@@ -181,6 +180,7 @@ export default function LoginPage() {
         <button
           onClick={async () => {
             setLoading(true)
+            const supabase = createClient()
             await supabase.auth.signInWithOAuth({
               provider: 'google',
               options: { redirectTo: `${window.location.origin}/auth/callback` },

@@ -4,8 +4,8 @@ import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = req.nextUrl
-  const code     = searchParams.get('code')
-  const redirect = searchParams.get('redirect') ?? '/dashboard'
+  const code = searchParams.get('code')
+  const type = searchParams.get('type') // 'recovery' for password reset links
 
   if (!code) {
     return NextResponse.redirect(`${origin}/login?error=no_code`)
@@ -33,7 +33,10 @@ export async function GET(req: NextRequest) {
     return NextResponse.redirect(`${origin}/login?error=auth_failed`)
   }
 
-  // Ensure redirect is relative (security: prevent open redirect)
-  const safeRedirect = redirect.startsWith('/') ? redirect : '/dashboard'
-  return NextResponse.redirect(`${origin}${safeRedirect}`)
+  // Password reset flow → send to update-password page
+  if (type === 'recovery') {
+    return NextResponse.redirect(`${origin}/update-password`)
+  }
+
+  return NextResponse.redirect(`${origin}/dashboard`)
 }
