@@ -3,7 +3,7 @@
 import { useState, useCallback } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Map, RotateCcw, SearchX, Loader2 } from 'lucide-react'
+import { Map, RotateCcw, SearchX, Loader2, X } from 'lucide-react'
 import { ChatBox } from '@/components/chat/ChatBox'
 import { ResultsGrid, ResultsGridSkeleton } from '@/components/discovery/ResultsGrid'
 import { RestaurantResult, ChapiIntent } from '@/lib/types'
@@ -17,6 +17,33 @@ function MapSkeleton() {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 mb-4">
       <div className="rounded-2xl bg-neutral-100 animate-pulse border border-neutral-100" style={{ height: '300px' }} />
+    </div>
+  )
+}
+
+// ── Crossover notice ──────────────────────────────────────────────────────────
+function CrossoverNotice({ query, onDismiss }: { query: string; onDismiss: () => void }) {
+  return (
+    <div className="max-w-4xl mx-auto px-4 mt-6">
+      <div className="bg-white border border-neutral-100 rounded-2xl px-5 py-4 flex items-start justify-between gap-4 shadow-sm">
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-[#1A1A2E] mb-0.5">
+            🤖 Chapi guardó tus preferencias
+          </p>
+          <p className="text-xs text-neutral-400 leading-relaxed">
+            Si escaneas el QR de tu mesa en el restaurante, Chapi ya sabrá que buscabas{' '}
+            <span className="text-[#1A1A2E] font-medium">[{query}]</span>
+          </p>
+        </div>
+        <button
+          onClick={onDismiss}
+          className="shrink-0 flex items-center gap-1.5 text-xs text-neutral-400
+                     hover:text-[#FF6B35] transition-colors font-medium mt-0.5"
+        >
+          <X size={12} />
+          Entendido
+        </button>
+      </div>
     </div>
   )
 }
@@ -97,13 +124,14 @@ function NoResultsBanner({
 }
 
 export default function Home() {
-  const [results, setResults]       = useState<RestaurantResult[]>([])
-  const [query, setQuery]           = useState('')
-  const [status, setStatus]         = useState('')
-  const [isSearching, setIsSearching] = useState(false)
-  const [noResults, setNoResults]   = useState<ChapiIntent | null>(null)
-  const [searchKey, setSearchKey]   = useState(0)
-  const [showMap, setShowMap]       = useState(false)
+  const [results, setResults]           = useState<RestaurantResult[]>([])
+  const [query, setQuery]               = useState('')
+  const [status, setStatus]             = useState('')
+  const [isSearching, setIsSearching]   = useState(false)
+  const [noResults, setNoResults]       = useState<ChapiIntent | null>(null)
+  const [searchKey, setSearchKey]       = useState(0)
+  const [showMap, setShowMap]           = useState(false)
+  const [crossoverDismissed, setCrossoverDismissed] = useState(false)
 
   const handleResults = useCallback((newResults: RestaurantResult[], userQuery: string) => {
     setResults(newResults)
@@ -111,6 +139,7 @@ export default function Home() {
     setIsSearching(false)
     setNoResults(null)
     setShowMap(false)
+    setCrossoverDismissed(false)
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
@@ -135,6 +164,7 @@ export default function Home() {
     setIsSearching(false)
     setNoResults(null)
     setShowMap(false)
+    setCrossoverDismissed(false)
     setSearchKey(k => k + 1)
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
   }, [])
@@ -231,7 +261,17 @@ export default function Home() {
               onReset={handleReset}
             />
           ) : (
-            <ResultsGrid results={results} query={query} />
+            <>
+              <ResultsGrid results={results} query={query} />
+
+              {/* Crossover notice */}
+              {results.length > 0 && !crossoverDismissed && (
+                <CrossoverNotice
+                  query={query}
+                  onDismiss={() => setCrossoverDismissed(true)}
+                />
+              )}
+            </>
           )}
         </section>
       )}

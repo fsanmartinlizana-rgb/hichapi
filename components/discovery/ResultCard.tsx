@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { Star, MapPin, ChevronDown, ChevronUp } from 'lucide-react'
 import { RestaurantResult, MenuItem } from '@/lib/types'
 
@@ -44,18 +45,27 @@ function DishRow({ dish, highlight = false }: { dish: MenuItem; highlight?: bool
   )
 }
 
+// `has_promotion` is not yet in the Restaurant type; we cast defensively so the
+// card works today and will automatically light up once the column exists.
+function hasPromotion(result: RestaurantResult): boolean {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return !!(result as any).restaurant?.has_promotion
+}
+
 export function ResultCard({ result, index }: { result: RestaurantResult; index: number }) {
   const { restaurant, suggested_dish, menu_items, distance_m } = result
   const [expanded, setExpanded] = useState(false)
+  const showPromoBadge = hasPromotion(result)
 
   // Extra dishes beyond the first one
   const extraDishes = (menu_items ?? []).slice(1)
   const hasExtras   = extraDishes.length > 0
 
   return (
-    <article
-      className="bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100
-                 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
+    <Link
+      href={`/r/${restaurant.slug}`}
+      className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100
+                 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     >
       {/* Foto */}
       <div className="relative aspect-video overflow-hidden bg-neutral-100">
@@ -83,10 +93,18 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
           </div>
         )}
 
-        <div className="absolute top-3 left-3 bg-[#FF6B35] text-white
-                        text-xs font-bold w-6 h-6 rounded-full
-                        flex items-center justify-center">
-          {index + 1}
+        {/* Index number + optional promo badge stacked top-left */}
+        <div className="absolute top-3 left-3 flex items-center gap-1.5">
+          <div className="bg-[#FF6B35] text-white text-xs font-bold w-6 h-6 rounded-full
+                          flex items-center justify-center">
+            {index + 1}
+          </div>
+          {showPromoBadge && (
+            <span className="bg-orange-500 text-white text-[10px] font-bold
+                             px-2 py-0.5 rounded-full leading-none">
+              🎯 Oferta hoy
+            </span>
+          )}
         </div>
       </div>
 
@@ -94,7 +112,7 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-1">
-          <h3 className="font-semibold text-[#1A1A2E] text-base leading-tight">
+          <h3 className="font-semibold text-[#1A1A2E] text-base leading-tight group-hover:text-[#FF6B35] transition-colors">
             {restaurant.name}
           </h3>
           <div className="flex items-center gap-1 ml-2 shrink-0">
@@ -124,10 +142,10 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
               </div>
             )}
 
-            {/* Toggle ver más / menos */}
+            {/* Toggle ver más / menos — stop propagation so Link doesn't fire */}
             {hasExtras && (
               <button
-                onClick={() => setExpanded(v => !v)}
+                onClick={e => { e.preventDefault(); setExpanded(v => !v) }}
                 className="w-full flex items-center justify-center gap-1 pt-1 pb-2
                            text-[11px] text-neutral-400 hover:text-[#FF6B35] transition-colors"
               >
@@ -140,6 +158,13 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
           </div>
         )}
       </div>
-    </article>
+
+      {/* Footer — ver menú */}
+      <div className="border-t border-neutral-50 px-4 py-2.5">
+        <span className="text-xs text-neutral-400 group-hover:text-[#FF6B35] transition-colors font-medium">
+          Ver menú →
+        </span>
+      </div>
+    </Link>
   )
 }
