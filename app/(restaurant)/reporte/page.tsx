@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, TrendingDown, Sparkles, Download, ChevronRight, AlertCircle, Lightbulb, Target } from 'lucide-react'
+import { TrendingUp, TrendingDown, Sparkles, Download, ChevronRight, AlertCircle, Lightbulb, Target, Check, X } from 'lucide-react'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -91,12 +91,210 @@ function HeatCell({ value }: { value: number }) {
   )
 }
 
+// ── PromoForm ─────────────────────────────────────────────────────────────────
+
+type PromoType = '2x1' | 'descuento' | 'combo'
+
+interface PromoFormProps {
+  slot: typeof DEAD_TIMES[0]
+  onActivate: () => void
+  onCancel: () => void
+}
+
+function PromoForm({ slot, onActivate, onCancel }: PromoFormProps) {
+  const [nombre, setNombre] = useState('Happy Hour de tarde')
+  const [tipo, setTipo] = useState<PromoType>('descuento')
+  const [descuento, setDescuento] = useState('20')
+  const [horario, setHorario] = useState(`${slot.range} ${slot.day}`)
+  const [desde, setDesde] = useState('2026-04-07')
+  const [hasta, setHasta] = useState('2026-04-30')
+  const [mensaje, setMensaje] = useState(
+    `¡Aprovecha nuestro happy hour de tarde! De ${slot.range} tienes 20% de descuento en toda la carta`
+  )
+  const [canales, setCanales] = useState({
+    mesa: true,
+    espera: true,
+    discovery: true,
+  })
+
+  const tipoLabels: Record<PromoType, string> = {
+    '2x1': '2×1',
+    descuento: 'Descuento %',
+    combo: 'Combo especial',
+  }
+
+  const toggleCanal = (key: keyof typeof canales) => {
+    setCanales(prev => ({ ...prev, [key]: !prev[key] }))
+  }
+
+  return (
+    <div className="mt-2 bg-[#1A1A2E] border border-[#FF6B35]/25 rounded-xl p-4 space-y-3.5">
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-white text-xs font-semibold">Nueva promoción</p>
+        <button onClick={onCancel} className="text-white/30 hover:text-white/60 transition-colors">
+          <X size={13} />
+        </button>
+      </div>
+
+      {/* Nombre */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Nombre de la promoción</label>
+        <input
+          value={nombre}
+          onChange={e => setNombre(e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+          placeholder="Ej. Happy Hour de tarde"
+        />
+      </div>
+
+      {/* Tipo */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Tipo</label>
+        <div className="flex gap-1.5">
+          {(['2x1', 'descuento', 'combo'] as PromoType[]).map(t => (
+            <button
+              key={t}
+              onClick={() => setTipo(t)}
+              className={`px-2.5 py-1 rounded-full text-[10px] font-semibold border transition-all
+                ${tipo === t
+                  ? 'bg-[#FF6B35] border-[#FF6B35] text-white'
+                  : 'bg-white/5 border-white/10 text-white/40 hover:border-white/20 hover:text-white/60'
+                }`}
+            >
+              {tipoLabels[t]}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Descuento */}
+      {tipo !== 'combo' && (
+        <div className="space-y-1">
+          <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">
+            {tipo === '2x1' ? 'Precio mínimo aplicable ($)' : 'Descuento (%)'}
+          </label>
+          <input
+            value={descuento}
+            onChange={e => setDescuento(e.target.value)}
+            type="number"
+            className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+            placeholder={tipo === '2x1' ? '0' : '20'}
+          />
+        </div>
+      )}
+
+      {/* Horario */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Horario aplicable</label>
+        <input
+          value={horario}
+          onChange={e => setHorario(e.target.value)}
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+        />
+      </div>
+
+      {/* Vigencia */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Vigencia</label>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 space-y-0.5">
+            <p className="text-white/25 text-[9px]">Desde</p>
+            <input
+              type="date"
+              value={desde}
+              onChange={e => setDesde(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#FF6B35]/50 transition-colors [color-scheme:dark]"
+            />
+          </div>
+          <span className="text-white/20 text-xs mt-4">→</span>
+          <div className="flex-1 space-y-0.5">
+            <p className="text-white/25 text-[9px]">Hasta</p>
+            <input
+              type="date"
+              value={hasta}
+              onChange={e => setHasta(e.target.value)}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-[10px] focus:outline-none focus:border-[#FF6B35]/50 transition-colors [color-scheme:dark]"
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Mensaje para Chapi */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Mensaje para Chapi</label>
+        <textarea
+          value={mensaje}
+          onChange={e => setMensaje(e.target.value)}
+          rows={2}
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors resize-none leading-relaxed"
+          placeholder="Lo que Chapi dirá cuando recomiende esta promo..."
+        />
+        <p className="text-white/20 text-[9px]">Chapi usará este mensaje cuando recomiende la promo a tus clientes.</p>
+      </div>
+
+      {/* Canal */}
+      <div className="space-y-1.5">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Canal</label>
+        <div className="flex flex-col gap-1.5">
+          {[
+            { key: 'mesa' as const, label: 'Chapi en mesa' },
+            { key: 'espera' as const, label: 'Lista de espera' },
+            { key: 'discovery' as const, label: 'HiChapi Discovery' },
+          ].map(({ key, label }) => (
+            <label key={key} className="flex items-center gap-2 cursor-pointer group">
+              <div
+                onClick={() => toggleCanal(key)}
+                className={`w-3.5 h-3.5 rounded border flex items-center justify-center transition-all shrink-0
+                  ${canales[key]
+                    ? 'bg-[#FF6B35] border-[#FF6B35]'
+                    : 'bg-white/5 border-white/15 group-hover:border-white/25'
+                  }`}
+              >
+                {canales[key] && <Check size={8} className="text-white" strokeWidth={3} />}
+              </div>
+              <span
+                onClick={() => toggleCanal(key)}
+                className="text-white/55 text-[10px] group-hover:text-white/70 transition-colors"
+              >
+                {label}
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div className="flex items-center gap-2 pt-1">
+        <button
+          onClick={onActivate}
+          className="flex-1 py-2 rounded-lg bg-[#FF6B35] text-white text-[11px] font-semibold hover:bg-[#e85d2a] transition-colors"
+        >
+          Activar promoción
+        </button>
+        <button
+          onClick={onCancel}
+          className="px-3 py-2 rounded-lg border border-white/10 text-white/40 text-[11px] hover:border-white/20 hover:text-white/60 transition-colors"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ReportePage() {
   const [period, setPeriod] = useState<'dia' | 'semana' | 'mes'>('dia')
+  const [expandedPromo, setExpandedPromo] = useState<string | null>(null)
+  const [activePromos, setActivePromos] = useState<Set<string>>(new Set())
 
   const maxRev = Math.max(...WEEKLY_REVENUE.map(r => r.v))
+
+  const handleActivate = (key: string) => {
+    setActivePromos(prev => new Set([...prev, key]))
+    setExpandedPromo(null)
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -226,29 +424,58 @@ export default function ReportePage() {
               <span className="text-[10px] text-white/25">Últimas 4 sem.</span>
             </div>
             <div className="space-y-3">
-              {DEAD_TIMES.map((slot, i) => (
-                <div key={i} className="bg-red-500/6 border border-red-500/15 rounded-xl p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-white/70 text-xs font-medium">{slot.day}</p>
-                      <p className="text-white/40 text-[10px]">{slot.range}</p>
+              {DEAD_TIMES.map((slot, i) => {
+                const key = String(i)
+                const isActive = activePromos.has(key)
+                const isExpanded = expandedPromo === key
+
+                return (
+                  <div key={i}>
+                    <div className="bg-red-500/6 border border-red-500/15 rounded-xl p-3 space-y-2">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-white/70 text-xs font-medium">{slot.day}</p>
+                          <p className="text-white/40 text-[10px]">{slot.range}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-red-400 text-sm font-bold font-mono">{slot.occupancy}%</p>
+                          <p className="text-white/25 text-[9px]">ocupación</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-white/30 text-[10px]">Potencial sin explotar: <span className="text-emerald-400/80">{slot.potential}/semana</span></span>
+                        <div className="w-12 h-1 rounded-full bg-white/5">
+                          <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${slot.confidence * 100}%` }} />
+                        </div>
+                      </div>
+
+                      {isActive ? (
+                        /* Success state */
+                        <div className="w-full py-1.5 px-2 rounded-lg bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center gap-1.5">
+                          <Check size={10} className="text-emerald-400" strokeWidth={2.5} />
+                          <span className="text-emerald-400 text-[10px] font-semibold">Promoción activa — Chapi ya la está ofreciendo</span>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setExpandedPromo(isExpanded ? null : key)}
+                          className="w-full py-1.5 rounded-lg bg-[#FF6B35]/15 text-[#FF6B35] text-[10px] font-semibold border border-[#FF6B35]/20 hover:bg-[#FF6B35]/25 transition-colors"
+                        >
+                          {isExpanded ? 'Ocultar formulario ↑' : 'Crear promoción →'}
+                        </button>
+                      )}
                     </div>
-                    <div className="text-right">
-                      <p className="text-red-400 text-sm font-bold font-mono">{slot.occupancy}%</p>
-                      <p className="text-white/25 text-[9px]">ocupación</p>
-                    </div>
+
+                    {/* Inline promo form */}
+                    {isExpanded && !isActive && (
+                      <PromoForm
+                        slot={slot}
+                        onActivate={() => handleActivate(key)}
+                        onCancel={() => setExpandedPromo(null)}
+                      />
+                    )}
                   </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-white/30 text-[10px]">Potencial sin explotar: <span className="text-emerald-400/80">{slot.potential}/semana</span></span>
-                    <div className="w-12 h-1 rounded-full bg-white/5">
-                      <div className="h-full rounded-full bg-emerald-400/60" style={{ width: `${slot.confidence * 100}%` }} />
-                    </div>
-                  </div>
-                  <button className="w-full py-1.5 rounded-lg bg-[#FF6B35]/15 text-[#FF6B35] text-[10px] font-semibold border border-[#FF6B35]/20 hover:bg-[#FF6B35]/25 transition-colors">
-                    Crear promoción →
-                  </button>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </div>
 

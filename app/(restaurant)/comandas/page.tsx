@@ -1,11 +1,13 @@
 'use client'
 
-import { useState } from 'react'
-import { Clock, ChevronRight, Plus, Filter, Search, CheckCircle2, ChefHat, Bell, Bike } from 'lucide-react'
+import { useState, useRef, useEffect } from 'react'
+import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type OrderStatus = 'recibida' | 'preparando' | 'lista' | 'entregada'
+
+type UserRole = 'cocina' | 'garzon' | 'admin'
 
 interface OrderItem {
   name: string
@@ -23,6 +25,31 @@ interface Order {
   amount: number
   mins: number        // elapsed minutes
   viaChapi: boolean
+}
+
+// ── Stock state ───────────────────────────────────────────────────────────────
+
+type StockEntry = { status: 'ok' | 'low' | 'out' | '86'; qty?: number }
+
+const ITEM_STOCK_INITIAL: Record<string, StockEntry> = {
+  'Risotto':     { status: 'low', qty: 3 },
+  'Gazpacho':    { status: 'out' },
+  'Tiramisú':    { status: 'low', qty: 5 },
+  'Lomo vetado': { status: 'ok' },
+  // all others default to ok
+}
+
+function getStock(map: Record<string, StockEntry>, name: string): StockEntry {
+  return map[name] ?? { status: 'ok' }
+}
+
+// ── Permissions ───────────────────────────────────────────────────────────────
+
+function canAdvance(role: UserRole, fromStatus: OrderStatus): boolean {
+  if (role === 'admin') return true
+  if (role === 'cocina') return fromStatus === 'preparando'
+  if (role === 'garzon') return fromStatus === 'recibida' || fromStatus === 'lista'
+  return false
 }
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
@@ -142,19 +169,223 @@ const COLUMNS: {
   },
 ]
 
+// Columns that cocina can see clearly (others dimmed)
+const COCINA_HIGHLIGHT: OrderStatus[] = ['preparando', 'lista']
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+
+interface ToastMsg {
+  id: number
+  text: string
+  variant?: 'break' | 'stock'
+}
+
+function Toast({ msg }: { msg: ToastMsg }) {
+  const isStock = msg.variant === 'stock'
+  return (
+    <div className={`flex items-center gap-2 border text-white/80
+                    text-xs px-4 py-2.5 rounded-xl shadow-xl animate-fade-in
+                    ${isStock
+                      ? 'bg-[#1C1C2E] border-amber-500/30'
+                      : 'bg-[#1C1C2E] border-red-500/30'
+                    }`}>
+      {isStock
+        ? <Package size={12} className="text-amber-400 shrink-0" />
+        : <AlertTriangle size={12} className="text-red-400 shrink-0" />
+      }
+      {msg.text}
+    </div>
+  )
+}
+
+// ── StockAlertBanner ──────────────────────────────────────────────────────────
+
+function StockAlertBanner({
+  stockMap,
+  onGestionar,
+}: {
+  stockMap: Record<string, StockEntry>
+  onGestionar: () => void
+}) {
+  const [collapsed, setCollapsed] = useState(false)
+
+  const criticalItems = Object.entries(stockMap).filter(
+    ([, entry]) => entry.status === 'low' || entry.status === 'out'
+  )
+
+  if (criticalItems.length === 0) return null
+
+  const outItems  = criticalItems.filter(([, e]) => e.status === 'out')
+  const lowItems  = criticalItems.filter(([, e]) => e.status === 'low')
+  const totalCrit = criticalItems.length
+
+  // Choose bg based on whether any item is fully out
+  const hasOut = outItems.length > 0
+
+  return (
+    <div className={`mx-6 mb-4 rounded-xl border overflow-hidden transition-all
+                     ${hasOut
+                       ? 'bg-red-500/10 border-red-500/30'
+                       : 'bg-amber-500/10 border-amber-500/30'
+                     }`}>
+      <div className="flex items-center justify-between px-4 py-2.5">
+        {/* Left: icon + summary text */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <AlertTriangle
+            size={14}
+            className={hasOut ? 'text-red-400 shrink-0' : 'text-amber-400 shrink-0'}
+          />
+          {!collapsed ? (
+            <span className={`text-xs font-medium ${hasOut ? 'text-red-300' : 'text-amber-300'}`}>
+              <span className="font-bold">{totalCrit} platos con stock crítico:</span>{' '}
+              {lowItems.map(([name, e], idx) => (
+                <span key={name}>
+                  {idx > 0 && ', '}
+                  <span className="font-semibold text-white/80">{name}</span>
+                  {e.qty !== undefined && (
+                    <span className="text-white/45"> ({e.qty} unds.)</span>
+                  )}
+                </span>
+              ))}
+              {lowItems.length > 0 && outItems.length > 0 && ', '}
+              {outItems.map(([name], idx) => (
+                <span key={name}>
+                  {idx > 0 && ', '}
+                  <span className="font-semibold text-white/80">{name}</span>
+                  <span className="text-red-400/80"> (sin stock)</span>
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className={`text-xs font-medium ${hasOut ? 'text-red-300' : 'text-amber-300'}`}>
+              {totalCrit} platos con stock crítico
+            </span>
+          )}
+        </div>
+
+        {/* Right: actions */}
+        <div className="flex items-center gap-2 shrink-0 ml-3">
+          <button
+            onClick={onGestionar}
+            className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-colors
+                        ${hasOut
+                          ? 'bg-red-500/20 text-red-300 hover:bg-red-500/30'
+                          : 'bg-amber-500/20 text-amber-300 hover:bg-amber-500/30'
+                        }`}
+          >
+            Gestionar
+          </button>
+          <button
+            onClick={() => setCollapsed(c => !c)}
+            className="text-white/30 hover:text-white/60 transition-colors p-0.5"
+            title={collapsed ? 'Expandir' : 'Colapsar'}
+          >
+            {collapsed
+              ? <ChevronRight size={14} />
+              : <ChevronDown size={14} />
+            }
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── StockQtyPopover ───────────────────────────────────────────────────────────
+
+function StockQtyPopover({
+  itemName,
+  onConfirm,
+  onClose,
+}: {
+  itemName: string
+  onConfirm: (qty: number) => void
+  onClose: () => void
+}) {
+  const [value, setValue] = useState(5)
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+    inputRef.current?.select()
+  }, [])
+
+  return (
+    <div
+      className="absolute right-0 top-6 z-20 bg-[#12121E] border border-white/12 rounded-xl
+                  shadow-2xl p-3 w-48 flex flex-col gap-2"
+      onClick={e => e.stopPropagation()}
+    >
+      <p className="text-white/60 text-[10px] leading-tight">
+        Pocas unidades de{' '}
+        <span className="text-white/90 font-semibold">{itemName}</span>
+      </p>
+      <div className="flex items-center gap-2">
+        <input
+          ref={inputRef}
+          type="number"
+          min={1}
+          max={20}
+          value={value}
+          onChange={e => setValue(Math.min(20, Math.max(1, Number(e.target.value))))}
+          onKeyDown={e => {
+            if (e.key === 'Enter') onConfirm(value)
+            if (e.key === 'Escape') onClose()
+          }}
+          className="flex-1 bg-white/8 border border-white/12 rounded-lg px-2 py-1
+                     text-white text-sm text-center focus:outline-none focus:border-amber-400/50
+                     [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+        />
+        <span className="text-white/35 text-[10px]">unds.</span>
+      </div>
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => onConfirm(value)}
+          className="flex-1 py-1 rounded-lg text-[11px] font-semibold
+                     bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
+        >
+          Confirmar
+        </button>
+        <button
+          onClick={onClose}
+          className="px-2 py-1 rounded-lg text-[11px]
+                     text-white/30 hover:text-white/60 transition-colors"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── OrderCard ─────────────────────────────────────────────────────────────────
 
 function OrderCard({
   order,
   col,
+  role,
+  brokenItems,
+  stockMap,
   onAdvance,
+  onBreak,
+  onMarkLow,
 }: {
   order: Order
   col: typeof COLUMNS[0]
+  role: UserRole
+  brokenItems: Set<string>
+  stockMap: Record<string, StockEntry>
   onAdvance: (id: string, next: OrderStatus) => void
+  onBreak: (orderId: string, itemIndex: number, itemName: string) => void
+  onMarkLow: (itemName: string, qty: number) => void
 }) {
+  const [hoveredItem, setHoveredItem] = useState<number | null>(null)
+  const [popoverItem, setPopoverItem] = useState<number | null>(null)
+
   const urgent = order.status === 'preparando' && order.mins > 20
     || order.status === 'recibida' && order.mins > 8
+  const canBreakItems = role === 'cocina' || role === 'admin'
+  const actionAllowed = canAdvance(role, order.status)
 
   return (
     <div className={`bg-[#1C1C2E] rounded-xl border p-3.5 space-y-3 transition-all
@@ -168,7 +399,7 @@ function OrderCard({
             {order.tableId}
           </div>
           <div>
-            <p className="text-white text-xs font-semibold">{order.tableLabel} · {order.pax} pax</p>
+            <p className="text-white text-xs font-semibold">{order.tableLabel}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <Clock size={9} className={urgent ? 'text-red-400' : 'text-white/25'} />
               <span className={`text-[10px] ${urgent ? 'text-red-400 font-medium' : 'text-white/30'}`}>
@@ -182,28 +413,117 @@ function OrderCard({
             </div>
           </div>
         </div>
-        <p className="text-white/60 text-xs font-mono shrink-0">
-          ${(order.amount / 1000).toFixed(1)}k
-        </p>
       </div>
 
       {/* Items */}
       <div className="space-y-1">
-        {order.items.map((item, i) => (
-          <div key={i} className="flex items-start gap-2">
-            <span className="text-white/20 text-[10px] w-3 shrink-0 mt-0.5">{item.qty}×</span>
-            <div>
-              <span className="text-white/70 text-xs">{item.name}</span>
-              {item.note && (
-                <p className="text-[#FBBF24]/70 text-[9px] italic">· {item.note}</p>
+        {order.items.map((item, i) => {
+          const key     = `${order.id}:${i}`
+          const broken  = brokenItems.has(key)
+          const stock   = getStock(stockMap, item.name)
+          // broken overrides stock display (already marked 86)
+          const display = broken ? '86' : stock.status
+
+          return (
+            <div
+              key={i}
+              className="flex items-start gap-2 group/item"
+              onMouseEnter={() => setHoveredItem(i)}
+              onMouseLeave={() => { setHoveredItem(null) }}
+            >
+              <span className="text-white/20 text-[10px] w-3 shrink-0 mt-0.5">{item.qty}×</span>
+
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  {/* Item name with conditional decoration */}
+                  <span className={`text-xs transition-all ${
+                    display === '86'
+                      ? 'line-through text-white/25'
+                      : display === 'out'
+                        ? 'line-through text-white/25'
+                        : 'text-white/70'
+                  }`}>
+                    {item.name}
+                  </span>
+
+                  {/* 86 badge */}
+                  {display === '86' && (
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-500/20 text-red-400 border border-red-500/30 shrink-0">
+                      86
+                    </span>
+                  )}
+
+                  {/* out badge */}
+                  {display === 'out' && (
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-600/20 text-red-300 border border-red-600/30 shrink-0 flex items-center gap-0.5">
+                      <AlertTriangle size={7} />
+                      sin stock
+                    </span>
+                  )}
+
+                  {/* low badge */}
+                  {display === 'low' && (
+                    <span className="text-[8px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25 shrink-0">
+                      ⚠ {stock.qty} unds.
+                    </span>
+                  )}
+                </div>
+                {item.note && (
+                  <p className="text-[#FBBF24]/70 text-[9px] italic">· {item.note}</p>
+                )}
+              </div>
+
+              {/* Action buttons — cocina/admin only, on hover */}
+              {canBreakItems && (
+                <div className={`relative shrink-0 flex items-center gap-0.5 transition-all
+                                  ${hoveredItem === i ? 'opacity-100' : 'opacity-0'}`}>
+
+                  {/* Break (×) button — only if not already broken */}
+                  {!broken && (
+                    <button
+                      onClick={() => onBreak(order.id, i, item.name)}
+                      className="w-4 h-4 rounded flex items-center justify-center
+                                  text-red-400/60 hover:text-red-400 hover:bg-red-500/15 transition-all"
+                      title="Marcar quiebre"
+                    >
+                      <X size={9} />
+                    </button>
+                  )}
+
+                  {/* Mark-low (!) button */}
+                  {!broken && (
+                    <div className="relative">
+                      <button
+                        onClick={() => setPopoverItem(popoverItem === i ? null : i)}
+                        className="w-4 h-4 rounded flex items-center justify-center
+                                    text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/15
+                                    transition-all text-[9px] font-bold"
+                        title="Marcar pocas unidades"
+                      >
+                        !
+                      </button>
+
+                      {popoverItem === i && (
+                        <StockQtyPopover
+                          itemName={item.name}
+                          onConfirm={qty => {
+                            onMarkLow(item.name, qty)
+                            setPopoverItem(null)
+                          }}
+                          onClose={() => setPopoverItem(null)}
+                        />
+                      )}
+                    </div>
+                  )}
+                </div>
               )}
             </div>
-          </div>
-        ))}
+          )
+        })}
       </div>
 
       {/* Action */}
-      {col.next && (
+      {col.next && actionAllowed && (
         <button
           onClick={() => onAdvance(order.id, col.next!)}
           className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
@@ -224,11 +544,39 @@ function OrderCard({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ComandasPage() {
-  const [orders, setOrders] = useState<Order[]>(ORDERS)
-  const [search, setSearch] = useState('')
+  const [orders, setOrders]         = useState<Order[]>(ORDERS)
+  const [search, setSearch]         = useState('')
+  const [role, setRole]             = useState<UserRole>('admin')
+  const [brokenItems, setBrokenItems] = useState<Set<string>>(new Set())
+  const [stockMap, setStockMap]     = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
+  const [toasts, setToasts]         = useState<ToastMsg[]>([])
+
+  function pushToast(text: string, variant: ToastMsg['variant'] = 'break') {
+    const id = Date.now()
+    setToasts(prev => [...prev, { id, text, variant }])
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
+  }
 
   function advance(id: string, next: OrderStatus) {
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: next } : o))
+  }
+
+  function markBreak(orderId: string, itemIndex: number, itemName: string) {
+    const key = `${orderId}:${itemIndex}`
+    setBrokenItems(prev => {
+      const next = new Set(prev)
+      next.add(key)
+      return next
+    })
+    pushToast(`${itemName} marcado como quiebre · Chapi dejará de ofrecerlo`, 'break')
+  }
+
+  function markLow(itemName: string, qty: number) {
+    setStockMap(prev => ({ ...prev, [itemName]: { status: 'low', qty } }))
+    pushToast(
+      `${itemName} marcado con ${qty} unidades disponibles · Chapi dejará de recomendarlo activamente`,
+      'stock'
+    )
   }
 
   const filtered = search
@@ -237,6 +585,12 @@ export default function ComandasPage() {
         o.items.some(i => i.name.toLowerCase().includes(search.toLowerCase()))
       )
     : orders
+
+  const ROLE_OPTIONS: { value: UserRole; label: string; emoji: string }[] = [
+    { value: 'cocina', label: 'Cocina', emoji: '👨‍🍳' },
+    { value: 'garzon', label: 'Garzón', emoji: '🍽' },
+    { value: 'admin', label: 'Admin', emoji: '🔑' },
+  ]
 
   return (
     <div className="flex flex-col h-full">
@@ -251,6 +605,25 @@ export default function ComandasPage() {
           </p>
         </div>
         <div className="flex items-center gap-2">
+          {/* Role selector */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/8">
+            {ROLE_OPTIONS.map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => setRole(opt.value)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold
+                            transition-all select-none
+                            ${role === opt.value
+                              ? 'bg-white/12 text-white shadow-sm'
+                              : 'text-white/35 hover:text-white/55'
+                            }`}
+              >
+                <span>{opt.emoji}</span>
+                {opt.label}
+              </button>
+            ))}
+          </div>
+
           {/* Search */}
           <div className="relative">
             <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
@@ -270,13 +643,23 @@ export default function ComandasPage() {
         </div>
       </div>
 
+      {/* Stock alert banner — above the kanban, below the header */}
+      <StockAlertBanner
+        stockMap={stockMap}
+        onGestionar={() => pushToast('Panel de gestión de stock — próximamente', 'stock')}
+      />
+
       {/* Kanban board */}
       <div className="flex-1 overflow-x-auto px-6 pb-6">
         <div className="flex gap-4 h-full" style={{ minWidth: '900px' }}>
           {COLUMNS.map(col => {
             const colOrders = filtered.filter(o => o.status === col.status)
+            const dimmed = role === 'cocina' && !COCINA_HIGHLIGHT.includes(col.status)
             return (
-              <div key={col.status} className="flex-1 flex flex-col min-w-0">
+              <div
+                key={col.status}
+                className={`flex-1 flex flex-col min-w-0 transition-opacity duration-200 ${dimmed ? 'opacity-30' : 'opacity-100'}`}
+              >
 
                 {/* Column header */}
                 <div className="flex items-center justify-between mb-3 shrink-0">
@@ -302,7 +685,17 @@ export default function ComandasPage() {
                     </div>
                   ) : (
                     colOrders.map(o => (
-                      <OrderCard key={o.id} order={o} col={col} onAdvance={advance} />
+                      <OrderCard
+                        key={o.id}
+                        order={o}
+                        col={col}
+                        role={role}
+                        brokenItems={brokenItems}
+                        stockMap={stockMap}
+                        onAdvance={advance}
+                        onBreak={markBreak}
+                        onMarkLow={markLow}
+                      />
                     ))
                   )}
                 </div>
@@ -311,6 +704,15 @@ export default function ComandasPage() {
           })}
         </div>
       </div>
+
+      {/* Toast container */}
+      {toasts.length > 0 && (
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 z-50 pointer-events-none">
+          {toasts.map(t => (
+            <Toast key={t.id} msg={t} />
+          ))}
+        </div>
+      )}
     </div>
   )
 }

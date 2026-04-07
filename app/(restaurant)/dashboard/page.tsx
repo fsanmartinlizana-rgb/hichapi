@@ -4,41 +4,72 @@ import { useState } from 'react'
 import {
   TrendingUp, TrendingDown, Users, Star,
   ChevronRight, ArrowUpRight, Zap, AlertCircle, Info,
-  Plus, FileText,
+  Plus, FileText, Clock, Check,
 } from 'lucide-react'
+import Link from 'next/link'
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Formats a Chilean peso amount.
+ * >= 100 000 → "$847K"  (compact, no decimals)
+ *  < 100 000 → "$18.400" (es-CL full thousands separator)
+ */
+function clp(amount: number): string {
+  if (amount >= 100_000) {
+    const k = Math.round(amount / 1_000)
+    return `$${k}K`
+  }
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
+}
 
 // ── Mock data ───────────────────────────────────────────────────────────────
 
 const KPIS = [
   {
     label: 'Ventas hoy',
-    value: '$847k',
+    value: clp(847_000),
     delta: '+12%',
-    sub: 'vs ayer',
+    sub: 'vs lunes típico',
+    showTooltip: true,
     up: true,
     color: '#FF6B35',
   },
   {
     label: 'Ticket promedio',
-    value: '$18.4k',
+    value: clp(18_400),
     delta: '+4%',
     sub: 'vs promedio',
+    showTooltip: false,
     up: true,
     color: '#60A5FA',
   },
   {
     label: 'Pedidos activos',
     value: '7',
-    delta: '3 preparando',
-    sub: '2 listos',
+    delta: null,
+    sub: null,
+    showTooltip: false,
     up: null,
     color: '#FBBF24',
+    statusBreakdown: [
+      { label: 'en espera', count: 2, color: '#94A3B8',  bg: 'bg-slate-500/15'  },
+      { label: 'en cocina', count: 3, color: '#FBBF24',  bg: 'bg-yellow-500/15' },
+      { label: 'listos',    count: 1, color: '#34D399',  bg: 'bg-emerald-500/15'},
+      { label: 'entregados',count: 1, color: '#60A5FA',  bg: 'bg-blue-500/15'   },
+    ],
   },
   {
     label: 'NPS del día',
     value: '74',
     delta: '↑ 8 pts',
     sub: 'vs semana',
+    showTooltip: false,
     up: true,
     color: '#34D399',
   },
@@ -50,7 +81,7 @@ const ORDERS = [
     table: 'Mesa 4',
     pax: '3 personas',
     items: 'Lomo vetado, Ensalada César, Pasta arrabiata',
-    amount: '$54.2k',
+    amount: 54_200,
     mins: 12,
     via: true,
     status: 'active',
@@ -61,7 +92,7 @@ const ORDERS = [
     table: 'Mesa 7',
     pax: '2 personas',
     items: 'Salmón grillado (sin gluten), Gazpacho',
-    amount: '$38.9k',
+    amount: 38_900,
     mins: 3,
     via: true,
     status: 'active',
@@ -72,7 +103,7 @@ const ORDERS = [
     table: 'Mesa 2',
     pax: '4 personas',
     items: 'Pizza napolitana ×2, Risotto, Tiramisú',
-    amount: '$71.6k',
+    amount: 71_600,
     mins: 28,
     via: true,
     status: 'active',
@@ -83,7 +114,7 @@ const ORDERS = [
     table: 'Mesa 11',
     pax: '5 personas',
     items: 'Solicitando cuenta · split en proceso',
-    amount: '$112.4k',
+    amount: 112_400,
     mins: 52,
     via: true,
     status: 'cuenta',
@@ -94,7 +125,7 @@ const ORDERS = [
     table: 'Mesa 9',
     pax: '2 personas',
     items: 'Ceviche, Pisco sour ×2, Pan de ajo',
-    amount: '$29.8k',
+    amount: 29_800,
     mins: 8,
     via: true,
     status: 'active',
@@ -129,19 +160,22 @@ const CHAPI_TIPS = [
     icon: <ArrowUpRight size={14} />,
     color: '#34D399',
     bg: 'bg-emerald-500/10',
-    text: 'Activar "Sugerencia del chef" — el lomo vetado tiene stock para 4 porciones más y es tu plato más pedido de la tarde.',
+    title: 'Sugerencia del chef',
+    text: 'El lomo vetado tiene stock para 4 porciones más y es tu plato más pedido de la tarde.',
   },
   {
     icon: <AlertCircle size={14} />,
     color: '#FBBF24',
     bg: 'bg-yellow-500/10',
-    text: 'Peak en 45 min — históricamente recibes 6–8 mesas entre las 13:15 y 14:00. Tienes 5 libres.',
+    title: 'Peak en 45 min',
+    text: 'Históricamente recibes 6–8 mesas entre las 13:15 y 14:00. Tienes 5 mesas libres.',
   },
   {
     icon: <Zap size={14} />,
     color: '#60A5FA',
     bg: 'bg-blue-500/10',
-    text: 'Cross-sell activo: Chapi está ofreciendo el tiramisú de postre a las mesas en plato principal. 3 de 4 mesas lo aceptaron hoy.',
+    title: 'Cross-sell activo',
+    text: 'Chapi ofrece tiramisú de postre. 3 de 4 mesas lo aceptaron hoy.',
   },
 ]
 
@@ -166,29 +200,125 @@ const HOURLY = [
   { h: '20h', v: 6  },
 ]
 
+// state: 'ok' | 'warning' | 'bottleneck'
+const TIEMPOS = [
+  {
+    label: 'Tiempo en cocina',
+    actual: 14,
+    target: 12,
+    unit: 'min',
+    state: 'warning' as const,
+    stateLabel: 'Atención',
+  },
+  {
+    label: 'Tiempo de espera',
+    actual: 22,
+    target: 20,
+    unit: 'min',
+    state: 'warning' as const,
+    stateLabel: 'Atención',
+  },
+  {
+    label: 'Tiempo de entrega',
+    actual: 3,
+    target: 5,
+    unit: 'min',
+    state: 'ok' as const,
+    stateLabel: 'OK',
+  },
+]
+
+const STATE_COLORS = {
+  ok:         { bar: '#34D399', badge: 'bg-emerald-500/15 text-emerald-400', dot: 'bg-emerald-400' },
+  warning:    { bar: '#FBBF24', badge: 'bg-yellow-500/15 text-yellow-400',   dot: 'bg-yellow-400'  },
+  bottleneck: { bar: '#F87171', badge: 'bg-red-500/15 text-red-400',         dot: 'bg-red-400'     },
+}
+
 // ── Components ───────────────────────────────────────────────────────────────
 
 function KpiCard({ kpi }: { kpi: typeof KPIS[0] }) {
+  const [tip, setTip] = useState(false)
+
   return (
     <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
       <div className="flex items-start justify-between">
         <p className="text-white/40 text-xs">{kpi.label}</p>
         <div className="w-0.5 h-8 rounded-full" style={{ backgroundColor: kpi.color + '60' }} />
       </div>
+
       <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {kpi.value}
       </p>
-      <div className="flex items-center gap-1.5">
-        {kpi.up !== null && (
-          kpi.up
-            ? <TrendingUp size={11} className="text-emerald-400" />
-            : <TrendingDown size={11} className="text-red-400" />
-        )}
-        <span className={`text-xs font-medium ${kpi.up === true ? 'text-emerald-400' : kpi.up === false ? 'text-red-400' : 'text-white/50'}`}>
-          {kpi.delta}
-        </span>
-        <span className="text-white/25 text-xs">{kpi.sub}</span>
+
+      {/* Status breakdown for "Pedidos activos" */}
+      {'statusBreakdown' in kpi && kpi.statusBreakdown ? (
+        <div className="flex flex-wrap gap-1.5 mt-0.5">
+          {kpi.statusBreakdown.map(s => (
+            <span
+              key={s.label}
+              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold ${s.bg}`}
+              style={{ color: s.color }}
+            >
+              <span
+                className="w-1 h-1 rounded-full inline-block shrink-0"
+                style={{ backgroundColor: s.color }}
+              />
+              {s.label} ({s.count})
+            </span>
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-1.5">
+          {kpi.up !== null && (
+            kpi.up
+              ? <TrendingUp size={11} className="text-emerald-400" />
+              : <TrendingDown size={11} className="text-red-400" />
+          )}
+          <span className={`text-xs font-medium ${kpi.up === true ? 'text-emerald-400' : kpi.up === false ? 'text-red-400' : 'text-white/50'}`}>
+            {kpi.delta}
+          </span>
+          {kpi.sub && (
+            <span className="text-white/25 text-xs flex items-center gap-1">
+              {kpi.sub}
+              {kpi.showTooltip && (
+                <span className="relative inline-flex">
+                  <button
+                    onMouseEnter={() => setTip(true)}
+                    onMouseLeave={() => setTip(false)}
+                    className="text-white/25 hover:text-white/50 transition-colors"
+                  >
+                    <Info size={10} />
+                  </button>
+                  {tip && (
+                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50
+                                     bg-[#1E1E2E] border border-white/10 rounded-lg px-2.5 py-1.5
+                                     text-white/70 text-[10px] leading-snug whitespace-nowrap shadow-xl pointer-events-none">
+                      Compara con el promedio de<br />todos los lunes de este mes
+                    </span>
+                  )}
+                </span>
+              )}
+            </span>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function ChapiTipCard({ tip }: { tip: typeof CHAPI_TIPS[0] }) {
+  return (
+    <div className="bg-[#161622] rounded-2xl border border-white/5 p-4 flex-1 min-w-0 flex flex-col gap-2">
+      <div className="flex items-center gap-2">
+        <div
+          className={`w-6 h-6 rounded-lg ${tip.bg} shrink-0 flex items-center justify-center`}
+          style={{ color: tip.color }}
+        >
+          {tip.icon}
+        </div>
+        <p className="text-white text-xs font-semibold">{tip.title}</p>
       </div>
+      <p className="text-white/50 text-xs leading-relaxed">{tip.text}</p>
     </div>
   )
 }
@@ -214,7 +344,7 @@ function OrderRow({ order }: { order: typeof ORDERS[0] }) {
       </div>
       <div className="text-right shrink-0">
         <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-          {order.amount}
+          {clp(order.amount)}
         </p>
         <p className="text-white/30 text-[10px]">{order.mins} min</p>
       </div>
@@ -234,6 +364,137 @@ function MesaCell({ mesa }: { mesa: typeof MESAS[0] }) {
   )
 }
 
+function TiemposPanel() {
+  return (
+    <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-4">
+      <div className="flex items-center gap-2">
+        <Clock size={13} className="text-white/40" />
+        <p className="text-white text-sm font-semibold">Tiempos operacionales</p>
+      </div>
+      <div className="space-y-4">
+        {TIEMPOS.map((t) => {
+          const colors = STATE_COLORS[t.state]
+          // Progress: actual vs target. Cap bar at 120% for overflow display.
+          const pct = Math.min((t.actual / (t.target * 1.5)) * 100, 100)
+          const targetPct = (t.target / (t.target * 1.5)) * 100
+
+          return (
+            <div key={t.label} className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-white/60 text-xs">{t.label}</span>
+                <div className="flex items-center gap-2">
+                  <span
+                    className="text-sm font-bold"
+                    style={{ fontFamily: 'var(--font-dm-mono)', color: colors.bar }}
+                  >
+                    {t.actual} {t.unit}
+                  </span>
+                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${colors.badge}`}>
+                    {t.stateLabel}
+                  </span>
+                </div>
+              </div>
+
+              {/* Progress bar with target marker */}
+              <div className="relative h-1.5 bg-white/5 rounded-full overflow-visible">
+                <div
+                  className="h-full rounded-full transition-all"
+                  style={{ width: `${pct}%`, backgroundColor: colors.bar }}
+                />
+                {/* Target tick */}
+                <div
+                  className="absolute top-1/2 -translate-y-1/2 w-px h-3 bg-white/30 rounded-full"
+                  style={{ left: `${targetPct}%` }}
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-white/20 text-[9px]">0 {t.unit}</span>
+                <span className="text-white/20 text-[9px]">objetivo: {t.target} {t.unit}</span>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+// ── PromocionesCard ──────────────────────────────────────────────────────────
+
+function PromocionesCard() {
+  const [comboActivo, setComboActivo] = useState(false)
+
+  return (
+    <div className="bg-[#161622] rounded-2xl border border-white/5 p-4 flex flex-col gap-3">
+      {/* Header */}
+      <div className="flex items-center gap-2">
+        <div className="w-6 h-6 rounded-lg bg-[#FF6B35]/15 flex items-center justify-center shrink-0">
+          <Zap size={12} className="text-[#FF6B35]" />
+        </div>
+        <p className="text-white text-sm font-semibold flex-1">Promociones activas</p>
+      </div>
+
+      {/* Promo pills */}
+      <div className="space-y-2">
+        {/* Active promo */}
+        <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15">
+          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
+          <div className="flex-1 min-w-0">
+            <p className="text-white/80 text-[11px] font-semibold truncate">🎯 Happy Hour tarde</p>
+            <p className="text-white/35 text-[9px]">15:00–17:00 · Activa</p>
+          </div>
+          <span className="text-emerald-400 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 shrink-0">
+            Activa
+          </span>
+        </div>
+
+        {/* Inactive promo */}
+        <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-white/3 border border-white/8">
+          <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-white/40 text-[11px] font-semibold truncate">🍽 Combo mediodía</p>
+            <p className="text-white/25 text-[9px]">Inactiva</p>
+          </div>
+          {comboActivo ? (
+            <span className="flex items-center gap-1 text-emerald-400 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 shrink-0">
+              <Check size={8} strokeWidth={3} /> Activada
+            </span>
+          ) : (
+            <button
+              onClick={() => setComboActivo(true)}
+              className="text-[#FF6B35] text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 transition-colors shrink-0 whitespace-nowrap"
+            >
+              Activar →
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Loyalty section */}
+      <div className="pt-2 border-t border-white/5 space-y-1.5">
+        <p className="text-white/25 text-[9px] uppercase tracking-widest font-semibold">Beneficios para clientes frecuentes</p>
+        <div className="flex items-center gap-2">
+          <span className="text-sm">💎</span>
+          <p className="text-white/60 text-[11px] flex-1">3 clientes con canje disponible hoy</p>
+          <button className="text-[10px] text-white/40 hover:text-white/70 border border-white/10 hover:border-white/20 px-2 py-0.5 rounded-lg transition-colors shrink-0">
+            Ver
+          </button>
+        </div>
+      </div>
+
+      {/* Footer link */}
+      <Link
+        href="/reporte"
+        className="flex items-center justify-center gap-1 text-[#FF6B35] text-[10px] font-semibold hover:text-[#ff8255] transition-colors pt-0.5"
+      >
+        <Plus size={10} />
+        Nueva promoción
+      </Link>
+    </div>
+  )
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
@@ -248,7 +509,7 @@ export default function DashboardPage() {
         <div>
           <h1 className="text-white text-xl font-bold">Resumen del día</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-white/40 text-sm">Martes 31 mar</p>
+            <p className="text-white/40 text-sm">Lunes 6 abr</p>
             <span className="flex items-center gap-1 text-emerald-400 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               En vivo
@@ -274,7 +535,19 @@ export default function DashboardPage() {
         {KPIS.map(k => <KpiCard key={k.label} kpi={k} />)}
       </div>
 
-      {/* Middle row */}
+      {/* Chapi recomienda — horizontal row of 3 cards */}
+      <div>
+        <p className="text-white/30 text-[10px] uppercase tracking-widest font-semibold mb-2.5 px-0.5">
+          Chapi recomienda
+        </p>
+        <div className="flex gap-4">
+          {CHAPI_TIPS.map((tip, i) => (
+            <ChapiTipCard key={i} tip={tip} />
+          ))}
+        </div>
+      </div>
+
+      {/* Middle row — orders (2 cols) + right column (mesa grid + promos) */}
       <div className="grid grid-cols-3 gap-4">
 
         {/* Orders — 2 cols */}
@@ -301,9 +574,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right column */}
-        <div className="space-y-4">
-
+        {/* Right column — mesa grid + promociones */}
+        <div className="flex flex-col gap-4">
           {/* Mesa grid */}
           <div className="bg-[#161622] rounded-2xl border border-white/5 p-4">
             <div className="flex items-center justify-between mb-3">
@@ -330,26 +602,13 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Chapi recomienda */}
-          <div className="bg-[#161622] rounded-2xl border border-white/5 p-4">
-            <p className="text-white text-sm font-semibold mb-3">Chapi recomienda</p>
-            <div className="space-y-2.5">
-              {CHAPI_TIPS.map((tip, i) => (
-                <div key={i} className="flex gap-2.5">
-                  <div className={`w-6 h-6 rounded-lg ${tip.bg} shrink-0 flex items-center justify-center mt-0.5`}
-                       style={{ color: tip.color }}>
-                    {tip.icon}
-                  </div>
-                  <p className="text-white/55 text-xs leading-relaxed">{tip.text}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Promociones activas */}
+          <PromocionesCard />
         </div>
       </div>
 
-      {/* Bottom row */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Bottom row — charts + tiempos */}
+      <div className="grid grid-cols-4 gap-4">
 
         {/* Pedidos por hora */}
         <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
@@ -432,6 +691,9 @@ export default function DashboardPage() {
             </p>
           </div>
         </div>
+
+        {/* Tiempos operacionales */}
+        <TiemposPanel />
       </div>
     </div>
   )

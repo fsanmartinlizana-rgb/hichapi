@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import {
   Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight,
-  Image, X, Check, ChevronDown, AlertCircle, Loader2,
+  Image, X, Check, ChevronDown, AlertCircle, Loader2, Camera,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -48,14 +48,29 @@ function ItemForm({
   onSave: (item: Omit<MenuItem, 'id'>) => void
   onCancel: () => void
 }) {
-  const [name, setName]           = useState(initial?.name ?? '')
-  const [desc, setDesc]           = useState(initial?.description ?? '')
-  const [price, setPrice]         = useState(initial?.price?.toString() ?? '')
-  const [cost, setCost]           = useState(initial?.cost_price?.toString() ?? '')
-  const [category, setCategory]   = useState(initial?.category ?? 'principal')
-  const [tags, setTags]           = useState<string[]>(initial?.tags ?? [])
-  const [available, setAvailable] = useState(initial?.available ?? true)
-  const [saving, setSaving]       = useState(false)
+  const [name, setName]               = useState(initial?.name ?? '')
+  const [desc, setDesc]               = useState(initial?.description ?? '')
+  const [price, setPrice]             = useState(initial?.price?.toString() ?? '')
+  const [cost, setCost]               = useState(initial?.cost_price?.toString() ?? '')
+  const [category, setCategory]       = useState(initial?.category ?? 'principal')
+  const [tags, setTags]               = useState<string[]>(initial?.tags ?? [])
+  const [available, setAvailable]     = useState(initial?.available ?? true)
+  const [saving, setSaving]           = useState(false)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null)
+
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    const url = URL.createObjectURL(file)
+    setPhotoPreview(url)
+  }
+
+  function removePhoto() {
+    setPhotoPreview(null)
+    if (fileRef.current) fileRef.current.value = ''
+  }
 
   function toggleTag(t: string) {
     setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
@@ -65,7 +80,16 @@ function ItemForm({
     if (!name || !price) return
     setSaving(true)
     await new Promise(r => setTimeout(r, 400)) // simulate API
-    onSave({ name, description: desc, price: parseInt(price), category, tags, available, cost_price: cost ? parseInt(cost) : undefined })
+    onSave({
+      name,
+      description: desc,
+      price: parseInt(price),
+      category,
+      tags,
+      available,
+      cost_price: cost ? parseInt(cost) : undefined,
+      photo_url: photoPreview ?? undefined,
+    })
     setSaving(false)
   }
 
@@ -73,6 +97,45 @@ function ItemForm({
 
   return (
     <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-5 space-y-4">
+
+      {/* Photo upload zone */}
+      <input
+        ref={fileRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      {photoPreview ? (
+        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/10">
+          <img
+            src={photoPreview}
+            alt="Vista previa"
+            className="w-full h-full object-cover"
+          />
+          <button
+            onClick={removePhoto}
+            className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/80 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => fileRef.current?.click()}
+          className="w-full h-40 rounded-xl border-2 border-dashed border-white/15 bg-white/3
+                     hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 transition-all
+                     flex flex-col items-center justify-center gap-2 group"
+        >
+          <Camera size={22} className="text-white/25 group-hover:text-[#FF6B35]/60 transition-colors" />
+          <span className="text-white/35 group-hover:text-white/50 text-sm font-medium transition-colors">
+            Subir foto
+          </span>
+          <span className="text-white/20 text-[10px]">Max 5MB · JPG, PNG, WebP</span>
+        </button>
+      )}
+
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 space-y-1.5">
           <label className="text-white/50 text-xs">Nombre del plato</label>
@@ -167,9 +230,13 @@ function ItemRow({ item, onEdit, onDelete, onToggle }: {
   return (
     <div className={`flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all
       ${item.available ? 'bg-[#1C1C2E] border-white/5 hover:border-white/10' : 'bg-white/2 border-white/3 opacity-60'}`}>
-      {/* Photo placeholder */}
-      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center shrink-0">
-        <Image size={14} className="text-white/20" />
+      {/* Photo thumbnail */}
+      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center shrink-0 overflow-hidden">
+        {item.photo_url ? (
+          <img src={item.photo_url} alt={item.name} className="w-full h-full object-cover rounded-xl" />
+        ) : (
+          <Image size={14} className="text-white/20" />
+        )}
       </div>
       {/* Info */}
       <div className="flex-1 min-w-0">

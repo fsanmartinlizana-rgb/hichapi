@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
-  QrCode, Plus, Phone, UserCheck, Ban,
+  QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
 } from 'lucide-react'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
 import { formatEta } from '@/lib/waitlist/eta'
@@ -11,29 +11,34 @@ import { formatEta } from '@/lib/waitlist/eta'
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 type MesaStatus = 'ocupada' | 'cuenta' | 'libre' | 'limpia' | 'reserva'
+type MesaZone = 'interior' | 'terraza' | 'barra'
 
 interface Mesa {
   id: string
   label: string
   seats: number
   status: MesaStatus
-  seatedAt?: string   // ISO string
+  seatedAt?: string      // ISO string
   pax?: number
+  zone?: MesaZone
+  smoking?: boolean
+  reservedUntil?: string // ISO string - when reservation expires
+  reservedFor?: string   // name of person who reserved
 }
 
 const MESAS_INIT: Mesa[] = [
-  { id: 'm1',  label: '01', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 45*60000).toISOString(), pax: 3 },
-  { id: 'm2',  label: '02', seats: 2, status: 'cuenta',  seatedAt: new Date(Date.now() - 72*60000).toISOString(), pax: 2 },
-  { id: 'm3',  label: '03', seats: 4, status: 'libre' },
-  { id: 'm4',  label: '04', seats: 6, status: 'ocupada', seatedAt: new Date(Date.now() - 28*60000).toISOString(), pax: 4 },
-  { id: 'm5',  label: '05', seats: 2, status: 'libre' },
-  { id: 'm6',  label: '06', seats: 4, status: 'libre' },
-  { id: 'm7',  label: '07', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 15*60000).toISOString(), pax: 2 },
-  { id: 'm8',  label: '08', seats: 6, status: 'reserva' },
-  { id: 'm9',  label: '09', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 58*60000).toISOString(), pax: 4 },
-  { id: 'm10', label: '10', seats: 2, status: 'libre' },
-  { id: 'm11', label: '11', seats: 4, status: 'cuenta',  seatedAt: new Date(Date.now() - 80*60000).toISOString(), pax: 5 },
-  { id: 'm12', label: '12', seats: 4, status: 'limpia' },
+  { id: 'm1',  label: '01', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 45*60000).toISOString(), pax: 3,  zone: 'interior' },
+  { id: 'm2',  label: '02', seats: 2, status: 'cuenta',  seatedAt: new Date(Date.now() - 72*60000).toISOString(), pax: 2,  zone: 'interior' },
+  { id: 'm3',  label: '03', seats: 4, status: 'libre',   zone: 'interior' },
+  { id: 'm4',  label: '04', seats: 6, status: 'ocupada', seatedAt: new Date(Date.now() - 28*60000).toISOString(), pax: 4,  zone: 'interior' },
+  { id: 'm5',  label: '05', seats: 2, status: 'libre',   zone: 'terraza', smoking: true },
+  { id: 'm6',  label: '06', seats: 4, status: 'libre',   zone: 'terraza', smoking: true },
+  { id: 'm7',  label: '07', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 15*60000).toISOString(), pax: 2, zone: 'terraza' },
+  { id: 'm8',  label: '08', seats: 6, status: 'reserva', zone: 'interior', reservedUntil: new Date(Date.now() + 12*60000).toISOString(), reservedFor: 'González' },
+  { id: 'm9',  label: '09', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 58*60000).toISOString(), pax: 4,  zone: 'interior' },
+  { id: 'm10', label: '10', seats: 2, status: 'libre',   zone: 'barra' },
+  { id: 'm11', label: '11', seats: 4, status: 'cuenta',  seatedAt: new Date(Date.now() - 80*60000).toISOString(), pax: 5,  zone: 'interior' },
+  { id: 'm12', label: '12', seats: 4, status: 'limpia',  zone: 'interior' },
 ]
 
 const WAITLIST_INIT: WaitlistEntry[] = [
@@ -61,6 +66,10 @@ function elapsedMin(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
 }
 
+function remainingMin(iso: string) {
+  return Math.ceil((new Date(iso).getTime() - Date.now()) / 60_000)
+}
+
 function maskPhone(p: string) {
   return p.replace(/(\d{4})$/, '****')
 }
@@ -71,14 +80,43 @@ function MesaCard({
   mesa,
   onMarkClean,
   onAssign,
+  onAutoRelease,
 }: {
   mesa: Mesa
   onMarkClean: (id: string) => void
   onAssign: (id: string) => void
+  onAutoRelease: (id: string) => void
 }) {
   const s = MESA_STYLES[mesa.status]
   const elapsed = mesa.seatedAt ? elapsedMin(mesa.seatedAt) : null
   const isLong = elapsed !== null && elapsed > 70
+
+  // Countdown for reserva status
+  const [countdown, setCountdown] = useState<number | null>(
+    mesa.status === 'reserva' && mesa.reservedUntil ? remainingMin(mesa.reservedUntil) : null
+  )
+
+  useEffect(() => {
+    if (mesa.status !== 'reserva' || !mesa.reservedUntil) {
+      setCountdown(null)
+      return
+    }
+
+    const tick = () => {
+      const mins = remainingMin(mesa.reservedUntil!)
+      setCountdown(mins)
+      if (mins <= 0) {
+        onAutoRelease(mesa.id)
+      }
+    }
+
+    tick()
+    const interval = setInterval(tick, 30_000)
+    return () => clearInterval(interval)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mesa.status, mesa.reservedUntil, mesa.id])
+
+  const countdownIsUrgent = countdown !== null && countdown <= 5
 
   return (
     <div className={`${s.bg} border ${s.border} rounded-xl p-3 flex flex-col gap-2 relative
@@ -88,25 +126,60 @@ function MesaCard({
         <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-teal-400 animate-ping opacity-60" />
       )}
 
+      {/* Zone + smoking badges */}
+      {(mesa.zone === 'terraza' || mesa.zone === 'barra' || mesa.smoking) && (
+        <div className="flex flex-wrap gap-1">
+          {mesa.zone === 'terraza' && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 leading-none">
+              🌿 terraza
+            </span>
+          )}
+          {mesa.zone === 'barra' && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 leading-none">
+              🍺 barra
+            </span>
+          )}
+          {mesa.smoking && (
+            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-white/8 text-white/40 border border-white/10 leading-none">
+              🚬 fumador
+            </span>
+          )}
+        </div>
+      )}
+
       <div className="flex items-center justify-between">
         <span className="text-white font-bold text-lg leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
           {mesa.label}
         </span>
-        {mesa.pax && (
-          <div className="flex items-center gap-1">
-            <Users size={9} className="text-white/25" />
-            <span className="text-white/30 text-[9px]">{mesa.pax}</span>
+        {/* People count — prominent */}
+        {mesa.pax != null && (
+          <div className="flex items-center gap-1 bg-white/6 rounded-lg px-1.5 py-0.5">
+            <span className="text-white/60 text-[10px] font-semibold">👥 {mesa.pax}/{mesa.seats}</span>
           </div>
+        )}
+        {mesa.pax == null && (
+          <span className="text-white/20 text-[9px]">{mesa.seats} pax</span>
         )}
       </div>
 
       <p className={`text-[9px] font-semibold uppercase tracking-wide ${s.text}`}>
         {s.label}
+        {mesa.status === 'reserva' && mesa.reservedFor && (
+          <span className="ml-1 normal-case text-violet-300/60">· {mesa.reservedFor}</span>
+        )}
       </p>
 
       {elapsed !== null && (
         <p className={`text-[9px] font-mono ${isLong ? 'text-red-400' : 'text-white/25'}`}>
           {elapsed} min
+        </p>
+      )}
+
+      {/* Countdown for reserva */}
+      {mesa.status === 'reserva' && countdown !== null && (
+        <p className={`text-[9px] font-mono font-semibold flex items-center gap-1
+          ${countdownIsUrgent ? 'text-red-400' : 'text-violet-300/80'}`}>
+          ⏱ {countdown > 0 ? `${countdown}min` : 'vencida'}
         </p>
       )}
 
@@ -215,7 +288,7 @@ function WaitlistCard({
                        bg-[#FF6B35]/15 text-[#FF6B35] text-[10px] font-semibold
                        border border-[#FF6B35]/20 hover:bg-[#FF6B35]/25 transition-colors"
           >
-            <Bell size={10} /> Notificar
+            <MessageCircle size={10} /> Notificar vía WhatsApp
           </button>
           <button
             onClick={() => onCancel(entry.id)}
@@ -248,6 +321,174 @@ function WaitlistCard({
         </div>
       )}
     </div>
+  )
+}
+
+// ── QuickAddForm ──────────────────────────────────────────────────────────────
+
+function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
+  const [open, setOpen] = useState(false)
+  const [name, setName] = useState('')
+  const [phone, setPhone] = useState('')
+  const [pax, setPax] = useState(2)
+  const [notes, setNotes] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!name.trim() || !phone.trim()) return
+    setSubmitting(true)
+
+    // Mock WhatsApp trigger
+    console.log(`[Mock WhatsApp] Sending to ${phone}: "Hola ${name}, Chapi te reservó un lugar. ¿Qué te gustaría pedir?"`)
+
+    const newEntry: WaitlistEntry = {
+      id: `w${Date.now()}`,
+      restaurant_id: 'r1',
+      table_id: null,
+      name: name.trim(),
+      phone: phone.trim(),
+      party_size: pax,
+      token: Math.random().toString(36).slice(2, 8),
+      status: 'waiting',
+      position: 99, // will be re-ordered
+      joined_at: new Date().toISOString(),
+      notified_at: null,
+      seated_at: null,
+      estimated_wait_min: 15,
+      notes: notes.trim() || null,
+    }
+
+    onAdd(newEntry)
+
+    // Reset
+    setName('')
+    setPhone('')
+    setPax(2)
+    setNotes('')
+    setSubmitting(false)
+    setOpen(false)
+  }
+
+  if (!open) {
+    return (
+      <button
+        onClick={() => setOpen(true)}
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl
+                   border border-dashed border-white/10 text-white/25 text-xs
+                   hover:border-white/20 hover:text-white/50 transition-colors"
+      >
+        <Plus size={12} /> Agregar manualmente
+      </button>
+    )
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="rounded-xl border border-white/10 bg-[#1C1C2E] p-3.5 space-y-3"
+    >
+      <div className="flex items-center justify-between mb-1">
+        <p className="text-white text-xs font-semibold">Agregar a la espera</p>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="text-white/30 hover:text-white/60 transition-colors"
+        >
+          <X size={13} />
+        </button>
+      </div>
+
+      {/* Nombre */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">
+          Nombre *
+        </label>
+        <input
+          required
+          value={name}
+          onChange={e => setName(e.target.value)}
+          placeholder="Ej. María López"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2
+                     text-white text-xs placeholder:text-white/20
+                     focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
+        />
+      </div>
+
+      {/* Teléfono */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">
+          Teléfono (WhatsApp) *
+        </label>
+        <input
+          required
+          value={phone}
+          onChange={e => setPhone(e.target.value)}
+          placeholder="+56 9 XXXX XXXX"
+          type="tel"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2
+                     text-white text-xs placeholder:text-white/20
+                     focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
+        />
+        <p className="text-[9px] text-white/25 flex items-center gap-1 pt-0.5">
+          <MessageCircle size={9} className="text-green-400/60 shrink-0" />
+          Chapi enviará un mensaje a este número para que elija su plato mientras espera
+        </p>
+      </div>
+
+      {/* Personas stepper */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">
+          Personas *
+        </label>
+        <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => setPax(p => Math.max(1, p - 1))}
+            className="w-7 h-7 rounded-lg border border-white/10 text-white/50 text-sm
+                       hover:border-white/25 hover:text-white transition-colors flex items-center justify-center"
+          >
+            −
+          </button>
+          <span className="text-white font-bold text-sm w-4 text-center">{pax}</span>
+          <button
+            type="button"
+            onClick={() => setPax(p => Math.min(8, p + 1))}
+            className="w-7 h-7 rounded-lg border border-white/10 text-white/50 text-sm
+                       hover:border-white/25 hover:text-white transition-colors flex items-center justify-center"
+          >
+            +
+          </button>
+          <span className="text-white/25 text-[10px]">máx 8</span>
+        </div>
+      </div>
+
+      {/* Notas */}
+      <div className="space-y-1">
+        <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">
+          Notas <span className="normal-case text-white/20">(opcional)</span>
+        </label>
+        <textarea
+          value={notes}
+          onChange={e => setNotes(e.target.value)}
+          placeholder="Alergias, preferencias, etc."
+          rows={2}
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2
+                     text-white text-xs placeholder:text-white/20 resize-none
+                     focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
+        />
+      </div>
+
+      {/* Submit */}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="w-full py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold
+                   hover:bg-[#e85d2a] disabled:opacity-50 transition-colors"
+      >
+        {submitting ? 'Agregando…' : 'Agregar a la espera'}
+      </button>
+    </form>
   )
 }
 
@@ -315,6 +556,17 @@ function AssignModal({
   )
 }
 
+// ── Zone filter tabs ──────────────────────────────────────────────────────────
+
+type ZoneFilter = 'todos' | MesaZone
+
+const ZONE_TABS: { key: ZoneFilter; label: string }[] = [
+  { key: 'todos',    label: 'Todos' },
+  { key: 'interior', label: 'Interior' },
+  { key: 'terraza',  label: 'Terraza' },
+  { key: 'barra',    label: 'Barra' },
+]
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MesasPage() {
@@ -322,6 +574,7 @@ export default function MesasPage() {
   const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(WAITLIST_INIT)
   const [assignModal, setAssignModal] = useState<{ mesaId: string } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
+  const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('todos')
 
   function showToast(msg: string) {
     setToast(msg)
@@ -385,12 +638,34 @@ export default function MesasPage() {
     })
   }
 
+  function addToWaitlist(entry: WaitlistEntry) {
+    setWaitlist(prev => {
+      const waitingCount = prev.filter(e => e.status === 'waiting').length
+      return [...prev, { ...entry, position: waitingCount + 1 }]
+    })
+    showToast(`${entry.name} agregado a la lista de espera`)
+  }
+
+  function autoReleaseMesa(mesaId: string) {
+    setMesas(prev => prev.map(m =>
+      m.id === mesaId && m.status === 'reserva'
+        ? { ...m, status: 'libre', reservedUntil: undefined, reservedFor: undefined }
+        : m
+    ))
+    const mesa = mesas.find(m => m.id === mesaId)
+    showToast(`Mesa ${mesa?.label ?? mesaId} — reserva vencida, marcada como libre`)
+  }
+
   const activeWaitlist = waitlist
     .filter(e => e.status !== 'cancelled' && e.status !== 'seated')
     .sort((a, b) => STATUS_ORDER[a.status] - STATUS_ORDER[b.status] || a.position - b.position)
 
   const assignMesa = mesas.find(m => m.id === assignModal?.mesaId)
   const nextInQueue = waitlist.filter(e => e.status === 'waiting').sort((a, b) => a.position - b.position)[0] ?? null
+
+  const filteredMesas = zoneFilter === 'todos'
+    ? mesas
+    : mesas.filter(m => m.zone === zoneFilter)
 
   const stats = {
     ocupadas: mesas.filter(m => m.status === 'ocupada' || m.status === 'cuenta').length,
@@ -429,17 +704,50 @@ export default function MesasPage() {
           </div>
         </div>
 
+        {/* Zone filter tabs */}
+        <div className="flex items-center gap-1.5 mb-4 shrink-0">
+          {ZONE_TABS.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setZoneFilter(tab.key)}
+              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors
+                ${zoneFilter === tab.key
+                  ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30'
+                  : 'text-white/30 border border-white/8 hover:border-white/16 hover:text-white/50'
+                }`}
+            >
+              {tab.key === 'terraza' && '🌿 '}
+              {tab.key === 'barra' && '🍺 '}
+              {tab.key === 'interior' && '🏠 '}
+              {tab.label}
+              {tab.key !== 'todos' && (
+                <span className="ml-1 text-[9px] opacity-60">
+                  {mesas.filter(m => m.zone === tab.key).length}
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+
         {/* Grid */}
         <div className="grid grid-cols-4 gap-3">
-          {mesas.map(m => (
+          {filteredMesas.map(m => (
             <MesaCard
               key={m.id}
               mesa={m}
               onMarkClean={markClean}
               onAssign={openAssign}
+              onAutoRelease={autoReleaseMesa}
             />
           ))}
         </div>
+
+        {filteredMesas.length === 0 && (
+          <div className="flex flex-col items-center justify-center gap-2 py-16 text-white/20">
+            <span className="text-3xl">🍽</span>
+            <p className="text-sm">No hay mesas en esta zona</p>
+          </div>
+        )}
 
         {/* Legend */}
         <div className="flex items-center gap-4 mt-5 pt-4 border-t border-white/5">
@@ -526,13 +834,9 @@ export default function MesasPage() {
           )}
         </div>
 
-        {/* Add manually */}
+        {/* Add manually — expandable form */}
         <div className="px-3 pb-4 shrink-0">
-          <button className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl
-                             border border-dashed border-white/10 text-white/25 text-xs
-                             hover:border-white/20 hover:text-white/50 transition-colors">
-            <Plus size={12} /> Agregar manualmente
-          </button>
+          <QuickAddForm onAdd={addToWaitlist} />
         </div>
       </div>
 
