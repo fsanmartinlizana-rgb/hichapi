@@ -305,18 +305,32 @@ export default function RegisterPage() {
               <Check size={28} className="text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Bienvenido a HiChapi!</h2>
-              <p className="text-white/40 text-sm mt-1">
-                Tu cuenta está lista. Accede al panel de tu restaurante.
+              <h2 className="text-white font-bold text-lg">¡Cuenta creada!</h2>
+              <p className="text-white/40 text-sm mt-1 leading-relaxed">
+                Estamos revisando tu solicitud. En menos de 24 horas activamos tu restaurante en HiChapi.
               </p>
+            </div>
+            <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-left space-y-2">
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Mientras tanto puedes</p>
+              <div className="space-y-1.5">
+                <p className="text-white/40 text-xs flex items-center gap-2">
+                  <span className="text-emerald-400">✓</span> Explorar el panel con datos de demostración
+                </p>
+                <p className="text-white/40 text-xs flex items-center gap-2">
+                  <span className="text-emerald-400">✓</span> Configurar tu carta y fotos de platos
+                </p>
+                <p className="text-white/40 text-xs flex items-center gap-2">
+                  <span className="text-emerald-400">✓</span> Personalizar el tono de Chapi
+                </p>
+              </div>
             </div>
             <Link href="/api/admin/demo-setup"
               className="block w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
                          hover:bg-[#e85d2a] transition-colors text-center">
-              Ir al panel →
+              Explorar el panel →
             </Link>
-            <p className="text-white/25 text-xs">
-              Estás usando el restaurante demo &ldquo;El Rincón de Don José&rdquo;
+            <p className="text-white/20 text-xs">
+              Usarás el restaurante demo hasta que aprobemos el tuyo
             </p>
           </div>
         )}
