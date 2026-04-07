@@ -305,30 +305,19 @@ export default function RegisterPage() {
               <Check size={28} className="text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Cuenta creada!</h2>
+              <h2 className="text-white font-bold text-lg">¡Bienvenido a HiChapi!</h2>
               <p className="text-white/40 text-sm mt-1">
-                Te enviamos un email a <span className="text-white/70">{email}</span> para verificar tu cuenta.
+                Tu cuenta está lista. Accede al panel de tu restaurante.
               </p>
             </div>
-            <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-left space-y-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Próximos pasos</p>
-              {[
-                'Verifica tu email (revisa spam)',
-                'Nuestro equipo aprobará tu restaurante en 24h',
-                'Recibirás acceso completo al panel',
-              ].map((step, i) => (
-                <div key={step} className="flex items-start gap-2.5">
-                  <span className="w-4 h-4 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] text-[9px] font-bold
-                                   flex items-center justify-center shrink-0 mt-0.5">{i + 1}</span>
-                  <span className="text-white/50 text-xs">{step}</span>
-                </div>
-              ))}
-            </div>
-            <Link href="/login"
-              className="block w-full py-3 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm
-                         hover:border-white/20 hover:text-white transition-colors text-center">
-              Ir al login
+            <Link href="/api/admin/demo-setup"
+              className="block w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
+                         hover:bg-[#e85d2a] transition-colors text-center">
+              Ir al panel →
             </Link>
+            <p className="text-white/25 text-xs">
+              Estás usando el restaurante demo &ldquo;El Rincón de Don José&rdquo;
+            </p>
           </div>
         )}
       </div>
