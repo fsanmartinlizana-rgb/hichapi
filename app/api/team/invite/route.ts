@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     // (We trust the service role here; proxy.ts already restricts /equipo to admins)
 
     // 2. Invite user via Supabase Auth (creates account + sends email)
-    const origin = req.nextUrl.origin
+    const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin
     const { data: inviteData, error: inviteError } = await supabase.auth.admin.inviteUserByEmail(
       email,
       {
