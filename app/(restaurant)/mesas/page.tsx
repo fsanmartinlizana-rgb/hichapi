@@ -1,14 +1,15 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
-  Download, Copy, Check,
+  Download, Copy, Check, Banknote, Wifi, WifiOff, RefreshCw,
 } from 'lucide-react'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
 import { formatEta } from '@/lib/waitlist/eta'
 import { QRCodeCanvas } from 'qrcode.react'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -28,6 +29,38 @@ interface Mesa {
   reservedFor?: string   // name of person who reserved
   qrToken?: string       // unique token for QR code URL
 }
+
+// ── DB types ──────────────────────────────────────────────────────────────────
+
+interface DbTable {
+  id: string; label: string; seats: number; status: string
+  zone: string | null; smoking: boolean | null; qr_token: string | null
+}
+interface DbOrder { id: string; table_id: string; status: string }
+
+function dbToMesa(t: DbTable): Mesa {
+  const status: MesaStatus =
+    t.status === 'reservada' ? 'reserva' :
+    t.status === 'bloqueada' ? 'libre' :
+    (t.status as MesaStatus) ?? 'libre'
+  return {
+    id: t.id,
+    label: t.label.replace(/^Mesa /i, ''),
+    seats: t.seats,
+    status,
+    zone: (t.zone as MesaZone | null) ?? undefined,
+    smoking: t.smoking ?? false,
+    qrToken: t.qr_token ?? undefined,
+  }
+}
+
+function genQrToken(label: string): string {
+  const slug = label.toLowerCase().replace(/\s+/g, '-')
+  const rand = Math.random().toString(36).slice(2, 10)
+  return `qr-${slug}-${rand}`
+}
+
+// ── Mock fallback (used until DB loads) ───────────────────────────────────────
 
 const MESAS_INIT: Mesa[] = [
   { id: 'm1',  label: '01', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 45*60000).toISOString(), pax: 3,  zone: 'interior', qrToken: 'qr-mesa-01-a1b2c3d4' },
@@ -177,12 +210,14 @@ function QrModal({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
 
 function MesaCard({
   mesa,
+  orderAlert,
   onMarkClean,
   onAssign,
   onAutoRelease,
   onShowQr,
 }: {
   mesa: Mesa
+  orderAlert?: 'new_order' | 'bill'
   onMarkClean: (id: string) => void
   onAssign: (id: string) => void
   onAutoRelease: (id: string) => void
@@ -221,10 +256,26 @@ function MesaCard({
 
   return (
     <div className={`${s.bg} border ${s.border} rounded-xl p-3 flex flex-col gap-2 relative
-                     ${mesa.status === 'limpia' ? 'ring-1 ring-teal-400/30' : ''}`}>
+                     ${mesa.status === 'limpia' ? 'ring-1 ring-teal-400/30' : ''}
+                     ${orderAlert === 'new_order' ? 'ring-1 ring-blue-400/40' : ''}
+                     ${orderAlert === 'bill'      ? 'ring-1 ring-amber-400/50' : ''}`}>
       {/* Pulsing ring for limpia */}
       {mesa.status === 'limpia' && (
         <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-teal-400 animate-ping opacity-60" />
+      )}
+      {/* New order alert badge */}
+      {orderAlert === 'new_order' && (
+        <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#60A5FA] ring-2 ring-[#0A0A14]
+                         flex items-center justify-center animate-bounce">
+          <Bell size={8} className="text-white" />
+        </span>
+      )}
+      {/* Bill requested badge */}
+      {orderAlert === 'bill' && (
+        <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#FBBF24] ring-2 ring-[#0A0A14]
+                         flex items-center justify-center">
+          <Banknote size={8} className="text-[#0A0A14]" />
+        </span>
       )}
 
       {/* Zone + smoking badges */}
@@ -670,6 +721,128 @@ function AssignModal({
   )
 }
 
+// ── Nueva Mesa Modal ──────────────────────────────────────────────────────────
+
+function NuevaMesaModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void
+  onSave: (mesa: Mesa) => void
+}) {
+  const supabase = createClient()
+  const [label, setLabel]     = useState('')
+  const [seats, setSeats]     = useState(4)
+  const [zone, setZone]       = useState<MesaZone>('interior')
+  const [smoking, setSmoking] = useState(false)
+  const [saving, setSaving]   = useState(false)
+  const [error, setError]     = useState('')
+
+  async function handleSave() {
+    if (!label.trim()) { setError('Ingresa un nombre para la mesa'); return }
+    setSaving(true)
+    setError('')
+    const fullLabel  = label.trim().startsWith('Mesa') ? label.trim() : `Mesa ${label.trim()}`
+    const qr_token   = genQrToken(fullLabel)
+
+    // Get restaurant_id from existing tables or skip for now
+    const { data: existingTable } = await supabase.from('tables').select('restaurant_id').limit(1).single()
+    const restaurant_id = existingTable?.restaurant_id ?? null
+
+    const { data, error: dbErr } = await supabase
+      .from('tables')
+      .insert({ label: fullLabel, seats, zone, smoking, status: 'libre', qr_token, restaurant_id })
+      .select()
+      .single()
+
+    if (dbErr || !data) {
+      setError(dbErr?.message ?? 'Error al guardar')
+      setSaving(false)
+      return
+    }
+
+    onSave(dbToMesa(data as DbTable))
+    setSaving(false)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
+         onClick={onClose}>
+      <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-6 w-full max-w-sm space-y-4"
+           onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-center justify-between">
+          <h3 className="text-white font-bold">Agregar mesa</h3>
+          <button onClick={onClose} className="text-white/30 hover:text-white/60 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Label */}
+        <div className="space-y-1.5">
+          <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Nombre *</label>
+          <input
+            value={label}
+            onChange={e => setLabel(e.target.value)}
+            placeholder="Ej. 13 o Mesa 13"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm
+                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 transition-colors"
+          />
+        </div>
+
+        {/* Seats */}
+        <div className="space-y-1.5">
+          <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Capacidad (personas)</label>
+          <div className="flex items-center gap-3">
+            <button type="button" onClick={() => setSeats(s => Math.max(1, s - 1))}
+              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors flex items-center justify-center font-bold">−</button>
+            <span className="flex-1 text-center text-white font-bold text-lg">{seats}</span>
+            <button type="button" onClick={() => setSeats(s => Math.min(20, s + 1))}
+              className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 text-white hover:bg-white/10 transition-colors flex items-center justify-center font-bold">+</button>
+          </div>
+        </div>
+
+        {/* Zone */}
+        <div className="space-y-1.5">
+          <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Zona</label>
+          <div className="grid grid-cols-3 gap-2">
+            {(['interior', 'terraza', 'barra'] as MesaZone[]).map(z => (
+              <button key={z} type="button" onClick={() => setZone(z)}
+                className={`py-2 rounded-xl text-xs font-medium border transition-colors capitalize
+                  ${zone === z ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20'}`}>
+                {z === 'interior' ? '🏠' : z === 'terraza' ? '🌿' : '🍺'} {z}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Smoking */}
+        <button type="button" onClick={() => setSmoking(s => !s)}
+          className={`w-full flex items-center justify-between px-4 py-2.5 rounded-xl border transition-colors
+            ${smoking ? 'bg-white/8 border-white/20 text-white/70' : 'bg-white/3 border-white/8 text-white/30'}`}>
+          <span className="text-sm">🚬 Zona fumador</span>
+          <span className={`w-4 h-4 rounded-full border-2 transition-colors ${smoking ? 'bg-[#FF6B35] border-[#FF6B35]' : 'border-white/20'}`} />
+        </button>
+
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+
+        <div className="flex gap-2 pt-1">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={handleSave} disabled={saving}
+            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
+                       hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors
+                       flex items-center justify-center gap-2">
+            {saving ? <><RefreshCw size={13} className="animate-spin" /> Guardando…</> : <><Plus size={13} /> Crear mesa</>}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Zone filter tabs ──────────────────────────────────────────────────────────
 
 type ZoneFilter = 'todos' | MesaZone
@@ -684,12 +857,54 @@ const ZONE_TABS: { key: ZoneFilter; label: string }[] = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MesasPage() {
-  const [mesas, setMesas] = useState<Mesa[]>(MESAS_INIT)
-  const [waitlist, setWaitlist] = useState<WaitlistEntry[]>(WAITLIST_INIT)
+  const [mesas, setMesas]         = useState<Mesa[]>(MESAS_INIT)
+  const [orderAlerts, setOrderAlerts] = useState<Record<string, 'new_order' | 'bill'>>({})
+  const [online, setOnline]       = useState(true)
+  const [waitlist, setWaitlist]   = useState<WaitlistEntry[]>(WAITLIST_INIT)
   const [assignModal, setAssignModal] = useState<{ mesaId: string } | null>(null)
-  const [toast, setToast] = useState<string | null>(null)
+  const [toast, setToast]         = useState<string | null>(null)
   const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('todos')
-  const [qrMesa, setQrMesa] = useState<Mesa | null>(null)
+  const [qrMesa, setQrMesa]       = useState<Mesa | null>(null)
+  const [showNuevaMesa, setShowNuevaMesa] = useState(false)
+
+  const supabase = createClient()
+
+  // ── Load tables + order alerts from Supabase ────────────────────────────────
+
+  const loadData = useCallback(async () => {
+    const [tablesRes, ordersRes] = await Promise.all([
+      supabase.from('tables').select('id, label, seats, status, zone, smoking, qr_token').order('label'),
+      supabase.from('orders').select('id, table_id, status').not('status', 'in', '("paid","cancelled")'),
+    ])
+
+    if (!tablesRes.error && tablesRes.data?.length) {
+      setMesas(tablesRes.data.map(t => dbToMesa(t as DbTable)))
+    }
+
+    if (!ordersRes.error && ordersRes.data) {
+      const alerts: Record<string, 'new_order' | 'bill'> = {}
+      for (const o of ordersRes.data as DbOrder[]) {
+        if (o.status === 'paying') {
+          alerts[o.table_id] = 'bill'
+        } else if ((o.status === 'pending' || o.status === 'confirmed') && alerts[o.table_id] !== 'bill') {
+          alerts[o.table_id] = 'new_order'
+        }
+      }
+      setOrderAlerts(alerts)
+    }
+
+    setOnline(true)
+  }, [supabase])
+
+  useEffect(() => {
+    loadData()
+    const ch = supabase
+      .channel('mesas-alerts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, loadData)
+      .subscribe(s => setOnline(s === 'SUBSCRIBED'))
+    return () => { supabase.removeChannel(ch) }
+  }, [loadData, supabase])
 
   function showToast(msg: string) {
     setToast(msg)
@@ -761,6 +976,12 @@ export default function MesasPage() {
     showToast(`${entry.name} agregado a la lista de espera`)
   }
 
+  function addMesa(mesa: Mesa) {
+    setMesas(prev => [...prev, mesa])
+    setShowNuevaMesa(false)
+    showToast(`Mesa ${mesa.label} creada — QR generado`)
+  }
+
   function autoReleaseMesa(mesaId: string) {
     setMesas(prev => prev.map(m =>
       m.id === mesaId && m.status === 'reserva'
@@ -812,12 +1033,41 @@ export default function MesasPage() {
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
-            <span className="flex items-center gap-1.5 text-white/40 text-xs">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              En vivo
+            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: online ? '#34D399' : '#F87171' }}>
+              {online ? <Wifi size={11} /> : <WifiOff size={11} />}
+              {online ? 'En vivo' : 'Sin conexión'}
             </span>
+            <button
+              onClick={() => setShowNuevaMesa(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30
+                         text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
+            >
+              <Plus size={12} /> Agregar mesa
+            </button>
           </div>
         </div>
+
+        {/* Alert strips */}
+        {Object.values(orderAlerts).includes('bill') && (
+          <div className="flex items-center gap-2 px-3 py-2.5 mb-2 rounded-xl border bg-amber-500/10 border-amber-500/40 shrink-0">
+            <Banknote size={15} className="text-[#FBBF24] shrink-0" />
+            <p className="text-[#FBBF24] text-sm font-semibold flex-1">
+              {Object.entries(orderAlerts).filter(([,v]) => v === 'bill').length === 1
+                ? '1 mesa pide la cuenta'
+                : `${Object.entries(orderAlerts).filter(([,v]) => v === 'bill').length} mesas piden la cuenta`}
+            </p>
+          </div>
+        )}
+        {Object.values(orderAlerts).includes('new_order') && (
+          <div className="flex items-center gap-2 px-3 py-2.5 mb-2 rounded-xl border bg-blue-500/10 border-blue-500/30 shrink-0">
+            <Bell size={15} className="text-[#60A5FA] shrink-0" />
+            <p className="text-[#60A5FA] text-sm font-semibold flex-1">
+              {Object.entries(orderAlerts).filter(([,v]) => v === 'new_order').length === 1
+                ? '1 mesa tiene un nuevo pedido'
+                : `${Object.entries(orderAlerts).filter(([,v]) => v === 'new_order').length} mesas tienen pedidos nuevos`}
+            </p>
+          </div>
+        )}
 
         {/* Zone filter tabs */}
         <div className="flex items-center gap-1.5 mb-4 shrink-0">
@@ -850,6 +1100,7 @@ export default function MesasPage() {
             <MesaCard
               key={m.id}
               mesa={m}
+              orderAlert={orderAlerts[m.id]}
               onMarkClean={markClean}
               onAssign={openAssign}
               onAutoRelease={autoReleaseMesa}
@@ -963,6 +1214,14 @@ export default function MesasPage() {
           next={nextInQueue}
           onConfirm={confirmAssign}
           onClose={() => setAssignModal(null)}
+        />
+      )}
+
+      {/* ── Nueva mesa modal ─────────────────────────────────────────────── */}
+      {showNuevaMesa && (
+        <NuevaMesaModal
+          onClose={() => setShowNuevaMesa(false)}
+          onSave={addMesa}
         />
       )}
 
