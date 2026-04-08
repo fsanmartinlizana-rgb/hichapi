@@ -1,6 +1,8 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
 import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -177,21 +179,26 @@ const COCINA_HIGHLIGHT: OrderStatus[] = ['preparando', 'lista']
 interface ToastMsg {
   id: number
   text: string
-  variant?: 'break' | 'stock'
+  variant?: 'break' | 'stock' | 'info'
 }
 
 function Toast({ msg }: { msg: ToastMsg }) {
   const isStock = msg.variant === 'stock'
+  const isInfo  = msg.variant === 'info'
   return (
     <div className={`flex items-center gap-2 border text-white/80
                     text-xs px-4 py-2.5 rounded-xl shadow-xl animate-fade-in
                     ${isStock
                       ? 'bg-[#1C1C2E] border-amber-500/30'
-                      : 'bg-[#1C1C2E] border-red-500/30'
+                      : isInfo
+                        ? 'bg-[#1C1C2E] border-emerald-500/30'
+                        : 'bg-[#1C1C2E] border-red-500/30'
                     }`}>
       {isStock
         ? <Package size={12} className="text-amber-400 shrink-0" />
-        : <AlertTriangle size={12} className="text-red-400 shrink-0" />
+        : isInfo
+          ? <CheckCircle2 size={12} className="text-emerald-400 shrink-0" />
+          : <AlertTriangle size={12} className="text-red-400 shrink-0" />
       }
       {msg.text}
     </div>
@@ -541,15 +548,215 @@ function OrderCard({
   )
 }
 
+// ── Nueva Comanda Modal ────────────────────────────────────────────────────────
+
+const MESAS_DISPONIBLES = ['Mesa 1','Mesa 2','Mesa 3','Mesa 5','Mesa 6','Mesa 8','Mesa 10','Mesa 12']
+const MENU_ITEMS_QUICK  = [
+  'Lomo vetado','Pasta arrabiata','Salmón grillado','Risotto','Pizza napolitana',
+  'Ensalada César','Tiramisú','Gazpacho','Ceviche','Pan de ajo','Pisco sour',
+]
+
+interface NuevaComandaLine { name: string; qty: number; note: string }
+
+function NuevaComandaModal({
+  onClose,
+  onSave,
+}: {
+  onClose: () => void
+  onSave: (order: Order) => void
+}) {
+  const [mesa, setMesa]   = useState('')
+  const [pax, setPax]     = useState(2)
+  const [lines, setLines] = useState<NuevaComandaLine[]>([{ name: '', qty: 1, note: '' }])
+  const [saving, setSaving] = useState(false)
+
+  function addLine() { setLines(prev => [...prev, { name: '', qty: 1, note: '' }]) }
+  function removeLine(i: number) { setLines(prev => prev.filter((_, idx) => idx !== i)) }
+  function updateLine(i: number, patch: Partial<NuevaComandaLine>) {
+    setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l))
+  }
+
+  function handleSave() {
+    if (!mesa || lines.every(l => !l.name)) return
+    setSaving(true)
+    const validLines = lines.filter(l => l.name)
+    const newOrder: Order = {
+      id:         `ord-${Date.now()}`,
+      tableId:    mesa.replace(' ', '-').toLowerCase(),
+      tableLabel: mesa,
+      pax,
+      status:     'recibida',
+      items:      validLines.map(l => ({ name: l.name, qty: l.qty, note: l.note || undefined })),
+      amount:     0,
+      mins:       0,
+      viaChapi:   false,
+    }
+    setTimeout(() => {
+      onSave(newOrder)
+      setSaving(false)
+    }, 400)
+  }
+
+  const canSave = mesa && lines.some(l => l.name)
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+      {/* Backdrop */}
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+
+      {/* Panel */}
+      <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-md
+                      shadow-2xl flex flex-col max-h-[90vh]">
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <div>
+            <h2 className="text-white font-bold text-base">Nueva comanda</h2>
+            <p className="text-white/35 text-xs mt-0.5">Crea una comanda manualmente</p>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50 transition-colors"
+          >
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* Body */}
+        <div className="overflow-y-auto flex-1 p-5 space-y-4">
+
+          {/* Mesa + Pax */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <label className="text-white/40 text-xs font-medium">Mesa</label>
+              <select
+                value={mesa}
+                onChange={e => setMesa(e.target.value)}
+                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
+                           focus:outline-none focus:border-[#FF6B35]/50 transition-colors appearance-none"
+              >
+                <option value="" className="bg-[#161622]">Seleccionar…</option>
+                {MESAS_DISPONIBLES.map(m => (
+                  <option key={m} value={m} className="bg-[#161622]">{m}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-white/40 text-xs font-medium">Personas</label>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => setPax(p => Math.max(1, p - 1))}
+                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/8 text-white hover:bg-white/10 transition-colors flex items-center justify-center font-bold"
+                >−</button>
+                <span className="flex-1 text-center text-white font-bold text-base">{pax}</span>
+                <button
+                  onClick={() => setPax(p => Math.min(20, p + 1))}
+                  className="w-9 h-9 rounded-xl bg-white/5 border border-white/8 text-white hover:bg-white/10 transition-colors flex items-center justify-center font-bold"
+                >+</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Items */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-white/40 text-xs font-medium">Platos</label>
+              <button
+                onClick={addLine}
+                className="text-[#FF6B35] text-xs hover:text-[#ff8255] flex items-center gap-1 transition-colors"
+              >
+                <Plus size={11} /> Agregar plato
+              </button>
+            </div>
+            <div className="space-y-2">
+              {lines.map((line, i) => (
+                <div key={i} className="space-y-1.5">
+                  <div className="flex gap-2">
+                    {/* Qty */}
+                    <select
+                      value={line.qty}
+                      onChange={e => updateLine(i, { qty: Number(e.target.value) })}
+                      className="w-14 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
+                                 focus:outline-none focus:border-[#FF6B35]/50 appearance-none text-center"
+                    >
+                      {[1,2,3,4,5,6].map(n => <option key={n} value={n} className="bg-[#161622]">{n}×</option>)}
+                    </select>
+                    {/* Item name */}
+                    <select
+                      value={line.name}
+                      onChange={e => updateLine(i, { name: e.target.value })}
+                      className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
+                                 focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
+                    >
+                      <option value="" className="bg-[#161622]">Seleccionar plato…</option>
+                      {MENU_ITEMS_QUICK.map(item => (
+                        <option key={item} value={item} className="bg-[#161622]">{item}</option>
+                      ))}
+                    </select>
+                    {/* Remove */}
+                    {lines.length > 1 && (
+                      <button
+                        onClick={() => removeLine(i)}
+                        className="w-9 h-9 rounded-xl bg-white/5 hover:bg-red-500/15 border border-white/8
+                                   hover:border-red-500/30 text-white/30 hover:text-red-400 transition-colors flex items-center justify-center"
+                      >
+                        <X size={13} />
+                      </button>
+                    )}
+                  </div>
+                  {/* Note */}
+                  <input
+                    value={line.note}
+                    onChange={e => updateLine(i, { note: e.target.value })}
+                    placeholder="Nota opcional (sin gluten, sin cebolla…)"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white/3 border border-white/6 text-white/70
+                               placeholder:text-white/20 text-[11px] focus:outline-none focus:border-white/15"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="px-5 py-4 border-t border-white/8 flex gap-2">
+          <button
+            onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm
+                       hover:border-white/20 hover:text-white/60 transition-colors"
+          >
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!canSave || saving}
+            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
+                       hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed
+                       transition-colors flex items-center justify-center gap-2"
+          >
+            {saving ? (
+              <><Clock size={14} className="animate-spin" /> Creando…</>
+            ) : (
+              <><Plus size={14} /> Crear comanda</>
+            )}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────────
 
-export default function ComandasPage() {
+function ComandasPageInner() {
+  const searchParams = useSearchParams()
   const [orders, setOrders]         = useState<Order[]>(ORDERS)
   const [search, setSearch]         = useState('')
   const [role, setRole]             = useState<UserRole>('admin')
   const [brokenItems, setBrokenItems] = useState<Set<string>>(new Set())
   const [stockMap, setStockMap]     = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
   const [toasts, setToasts]         = useState<ToastMsg[]>([])
+  const [showNueva, setShowNueva]   = useState(() => searchParams.get('nueva') === '1')
 
   function pushToast(text: string, variant: ToastMsg['variant'] = 'break') {
     const id = Date.now()
@@ -577,6 +784,12 @@ export default function ComandasPage() {
       `${itemName} marcado con ${qty} unidades disponibles · Chapi dejará de recomendarlo activamente`,
       'stock'
     )
+  }
+
+  function handleNuevaComanda(order: Order) {
+    setOrders(prev => [order, ...prev])
+    setShowNueva(false)
+    pushToast(`Comanda ${order.tableLabel} creada · En espera`, 'info' as ToastMsg['variant'])
   }
 
   const filtered = search
@@ -635,8 +848,10 @@ export default function ComandasPage() {
                          placeholder:text-white/25 focus:outline-none focus:border-white/20 w-44"
             />
           </div>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
-                             text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
+          <button
+            onClick={() => setShowNueva(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
+                       text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
             <Plus size={14} />
             Nueva comanda
           </button>
@@ -713,6 +928,22 @@ export default function ComandasPage() {
           ))}
         </div>
       )}
+
+      {/* Nueva comanda modal */}
+      {showNueva && (
+        <NuevaComandaModal
+          onClose={() => setShowNueva(false)}
+          onSave={handleNuevaComanda}
+        />
+      )}
     </div>
+  )
+}
+
+export default function ComandasPage() {
+  return (
+    <Suspense fallback={null}>
+      <ComandasPageInner />
+    </Suspense>
   )
 }

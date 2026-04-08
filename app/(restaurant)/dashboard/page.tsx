@@ -517,16 +517,22 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10
-                             text-white/60 text-sm hover:border-white/20 hover:text-white transition-colors">
+          <Link
+            href="/reporte"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10
+                       text-white/60 text-sm hover:border-white/20 hover:text-white transition-colors"
+          >
             <FileText size={13} />
             Ver reporte completo
-          </button>
-          <button className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
-                             text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
+          </Link>
+          <Link
+            href="/comandas?nueva=1"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
+                       text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors"
+          >
             <Plus size={14} />
             Nueva comanda
-          </button>
+          </Link>
         </div>
       </div>
 
