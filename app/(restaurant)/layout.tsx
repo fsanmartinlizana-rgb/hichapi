@@ -1,60 +1,87 @@
 'use client'
 
 import Link from 'next/link'
-import { usePathname, useRouter } from 'next/navigation'
+import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 import { RestaurantProvider, useRestaurant } from '@/lib/restaurant-context'
 import {
   LayoutDashboard, ClipboardList, Grid3X3, BookOpen,
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
-  ShieldCheck,
+  ShieldCheck, Users,
 } from 'lucide-react'
 
-const NAV = [
+// ── Nav definition ────────────────────────────────────────────────────────────
+
+const ALL_NAV = [
   {
     section: 'OPERACIÓN',
     items: [
-      { label: 'Dashboard',     href: '/dashboard', icon: LayoutDashboard },
-      { label: 'Comandas',      href: '/comandas',  icon: ClipboardList   },
-      { label: 'Mesas',         href: '/mesas',     icon: Grid3X3         },
-      { label: 'Carta digital', href: '/carta',     icon: BookOpen        },
+      { label: 'Dashboard',     href: '/dashboard', icon: LayoutDashboard, roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Garzón',        href: '/garzon',    icon: LayoutDashboard, roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Comandas',      href: '/comandas',  icon: ClipboardList,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
+      { label: 'Mesas',         href: '/mesas',     icon: Grid3X3,         roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Carta digital', href: '/carta',     icon: BookOpen,        roles: ['admin','owner','supervisor','garzon','waiter','super_admin'] },
     ],
   },
   {
     section: 'INVENTARIO',
     items: [
-      { label: 'Stock',  href: '/stock',  icon: Package      },
-      { label: 'Mermas', href: '/mermas', icon: Trash2        },
-      { label: 'Turnos', href: '/turnos', icon: CalendarDays  },
+      { label: 'Stock',  href: '/stock',  icon: Package,      roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Mermas', href: '/mermas', icon: Trash2,        roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Turnos', href: '/turnos', icon: CalendarDays,  roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },
   {
     section: 'INTELIGENCIA',
     items: [
-      { label: 'Reporte del día', href: '/reporte',   icon: BarChart2  },
-      { label: 'Analytics',       href: '/analytics', icon: TrendingUp },
-      { label: 'Chapi insights',  href: '/insights',  icon: Sparkles   },
+      { label: 'Reporte del día', href: '/reporte',   icon: BarChart2,  roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Analytics',       href: '/analytics', icon: TrendingUp, roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Chapi insights',  href: '/insights',  icon: Sparkles,   roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },
   {
     section: 'CONFIGURACIÓN',
     items: [
-      { label: 'Mi restaurante', href: '/restaurante', icon: Store             },
-      { label: 'Tono de Chapi',  href: '/tono',        icon: SlidersHorizontal },
+      { label: 'Equipo',         href: '/equipo',      icon: Users,             roles: ['admin','owner','super_admin'] },
+      { label: 'Mi restaurante', href: '/restaurante', icon: Store,             roles: ['admin','owner','super_admin'] },
+      { label: 'Tono de Chapi',  href: '/tono',        icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
     ],
   },
 ]
 
-// ── Inner layout (needs RestaurantProvider above) ─────────────────────────────
+function getNav(role: string) {
+  return ALL_NAV
+    .map(section => ({
+      ...section,
+      items: section.items.filter(item => item.roles.includes(role)),
+    }))
+    .filter(section => section.items.length > 0)
+}
+
+// ── Role label ────────────────────────────────────────────────────────────────
+
+const ROLE_LABEL: Record<string, string> = {
+  owner:      'Propietario',
+  admin:      'Administrador',
+  supervisor: 'Supervisor',
+  garzon:     'Garzón',
+  waiter:     'Garzón',
+  cocina:     'Cocina',
+  anfitrion:  'Anfitrión',
+  super_admin: 'Super Admin',
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
 
 function SidebarContent() {
   const pathname = usePathname()
   const { restaurant, restaurants, profile, isSuperAdmin, loading, switchTo, logout } = useRestaurant()
   const [pickerOpen, setPickerOpen] = useState(false)
 
+  const role     = profile?.role ?? 'admin'
   const initials = profile?.initials ?? '??'
-  const role     = profile?.role ?? ''
+  const nav      = getNav(role)
 
   return (
     <aside className="w-[210px] shrink-0 flex flex-col bg-[#0F0F1C] border-r border-white/5">
@@ -109,8 +136,9 @@ function SidebarContent() {
                 onClick={() => { switchTo(r.id); setPickerOpen(false) }}
                 className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
               >
-                {restaurant?.id === r.id && <Check size={10} className="text-[#FF6B35] shrink-0" />}
-                {restaurant?.id !== r.id && <span className="w-2.5 shrink-0" />}
+                {restaurant?.id === r.id
+                  ? <Check size={10} className="text-[#FF6B35] shrink-0" />
+                  : <span className="w-2.5 shrink-0" />}
                 <div className="flex-1 min-w-0">
                   <p className="text-white text-[12px] font-medium truncate">{r.name}</p>
                   {r.neighborhood && <p className="text-white/30 text-[10px]">{r.neighborhood}</p>}
@@ -123,7 +151,7 @@ function SidebarContent() {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto px-2 space-y-3">
-        {NAV.map(({ section, items }) => (
+        {nav.map(({ section, items }) => (
           <div key={section}>
             <p className="text-white/25 text-[9px] font-semibold tracking-widest px-2 mb-1">
               {section}
@@ -159,8 +187,10 @@ function SidebarContent() {
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-[11px] font-medium truncate">{profile?.email?.split('@')[0] ?? '—'}</p>
-          <p className="text-white/35 text-[9px] capitalize">{role.replace('_', ' ')}</p>
+          <p className="text-white text-[11px] font-medium truncate">
+            {profile?.email?.split('@')[0] ?? '—'}
+          </p>
+          <p className="text-white/35 text-[9px]">{ROLE_LABEL[role] ?? role}</p>
         </div>
         <button
           onClick={logout}

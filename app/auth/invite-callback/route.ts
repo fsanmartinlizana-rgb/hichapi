@@ -11,13 +11,11 @@ const ROLE_HOME: Record<string, string> = {
   supervisor: '/dashboard',
   admin:      '/dashboard',
   owner:      '/dashboard',
-  super_admin: '/dashboard',
 }
 
 export async function GET(req: NextRequest) {
   const { searchParams, origin } = req.nextUrl
   const code = searchParams.get('code')
-  const type = searchParams.get('type')
 
   if (!code) return NextResponse.redirect(`${origin}/login?error=no_code`)
 
@@ -37,23 +35,24 @@ export async function GET(req: NextRequest) {
 
   const { data: { session }, error } = await supabase.auth.exchangeCodeForSession(code)
   if (error || !session) {
-    return NextResponse.redirect(`${origin}/login?error=auth_failed`)
+    return NextResponse.redirect(`${origin}/login?error=invite_failed`)
   }
 
-  // Password reset → update-password page
-  if (type === 'recovery') {
-    return NextResponse.redirect(`${origin}/update-password`)
+  const user          = session.user
+  const restaurantId  = user.user_metadata?.restaurant_id as string | undefined
+  const role          = user.user_metadata?.role as string | undefined
+
+  // Link user_id to their pending team_members record
+  if (restaurantId && user.email) {
+    const admin = createAdminClient()
+    await admin
+      .from('team_members')
+      .update({ user_id: user.id, status: 'active', active: true })
+      .eq('restaurant_id', restaurantId)
+      .eq('invited_email', user.email)
+      .eq('status', 'pending')
   }
 
-  // Look up role to redirect correctly
-  const admin = createAdminClient()
-  const { data: membership } = await admin
-    .from('team_members')
-    .select('role')
-    .eq('user_id', session.user.id)
-    .eq('active', true)
-    .single()
-
-  const destination = ROLE_HOME[membership?.role ?? ''] ?? '/dashboard'
+  const destination = ROLE_HOME[role ?? ''] ?? '/dashboard'
   return NextResponse.redirect(`${origin}${destination}`)
 }
