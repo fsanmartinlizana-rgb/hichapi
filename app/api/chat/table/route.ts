@@ -98,11 +98,12 @@ export async function POST(req: NextRequest) {
       .eq('slug', restaurant_slug)
       .single()
 
-    // ── Fetch table label ────────────────────────────────────────────────────
+    // ── Fetch table label (supports qr_token or UUID) ───────────────────────
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(table_id)
     const { data: table } = await supabase
       .from('tables')
-      .select('label')
-      .eq('id', table_id)
+      .select('id, label')
+      .eq(isUUID ? 'id' : 'qr_token', table_id)
       .single()
 
     const menu    = restaurant?.menu_items ?? []

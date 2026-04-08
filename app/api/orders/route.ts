@@ -14,7 +14,7 @@ const CartItemSchema = z.object({
 
 const CreateOrderSchema = z.object({
   restaurant_slug: z.string(),
-  table_id: z.string().uuid(),
+  table_id: z.string().min(1), // qr_token OR uuid
   cart: z.array(CartItemSchema).min(1),
   client_name: z.string().optional(),
   notes: z.string().optional(),
@@ -45,13 +45,18 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 2. Verify table belongs to restaurant
-    const { data: table, error: tableErr } = await supabase
+    // 2. Resolve table — support both qr_token and UUID
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(table_id)
+    const tableQuery = supabase
       .from('tables')
       .select('id')
-      .eq('id', table_id)
       .eq('restaurant_id', restaurant.id)
-      .single()
+
+    const { data: table, error: tableErr } = await (
+      isUUID
+        ? tableQuery.eq('id', table_id)
+        : tableQuery.eq('qr_token', table_id)
+    ).single()
 
     if (tableErr || !table) {
       return NextResponse.json(
@@ -59,6 +64,8 @@ export async function POST(req: NextRequest) {
         { status: 404 }
       )
     }
+
+    const realTableId = table.id
 
     // 3. Calculate total
     const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
@@ -68,7 +75,7 @@ export async function POST(req: NextRequest) {
       .from('orders')
       .insert({
         restaurant_id: restaurant.id,
-        table_id,
+        table_id: realTableId,
         status: 'pending',
         total,
         client_name: client_name ?? null,
@@ -109,7 +116,7 @@ export async function POST(req: NextRequest) {
     await supabase
       .from('tables')
       .update({ status: 'ocupada' })
-      .eq('id', table_id)
+      .eq('id', realTableId)
 
     return NextResponse.json({
       orderId: order.id,
