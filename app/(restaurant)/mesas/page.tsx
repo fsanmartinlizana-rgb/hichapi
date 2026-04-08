@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
+  Download, Copy, Check,
 } from 'lucide-react'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
 import { formatEta } from '@/lib/waitlist/eta'
+import { QRCodeCanvas } from 'qrcode.react'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -24,21 +26,22 @@ interface Mesa {
   smoking?: boolean
   reservedUntil?: string // ISO string - when reservation expires
   reservedFor?: string   // name of person who reserved
+  qrToken?: string       // unique token for QR code URL
 }
 
 const MESAS_INIT: Mesa[] = [
-  { id: 'm1',  label: '01', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 45*60000).toISOString(), pax: 3,  zone: 'interior' },
-  { id: 'm2',  label: '02', seats: 2, status: 'cuenta',  seatedAt: new Date(Date.now() - 72*60000).toISOString(), pax: 2,  zone: 'interior' },
-  { id: 'm3',  label: '03', seats: 4, status: 'libre',   zone: 'interior' },
-  { id: 'm4',  label: '04', seats: 6, status: 'ocupada', seatedAt: new Date(Date.now() - 28*60000).toISOString(), pax: 4,  zone: 'interior' },
-  { id: 'm5',  label: '05', seats: 2, status: 'libre',   zone: 'terraza', smoking: true },
-  { id: 'm6',  label: '06', seats: 4, status: 'libre',   zone: 'terraza', smoking: true },
-  { id: 'm7',  label: '07', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 15*60000).toISOString(), pax: 2, zone: 'terraza' },
-  { id: 'm8',  label: '08', seats: 6, status: 'reserva', zone: 'interior', reservedUntil: new Date(Date.now() + 12*60000).toISOString(), reservedFor: 'González' },
-  { id: 'm9',  label: '09', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 58*60000).toISOString(), pax: 4,  zone: 'interior' },
-  { id: 'm10', label: '10', seats: 2, status: 'libre',   zone: 'barra' },
-  { id: 'm11', label: '11', seats: 4, status: 'cuenta',  seatedAt: new Date(Date.now() - 80*60000).toISOString(), pax: 5,  zone: 'interior' },
-  { id: 'm12', label: '12', seats: 4, status: 'limpia',  zone: 'interior' },
+  { id: 'm1',  label: '01', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 45*60000).toISOString(), pax: 3,  zone: 'interior', qrToken: 'qr-mesa-01-a1b2c3d4' },
+  { id: 'm2',  label: '02', seats: 2, status: 'cuenta',  seatedAt: new Date(Date.now() - 72*60000).toISOString(), pax: 2,  zone: 'interior', qrToken: 'qr-mesa-02-e5f6g7h8' },
+  { id: 'm3',  label: '03', seats: 4, status: 'libre',   zone: 'interior', qrToken: 'qr-mesa-03-i9j0k1l2' },
+  { id: 'm4',  label: '04', seats: 6, status: 'ocupada', seatedAt: new Date(Date.now() - 28*60000).toISOString(), pax: 4,  zone: 'interior', qrToken: 'qr-mesa-04-m3n4o5p6' },
+  { id: 'm5',  label: '05', seats: 2, status: 'libre',   zone: 'terraza', smoking: true, qrToken: 'qr-mesa-05-q7r8s9t0' },
+  { id: 'm6',  label: '06', seats: 4, status: 'libre',   zone: 'terraza', smoking: true, qrToken: 'qr-mesa-06-u1v2w3x4' },
+  { id: 'm7',  label: '07', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 15*60000).toISOString(), pax: 2, zone: 'terraza', qrToken: 'qr-mesa-07-y5z6a7b8' },
+  { id: 'm8',  label: '08', seats: 6, status: 'reserva', zone: 'interior', reservedUntil: new Date(Date.now() + 12*60000).toISOString(), reservedFor: 'González', qrToken: 'qr-mesa-08-c9d0e1f2' },
+  { id: 'm9',  label: '09', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 58*60000).toISOString(), pax: 4,  zone: 'interior', qrToken: 'qr-mesa-09-g3h4i5j6' },
+  { id: 'm10', label: '10', seats: 2, status: 'libre',   zone: 'barra', qrToken: 'qr-mesa-10-k7l8m9n0' },
+  { id: 'm11', label: '11', seats: 4, status: 'cuenta',  seatedAt: new Date(Date.now() - 80*60000).toISOString(), pax: 5,  zone: 'interior', qrToken: 'qr-mesa-11-o1p2q3r4' },
+  { id: 'm12', label: '12', seats: 4, status: 'limpia',  zone: 'interior', qrToken: 'qr-mesa-12-s5t6u7v8' },
 ]
 
 const WAITLIST_INIT: WaitlistEntry[] = [
@@ -74,6 +77,102 @@ function maskPhone(p: string) {
   return p.replace(/(\d{4})$/, '****')
 }
 
+// ── QR Modal ──────────────────────────────────────────────────────────────────
+
+const DEMO_SLUG = 'demo-restaurante'
+
+function QrModal({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
+  const canvasRef = useRef<HTMLDivElement>(null)
+  const [copied, setCopied] = useState(false)
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hichapi.vercel.app'
+  const qrUrl = `${origin}/${DEMO_SLUG}/${mesa.qrToken}`
+
+  function downloadQr() {
+    const canvas = canvasRef.current?.querySelector('canvas')
+    if (!canvas) return
+    const url = canvas.toDataURL('image/png')
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `qr-mesa-${mesa.label}.png`
+    a.click()
+  }
+
+  async function copyLink() {
+    await navigator.clipboard.writeText(qrUrl)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 2000)
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+         onClick={onClose}>
+      <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-6 w-full max-w-xs space-y-5"
+           onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-white/40 text-[10px] font-medium uppercase tracking-widest">Chapi · Mesa</p>
+            <h3 className="text-white font-bold text-2xl leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+              {mesa.label}
+            </h3>
+          </div>
+          <button onClick={onClose}
+            className="w-8 h-8 rounded-full border border-white/10 text-white/30 hover:text-white/70 hover:border-white/25 transition-colors flex items-center justify-center">
+            <X size={14} />
+          </button>
+        </div>
+
+        {/* QR code */}
+        <div ref={canvasRef}
+             className="flex items-center justify-center bg-white rounded-2xl p-4">
+          <QRCodeCanvas
+            value={qrUrl}
+            size={196}
+            level="M"
+            imageSettings={{
+              src: '/favicon.ico',
+              width: 32,
+              height: 32,
+              excavate: true,
+            }}
+          />
+        </div>
+
+        {/* URL */}
+        <div className="bg-white/4 rounded-xl px-3 py-2">
+          <p className="text-white/30 text-[9px] font-medium uppercase tracking-widest mb-1">Enlace</p>
+          <p className="text-white/60 text-[10px] font-mono break-all leading-relaxed">{qrUrl}</p>
+        </div>
+
+        {/* Actions */}
+        <div className="flex gap-2">
+          <button
+            onClick={copyLink}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
+                       border border-white/10 text-white/50 text-xs hover:border-white/25 hover:text-white/80 transition-colors"
+          >
+            {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
+            {copied ? 'Copiado' : 'Copiar link'}
+          </button>
+          <button
+            onClick={downloadQr}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
+                       bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] transition-colors"
+          >
+            <Download size={12} /> Descargar PNG
+          </button>
+        </div>
+
+        <p className="text-white/20 text-[9px] text-center">
+          Imprime este QR y ponlo sobre la mesa. El cliente lo escanea y Chapi los atiende.
+        </p>
+      </div>
+    </div>
+  )
+}
+
 // ── Sub-components ────────────────────────────────────────────────────────────
 
 function MesaCard({
@@ -81,11 +180,13 @@ function MesaCard({
   onMarkClean,
   onAssign,
   onAutoRelease,
+  onShowQr,
 }: {
   mesa: Mesa
   onMarkClean: (id: string) => void
   onAssign: (id: string) => void
   onAutoRelease: (id: string) => void
+  onShowQr: (mesa: Mesa) => void
 }) {
   const s = MESA_STYLES[mesa.status]
   const elapsed = mesa.seatedAt ? elapsedMin(mesa.seatedAt) : null
@@ -151,15 +252,28 @@ function MesaCard({
         <span className="text-white font-bold text-lg leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
           {mesa.label}
         </span>
-        {/* People count — prominent */}
-        {mesa.pax != null && (
-          <div className="flex items-center gap-1 bg-white/6 rounded-lg px-1.5 py-0.5">
-            <span className="text-white/60 text-[10px] font-semibold">👥 {mesa.pax}/{mesa.seats}</span>
-          </div>
-        )}
-        {mesa.pax == null && (
-          <span className="text-white/20 text-[9px]">{mesa.seats} pax</span>
-        )}
+        <div className="flex items-center gap-1.5">
+          {/* People count — prominent */}
+          {mesa.pax != null && (
+            <div className="flex items-center gap-1 bg-white/6 rounded-lg px-1.5 py-0.5">
+              <span className="text-white/60 text-[10px] font-semibold">👥 {mesa.pax}/{mesa.seats}</span>
+            </div>
+          )}
+          {mesa.pax == null && (
+            <span className="text-white/20 text-[9px]">{mesa.seats} pax</span>
+          )}
+          {/* QR button */}
+          {mesa.qrToken && (
+            <button
+              onClick={e => { e.stopPropagation(); onShowQr(mesa) }}
+              title="Ver QR de mesa"
+              className="w-5 h-5 flex items-center justify-center rounded text-white/20
+                         hover:text-[#FF6B35]/80 hover:bg-[#FF6B35]/10 transition-colors"
+            >
+              <QrCode size={11} />
+            </button>
+          )}
+        </div>
       </div>
 
       <p className={`text-[9px] font-semibold uppercase tracking-wide ${s.text}`}>
@@ -575,6 +689,7 @@ export default function MesasPage() {
   const [assignModal, setAssignModal] = useState<{ mesaId: string } | null>(null)
   const [toast, setToast] = useState<string | null>(null)
   const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('todos')
+  const [qrMesa, setQrMesa] = useState<Mesa | null>(null)
 
   function showToast(msg: string) {
     setToast(msg)
@@ -738,6 +853,7 @@ export default function MesasPage() {
               onMarkClean={markClean}
               onAssign={openAssign}
               onAutoRelease={autoReleaseMesa}
+              onShowQr={setQrMesa}
             />
           ))}
         </div>
@@ -847,6 +963,14 @@ export default function MesasPage() {
           next={nextInQueue}
           onConfirm={confirmAssign}
           onClose={() => setAssignModal(null)}
+        />
+      )}
+
+      {/* ── QR modal ─────────────────────────────────────────────────────── */}
+      {qrMesa && (
+        <QrModal
+          mesa={qrMesa}
+          onClose={() => setQrMesa(null)}
         />
       )}
 
