@@ -135,9 +135,9 @@ export default function TurnosPage() {
   // ── Update shift status ────────────────────────────────────────────────────
 
   async function updateStatus(id: string, status: Shift['status']) {
-    const extra: Partial<Shift> = {}
-    if (status === 'open')   extra.opened_at = new Date().toISOString() as unknown as string
-    if (status === 'closed') extra.closed_at = new Date().toISOString() as unknown as string
+    const extra: Record<string, string> = {}
+    if (status === 'open')   extra.opened_at = new Date().toISOString()
+    if (status === 'closed') extra.closed_at = new Date().toISOString()
 
     await supabase.from('shifts').update({ status, ...extra }).eq('id', id)
     await load()

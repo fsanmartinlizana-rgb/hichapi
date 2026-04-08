@@ -14,7 +14,8 @@
  */
 
 import { createClient } from '@supabase/supabase-js'
-import * as dotenv from 'dotenv'
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const dotenv = require('dotenv') as typeof import('dotenv')
 import * as path from 'path'
 
 dotenv.config({ path: path.resolve(__dirname, '../.env.local') })

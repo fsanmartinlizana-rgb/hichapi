@@ -74,7 +74,16 @@ export default function MermasPage() {
       .limit(100)
 
     setStockItems(stock ?? [])
-    setWasteLog(waste ?? [])
+    // Supabase returns joined relation as array — normalize to single object
+    setWasteLog(
+      (waste ?? []).map((w: unknown) => {
+        const entry = w as Record<string, unknown>
+        const si = Array.isArray(entry.stock_items)
+          ? (entry.stock_items[0] as { name: string; unit: string } ?? null)
+          : (entry.stock_items as { name: string; unit: string } | null)
+        return { ...entry, stock_items: si } as WasteEntry
+      })
+    )
     setLoading(false)
   }, [supabase])
 
