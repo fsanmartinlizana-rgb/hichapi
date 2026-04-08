@@ -18,7 +18,7 @@ const AUTH_ONLY = ['/login', '/register', '/recuperar']
 // Roles that count as "admin level"
 const ADMIN_ROLES = new Set(['owner', 'admin', 'super_admin'])
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
   let res = NextResponse.next({ request: req })
 
