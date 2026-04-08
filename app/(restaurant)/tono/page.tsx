@@ -1,7 +1,7 @@
 'use client'
 
-import { useState } from 'react'
-import { Sparkles, Check, Play, Loader2, RefreshCw, Volume2 } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Sparkles, Check, Play, Loader2, RefreshCw, Volume2, Star, X } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -11,11 +11,18 @@ interface ToneConfig {
   preset: TonePreset
   greeting: string
   recommendations: string
-  upsell: string
   farewell: string
   useEmojis: boolean
   responseLength: 'corta' | 'media' | 'larga'
   language: 'chileno' | 'neutro' | 'formal'
+}
+
+interface MenuItem {
+  id: string
+  name: string
+  price: number
+  category: string
+  tags: string[]
 }
 
 // ── Presets ───────────────────────────────────────────────────────────────────
@@ -70,12 +77,16 @@ export default function TonoPage() {
     preset: 'amigable',
     greeting: 'Hola, bienvenido a El Rincón 🍽️ ¿Qué se te antoja hoy?',
     recommendations: 'Te recomiendo el lomo vetado, es el favorito de la casa. ¿Tienes alguna restricción alimentaria?',
-    upsell: 'Por cierto, el tiramisú de postre está espectacular hoy. ¿Lo agregamos al pedido?',
     farewell: '¡Gracias por visitarnos! Espero que todo haya estado perfecto. ¡Hasta pronto! 🙌',
     useEmojis: true,
     responseLength: 'media',
     language: 'chileno',
   })
+
+  const [menuItems, setMenuItems]       = useState<MenuItem[]>([])
+  const [featuredIds, setFeaturedIds]   = useState<string[]>([])
+  const [savingFeatures, setSavingFeatures] = useState(false)
+  const [featuresSaved, setFeaturesSaved]   = useState(false)
 
   const [testInput, setTestInput]   = useState('')
   const [testOutput, setTestOutput] = useState('')
@@ -83,6 +94,37 @@ export default function TonoPage() {
   const [saving, setSaving]         = useState(false)
   const [saved, setSaved]           = useState(false)
   const [activeScenario, setActiveScenario] = useState(0)
+
+  // Load menu items + current featured selection
+  useEffect(() => {
+    fetch('/api/menu-features')
+      .then(r => r.json())
+      .then(({ items }) => {
+        if (!items) return
+        setMenuItems(items)
+        setFeaturedIds(items.filter((i: MenuItem) => i.tags?.includes('promovido')).map((i: MenuItem) => i.id))
+      })
+      .catch(() => null)
+  }, [])
+
+  async function saveFeatures() {
+    setSavingFeatures(true)
+    await fetch('/api/menu-features', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ item_ids: featuredIds }),
+    })
+    setSavingFeatures(false)
+    setFeaturesSaved(true)
+    setTimeout(() => setFeaturesSaved(false), 2500)
+  }
+
+  function toggleFeatured(id: string) {
+    setFeaturedIds(prev =>
+      prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+    )
+    setFeaturesSaved(false)
+  }
 
   function applyPreset(preset: TonePreset) {
     const p = PRESETS.find(p => p.id === preset)!
@@ -218,7 +260,6 @@ export default function TonoPage() {
           {[
             { key: 'greeting',        label: 'Saludo inicial' },
             { key: 'recommendations', label: 'Al recomendar' },
-            { key: 'upsell',          label: 'Cross-sell (postre/bebida)' },
             { key: 'farewell',        label: 'Despedida / cuenta' },
           ].map(({ key, label }) => (
             <div key={key} className="space-y-1.5">
@@ -233,6 +274,98 @@ export default function TonoPage() {
             </div>
           ))}
         </div>
+      </div>
+
+      {/* Cross-selling — platos destacados */}
+      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <Star size={14} className="text-[#FBBF24]" />
+              <p className="text-white font-semibold text-sm">Platos a destacar</p>
+            </div>
+            <p className="text-white/35 text-xs mt-0.5">
+              Chapi recomendará estos platos activamente a cada mesa. Máximo 3.
+            </p>
+          </div>
+          <button
+            onClick={saveFeatures}
+            disabled={savingFeatures}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold
+                       hover:bg-[#e85d2a] disabled:opacity-40 transition-colors"
+          >
+            {savingFeatures ? <Loader2 size={12} className="animate-spin" /> : featuresSaved ? <Check size={12} /> : <Star size={12} />}
+            {featuresSaved ? 'Guardado' : 'Guardar'}
+          </button>
+        </div>
+
+        {menuItems.length === 0 ? (
+          <div className="flex items-center gap-2 py-4 text-white/25">
+            <Loader2 size={14} className="animate-spin" />
+            <p className="text-xs">Cargando carta…</p>
+          </div>
+        ) : (
+          <>
+            {/* Selected chips */}
+            {featuredIds.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {featuredIds.map(id => {
+                  const item = menuItems.find(m => m.id === id)
+                  if (!item) return null
+                  return (
+                    <span key={id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
+                                              bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[#FBBF24]">
+                      ⭐ {item.name}
+                      <button onClick={() => toggleFeatured(id)} className="hover:text-white transition-colors ml-0.5">
+                        <X size={10} />
+                      </button>
+                    </span>
+                  )
+                })}
+              </div>
+            )}
+
+            {/* Group by category */}
+            {Object.entries(
+              menuItems.reduce((acc, item) => {
+                const cat = item.category || 'otros'
+                if (!acc[cat]) acc[cat] = []
+                acc[cat].push(item)
+                return acc
+              }, {} as Record<string, MenuItem[]>)
+            ).map(([cat, items]) => (
+              <div key={cat} className="space-y-1.5">
+                <p className="text-white/25 text-[10px] uppercase tracking-widest font-semibold">{cat}</p>
+                <div className="flex flex-wrap gap-2">
+                  {items.map(item => {
+                    const isFeatured = featuredIds.includes(item.id)
+                    const atLimit = featuredIds.length >= 3 && !isFeatured
+                    return (
+                      <button
+                        key={item.id}
+                        onClick={() => !atLimit && toggleFeatured(item.id)}
+                        disabled={atLimit}
+                        className={`px-3 py-1.5 rounded-xl border text-xs transition-all
+                          ${isFeatured
+                            ? 'bg-[#FBBF24]/15 border-[#FBBF24]/40 text-[#FBBF24] font-semibold'
+                            : atLimit
+                              ? 'bg-white/2 border-white/5 text-white/15 cursor-not-allowed'
+                              : 'bg-white/4 border-white/8 text-white/50 hover:border-white/20 hover:text-white/70'
+                          }`}
+                      >
+                        {isFeatured && '⭐ '}{item.name}
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            ))}
+
+            {featuredIds.length >= 3 && (
+              <p className="text-white/30 text-[10px]">Máximo 3 platos seleccionados. Quita uno para agregar otro.</p>
+            )}
+          </>
+        )}
       </div>
 
       {/* Test sandbox */}

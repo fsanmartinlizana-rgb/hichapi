@@ -822,7 +822,7 @@ function ComandasPageInner() {
         .order('created_at', { ascending: false }),
     ])
 
-    if (ordersRes.error) { setOnline(false); return }
+    if (ordersRes.error) { setOnline(false); setLoading(false); return }
     setOnline(true)
 
     const tables: DbTable[]  = tablesRes.data  ?? []

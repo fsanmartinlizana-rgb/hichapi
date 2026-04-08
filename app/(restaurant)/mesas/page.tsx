@@ -730,7 +730,6 @@ function NuevaMesaModal({
   onClose: () => void
   onSave: (mesa: Mesa) => void
 }) {
-  const supabase = createClient()
   const [label, setLabel]     = useState('')
   const [seats, setSeats]     = useState(4)
   const [zone, setZone]       = useState<MesaZone>('interior')
@@ -742,26 +741,21 @@ function NuevaMesaModal({
     if (!label.trim()) { setError('Ingresa un nombre para la mesa'); return }
     setSaving(true)
     setError('')
-    const fullLabel  = label.trim().startsWith('Mesa') ? label.trim() : `Mesa ${label.trim()}`
-    const qr_token   = genQrToken(fullLabel)
 
-    // Get restaurant_id from existing tables or skip for now
-    const { data: existingTable } = await supabase.from('tables').select('restaurant_id').limit(1).single()
-    const restaurant_id = existingTable?.restaurant_id ?? null
+    const res = await fetch('/api/tables', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ label: label.trim(), seats, zone, smoking }),
+    })
+    const json = await res.json()
 
-    const { data, error: dbErr } = await supabase
-      .from('tables')
-      .insert({ label: fullLabel, seats, zone, smoking, status: 'libre', qr_token, restaurant_id })
-      .select()
-      .single()
-
-    if (dbErr || !data) {
-      setError(dbErr?.message ?? 'Error al guardar')
+    if (!res.ok || json.error) {
+      setError(json.error ?? 'Error al guardar')
       setSaving(false)
       return
     }
 
-    onSave(dbToMesa(data as DbTable))
+    onSave(dbToMesa(json.table as DbTable))
     setSaving(false)
   }
 

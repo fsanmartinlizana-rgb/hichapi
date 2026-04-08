@@ -53,6 +53,11 @@ function buildSystemPrompt(
     ).join('\n')}`
   ).join('\n\n')
 
+  const featuredItems = available.filter(i => i.tags?.includes('promovido'))
+  const featuredText = featuredItems.length > 0
+    ? `\nPLATOS ESPECIALES HOY (recomiéndalos activamente a cada mesa, en el momento oportuno):\n${featuredItems.map(i => `  - ${i.name} · $${(i.price/1000).toFixed(1)}k`).join('\n')}\n`
+    : ''
+
   const cartText = cart.length > 0
     ? `\nPEDIDO ACTUAL DEL CLIENTE:\n${cart.map(c => `  - ${c.quantity}× ${c.name} $${(c.unit_price/1000).toFixed(1)}k${c.note ? ` (${c.note})` : ''}`).join('\n')}\nTotal actual: $${(cart.reduce((s,c) => s + c.unit_price * c.quantity, 0)/1000).toFixed(1)}k\n`
     : '\nEl cliente aún no ha pedido nada.\n'
@@ -63,7 +68,7 @@ Eres cercano, conoces la carta de memoria, y haces la experiencia deliciosa.
 
 CARTA DISPONIBLE HOY:
 ${menuText}
-${cartText}
+${featuredText}${cartText}
 REGLAS:
 1. Si el cliente pide algo concreto → acción "add_items" con los items del menú (usa los IDs exactos).
 2. "Para compartir", "para la mesa", "para todos" NO multiplica la cantidad. quantity = 1 siempre, salvo que el cliente diga explícitamente un número ("2 porciones", "dos", "x3", etc.). Un plato compartido sigue siendo 1 unidad.
