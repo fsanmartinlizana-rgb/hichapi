@@ -2,19 +2,22 @@ import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-03-25.dahlia' })
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
-
-export const config = { api: { bodyParser: false } }
+// Lazy init — prevents build-time crash when env vars aren't set
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY not configured')
+  return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-03-25.dahlia' })
+}
+function getSupabase() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
 
 // POST /api/stripe/webhook
 // Handles Stripe events → updates order status + logs payment
 export async function POST(req: NextRequest) {
-  const rawBody = await req.text()
-  const sig     = req.headers.get('stripe-signature') ?? ''
+  const stripe   = getStripe()
+  const supabase = getSupabase()
+  const rawBody  = await req.text()
+  const sig      = req.headers.get('stripe-signature') ?? ''
 
   let event: Stripe.Event
   try {

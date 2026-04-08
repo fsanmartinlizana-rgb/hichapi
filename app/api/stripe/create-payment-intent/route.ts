@@ -3,11 +3,14 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, { apiVersion: '2026-03-25.dahlia' })
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+// Lazy init — prevents build-time crash when env vars aren't set
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) throw new Error('STRIPE_SECRET_KEY not configured')
+  return new Stripe(process.env.STRIPE_SECRET_KEY, { apiVersion: '2026-03-25.dahlia' })
+}
+function getSupabase() {
+  return createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.SUPABASE_SERVICE_ROLE_KEY!)
+}
 
 const BodySchema = z.object({
   order_id:    z.string().uuid(),
@@ -21,6 +24,8 @@ export async function POST(req: NextRequest) {
     const { order_id, split_count } = BodySchema.parse(await req.json())
 
     // Fetch order total
+    const supabase = getSupabase()
+    const stripe   = getStripe()
     const { data: order, error } = await supabase
       .from('orders')
       .select('id, total, restaurant_id, restaurants(name)')
