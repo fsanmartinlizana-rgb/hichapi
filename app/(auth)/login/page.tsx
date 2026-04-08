@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield, AlertCircle } from 'lucide-react'
@@ -19,7 +19,7 @@ function checkRateLimit(): boolean {
   return attempts.count <= 5
 }
 
-export default function LoginPage() {
+function LoginForm() {
   const searchParams = useSearchParams()
   const redirectTo   = searchParams.get('redirect') ?? '/dashboard'
 
@@ -215,5 +215,13 @@ export default function LoginPage() {
         <span className="text-[10px]">Conexión segura · Datos encriptados · Supabase Auth</span>
       </div>
     </div>
+  )
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginForm />
+    </Suspense>
   )
 }
