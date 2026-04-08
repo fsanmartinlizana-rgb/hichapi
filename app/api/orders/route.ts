@@ -138,6 +138,35 @@ export async function POST(req: NextRequest) {
   }
 }
 
+// ── PATCH /api/orders/:id — advance status (e.g. request bill) ───────────────
+
+export async function PATCH(req: NextRequest) {
+  try {
+    const body = await req.json()
+    const { order_id, status } = z.object({
+      order_id: z.string().uuid(),
+      status: z.enum(['confirmed','preparing','ready','paying','paid','cancelled']),
+    }).parse(body)
+
+    const supabase = createAdminClient()
+    const { error } = await supabase
+      .from('orders')
+      .update({ status })
+      .eq('id', order_id)
+
+    if (error) {
+      return NextResponse.json({ error: 'No se pudo actualizar' }, { status: 500 })
+    }
+
+    return NextResponse.json({ ok: true, order_id, status })
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+    }
+    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+  }
+}
+
 // ── GET /api/orders?table_id=… ────────────────────────────────────────────────
 
 export async function GET(req: NextRequest) {

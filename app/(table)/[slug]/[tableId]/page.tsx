@@ -3,8 +3,9 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 import {
-  Send, ShoppingCart, X, Plus, Minus, ChevronUp, ChevronDown,
-  CheckCircle2, Loader2, Utensils, SplitSquareHorizontal, Receipt,
+  Send, ShoppingCart, X, Plus, Minus, CheckCircle2,
+  Loader2, Utensils, SplitSquareHorizontal, Receipt,
+  Trash2, Bell,
 } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -26,16 +27,20 @@ interface Message {
 }
 
 type OrderStatus = 'idle' | 'confirming' | 'sent' | 'splitting'
+type SplitMode = 'equal' | 'byItem'
 
-// ── Mock menu (replace with Supabase fetch) ───────────────────────────────────
+// ── CLP formatter ─────────────────────────────────────────────────────────────
 
-const MOCK_RESTAURANT = {
-  name: 'El Rincón de Don José',
-  tableLabel: 'Mesa 4',
-  neighborhood: 'Providencia',
+function clp(amount: number): string {
+  return new Intl.NumberFormat('es-CL', {
+    style: 'currency',
+    currency: 'CLP',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(amount)
 }
 
-// ── Quick chips by context ────────────────────────────────────────────────────
+// ── Quick chips ───────────────────────────────────────────────────────────────
 
 const INITIAL_CHIPS = [
   '¿Qué recomiendas?',
@@ -80,6 +85,7 @@ function CartDrawer({
   open,
   onClose,
   onChangeQty,
+  onClearCart,
   onConfirm,
   onSplit,
   orderStatus,
@@ -88,19 +94,47 @@ function CartDrawer({
   open: boolean
   onClose: () => void
   onChangeQty: (id: string, delta: number) => void
+  onClearCart: () => void
   onConfirm: () => void
-  onSplit: (n: number) => void
+  onSplit: (mode: SplitMode, n?: number, assignments?: Record<string, 'A' | 'B'>) => void
   orderStatus: OrderStatus
 }) {
+  const [splitMode, setSplitMode] = useState<SplitMode>('equal')
   const [splitN, setSplitN] = useState(2)
+  // by-item split: map menu_item_id → 'A' | 'B'
+  const [assignments, setAssignments] = useState<Record<string, 'A' | 'B'>>({})
+
   const total = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
 
+  // Reset split state when drawer opens/closes
+  useEffect(() => {
+    if (!open) {
+      setSplitMode('equal')
+      setSplitN(2)
+      setAssignments({})
+    }
+  }, [open])
+
+  // Init assignments when entering by-item mode
+  useEffect(() => {
+    if (orderStatus === 'splitting' && splitMode === 'byItem') {
+      const init: Record<string, 'A' | 'B'> = {}
+      cart.forEach(c => { init[c.menu_item_id] = 'A' })
+      setAssignments(init)
+    }
+  }, [splitMode, orderStatus, cart])
+
   if (!open) return null
+
+  const totalA = cart.filter(c => assignments[c.menu_item_id] !== 'B')
+    .reduce((s, c) => s + c.unit_price * c.quantity, 0)
+  const totalB = cart.filter(c => assignments[c.menu_item_id] === 'B')
+    .reduce((s, c) => s + c.unit_price * c.quantity, 0)
 
   return (
     <div className="absolute inset-0 z-30 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-[#161622] border-t border-white/10 rounded-t-2xl max-h-[80vh] flex flex-col">
+      <div className="relative bg-[#161622] border-t border-white/10 rounded-t-2xl max-h-[85vh] flex flex-col">
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
@@ -110,7 +144,19 @@ function CartDrawer({
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-3 border-b border-white/6 shrink-0">
           <h3 className="text-white font-bold">Tu pedido</h3>
-          <button onClick={onClose} className="text-white/30 hover:text-white"><X size={18} /></button>
+          <div className="flex items-center gap-2">
+            {cart.length > 0 && orderStatus === 'idle' && (
+              <button
+                onClick={onClearCart}
+                className="flex items-center gap-1 text-white/25 text-xs hover:text-red-400 transition-colors px-2 py-1"
+              >
+                <Trash2 size={11} /> Vaciar
+              </button>
+            )}
+            <button onClick={onClose} className="text-white/30 hover:text-white">
+              <X size={18} />
+            </button>
+          </div>
         </div>
 
         {/* Items */}
@@ -120,76 +166,166 @@ function CartDrawer({
               <Utensils size={20} className="text-white/15" />
               <p className="text-white/25 text-sm">Aún no agregaste nada</p>
             </div>
-          ) : cart.map(item => (
-            <div key={item.menu_item_id} className="flex items-center gap-3">
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">{item.name}</p>
-                {item.note && <p className="text-white/30 text-xs italic">{item.note}</p>}
-                <p className="text-[#FF6B35]/80 text-xs font-mono mt-0.5">
-                  ${(item.unit_price / 1000).toFixed(1)}k × {item.quantity}
+          ) : orderStatus === 'splitting' && splitMode === 'byItem' ? (
+            /* ── By-item split ── */
+            <>
+              <div className="flex items-center gap-2 mb-2">
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">Cuenta A</span>
+                <span className="text-white/20 text-xs">vs</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300">Cuenta B</span>
+                <span className="text-white/30 text-[10px] ml-auto">Toca para asignar</span>
+              </div>
+              {cart.map(item => {
+                const side = assignments[item.menu_item_id] ?? 'A'
+                return (
+                  <button
+                    key={item.menu_item_id}
+                    onClick={() => setAssignments(prev => ({
+                      ...prev,
+                      [item.menu_item_id]: prev[item.menu_item_id] === 'B' ? 'A' : 'B',
+                    }))}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl border transition-all text-left
+                      ${side === 'A'
+                        ? 'bg-blue-500/10 border-blue-500/30'
+                        : 'bg-violet-500/10 border-violet-500/30'}`}
+                  >
+                    <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded-md shrink-0
+                      ${side === 'A' ? 'bg-blue-500/30 text-blue-200' : 'bg-violet-500/30 text-violet-200'}`}>
+                      {side}
+                    </span>
+                    <span className="flex-1 text-white text-xs font-medium truncate">{item.name}</span>
+                    <span className="text-white/50 text-xs font-mono shrink-0">
+                      {item.quantity > 1 && `${item.quantity}× `}{clp(item.unit_price * item.quantity)}
+                    </span>
+                  </button>
+                )
+              })}
+              <div className="flex gap-2 pt-1">
+                <div className="flex-1 bg-blue-500/10 border border-blue-500/20 rounded-xl px-3 py-2 text-center">
+                  <p className="text-[9px] text-blue-300/70 uppercase tracking-wide">Cuenta A</p>
+                  <p className="text-blue-200 font-bold text-sm font-mono">{clp(totalA)}</p>
+                </div>
+                <div className="flex-1 bg-violet-500/10 border border-violet-500/20 rounded-xl px-3 py-2 text-center">
+                  <p className="text-[9px] text-violet-300/70 uppercase tracking-wide">Cuenta B</p>
+                  <p className="text-violet-200 font-bold text-sm font-mono">{clp(totalB)}</p>
+                </div>
+              </div>
+            </>
+          ) : (
+            /* ── Normal item list ── */
+            cart.map(item => (
+              <div key={item.menu_item_id} className="flex items-center gap-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-white text-sm font-medium truncate">{item.name}</p>
+                  {item.note && <p className="text-white/30 text-xs italic">{item.note}</p>}
+                  <p className="text-[#FF6B35]/80 text-xs font-mono mt-0.5">
+                    {clp(item.unit_price)} × {item.quantity}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => onChangeQty(item.menu_item_id, -1)}
+                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10
+                               flex items-center justify-center text-white/50
+                               hover:border-white/20 hover:text-white transition-colors"
+                  >
+                    <Minus size={11} />
+                  </button>
+                  <span className="text-white text-sm font-medium w-4 text-center">{item.quantity}</span>
+                  <button
+                    onClick={() => onChangeQty(item.menu_item_id, +1)}
+                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10
+                               flex items-center justify-center text-white/50
+                               hover:border-white/20 hover:text-white transition-colors"
+                  >
+                    <Plus size={11} />
+                  </button>
+                </div>
+                <p className="text-white font-semibold text-sm w-16 text-right shrink-0" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                  {clp(item.unit_price * item.quantity)}
                 </p>
               </div>
-              <div className="flex items-center gap-2 shrink-0">
-                <button
-                  onClick={() => onChangeQty(item.menu_item_id, -1)}
-                  className="w-7 h-7 rounded-full bg-white/5 border border-white/10
-                             flex items-center justify-center text-white/50
-                             hover:border-white/20 hover:text-white transition-colors"
-                >
-                  <Minus size={11} />
-                </button>
-                <span className="text-white text-sm font-medium w-4 text-center">{item.quantity}</span>
-                <button
-                  onClick={() => onChangeQty(item.menu_item_id, +1)}
-                  className="w-7 h-7 rounded-full bg-white/5 border border-white/10
-                             flex items-center justify-center text-white/50
-                             hover:border-white/20 hover:text-white transition-colors"
-                >
-                  <Plus size={11} />
-                </button>
-              </div>
-              <p className="text-white font-semibold text-sm w-14 text-right shrink-0" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-                ${((item.unit_price * item.quantity) / 1000).toFixed(1)}k
-              </p>
-            </div>
-          ))}
+            ))
+          )}
         </div>
 
         {/* Total + actions */}
         {cart.length > 0 && (
           <div className="px-5 py-4 border-t border-white/6 space-y-3 shrink-0">
-            <div className="flex items-center justify-between">
-              <span className="text-white/50 text-sm">Total</span>
-              <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-                ${(total / 1000).toFixed(1)}k
-              </span>
-            </div>
+            {/* Total */}
+            {orderStatus !== 'splitting' || splitMode !== 'byItem' ? (
+              <div className="flex items-center justify-between">
+                <span className="text-white/50 text-sm">Total</span>
+                <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                  {clp(total)}
+                </span>
+              </div>
+            ) : null}
 
             {orderStatus === 'splitting' ? (
-              <div className="space-y-2">
-                <p className="text-white/50 text-xs">¿En cuántas partes?</p>
-                <div className="flex items-center gap-2">
-                  {[2, 3, 4, 5].map(n => (
-                    <button
-                      key={n}
-                      onClick={() => setSplitN(n)}
-                      className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all
-                        ${splitN === n ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
-                    >
-                      {n}
-                    </button>
-                  ))}
+              <div className="space-y-3">
+                {/* Mode toggle */}
+                <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
+                  <button
+                    onClick={() => setSplitMode('equal')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all
+                      ${splitMode === 'equal' ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white/60'}`}
+                  >
+                    Por igual
+                  </button>
+                  <button
+                    onClick={() => setSplitMode('byItem')}
+                    className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all
+                      ${splitMode === 'byItem' ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white/60'}`}
+                  >
+                    Por plato
+                  </button>
                 </div>
-                <p className="text-white/30 text-xs text-center">
-                  ${(total / splitN / 1000).toFixed(1)}k por persona
-                </p>
-                <button
-                  onClick={() => onSplit(splitN)}
-                  className="w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                             hover:bg-[#e85d2a] transition-colors"
-                >
-                  Confirmar división
-                </button>
+
+                {splitMode === 'equal' ? (
+                  <>
+                    <p className="text-white/50 text-xs">¿En cuántas partes?</p>
+                    <div className="flex items-center gap-2">
+                      {[2, 3, 4, 5].map(n => (
+                        <button
+                          key={n}
+                          onClick={() => setSplitN(n)}
+                          className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all
+                            ${splitN === n ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                        >
+                          {n}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-white/30 text-xs text-center">
+                      {clp(Math.round(total / splitN))} por persona
+                    </p>
+                  </>
+                ) : (
+                  <p className="text-white/40 text-xs text-center">
+                    Toca cada plato para asignarlo a Cuenta A o B
+                  </p>
+                )}
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => onSplit(
+                      splitMode,
+                      splitMode === 'equal' ? splitN : undefined,
+                      splitMode === 'byItem' ? assignments : undefined
+                    )}
+                    className="flex-1 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
+                               hover:bg-[#e85d2a] transition-colors"
+                  >
+                    Confirmar división
+                  </button>
+                  <button
+                    onClick={() => onSplit('equal', 0)}
+                    className="px-4 py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors"
+                  >
+                    Cancelar
+                  </button>
+                </div>
               </div>
             ) : orderStatus === 'sent' ? (
               <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
@@ -199,7 +335,7 @@ function CartDrawer({
             ) : (
               <div className="flex gap-2">
                 <button
-                  onClick={() => onSplit(0)}
+                  onClick={() => onSplit('equal', 0)}
                   className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl
                              border border-white/10 text-white/40 text-sm
                              hover:border-white/20 hover:text-white/60 transition-colors"
@@ -230,8 +366,23 @@ function CartDrawer({
 
 // ── Bill modal ────────────────────────────────────────────────────────────────
 
-function BillModal({ cart, onClose }: { cart: CartItem[]; onClose: () => void }) {
+function BillModal({
+  cart,
+  onClose,
+  onRequestBill,
+}: {
+  cart: CartItem[]
+  onClose: () => void
+  onRequestBill: () => void
+}) {
   const total = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
+  const [requested, setRequested] = useState(false)
+
+  function handleRequest() {
+    onRequestBill()
+    setRequested(true)
+  }
+
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
@@ -246,20 +397,28 @@ function BillModal({ cart, onClose }: { cart: CartItem[]; onClose: () => void })
           {cart.map(item => (
             <div key={item.menu_item_id} className="flex justify-between text-sm">
               <span className="text-white/60">{item.quantity}× {item.name}</span>
-              <span className="text-white font-mono">${((item.unit_price * item.quantity) / 1000).toFixed(1)}k</span>
+              <span className="text-white font-mono">{clp(item.unit_price * item.quantity)}</span>
             </div>
           ))}
           <div className="border-t border-white/10 pt-2 flex justify-between">
             <span className="text-white font-semibold">Total</span>
-            <span className="text-white font-bold text-lg font-mono">${(total / 1000).toFixed(1)}k</span>
+            <span className="text-white font-bold text-lg font-mono">{clp(total)}</span>
           </div>
         </div>
-        <button
-          onClick={onClose}
-          className="w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
-        >
-          El garzón viene en un momento
-        </button>
+
+        {requested ? (
+          <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
+            <Bell size={14} className="text-emerald-400" />
+            <span className="text-emerald-400 text-sm font-semibold">El garzón ya viene</span>
+          </div>
+        ) : (
+          <button
+            onClick={handleRequest}
+            className="w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
+          >
+            El garzón viene en un momento
+          </button>
+        )}
         <p className="text-white/20 text-xs text-center">
           También puedes pagar directo con Chapi (próximamente)
         </p>
@@ -275,19 +434,20 @@ export default function TablePage() {
   const slug    = params.slug as string
   const tableId = params.tableId as string
 
-  const [messages, setMessages]       = useState<Message[]>([
-    {
-      id: 'welcome',
-      role: 'chapi',
-      text: `¡Hola! Soy Chapi, tu asistente en ${MOCK_RESTAURANT.name} 🍽️ ¿Qué te apetece hoy? Puedo recomendarte algo, contarte sobre los platos o tomar tu pedido.`,
-    },
-  ])
+  const [restaurantName, setRestaurantName] = useState('el restaurante')
+
+  const [messages, setMessages]       = useState<Message[]>([{
+    id: 'welcome',
+    role: 'chapi',
+    text: '¡Hola! Soy Chapi 🍽️ ¿Qué te apetece hoy? Puedo recomendarte algo, contarte sobre los platos o tomar tu pedido.',
+  }])
   const [input, setInput]             = useState('')
   const [loading, setLoading]         = useState(false)
   const [waiting, setWaiting]         = useState(false)
   const [cart, setCart]               = useState<CartItem[]>([])
   const [cartOpen, setCartOpen]       = useState(false)
   const [orderStatus, setOrderStatus] = useState<OrderStatus>('idle')
+  const [orderId, setOrderId]         = useState<string | null>(null)
   const [billOpen, setBillOpen]       = useState(false)
   const [chips, setChips]             = useState(INITIAL_CHIPS)
 
@@ -326,6 +486,13 @@ export default function TablePage() {
     })
   }
 
+  function clearCart() {
+    setCart([])
+    setChips(INITIAL_CHIPS)
+    setOrderStatus('idle')
+    setCartOpen(false)
+  }
+
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return
 
@@ -354,7 +521,7 @@ export default function TablePage() {
 
       const reader  = res.body!.getReader()
       const decoder = new TextDecoder()
-      let chapiMsgId = (Date.now() + 1).toString()
+      const chapiMsgId = (Date.now() + 1).toString()
       let buffer = ''
 
       while (true) {
@@ -376,30 +543,26 @@ export default function TablePage() {
               setWaiting(false)
               setMessages(prev => {
                 const existing = prev.find(m => m.id === chapiMsgId)
-                if (existing) {
-                  return prev.map(m => m.id === chapiMsgId ? { ...m, text: data.text } : m)
-                }
+                if (existing) return prev.map(m => m.id === chapiMsgId ? { ...m, text: data.text } : m)
                 return [...prev, { id: chapiMsgId, role: 'chapi', text: data.text }]
               })
 
+            } else if (event === 'restaurant_info') {
+              if (data.name) setRestaurantName(data.name)
+
             } else if (event === 'done') {
               setWaiting(false)
-              setMessages(prev =>
-                prev.map(m => m.id === chapiMsgId
-                  ? { ...m, text: data.message, action: data.action }
-                  : m
-                )
-              )
+              setMessages(prev => prev.map(m =>
+                m.id === chapiMsgId ? { ...m, text: data.message, action: data.action } : m
+              ))
 
               if (data.action === 'add_items' && data.items_to_add?.length > 0) {
                 addToCart(data.items_to_add)
                 setTimeout(() => setCartOpen(true), 600)
               }
-
               if (data.action === 'request_bill') {
                 setBillOpen(true)
               }
-
               if (data.action === 'request_split') {
                 setOrderStatus('splitting')
                 setCartOpen(true)
@@ -431,11 +594,7 @@ export default function TablePage() {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant_slug: slug,
-          table_id: tableId,
-          cart,
-        }),
+        body: JSON.stringify({ restaurant_slug: slug, table_id: tableId, cart }),
       })
 
       if (!res.ok) {
@@ -443,6 +602,8 @@ export default function TablePage() {
         throw new Error(err.error ?? 'Error al enviar pedido')
       }
 
+      const data = await res.json()
+      setOrderId(data.orderId)
       setOrderStatus('sent')
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
@@ -453,7 +614,7 @@ export default function TablePage() {
         setCartOpen(false)
         setOrderStatus('idle')
       }, 2000)
-    } catch (err) {
+    } catch {
       setOrderStatus('idle')
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
@@ -463,18 +624,49 @@ export default function TablePage() {
     }
   }
 
-  function handleSplit(n: number) {
-    if (n === 0) {
+  async function requestBill() {
+    // Signal garzon via order status update
+    if (orderId) {
+      await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, status: 'paying' }),
+      }).catch(() => null)
+    }
+  }
+
+  function handleSplit(mode: SplitMode, n?: number, assignments?: Record<string, 'A' | 'B'>) {
+    // Cancel split
+    if (mode === 'equal' && n === 0) {
+      setOrderStatus('idle')
+      return
+    }
+    // Enter split mode
+    if (mode === 'equal' && n === undefined) {
       setOrderStatus('splitting')
-    } else {
+      return
+    }
+
+    if (mode === 'equal' && n) {
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'chapi',
-        text: `¡Listo! Cuenta dividida en ${n} partes: $${(cartTotal / n / 1000).toFixed(1)}k por persona. Le aviso al garzón 🙌`,
+        text: `¡Listo! Cuenta dividida en ${n} partes iguales: ${clp(Math.round(cartTotal / n))} por persona. Le aviso al garzón 🙌`,
       }])
-      setCartOpen(false)
-      setOrderStatus('idle')
+    } else if (mode === 'byItem' && assignments) {
+      const totalA = cart.filter(c => assignments[c.menu_item_id] !== 'B')
+        .reduce((s, c) => s + c.unit_price * c.quantity, 0)
+      const totalB = cart.filter(c => assignments[c.menu_item_id] === 'B')
+        .reduce((s, c) => s + c.unit_price * c.quantity, 0)
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'chapi',
+        text: `¡Perfecto! Cuenta A: ${clp(totalA)} · Cuenta B: ${clp(totalB)}. Le aviso al garzón para que traiga las cuentas por separado 🙌`,
+      }])
     }
+
+    setCartOpen(false)
+    setOrderStatus('idle')
   }
 
   return (
@@ -489,10 +681,8 @@ export default function TablePage() {
             hi
           </div>
           <div>
-            <p className="text-white text-sm font-semibold leading-tight">{MOCK_RESTAURANT.name}</p>
-            <p className="text-white/35 text-[10px]">
-              {MOCK_RESTAURANT.tableLabel} · {MOCK_RESTAURANT.neighborhood}
-            </p>
+            <p className="text-white text-sm font-semibold leading-tight">{restaurantName}</p>
+            <p className="text-white/35 text-[10px]">Chapi · tu asistente</p>
           </div>
         </div>
 
@@ -507,7 +697,7 @@ export default function TablePage() {
           <ShoppingCart size={15} />
           {cartCount > 0 && (
             <>
-              <span className="text-sm font-semibold">${(cartTotal / 1000).toFixed(1)}k</span>
+              <span className="text-sm font-semibold">{clp(cartTotal)}</span>
               <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#FF6B35]
                                text-white text-[9px] font-bold flex items-center justify-center">
                 {cartCount}
@@ -536,7 +726,6 @@ export default function TablePage() {
           </div>
         ))}
 
-        {/* Typing dots */}
         {waiting && (
           <div className="flex justify-start">
             <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center
@@ -601,6 +790,7 @@ export default function TablePage() {
         open={cartOpen}
         onClose={() => setCartOpen(false)}
         onChangeQty={changeQty}
+        onClearCart={clearCart}
         onConfirm={confirmOrder}
         onSplit={handleSplit}
         orderStatus={orderStatus}
@@ -608,7 +798,11 @@ export default function TablePage() {
 
       {/* ── Bill modal ──────────────────────────────────────────────────────── */}
       {billOpen && (
-        <BillModal cart={cart} onClose={() => setBillOpen(false)} />
+        <BillModal
+          cart={cart}
+          onClose={() => setBillOpen(false)}
+          onRequestBill={requestBill}
+        />
       )}
     </div>
   )

@@ -11,6 +11,7 @@ export interface Restaurant {
   price_range: 'economico' | 'medio' | 'premium'
   rating: number
   review_count: number
+  has_promotion?: boolean
 }
 
 export interface MenuItem {
