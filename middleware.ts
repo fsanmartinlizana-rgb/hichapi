@@ -1,17 +1,26 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Routes that require restaurant auth
-const PROTECTED = ['/dashboard', '/comandas', '/mesas', '/carta', '/reporte', '/analytics', '/insights', '/restaurante', '/tono', '/garzon']
+// ── Route access by role ──────────────────────────────────────────────────────
+// Routes requiring authentication (any role)
+const PROTECTED = [
+  '/dashboard', '/comandas', '/mesas', '/carta',
+  '/reporte', '/analytics', '/insights', '/restaurante',
+  '/tono', '/garzon', '/mermas', '/stock', '/turnos',
+]
+
+// Routes only accessible to admin/owner/super_admin
+const ADMIN_ONLY = ['/carta', '/reporte', '/analytics', '/restaurante', '/tono', '/mermas', '/stock', '/turnos']
+
 // Routes only for unauthenticated users
-const AUTH_ONLY  = ['/login', '/register', '/recuperar']
+const AUTH_ONLY = ['/login', '/register', '/recuperar']
+
+// Roles that count as "admin level"
+const ADMIN_ROLES = new Set(['owner', 'admin', 'super_admin'])
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl
   let res = NextResponse.next({ request: req })
-
-  // Dev bypass — skip auth in development for UI iteration
-  if (process.env.NODE_ENV === 'development') return res
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -29,13 +38,14 @@ export async function middleware(req: NextRequest) {
     }
   )
 
-  // Refresh session — required on every request
+  // Refresh and validate session JWT
   const { data: { user } } = await supabase.auth.getUser()
 
   const isProtected = PROTECTED.some(p => pathname.startsWith(p))
   const isAuthOnly  = AUTH_ONLY.some(p => pathname.startsWith(p))
+  const isAdminOnly = ADMIN_ONLY.some(p => pathname.startsWith(p))
 
-  // Not logged in → redirect to login
+  // Not authenticated → redirect to login
   if (isProtected && !user) {
     const loginUrl = req.nextUrl.clone()
     loginUrl.pathname = '/login'
@@ -44,11 +54,39 @@ export async function middleware(req: NextRequest) {
   }
 
   // Already logged in → redirect away from auth pages
-  // Exception: /update-password is accessible while logged in (needed for password reset flow)
   if (isAuthOnly && user) {
     const dashUrl = req.nextUrl.clone()
     dashUrl.pathname = '/dashboard'
     return NextResponse.redirect(dashUrl)
+  }
+
+  // Fetch role + restaurant_id from team_members for authenticated users
+  if (user && isProtected) {
+    const { data: membership } = await supabase
+      .from('team_members')
+      .select('role, restaurant_id')
+      .eq('user_id', user.id)
+      .eq('active', true)
+      .single()
+
+    const role           = membership?.role ?? null
+    const restaurantId   = membership?.restaurant_id ?? null
+    const isSuperAdmin   = role === 'super_admin'
+    const isAdminLevel   = role ? ADMIN_ROLES.has(role) : false
+
+    // Admin-only routes: redirect garzon/waiter/supervisor to /garzon
+    if (isAdminOnly && !isAdminLevel && !isSuperAdmin) {
+      const fallback = req.nextUrl.clone()
+      fallback.pathname = '/garzon'
+      return NextResponse.redirect(fallback)
+    }
+
+    // Propagate role and restaurant context downstream via headers
+    // Server components can read these via headers()
+    res = NextResponse.next({ request: req })
+    res.headers.set('x-user-role', role ?? '')
+    res.headers.set('x-restaurant-id', restaurantId ?? '')
+    res.headers.set('x-user-id', user.id)
   }
 
   return res

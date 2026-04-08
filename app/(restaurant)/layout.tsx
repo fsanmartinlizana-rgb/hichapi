@@ -12,7 +12,9 @@ import {
   Sparkles,
   Store,
   SlidersHorizontal,
-  ChevronRight,
+  Trash2,
+  Package,
+  CalendarDays,
 } from 'lucide-react'
 
 const NAV = [
@@ -20,9 +22,17 @@ const NAV = [
     section: 'OPERACIÓN',
     items: [
       { label: 'Dashboard',     href: '/dashboard',  icon: LayoutDashboard, badge: null },
-      { label: 'Comandas',      href: '/comandas',   icon: ClipboardList,   badge: 7    },
+      { label: 'Comandas',      href: '/comandas',   icon: ClipboardList,   badge: null },
       { label: 'Mesas',         href: '/mesas',      icon: Grid3X3,         badge: null },
       { label: 'Carta digital', href: '/carta',      icon: BookOpen,        badge: null },
+    ],
+  },
+  {
+    section: 'INVENTARIO',
+    items: [
+      { label: 'Stock',   href: '/stock',  icon: Package,  badge: null },
+      { label: 'Mermas',  href: '/mermas', icon: Trash2,   badge: null },
+      { label: 'Turnos',  href: '/turnos', icon: CalendarDays, badge: null },
     ],
   },
   {
@@ -36,7 +46,7 @@ const NAV = [
   {
     section: 'CONFIGURACIÓN',
     items: [
-      { label: 'Mi restaurante', href: '/restaurante', icon: Store,            badge: null },
+      { label: 'Mi restaurante', href: '/restaurante', icon: Store,             badge: null },
       { label: 'Tono de Chapi',  href: '/tono',        icon: SlidersHorizontal, badge: null },
     ],
   },

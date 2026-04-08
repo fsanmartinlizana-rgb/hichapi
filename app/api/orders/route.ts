@@ -158,6 +158,53 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo actualizar' }, { status: 500 })
     }
 
+    // Deduct stock ingredients when order moves to 'preparing'
+    if (status === 'preparing') {
+      try {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('restaurant_id, order_items(quantity, menu_item_id)')
+          .eq('id', order_id)
+          .single()
+
+        if (orderData?.order_items) {
+          for (const item of orderData.order_items as { quantity: number; menu_item_id: string }[]) {
+            const { data: menuItem } = await supabase
+              .from('menu_items')
+              .select('ingredients')
+              .eq('id', item.menu_item_id)
+              .single()
+
+            const ingredients: { stock_item_id: string; qty: number }[] =
+              menuItem?.ingredients ?? []
+
+            for (const ing of ingredients) {
+              const deduction = ing.qty * item.quantity
+              await supabase.rpc('adjust_stock', {
+                p_stock_item_id: ing.stock_item_id,
+                p_delta: -deduction,
+              }).catch(() => {
+                // Fallback: direct update
+                supabase.from('stock_items')
+                  .update({ current_qty: supabase.rpc('greatest', {}) })
+                  .eq('id', ing.stock_item_id)
+              })
+
+              await supabase.from('stock_movements').insert({
+                restaurant_id:  orderData.restaurant_id,
+                stock_item_id:  ing.stock_item_id,
+                delta:          -deduction,
+                reason:         'orden',
+                order_id,
+              })
+            }
+          }
+        }
+      } catch {
+        // Stock deduction is best-effort — don't fail the status update
+      }
+    }
+
     return NextResponse.json({ ok: true, order_id, status })
   } catch (err) {
     if (err instanceof z.ZodError) {
