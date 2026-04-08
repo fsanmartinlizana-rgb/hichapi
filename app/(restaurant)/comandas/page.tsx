@@ -1,9 +1,10 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package } from 'lucide-react'
+import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -27,6 +28,53 @@ interface Order {
   amount: number
   mins: number        // elapsed minutes
   viaChapi: boolean
+}
+
+// ── DB Types & mapping ────────────────────────────────────────────────────────
+
+interface DbTable { id: string; label: string }
+interface DbOrderItem { id: string; name: string; quantity: number; notes: string | null }
+interface DbOrder {
+  id: string; table_id: string; status: string; total: number
+  created_at: string; order_items: DbOrderItem[]
+}
+
+function dbToUI(status: string): OrderStatus | null {
+  if (status === 'pending' || status === 'confirmed') return 'recibida'
+  if (status === 'preparing')                          return 'preparando'
+  if (status === 'ready')                              return 'lista'
+  if (status === 'paying')                             return 'entregada'
+  return null   // paid / cancelled → ocultar
+}
+
+function uiToDb(next: OrderStatus): string {
+  switch (next) {
+    case 'preparando': return 'preparing'
+    case 'lista':      return 'ready'
+    case 'entregada':  return 'paying'
+    default:           return 'preparing'
+  }
+}
+
+function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
+  const uiStatus = dbToUI(o.status)
+  if (!uiStatus) return null
+  const table = tables.find(t => t.id === o.table_id)
+  return {
+    id:         o.id,
+    tableId:    table?.label?.replace('Mesa ', 'M-') ?? o.table_id.slice(-4).toUpperCase(),
+    tableLabel: table?.label ?? 'Mesa',
+    pax:        2,
+    status:     uiStatus,
+    items:      o.order_items.map(item => ({
+      name: item.name,
+      qty:  item.quantity,
+      note: item.notes ?? undefined,
+    })),
+    amount:    o.total,
+    mins:      Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000),
+    viaChapi:  false,
+  }
 }
 
 // ── Stock state ───────────────────────────────────────────────────────────────
@@ -750,13 +798,57 @@ function NuevaComandaModal({
 
 function ComandasPageInner() {
   const searchParams = useSearchParams()
-  const [orders, setOrders]         = useState<Order[]>(ORDERS)
-  const [search, setSearch]         = useState('')
-  const [role, setRole]             = useState<UserRole>('admin')
+  const [orders, setOrders]           = useState<Order[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [online, setOnline]           = useState(true)
+  const [search, setSearch]           = useState('')
+  const [role, setRole]               = useState<UserRole>('admin')
   const [brokenItems, setBrokenItems] = useState<Set<string>>(new Set())
-  const [stockMap, setStockMap]     = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
-  const [toasts, setToasts]         = useState<ToastMsg[]>([])
-  const [showNueva, setShowNueva]   = useState(() => searchParams.get('nueva') === '1')
+  const [stockMap, setStockMap]       = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
+  const [toasts, setToasts]           = useState<ToastMsg[]>([])
+  const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
+
+  const supabase = createClient()
+
+  // ── Load from Supabase ─────────────────────────────────────────────────────
+
+  const loadData = useCallback(async () => {
+    const [tablesRes, ordersRes] = await Promise.all([
+      supabase.from('tables').select('id, label'),
+      supabase
+        .from('orders')
+        .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes)')
+        .not('status', 'in', '("paid","cancelled")')
+        .order('created_at', { ascending: false }),
+    ])
+
+    if (ordersRes.error) { setOnline(false); return }
+    setOnline(true)
+
+    const tables: DbTable[]  = tablesRes.data  ?? []
+    const dbOrders: DbOrder[] = ordersRes.data ?? []
+
+    const mapped = dbOrders
+      .map(o => mapDbOrder(o, tables))
+      .filter(Boolean) as Order[]
+
+    setOrders(prev => {
+      // Keep locally-created orders (from NuevaComanda) — they have ids starting with 'ord-'
+      const localOnly = prev.filter(o => o.id.startsWith('ord-'))
+      return [...localOnly, ...mapped]
+    })
+    setLoading(false)
+  }, [supabase])
+
+  useEffect(() => {
+    loadData()
+    const ch = supabase
+      .channel('comandas-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadData)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, loadData)
+      .subscribe(s => setOnline(s === 'SUBSCRIBED'))
+    return () => { supabase.removeChannel(ch) }
+  }, [loadData, supabase])
 
   function pushToast(text: string, variant: ToastMsg['variant'] = 'break') {
     const id = Date.now()
@@ -764,8 +856,17 @@ function ComandasPageInner() {
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }
 
-  function advance(id: string, next: OrderStatus) {
+  async function advance(id: string, next: OrderStatus) {
+    // Optimistic update
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: next } : o))
+    // Local mock orders (NuevaComanda without DB) have ids starting with 'ord-'
+    if (id.startsWith('ord-')) return
+    const dbStatus = uiToDb(next)
+    await fetch('/api/orders', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ order_id: id, status: dbStatus }),
+    }).catch(console.error)
   }
 
   function markBreak(orderId: string, itemIndex: number, itemName: string) {
@@ -812,10 +913,15 @@ function ComandasPageInner() {
       <div className="px-6 pt-6 pb-4 flex items-center justify-between shrink-0">
         <div>
           <h1 className="text-white text-xl font-bold">Comandas</h1>
-          <p className="text-white/35 text-sm mt-0.5">
-            {orders.filter(o => o.status !== 'entregada').length} activas ·{' '}
-            {orders.filter(o => o.status === 'entregada').length} entregadas hoy
-          </p>
+          <div className="flex items-center gap-2 mt-0.5">
+            <p className="text-white/35 text-sm">
+              {loading ? 'Cargando…' : `${orders.filter(o => o.status !== 'entregada').length} activas · ${orders.filter(o => o.status === 'entregada').length} entregadas hoy`}
+            </p>
+            <span className="flex items-center gap-1 text-xs font-medium" style={{ color: online ? '#34D399' : '#F87171' }}>
+              {online ? <Wifi size={10} /> : <WifiOff size={10} />}
+              {online ? 'En vivo' : 'Sin conexión'}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-2">
           {/* Role selector */}
@@ -864,8 +970,15 @@ function ComandasPageInner() {
         onGestionar={() => pushToast('Panel de gestión de stock — próximamente', 'stock')}
       />
 
+      {/* Loading */}
+      {loading && (
+        <div className="flex items-center justify-center py-10">
+          <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+        </div>
+      )}
+
       {/* Kanban board */}
-      <div className="flex-1 overflow-x-auto px-6 pb-6">
+      {!loading && <div className="flex-1 overflow-x-auto px-6 pb-6">
         <div className="flex gap-4 h-full" style={{ minWidth: '900px' }}>
           {COLUMNS.map(col => {
             const colOrders = filtered.filter(o => o.status === col.status)
@@ -918,7 +1031,7 @@ function ComandasPageInner() {
             )
           })}
         </div>
-      </div>
+      </div>}
 
       {/* Toast container */}
       {toasts.length > 0 && (

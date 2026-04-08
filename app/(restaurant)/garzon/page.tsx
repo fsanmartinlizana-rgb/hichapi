@@ -84,7 +84,8 @@ function TableCell({
   onClick: () => void
 }) {
   const s = TABLE_STATUS_STYLES[table.status]
-  const isNew = order?.status === 'pending'
+  const isNew    = order?.status === 'pending'
+  const isPaying = order?.status === 'paying'
 
   return (
     <button
@@ -93,12 +94,18 @@ function TableCell({
         'relative flex flex-col items-center gap-1.5 p-3 rounded-xl border transition-all text-left',
         selected ? 'ring-2 ring-[#FF6B35] ring-offset-1 ring-offset-[#0A0A14]' : '',
         s.bg, s.border,
-        isNew ? 'animate-pulse-border' : '',
+        isNew ? 'animate-pulse-border' : isPaying ? 'animate-pulse-amber' : '',
       ].join(' ')}
     >
       {/* New order badge */}
       {isNew && (
         <span className="absolute -top-1.5 -right-1.5 w-3 h-3 rounded-full bg-[#FF6B35] ring-2 ring-[#0A0A14]" />
+      )}
+      {/* Bill requested badge */}
+      {isPaying && (
+        <span className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-[#FBBF24] ring-2 ring-[#0A0A14] flex items-center justify-center">
+          <Banknote size={9} className="text-[#0A0A14]" />
+        </span>
       )}
 
       <p className="text-white font-bold text-base leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
@@ -326,6 +333,7 @@ export default function GarzonPage() {
   const pendingCount   = orders.filter(o => o.status === 'pending').length
   const preparingCount = orders.filter(o => o.status === 'preparing').length
   const readyCount     = orders.filter(o => o.status === 'ready').length
+  const payingCount    = orders.filter(o => o.status === 'paying').length
 
   const selectedTable = tables.find(t => t.id === selected) ?? null
   const selectedOrder = selected ? orders.find(o => o.table_id === selected) ?? null : null
@@ -377,6 +385,25 @@ export default function GarzonPage() {
           </div>
         ))}
       </div>
+
+      {/* Bill requested alert */}
+      {payingCount > 0 && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-500/10 border-amber-500/40 animate-pulse-amber">
+          <Banknote size={18} className="text-[#FBBF24] shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-[#FBBF24] font-bold text-sm">
+              {payingCount === 1 ? '¡1 mesa pide la cuenta!' : `¡${payingCount} mesas piden la cuenta!`}
+            </p>
+            <p className="text-white/45 text-xs truncate">
+              {orders
+                .filter(o => o.status === 'paying')
+                .map(o => tables.find(t => t.id === o.table_id)?.label ?? 'Mesa')
+                .join(' · ')}
+            </p>
+          </div>
+          <span className="text-xs text-amber-300/60 shrink-0">Cobrar →</span>
+        </div>
+      )}
 
       {/* Table grid */}
       <div className="bg-[#161622] border border-white/5 rounded-2xl p-4">
@@ -487,6 +514,11 @@ export default function GarzonPage() {
           50% { box-shadow: 0 0 0 3px rgba(255, 107, 53, 0.3); }
         }
         .animate-pulse-border { animation: pulse-border 2s ease-in-out infinite; }
+        @keyframes pulse-amber {
+          0%, 100% { box-shadow: 0 0 0 0 rgba(251, 191, 36, 0); }
+          50% { box-shadow: 0 0 0 5px rgba(251, 191, 36, 0.35); }
+        }
+        .animate-pulse-amber { animation: pulse-amber 1.4s ease-in-out infinite; }
       `}</style>
     </div>
   )
