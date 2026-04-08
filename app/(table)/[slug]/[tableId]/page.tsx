@@ -427,18 +427,40 @@ export default function TablePage() {
 
   async function confirmOrder() {
     setOrderStatus('confirming')
-    // In production: POST to /api/orders with cart + table_id
-    await new Promise(r => setTimeout(r, 1200))
-    setOrderStatus('sent')
-    setMessages(prev => [...prev, {
-      id: Date.now().toString(),
-      role: 'chapi',
-      text: `¡Perfecto! Tu pedido ya está en cocina 🔥 ${cart.map(c => `${c.quantity}× ${c.name}`).join(', ')}. ¿Algo más mientras esperas?`,
-    }])
-    setTimeout(() => {
-      setCartOpen(false)
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_slug: slug,
+          table_id: tableId,
+          cart,
+        }),
+      })
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error(err.error ?? 'Error al enviar pedido')
+      }
+
+      setOrderStatus('sent')
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'chapi',
+        text: `¡Perfecto! Tu pedido ya está en cocina 🔥 ${cart.map(c => `${c.quantity}× ${c.name}`).join(', ')}. ¿Algo más mientras esperas?`,
+      }])
+      setTimeout(() => {
+        setCartOpen(false)
+        setOrderStatus('idle')
+      }, 2000)
+    } catch (err) {
       setOrderStatus('idle')
-    }, 2000)
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'chapi',
+        text: 'Ups, hubo un problema al enviar tu pedido. ¿Lo intentamos de nuevo?',
+      }])
+    }
   }
 
   function handleSplit(n: number) {

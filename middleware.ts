@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Routes that require restaurant auth
-const PROTECTED = ['/dashboard', '/comandas', '/mesas', '/carta', '/reporte', '/analytics', '/insights', '/restaurante', '/tono']
+const PROTECTED = ['/dashboard', '/comandas', '/mesas', '/carta', '/reporte', '/analytics', '/insights', '/restaurante', '/tono', '/garzon']
 // Routes only for unauthenticated users
 const AUTH_ONLY  = ['/login', '/register', '/recuperar']
 
