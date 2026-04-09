@@ -19,7 +19,9 @@ import {
   Leaf,
   DollarSign,
   Check,
+  ChevronDown,
 } from 'lucide-react'
+import { FAQAccordion } from './FAQAccordion'
 
 export const metadata: Metadata = {
   title: 'HiChapi — Tu guia gastronomica inteligente en Santiago',
@@ -156,6 +158,86 @@ const ZONES = [
   'Lo Barnechea', 'La Reina', 'Barrio Yungay', 'Manuel Montt',
 ]
 
+const PLANS = [
+  {
+    name: 'Free',
+    badge: 'Para empezar',
+    price: '$0',
+    period: 'siempre gratis',
+    description: 'Tu pagina en hichapi.com/tu-nombre lista en 5 minutos',
+    features: [
+      'Tu propia URL publica',
+      'Carta digital con fotos',
+      'Apareces en Chapi',
+      'Lista de espera digital',
+      'Link para Instagram y Google Maps',
+    ],
+    cta: 'Crear mi pagina gratis',
+    href: '/unete',
+    highlighted: false,
+  },
+  {
+    name: 'Starter',
+    badge: 'Mas popular',
+    price: '$49.900',
+    period: '/ mes',
+    description: 'Tus clientes piden desde la mesa. Sin papeles, sin errores.',
+    features: [
+      'Todo lo de Free',
+      'Pedidos QR con Chapi',
+      'Panel garzon en tiempo real',
+      'Comandas de cocina',
+      'Division de cuenta',
+      'Control de caja',
+    ],
+    note: '+ 1% sobre ventas digitales procesadas',
+    cta: 'Empezar gratis 30 dias',
+    href: '/unete?plan=starter',
+    highlighted: true,
+  },
+  {
+    name: 'Pro',
+    badge: 'Para crecer',
+    price: '$89.900',
+    period: '/ mes',
+    description: 'Inteligencia de negocio y control total de operaciones.',
+    features: [
+      'Todo lo de Starter',
+      'Reportes IA diarios',
+      'Inventario y mermas',
+      'Analytics avanzados',
+      'Carga de inventario por foto o Excel',
+    ],
+    note: '+ 1% sobre ventas digitales procesadas',
+    cta: 'Empezar gratis 30 dias',
+    href: '/unete?plan=pro',
+    highlighted: false,
+  },
+]
+
+const FAQ_ITEMS = [
+  {
+    question: 'Que es el 1% de comision?',
+    answer: 'Solo aplica sobre los pedidos que tus clientes pagan digitalmente a traves de HiChapi. Si un cliente paga en efectivo, no hay comision. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
+  },
+  {
+    question: 'Puedo cancelar cuando quiera?',
+    answer: 'Si. Los planes mensuales se pueden cancelar en cualquier momento desde tu panel. Sin contratos de permanencia, sin letra chica. Si cancelas, tu pagina gratuita sigue activa.',
+  },
+  {
+    question: 'Funciona para cafes, bares o negocios pequenos?',
+    answer: 'Si. HiChapi es modular — activas solo lo que necesitas. Un cafe puede usar solo carta digital y loyalty sin gestion de mesas. Un bar puede usar inventario de licores. Cada negocio configura su propio setup.',
+  },
+  {
+    question: 'Necesito cambiar mi sistema actual?',
+    answer: 'No. HiChapi es complementario. Puedes seguir usando tu POS actual para lo que ya tienes y usar HiChapi para la carta digital, los pedidos QR y la visibilidad en Chapi Discovery.',
+  },
+  {
+    question: 'Que pasa con los datos de mis ventas?',
+    answer: 'Son tuyos 100%. Puedes exportar tus datos en cualquier momento en formato Excel. HiChapi nunca vende ni comparte los datos de tu negocio.',
+  },
+]
+
 /* ─── Components ──────────────────────────────────────────────────── */
 
 function Navbar() {
@@ -173,6 +255,7 @@ function Navbar() {
           <a href="#como-funciona" className="hover:text-[#FF6B35] transition-colors">Como funciona</a>
           <a href="#para-ti" className="hover:text-[#FF6B35] transition-colors">Para ti</a>
           <a href="#restaurantes" className="hover:text-[#FF6B35] transition-colors">Restaurantes</a>
+          <a href="#planes" className="hover:text-[#FF6B35] transition-colors">Planes</a>
         </div>
         <div className="flex items-center gap-3">
           <Link
@@ -235,7 +318,7 @@ function HeroSection() {
             todos los restaurantes de Santiago.
           </p>
 
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
             <Link
               href="/"
               className="group flex items-center gap-3 px-8 py-4 rounded-2xl
@@ -257,6 +340,11 @@ function HeroSection() {
               Soy restaurante
             </Link>
           </div>
+
+          {/* CAMBIO 5: Prueba social */}
+          <p className="text-sm text-neutral-400 mb-12">
+            Mas de 50 restaurantes en Santiago ya tienen su pagina en HiChapi
+          </p>
 
           {/* Chat mockup */}
           <div className="max-w-md mx-auto">
@@ -303,6 +391,11 @@ function HeroSection() {
                 ))}
               </div>
             </div>
+
+            {/* CAMBIO 5: Texto bajo chat */}
+            <p className="text-xs text-neutral-400 mt-4 text-center">
+              Sin crear cuenta · Sin tarjeta · Responde en segundos
+            </p>
           </div>
         </div>
       </div>
@@ -343,7 +436,7 @@ function HowItWorks() {
             Como funciona
           </h2>
           <p className="text-neutral-400 text-lg max-w-xl mx-auto">
-            De "tengo hambre" a "estoy comiendo" en 3 pasos
+            De &quot;tengo hambre&quot; a &quot;estoy comiendo&quot; en 3 pasos
           </p>
         </div>
 
@@ -404,6 +497,99 @@ function DinerFeatures() {
               </div>
               <h3 className="font-bold text-[#1A1A2E] mb-2">{title}</h3>
               <p className="text-sm text-neutral-400 leading-relaxed">{desc}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ComparisonSection() {
+  return (
+    <section className="py-20 lg:py-28 bg-white">
+      <div className="max-w-4xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
+            No somos delivery. Somos discovery.
+          </h2>
+          <p className="text-neutral-400 text-lg max-w-xl mx-auto">
+            HiChapi no compite con apps de delivery. Complementamos la experiencia presencial.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {/* Others */}
+          <div className="rounded-2xl border border-neutral-200 p-8 bg-neutral-50">
+            <p className="text-sm font-bold text-neutral-400 uppercase tracking-wider mb-6">Apps de delivery</p>
+            <ul className="space-y-4">
+              {[
+                'Comisiones del 20-30%',
+                'El cliente no va al restaurante',
+                'Competencia por precio',
+                'Sin relacion con el comensal',
+                'Tu marca se pierde',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-sm text-neutral-400">
+                  <span className="w-5 h-5 rounded-full bg-neutral-200 flex items-center justify-center shrink-0 mt-0.5">
+                    <span className="text-xs">x</span>
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* HiChapi */}
+          <div className="rounded-2xl border-2 border-[#FF6B35]/30 p-8 bg-[#FFF4EF]/30 relative">
+            <div className="absolute -top-3 left-6 bg-[#FF6B35] text-white text-xs font-bold px-3 py-1 rounded-full">
+              HiChapi
+            </div>
+            <p className="text-sm font-bold text-[#FF6B35] uppercase tracking-wider mb-6">Discovery + Gestion</p>
+            <ul className="space-y-4">
+              {[
+                'Sin comisiones — jamas',
+                'El cliente va presencial',
+                'Recomendacion inteligente por IA',
+                'Relacion directa con el comensal',
+                'Tu marca siempre visible',
+              ].map(item => (
+                <li key={item} className="flex items-start gap-3 text-sm text-[#1A1A2E]">
+                  <span className="w-5 h-5 rounded-full bg-[#FF6B35] flex items-center justify-center shrink-0 mt-0.5">
+                    <Check size={12} className="text-white" />
+                  </span>
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+/* CAMBIO 2: Numeros concretos para restaurantes — fondo oscuro */
+function RestaurantNumbers() {
+  return (
+    <section className="py-16 lg:py-20" style={{ background: '#1A1A2E' }}>
+      <div className="max-w-6xl mx-auto px-6">
+        <h2 className="text-2xl lg:text-3xl font-extrabold text-white text-center mb-12">
+          Lo que cambia cuando usas HiChapi
+        </h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-8">
+          {[
+            { value: '$0', label: 'en web propia', sub: 'vs $200k en agencia' },
+            { value: '<5 min', label: 'para publicar', sub: 'tu pagina' },
+            { value: '0%', label: 'de comisiones', sub: '(Rappi: 30%)' },
+            { value: '+23%', label: 'ticket promedio', sub: 'con QR' },
+          ].map(({ value, label, sub }) => (
+            <div key={label} className="text-center">
+              <p className="text-3xl lg:text-4xl font-extrabold mb-2" style={{ color: '#FF6B35' }}>
+                {value}
+              </p>
+              <p className="text-sm text-white font-medium mb-1">{label}</p>
+              <p className="text-xs text-neutral-500">{sub}</p>
             </div>
           ))}
         </div>
@@ -476,9 +662,102 @@ function RestaurantFeatures() {
   )
 }
 
+/* CAMBIO 1: Pricing section */
+function PricingSection() {
+  return (
+    <section id="planes" className="py-20 lg:py-28 bg-white">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="text-center mb-16">
+          <div
+            className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
+                       rounded-full border mb-4"
+            style={{ background: '#FFF4EF', borderColor: '#FFD4C2', color: '#FF6B35' }}
+          >
+            Planes
+          </div>
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
+            Elige como quieres operar
+          </h2>
+          <p className="text-neutral-400 text-lg max-w-xl mx-auto">
+            Empieza gratis. Paga solo si lo usas.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
+          {PLANS.map(({ name, badge, price, period, description, features, note, cta, href, highlighted }) => (
+            <div
+              key={name}
+              className={`relative rounded-3xl p-8 flex flex-col ${
+                highlighted
+                  ? 'border-2 border-[#FF6B35] bg-white shadow-xl shadow-[#FF6B35]/10'
+                  : 'border border-neutral-200 bg-white shadow-sm'
+              }`}
+            >
+              {/* Badge */}
+              {highlighted ? (
+                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF6B35] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
+                  {badge}
+                </div>
+              ) : (
+                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
+                  {badge}
+                </span>
+              )}
+
+              {/* Price */}
+              <div className="mb-4 mt-2">
+                <span className="text-4xl font-extrabold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-dm-mono), monospace' }}>
+                  {price}
+                </span>
+                <span className="text-sm text-neutral-400 ml-1">{period}</span>
+              </div>
+
+              <p className="text-sm text-neutral-500 mb-6 leading-relaxed">{description}</p>
+
+              {/* Features */}
+              <ul className="space-y-3 mb-6 flex-1">
+                {features.map(feat => (
+                  <li key={feat} className="flex items-start gap-2.5 text-sm text-[#1A1A2E]">
+                    <Check size={16} className="text-[#FF6B35] shrink-0 mt-0.5" />
+                    {feat}
+                  </li>
+                ))}
+              </ul>
+
+              {/* Note */}
+              {note && (
+                <p className="text-xs text-neutral-400 mb-4 px-3 py-2 bg-neutral-50 rounded-lg text-center">
+                  {note}
+                </p>
+              )}
+
+              {/* CTA */}
+              <Link
+                href={href}
+                className={`block text-center py-3.5 rounded-xl font-semibold text-sm transition-all ${
+                  highlighted
+                    ? 'bg-[#FF6B35] text-white hover:bg-[#e55a2b] shadow-sm'
+                    : 'border border-neutral-200 text-[#1A1A2E] hover:border-[#FF6B35] hover:text-[#FF6B35]'
+                }`}
+              >
+                {cta}
+              </Link>
+            </div>
+          ))}
+        </div>
+
+        {/* Legal note */}
+        <p className="text-center text-xs text-neutral-400 mt-8 max-w-lg mx-auto leading-relaxed">
+          Los primeros 30 dias son gratis en cualquier plan pago. Sin tarjeta de credito para empezar. Cancela cuando quieras.
+        </p>
+      </div>
+    </section>
+  )
+}
+
 function Testimonials() {
   return (
-    <section className="py-20 lg:py-28 bg-white">
+    <section className="py-20 lg:py-28">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
@@ -493,8 +772,8 @@ function Testimonials() {
           {TESTIMONIALS.map(({ quote, author, role, rating }) => (
             <div
               key={author}
-              className="bg-[#FAFAF8] rounded-2xl p-6 border border-neutral-100
-                         hover:bg-white hover:shadow-lg transition-all duration-300"
+              className="bg-white rounded-2xl p-6 border border-neutral-100 shadow-sm
+                         hover:shadow-lg transition-all duration-300"
             >
               <div className="flex gap-1 mb-4">
                 {Array.from({ length: rating }).map((_, i) => (
@@ -518,7 +797,7 @@ function Testimonials() {
 
 function ZonesSection() {
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-20 lg:py-28 bg-white">
       <div className="max-w-6xl mx-auto px-6 text-center">
         <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
           Disponible en toda Santiago
@@ -530,7 +809,7 @@ function ZonesSection() {
           {ZONES.map(zone => (
             <span
               key={zone}
-              className="px-4 py-2 rounded-full bg-white border border-neutral-100 text-sm text-neutral-600
+              className="px-4 py-2 rounded-full bg-[#FAFAF8] border border-neutral-100 text-sm text-neutral-600
                          hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors cursor-default shadow-sm"
             >
               <MapPin size={12} className="inline mr-1.5 -mt-0.5" />
@@ -543,65 +822,21 @@ function ZonesSection() {
   )
 }
 
-function ComparisonSection() {
+/* CAMBIO 4: FAQ Section */
+function FAQSection() {
   return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="max-w-4xl mx-auto px-6">
+    <section id="faq" className="py-20 lg:py-28">
+      <div className="max-w-3xl mx-auto px-6">
         <div className="text-center mb-16">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
-            No somos delivery. Somos discovery.
+            Preguntas frecuentes
           </h2>
-          <p className="text-neutral-400 text-lg max-w-xl mx-auto">
-            HiChapi no compite con apps de delivery. Complementamos la experiencia presencial.
+          <p className="text-neutral-400 text-lg">
+            Todo lo que necesitas saber antes de empezar
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Others */}
-          <div className="rounded-2xl border border-neutral-200 p-8 bg-neutral-50">
-            <p className="text-sm font-bold text-neutral-400 uppercase tracking-wider mb-6">Apps de delivery</p>
-            <ul className="space-y-4">
-              {[
-                'Comisiones del 20-30%',
-                'El cliente no va al restaurante',
-                'Competencia por precio',
-                'Sin relacion con el comensal',
-                'Tu marca se pierde',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-sm text-neutral-400">
-                  <span className="w-5 h-5 rounded-full bg-neutral-200 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-xs">x</span>
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* HiChapi */}
-          <div className="rounded-2xl border-2 border-[#FF6B35]/30 p-8 bg-[#FFF4EF]/30 relative">
-            <div className="absolute -top-3 left-6 bg-[#FF6B35] text-white text-xs font-bold px-3 py-1 rounded-full">
-              HiChapi
-            </div>
-            <p className="text-sm font-bold text-[#FF6B35] uppercase tracking-wider mb-6">Discovery + Gestion</p>
-            <ul className="space-y-4">
-              {[
-                'Sin comisiones — jamas',
-                'El cliente va presencial',
-                'Recomendacion inteligente por IA',
-                'Relacion directa con el comensal',
-                'Tu marca siempre visible',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-sm text-[#1A1A2E]">
-                  <span className="w-5 h-5 rounded-full bg-[#FF6B35] flex items-center justify-center shrink-0 mt-0.5">
-                    <Check size={12} className="text-white" />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-        </div>
+        <FAQAccordion items={FAQ_ITEMS} />
       </div>
     </section>
   )
@@ -714,9 +949,12 @@ export default function LandingPage() {
       <HowItWorks />
       <DinerFeatures />
       <ComparisonSection />
+      <RestaurantNumbers />
       <RestaurantFeatures />
+      <PricingSection />
       <Testimonials />
       <ZonesSection />
+      <FAQSection />
       <FinalCTA />
       <Footer />
     </main>

@@ -10,10 +10,7 @@ const nextConfig: NextConfig = {
     ],
   },
   async redirects() {
-    return [
-      // Old landing URL → canonical homepage
-      { source: '/landing', destination: '/', permanent: true },
-    ]
+    return []
   },
   async headers() {
     return [
