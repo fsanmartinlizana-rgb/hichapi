@@ -6,6 +6,7 @@ import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
   RefreshCw, Wifi, WifiOff, AlertCircle,
 } from 'lucide-react'
+import { PaymentMethodModal } from '@/components/PaymentMethodModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -250,6 +251,7 @@ export default function GarzonPage() {
   const [advancing, setAdvancing] = useState(false)
   const [online, setOnline]       = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
+  const [payingOrder, setPayingOrder] = useState<{ id: string; total: number } | null>(null)
 
   const supabase = createClient()
 
@@ -302,6 +304,15 @@ export default function GarzonPage() {
   // ── Advance order status ──────────────────────────────────────────────────
 
   async function advanceOrder(orderId: string, nextStatus: OrderStatus) {
+    // If advancing to 'paid', show payment method modal instead of advancing directly
+    if (nextStatus === 'paid') {
+      const order = orders.find(o => o.id === orderId)
+      if (order) {
+        setPayingOrder({ id: orderId, total: order.total })
+        return
+      }
+    }
+
     setAdvancing(true)
     try {
       const { error } = await supabase
@@ -310,19 +321,45 @@ export default function GarzonPage() {
         .eq('id', orderId)
 
       if (!error) {
-        // If paid → mark table as libre
-        if (nextStatus === 'paid') {
-          const order = orders.find(o => o.id === orderId)
-          if (order) {
-            await supabase
-              .from('tables')
-              .update({ status: 'libre' })
-              .eq('id', order.table_id)
-          }
-          setSelected(null)
-        }
         await loadData()
       }
+    } finally {
+      setAdvancing(false)
+    }
+  }
+
+  async function handlePaymentConfirm(
+    method: 'cash' | 'digital' | 'mixed',
+    cashAmount?: number,
+    digitalAmount?: number,
+  ) {
+    if (!payingOrder) return
+    setAdvancing(true)
+    try {
+      await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id:       payingOrder.id,
+          status:         'paid',
+          payment_method: method,
+          cash_amount:    cashAmount ?? 0,
+          digital_amount: digitalAmount ?? 0,
+        }),
+      })
+
+      // Mark table as libre
+      const order = orders.find(o => o.id === payingOrder.id)
+      if (order) {
+        await supabase
+          .from('tables')
+          .update({ status: 'libre' })
+          .eq('id', order.table_id)
+      }
+
+      setPayingOrder(null)
+      setSelected(null)
+      await loadData()
     } finally {
       setAdvancing(false)
     }
@@ -505,6 +542,16 @@ export default function GarzonPage() {
           <p className="text-white/25 text-sm">Sin pedidos activos 🎉</p>
           <p className="text-white/15 text-xs">Los nuevos pedidos aparecerán aquí en tiempo real</p>
         </div>
+      )}
+
+      {/* Payment method modal */}
+      {payingOrder && (
+        <PaymentMethodModal
+          orderId={payingOrder.id}
+          total={payingOrder.total}
+          onConfirm={handlePaymentConfirm}
+          onClose={() => setPayingOrder(null)}
+        />
       )}
 
       {/* Pulse animation for tables with new orders */}

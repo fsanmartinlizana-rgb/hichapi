@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Check, MapPin, Clock, Globe, Phone, Camera, Loader2, Plus, AtSign, Eye, MousePointerClick, CalendarCheck, ChevronRight, Zap } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
+import { useRestaurant } from '@/lib/restaurant-context'
+import { MODULE_LABELS, MODULE_PLAN_REQUIRED, type ModulesConfig } from '@/lib/defaults/moduleDefaults'
 
 const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
 const PRICE_RANGES = [
@@ -30,8 +33,42 @@ function TextInput({ value, onChange, placeholder }: { value: string; onChange: 
 }
 
 export default function RestaurantePage() {
+  const { restaurant } = useRestaurant()
   const [saving, setSaving]       = useState(false)
   const [saved, setSaved]         = useState(false)
+
+  // Modules config
+  const [modules, setModules] = useState<ModulesConfig | null>(null)
+  const [modulesSaving, setModulesSaving] = useState(false)
+
+  useEffect(() => {
+    if (!restaurant) return
+    const supabase = createClient()
+    supabase
+      .from('restaurants')
+      .select('modules_config')
+      .eq('id', restaurant.id)
+      .single()
+      .then(({ data }) => {
+        if (data?.modules_config) setModules(data.modules_config as ModulesConfig)
+      })
+  }, [restaurant])
+
+  async function toggleModule(key: keyof ModulesConfig) {
+    if (!modules || !restaurant) return
+    const updated = { ...modules, [key]: !modules[key] }
+    setModules(updated)
+    setModulesSaving(true)
+    try {
+      const supabase = createClient()
+      await supabase
+        .from('restaurants')
+        .update({ modules_config: updated })
+        .eq('id', restaurant.id)
+    } finally {
+      setModulesSaving(false)
+    }
+  }
 
   const [name, setName]           = useState('El Rincón de Don José')
   const [desc, setDesc]           = useState('Cocina chilena e italiana de autor en el corazón de Providencia. Carta de temporada con ingredientes frescos.')
@@ -487,6 +524,39 @@ export default function RestaurantePage() {
           Chapi ya conoce sus preferencias de la búsqueda.
         </p>
       </div>
+
+      {/* ── Módulos activos ────────────────────────────────────────── */}
+      {modules && (
+        <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
+          <div className="flex items-center justify-between">
+            <p className="text-white font-semibold text-sm">Módulos activos</p>
+            {modulesSaving && <span className="text-[#FF6B35] text-xs">Guardando...</span>}
+          </div>
+          <div className="space-y-3">
+            {(Object.keys(MODULE_LABELS) as Array<keyof ModulesConfig>).map(key => {
+              const isActive = modules[key]
+              const planReq  = MODULE_PLAN_REQUIRED[key]
+              return (
+                <div key={key} className="flex items-center justify-between gap-3">
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm ${isActive ? 'text-white/80' : 'text-white/30'}`}>{MODULE_LABELS[key]}</p>
+                    <p className="text-white/20 text-[10px]">Plan requerido: {planReq}</p>
+                  </div>
+                  <button
+                    onClick={() => toggleModule(key)}
+                    className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
+                      ${isActive
+                        ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]'
+                        : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}
+                  >
+                    {isActive ? 'Activo' : 'Inactivo'}
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
     </div>
   )

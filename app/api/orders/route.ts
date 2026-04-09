@@ -143,15 +143,37 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   try {
     const body = await req.json()
-    const { order_id, status } = z.object({
-      order_id: z.string().uuid(),
-      status: z.enum(['confirmed','preparing','ready','paying','paid','cancelled']),
+    const parsed = z.object({
+      order_id:       z.string().uuid(),
+      status:         z.enum(['confirmed','preparing','ready','paying','paid','cancelled']),
+      payment_method: z.enum(['cash','digital','mixed']).optional(),
+      cash_amount:    z.number().int().min(0).optional(),
+      digital_amount: z.number().int().min(0).optional(),
+      user_id:        z.string().uuid().optional(),
     }).parse(body)
 
+    const { order_id, status, payment_method, cash_amount, digital_amount, user_id } = parsed
+
     const supabase = createAdminClient()
+
+    // Build update payload
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const updatePayload: Record<string, any> = { status }
+
+    if (status === 'paid' && payment_method) {
+      const cash    = cash_amount ?? 0
+      const digital = digital_amount ?? 0
+      updatePayload.payment_method        = payment_method
+      updatePayload.cash_amount           = cash
+      updatePayload.digital_amount        = digital
+      updatePayload.hichapi_commission    = Math.round(digital * 0.01)
+      updatePayload.cash_registered_at    = new Date().toISOString()
+      if (user_id) updatePayload.cash_registered_by = user_id
+    }
+
     const { error } = await supabase
       .from('orders')
-      .update({ status })
+      .update(updatePayload)
       .eq('id', order_id)
 
     if (error) {

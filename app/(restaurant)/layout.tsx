@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, Grid3X3, BookOpen,
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
-  ShieldCheck, Users,
+  ShieldCheck, Users, Banknote,
 } from 'lucide-react'
 
 // ── Nav definition ────────────────────────────────────────────────────────────
@@ -30,6 +30,7 @@ const ALL_NAV = [
       { label: 'Stock',  href: '/stock',  icon: Package,      roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Mermas', href: '/mermas', icon: Trash2,        roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Turnos', href: '/turnos', icon: CalendarDays,  roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Caja',   href: '/caja',   icon: Banknote,      roles: ['owner','admin','supervisor','super_admin'] },
     ],
   },
   {

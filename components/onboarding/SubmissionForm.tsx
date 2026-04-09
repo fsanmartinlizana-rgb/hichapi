@@ -3,6 +3,7 @@
 import { useState, FormEvent } from 'react'
 import { Loader2, CheckCircle, ChevronDown } from 'lucide-react'
 import { RestaurantSubmission } from '@/lib/types'
+import { createClient } from '@/lib/supabase/client'
 
 const INITIAL: RestaurantSubmission = {
   name: '',
@@ -15,6 +16,29 @@ const INITIAL: RestaurantSubmission = {
   owner_phone: '',
   description: '',
   instagram_url: '',
+  business_type: 'restaurant',
+  slug: '',
+}
+
+const BUSINESS_TYPES = [
+  { value: 'restaurant',   label: 'Restaurante' },
+  { value: 'cafe',         label: 'Café' },
+  { value: 'bar',          label: 'Bar' },
+  { value: 'dark_kitchen', label: 'Dark Kitchen' },
+  { value: 'food_truck',   label: 'Food Truck' },
+  { value: 'bakery',       label: 'Panadería / Pastelería' },
+  { value: 'other',        label: 'Otro' },
+]
+
+function generateSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s-]/g, '')
+    .trim()
+    .replace(/\s+/g, '-')
+    .replace(/-+/g, '-')
 }
 
 const PRICE_OPTIONS = [
@@ -54,10 +78,43 @@ export function SubmissionForm() {
   const [form, setForm]     = useState<RestaurantSubmission>(INITIAL)
   const [status, setStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('idle')
   const [errMsg, setErrMsg] = useState('')
+  const [slugStatus, setSlugStatus] = useState<'idle' | 'checking' | 'available' | 'taken'>('idle')
 
   function set(field: keyof RestaurantSubmission) {
-    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) =>
-      setForm(prev => ({ ...prev, [field]: e.target.value }))
+    return (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+      const value = e.target.value
+      setForm(prev => ({ ...prev, [field]: value }))
+      // Auto-generate slug when name changes
+      if (field === 'name') {
+        const baseSlug = generateSlug(value)
+        setForm(prev => ({ ...prev, name: value, slug: baseSlug }))
+        if (baseSlug) checkSlug(baseSlug)
+      }
+    }
+  }
+
+  async function checkSlug(slug: string) {
+    if (!slug) return
+    setSlugStatus('checking')
+    try {
+      const supabase = createClient()
+      const { data } = await supabase
+        .from('restaurants')
+        .select('id')
+        .eq('slug', slug)
+        .maybeSingle()
+      if (data) {
+        // Slug taken — append random suffix
+        const suffix = Math.floor(Math.random() * 900 + 100)
+        const newSlug = `${slug}-${suffix}`
+        setForm(prev => ({ ...prev, slug: newSlug }))
+        setSlugStatus('available')
+      } else {
+        setSlugStatus('available')
+      }
+    } catch {
+      setSlugStatus('idle')
+    }
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -142,6 +199,31 @@ export function SubmissionForm() {
               required
               className={inputClass}
             />
+            {form.slug && (
+              <p className="text-[11px] text-neutral-400 mt-1">
+                hichapi.com/<span className="font-medium text-[#FF6B35]">{form.slug}</span>
+                {slugStatus === 'checking' && <span className="ml-2 text-neutral-300">verificando...</span>}
+                {slugStatus === 'available' && <span className="ml-2 text-emerald-500">disponible</span>}
+              </p>
+            )}
+          </InputField>
+
+          <InputField label="Tipo de negocio" required>
+            <div className="relative">
+              <select
+                value={form.business_type ?? 'restaurant'}
+                onChange={set('business_type')}
+                className={inputClass + ' appearance-none pr-9'}
+              >
+                {BUSINESS_TYPES.map(bt => (
+                  <option key={bt.value} value={bt.value}>{bt.label}</option>
+                ))}
+              </select>
+              <ChevronDown
+                size={15}
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+              />
+            </div>
           </InputField>
 
           <InputField label="Barrio / Zona" required>

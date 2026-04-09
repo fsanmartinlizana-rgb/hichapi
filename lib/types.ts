@@ -52,14 +52,16 @@ export interface ChatResponse {
 }
 
 export interface RestaurantSubmission {
-  name:          string
-  address:       string
-  neighborhood:  string
-  cuisine_type:  string
-  price_range:   'economico' | 'medio' | 'premium'
-  owner_name:    string
-  owner_email:   string
-  owner_phone?:  string
-  description?:  string
+  name:           string
+  address:        string
+  neighborhood:   string
+  cuisine_type:   string
+  price_range:    'economico' | 'medio' | 'premium'
+  owner_name:     string
+  owner_email:    string
+  owner_phone?:   string
+  description?:   string
   instagram_url?: string
+  business_type?: string
+  slug?:          string
 }
