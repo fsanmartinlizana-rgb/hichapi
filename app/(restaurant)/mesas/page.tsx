@@ -118,7 +118,7 @@ function QrModal({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://hichapi.vercel.app'
+  const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hichapi.com')
   const qrUrl = `${origin}/${DEMO_SLUG}/${mesa.qrToken}`
 
   function downloadQr() {

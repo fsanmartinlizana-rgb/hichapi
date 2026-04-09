@@ -163,7 +163,7 @@ function Navbar() {
     <nav className="fixed top-0 left-0 right-0 z-50 backdrop-blur-lg bg-white/80 border-b border-neutral-100">
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link
-          href="/"
+          href="/landing"
           className="font-bold text-xl tracking-tight"
           style={{ color: '#1A1A2E' }}
         >
@@ -176,7 +176,7 @@ function Navbar() {
         </div>
         <div className="flex items-center gap-3">
           <Link
-            href="/buscar"
+            href="/"
             className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full
                        bg-[#FF6B35] text-white hover:bg-[#e55a2b] transition-colors shadow-sm"
           >
@@ -237,7 +237,7 @@ function HeroSection() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
             <Link
-              href="/buscar"
+              href="/"
               className="group flex items-center gap-3 px-8 py-4 rounded-2xl
                          bg-[#FF6B35] text-white font-bold text-base
                          hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/25
@@ -343,7 +343,7 @@ function HowItWorks() {
             Como funciona
           </h2>
           <p className="text-neutral-400 text-lg max-w-xl mx-auto">
-            De &ldquo;tengo hambre&rdquo; a &ldquo;estoy comiendo&rdquo; en 3 pasos
+            De "tengo hambre" a "estoy comiendo" en 3 pasos
           </p>
         </div>
 
@@ -629,7 +629,7 @@ function FinalCTA() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/buscar"
+                href="/"
                 className="group flex items-center gap-3 px-8 py-4 rounded-2xl
                            bg-[#FF6B35] text-white font-bold text-base
                            hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/30"
@@ -674,7 +674,7 @@ function Footer() {
           <div>
             <p className="text-sm font-semibold text-[#1A1A2E] mb-3">Producto</p>
             <ul className="space-y-2 text-sm text-neutral-400">
-              <li><Link href="/buscar" className="hover:text-[#FF6B35] transition-colors">Probar Chapi</Link></li>
+              <li><Link href="/" className="hover:text-[#FF6B35] transition-colors">Probar Chapi</Link></li>
               <li><Link href="/unete" className="hover:text-[#FF6B35] transition-colors">Sumar restaurante</Link></li>
               <li><Link href="/login" className="hover:text-[#FF6B35] transition-colors">Iniciar sesion</Link></li>
             </ul>
