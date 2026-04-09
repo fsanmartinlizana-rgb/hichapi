@@ -20,13 +20,15 @@ const ROLE_HOME: Record<string, string> = {
 // POST /api/team/invite
 export async function POST(req: NextRequest) {
   try {
+    // Auth: require logged-in user with admin/owner role
+    const { requireRestaurantRole } = await import('@/lib/supabase/auth-guard')
     const body = BodySchema.parse(await req.json())
     const { email, role, restaurant_id } = body
 
-    const supabase = createAdminClient()
+    const { error: authError } = await requireRestaurantRole(restaurant_id, ['owner', 'admin', 'super_admin'])
+    if (authError) return authError
 
-    // 1. Verify inviter has admin/owner role for this restaurant
-    // (We trust the service role here; proxy.ts already restricts /equipo to admins)
+    const supabase = createAdminClient()
 
     // 2. Invite user via Supabase Auth (creates account + sends email)
     const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin

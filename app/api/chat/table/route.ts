@@ -3,6 +3,23 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
+// ── Rate limiter (in-memory, per IP, 30 req/min) ───────────────────────────
+const rateMap = new Map<string, { count: number; reset: number }>()
+const RATE_LIMIT = 30
+const RATE_WINDOW = 60_000
+
+function checkRate(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateMap.get(ip)
+  if (!entry || now > entry.reset) {
+    rateMap.set(ip, { count: 1, reset: now + RATE_WINDOW })
+    return true
+  }
+  if (entry.count >= RATE_LIMIT) return false
+  entry.count++
+  return true
+}
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 const supabase  = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -93,6 +110,12 @@ RESPONDE SIEMPRE EN JSON (sin markdown):
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  // Rate limit by IP
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRate(ip)) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta en un minuto.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const { message, restaurant_slug, table_id, cart, history } = RequestSchema.parse(body)

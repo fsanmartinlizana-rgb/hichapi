@@ -6,11 +6,11 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET ?? 'chapi-admin-2024'
-
 function isAuthorized(req: NextRequest) {
-  const secret = req.headers.get('x-admin-secret') ?? req.nextUrl.searchParams.get('secret')
-  return secret === ADMIN_SECRET
+  const adminSecret = process.env.ADMIN_SECRET
+  if (!adminSecret || adminSecret.length < 20) return false // Require strong secret
+  const secret = req.headers.get('x-admin-secret')
+  return secret === adminSecret
 }
 
 // ── GET: listar submissions ──────────────────────────────────────────────────

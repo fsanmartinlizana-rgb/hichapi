@@ -5,6 +5,23 @@ import { z } from 'zod'
 import { resolveZone } from '@/lib/landmarks'
 import { queryCache, claudeCache, intentCacheKey, claudeCacheKey } from '@/lib/cache'
 
+// ── Rate limiter (in-memory, per IP, 20 req/min) ───────────────────────────
+const rateMap = new Map<string, { count: number; reset: number }>()
+const RATE_LIMIT = 20
+const RATE_WINDOW = 60_000
+
+function checkRate(ip: string): boolean {
+  const now = Date.now()
+  const entry = rateMap.get(ip)
+  if (!entry || now > entry.reset) {
+    rateMap.set(ip, { count: 1, reset: now + RATE_WINDOW })
+    return true
+  }
+  if (entry.count >= RATE_LIMIT) return false
+  entry.count++
+  return true
+}
+
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY!,
 })
@@ -198,6 +215,12 @@ function ruleBasedParser(message: string, prevIntent: Intent) {
 }
 
 export async function POST(req: NextRequest) {
+  // Rate limit by IP
+  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown'
+  if (!checkRate(ip)) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes. Intenta en un minuto.' }, { status: 429 })
+  }
+
   try {
     const body = await req.json()
     const { message, intent } = RequestSchema.parse(body)
