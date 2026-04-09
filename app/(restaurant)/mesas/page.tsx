@@ -7,6 +7,7 @@ import {
   Download, Copy, Check, Banknote, Wifi, WifiOff, RefreshCw,
 } from 'lucide-react'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
+import { useRestaurant } from '@/lib/restaurant-context'
 import { formatEta } from '@/lib/waitlist/eta'
 import { QRCodeCanvas } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
@@ -62,27 +63,9 @@ function genQrToken(label: string): string {
 
 // ── Mock fallback (used until DB loads) ───────────────────────────────────────
 
-const MESAS_INIT: Mesa[] = [
-  { id: 'm1',  label: '01', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 45*60000).toISOString(), pax: 3,  zone: 'interior', qrToken: 'qr-mesa-01-a1b2c3d4' },
-  { id: 'm2',  label: '02', seats: 2, status: 'cuenta',  seatedAt: new Date(Date.now() - 72*60000).toISOString(), pax: 2,  zone: 'interior', qrToken: 'qr-mesa-02-e5f6g7h8' },
-  { id: 'm3',  label: '03', seats: 4, status: 'libre',   zone: 'interior', qrToken: 'qr-mesa-03-i9j0k1l2' },
-  { id: 'm4',  label: '04', seats: 6, status: 'ocupada', seatedAt: new Date(Date.now() - 28*60000).toISOString(), pax: 4,  zone: 'interior', qrToken: 'qr-mesa-04-m3n4o5p6' },
-  { id: 'm5',  label: '05', seats: 2, status: 'libre',   zone: 'terraza', smoking: true, qrToken: 'qr-mesa-05-q7r8s9t0' },
-  { id: 'm6',  label: '06', seats: 4, status: 'libre',   zone: 'terraza', smoking: true, qrToken: 'qr-mesa-06-u1v2w3x4' },
-  { id: 'm7',  label: '07', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 15*60000).toISOString(), pax: 2, zone: 'terraza', qrToken: 'qr-mesa-07-y5z6a7b8' },
-  { id: 'm8',  label: '08', seats: 6, status: 'reserva', zone: 'interior', reservedUntil: new Date(Date.now() + 12*60000).toISOString(), reservedFor: 'González', qrToken: 'qr-mesa-08-c9d0e1f2' },
-  { id: 'm9',  label: '09', seats: 4, status: 'ocupada', seatedAt: new Date(Date.now() - 58*60000).toISOString(), pax: 4,  zone: 'interior', qrToken: 'qr-mesa-09-g3h4i5j6' },
-  { id: 'm10', label: '10', seats: 2, status: 'libre',   zone: 'barra', qrToken: 'qr-mesa-10-k7l8m9n0' },
-  { id: 'm11', label: '11', seats: 4, status: 'cuenta',  seatedAt: new Date(Date.now() - 80*60000).toISOString(), pax: 5,  zone: 'interior', qrToken: 'qr-mesa-11-o1p2q3r4' },
-  { id: 'm12', label: '12', seats: 4, status: 'limpia',  zone: 'interior', qrToken: 'qr-mesa-12-s5t6u7v8' },
-]
-
-const WAITLIST_INIT: WaitlistEntry[] = [
-  { id: 'w1', restaurant_id: 'r1', table_id: null, name: 'Carlos Muñoz',    phone: '+56 9 8832 1234', party_size: 3, token: 'abc', status: 'waiting',   position: 1, joined_at: new Date(Date.now()-12*60000).toISOString(), notified_at: null, seated_at: null, estimated_wait_min: 8,  notes: null },
-  { id: 'w2', restaurant_id: 'r1', table_id: null, name: 'Ana Torres',      phone: '+56 9 7721 5678', party_size: 2, token: 'def', status: 'waiting',   position: 2, joined_at: new Date(Date.now()-8*60000).toISOString(),  notified_at: null, seated_at: null, estimated_wait_min: 18, notes: 'Alérgica al gluten' },
-  { id: 'w3', restaurant_id: 'r1', table_id: null, name: 'Pedro Salinas',   phone: '+56 9 6612 9012', party_size: 4, token: 'ghi', status: 'notified',  position: 3, joined_at: new Date(Date.now()-20*60000).toISOString(), notified_at: new Date(Date.now()-2*60000).toISOString(), seated_at: null, estimated_wait_min: 0, notes: null },
-  { id: 'w4', restaurant_id: 'r1', table_id: null, name: 'Valentina Ríos',  phone: '+56 9 5501 3456', party_size: 2, token: 'jkl', status: 'waiting',   position: 4, joined_at: new Date(Date.now()-3*60000).toISOString(),  notified_at: null, seated_at: null, estimated_wait_min: 32, notes: null },
-]
+// No mock data — load from Supabase only
+const MESAS_INIT: Mesa[] = []
+const WAITLIST_INIT: WaitlistEntry[] = []
 
 // ── Styles ────────────────────────────────────────────────────────────────────
 
@@ -851,6 +834,7 @@ const ZONE_TABS: { key: ZoneFilter; label: string }[] = [
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function MesasPage() {
+  const { restaurant } = useRestaurant()
   const [mesas, setMesas]         = useState<Mesa[]>(MESAS_INIT)
   const [orderAlerts, setOrderAlerts] = useState<Record<string, 'new_order' | 'bill'>>({})
   const [online, setOnline]       = useState(true)
@@ -865,10 +849,12 @@ export default function MesasPage() {
 
   // ── Load tables + order alerts from Supabase ────────────────────────────────
 
+  const restId = restaurant?.id
   const loadData = useCallback(async () => {
+    if (!restId) return
     const [tablesRes, ordersRes] = await Promise.all([
-      supabase.from('tables').select('id, label, seats, status, zone, smoking, qr_token').order('label'),
-      supabase.from('orders').select('id, table_id, status').not('status', 'in', '("paid","cancelled")'),
+      supabase.from('tables').select('id, label, seats, status, zone, smoking, qr_token').eq('restaurant_id', restId).order('label'),
+      supabase.from('orders').select('id, table_id, status').eq('restaurant_id', restId).not('status', 'in', '("paid","cancelled")'),
     ])
 
     if (!tablesRes.error && tablesRes.data?.length) {
@@ -888,9 +874,10 @@ export default function MesasPage() {
     }
 
     setOnline(true)
-  }, [supabase])
+  }, [supabase, restId])
 
   useEffect(() => {
+    if (!restId) return
     loadData()
     const ch = supabase
       .channel('mesas-alerts')
@@ -898,7 +885,7 @@ export default function MesasPage() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, loadData)
       .subscribe(s => setOnline(s === 'SUBSCRIBED'))
     return () => { supabase.removeChannel(ch) }
-  }, [loadData, supabase])
+  }, [restId, loadData, supabase])
 
   function showToast(msg: string) {
     setToast(msg)
