@@ -105,7 +105,22 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     setLoading(false)
   }, [supabase])
 
-  useEffect(() => { load() }, [load])
+  useEffect(() => {
+    load()
+    // Re-load on auth state change; unsubscribe on unmount (prevents memory leak)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') load()
+      if (event === 'SIGNED_OUT') {
+        setRestaurant(null)
+        setRestaurants([])
+        setProfile(null)
+        setIsSuperAdmin(false)
+        setLoading(false)
+      }
+    })
+    return () => { subscription.unsubscribe() }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [load])
 
   function switchTo(id: string) {
     const r = restaurants.find(r => r.id === id)

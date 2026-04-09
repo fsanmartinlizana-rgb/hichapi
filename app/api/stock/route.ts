@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requireUser } from '@/lib/supabase/auth-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -20,6 +21,9 @@ const ItemSchema = z.object({
 
 // GET /api/stock?restaurant_id=xxx — list all stock items
 export async function GET(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
+
   const restaurant_id = req.nextUrl.searchParams.get('restaurant_id')
   if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 })
 
@@ -37,6 +41,8 @@ export async function GET(req: NextRequest) {
 
 // POST /api/stock — create stock item
 export async function POST(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = ItemSchema.parse(await req.json())
     const { data, error } = await supabase.from('stock_items').insert(body).select().single()
@@ -49,6 +55,8 @@ export async function POST(req: NextRequest) {
 
 // PATCH /api/stock — adjust qty or update item
 export async function PATCH(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = await req.json()
     const { id, delta, ...fields } = body
@@ -104,6 +112,8 @@ export async function PATCH(req: NextRequest) {
 
 // DELETE /api/stock?id=xxx — soft delete
 export async function DELETE(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
 

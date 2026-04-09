@@ -1,17 +1,32 @@
 /**
- * GET /api/admin/setup?secret=XXX
+ * POST /api/admin/setup
  * Crea la tabla restaurant_submissions si no existe.
  * Solo se llama una vez después del primer deploy.
+ * Requiere: Authorization: Bearer <ADMIN_SECRET>
  */
 import { NextRequest, NextResponse } from 'next/server'
 
-const ADMIN_SECRET = process.env.ADMIN_SECRET ?? 'chapi-admin-2024'
+const ADMIN_SECRET = process.env.ADMIN_SECRET
 const SB_URL = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const SB_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export async function GET(req: NextRequest) {
-  const secret = req.nextUrl.searchParams.get('secret')
-  if (secret !== ADMIN_SECRET) {
+function checkSecret(req: NextRequest): boolean {
+  if (!ADMIN_SECRET) return false
+  const auth = req.headers.get('authorization') ?? ''
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null
+  return token === ADMIN_SECRET
+}
+
+// Legacy GET kept for backward compat but redirects to POST instructions
+export async function GET() {
+  return NextResponse.json(
+    { error: 'Use POST with Authorization: Bearer <ADMIN_SECRET> header' },
+    { status: 405 }
+  )
+}
+
+export async function POST(req: NextRequest) {
+  if (!checkSecret(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

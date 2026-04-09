@@ -35,6 +35,19 @@ export async function GET(req: NextRequest) {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 
+  // Only super_admin users can claim demo restaurant
+  const { data: membership } = await adminClient
+    .from('team_members')
+    .select('role')
+    .eq('user_id', user.id)
+    .eq('role', 'super_admin')
+    .eq('active', true)
+    .maybeSingle()
+
+  if (!membership) {
+    return NextResponse.json({ error: 'Solo super_admin puede ejecutar demo-setup' }, { status: 403 })
+  }
+
   // 1. Set owner_id on demo restaurant
   await adminClient
     .from('restaurants')

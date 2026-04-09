@@ -857,16 +857,27 @@ function ComandasPageInner() {
   }
 
   async function advance(id: string, next: OrderStatus) {
+    const prevStatus = orders.find(o => o.id === id)?.status
     // Optimistic update
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: next } : o))
     // Local mock orders (NuevaComanda without DB) have ids starting with 'ord-'
     if (id.startsWith('ord-')) return
     const dbStatus = uiToDb(next)
-    await fetch('/api/orders', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ order_id: id, status: dbStatus }),
-    }).catch(console.error)
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: id, status: dbStatus }),
+      })
+      if (!res.ok) {
+        // Revert optimistic update on server error
+        if (prevStatus) setOrders(prev => prev.map(o => o.id === id ? { ...o, status: prevStatus } : o))
+        pushToast('Error al actualizar la orden. Intenta nuevamente.', 'break')
+      }
+    } catch {
+      if (prevStatus) setOrders(prev => prev.map(o => o.id === id ? { ...o, status: prevStatus } : o))
+      pushToast('Sin conexión. No se pudo actualizar la orden.', 'break')
+    }
   }
 
   function markBreak(orderId: string, itemIndex: number, itemName: string) {

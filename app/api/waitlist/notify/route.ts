@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { requireUser } from '@/lib/supabase/auth-guard'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -14,6 +15,8 @@ const NotifySchema = z.object({
 })
 
 export async function PATCH(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = await req.json()
     const { entry_id, table_id, action } = NotifySchema.parse(body)

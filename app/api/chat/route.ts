@@ -232,6 +232,9 @@ export async function POST(req: NextRequest) {
         // ── Stream Claude (primary model) ────────────────────────────────────
         let fullText = ''
         try {
+          const controller = new AbortController()
+          const timeout = setTimeout(() => controller.abort(), 28_000) // 28s timeout
+
           const claudeStream = anthropic.messages.stream({
             model: 'claude-haiku-4-5-20251001',
             max_tokens: 400,
@@ -242,7 +245,7 @@ export async function POST(req: NextRequest) {
                 ? `Contexto previo: ${JSON.stringify(intent)}\n\nNuevo mensaje: ${message}`
                 : message,
             }],
-          })
+          }, { signal: controller.signal })
 
           for await (const chunk of claudeStream) {
             if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
@@ -251,6 +254,7 @@ export async function POST(req: NextRequest) {
               if (msgMatch) await send('token', { text: msgMatch[1] })
             }
           }
+          clearTimeout(timeout)
 
           const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
           chapiResponse = JSON.parse(cleaned)

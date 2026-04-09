@@ -60,6 +60,15 @@ function guessPriceRange(tags: Record<string, string>): 'economico' | 'medio' | 
 }
 
 export async function POST(req: NextRequest) {
+  // Allow requests from our own domain (public Chapi on landing page)
+  const origin  = req.headers.get('origin') ?? ''
+  const referer = req.headers.get('referer') ?? ''
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000'
+  const isOwn   = origin.startsWith(siteUrl) || referer.startsWith(siteUrl) ||
+                  origin === '' // server-side calls
+  if (!isOwn) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+  }
   try {
     const { intent } = await req.json()
 
