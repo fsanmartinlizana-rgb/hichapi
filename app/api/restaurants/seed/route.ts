@@ -10,7 +10,6 @@ const SeedRestaurantSchema = z.object({
   neighborhood:  z.string().max(80).default('Por completar'),
   cuisine_type:  z.string().min(2).max(60),
   price_range:   z.enum(['economico', 'medio', 'premium']),
-  description:   z.string().max(500).optional(),
   instagram_url: z.string().max(200).optional(),
   phone:         z.string().max(20).optional(),
   photo_url:     z.string().url().optional(),
@@ -45,7 +44,7 @@ export async function POST(req: NextRequest) {
     const { restaurants, admin_key } = BulkSeedSchema.parse(body)
 
     // Simple admin key check
-    if (admin_key !== process.env.ADMIN_SEED_KEY) {
+    if (admin_key !== (process.env.ADMIN_SEED_KEY || process.env.ADMIN_SECRET)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 
@@ -61,30 +60,33 @@ export async function POST(req: NextRequest) {
         instagram_url = `https://instagram.com/${instagram_url.replace(/^@/, '')}`
       }
 
+      // Build insert payload — only include columns that exist in schema
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const payload: Record<string, any> = {
+        name:          r.name,
+        slug,
+        address:       r.address,
+        neighborhood:  r.neighborhood,
+        cuisine_type:  r.cuisine_type,
+        price_range:   r.price_range,
+        plan:          'free',
+        active:        true,
+        claimed:       false,  // Seeded = unclaimed
+      }
+      if (instagram_url) payload.instagram_url = instagram_url
+      if (r.phone) payload.phone = r.phone
+      if (r.photo_url) payload.photo_url = r.photo_url
+
       const { error } = await supabase
         .from('restaurants')
-        .insert({
-          name:          r.name,
-          slug,
-          address:       r.address,
-          neighborhood:  r.neighborhood,
-          cuisine_type:  r.cuisine_type,
-          price_range:   r.price_range,
-          description:   r.description || null,
-          instagram_url,
-          phone:         r.phone || null,
-          photo_url:     r.photo_url || null,
-          plan:          'free',
-          active:        true,
-          claimed:       false,  // Seeded = unclaimed
-        })
+        .insert(payload)
 
       if (error) {
         if (error.code === '23505') {
           results.push({ name: r.name, slug, status: 'exists' })
         } else {
           console.error(`Seed error for ${r.name}:`, error)
-          results.push({ name: r.name, slug, status: 'error' })
+          results.push({ name: r.name, slug, status: 'error', error: error.message, code: error.code })
         }
       } else {
         results.push({ name: r.name, slug, status: 'created' })

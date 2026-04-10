@@ -110,7 +110,7 @@ export async function PATCH(req: NextRequest) {
       admin_key: z.string(),
     }).parse(body)
 
-    if (parsed.admin_key !== process.env.ADMIN_SEED_KEY) {
+    if (parsed.admin_key !== (process.env.ADMIN_SEED_KEY || process.env.ADMIN_SECRET)) {
       return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
     }
 

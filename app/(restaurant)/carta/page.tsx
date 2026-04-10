@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useRef, useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight,
-  Image, X, Check, ChevronDown, AlertCircle, Loader2, Camera,
+  Image, X, Check, ChevronDown, AlertCircle, Loader2, Camera, RefreshCw,
 } from 'lucide-react'
+import { useRestaurant } from '@/lib/restaurant-context'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -20,24 +21,12 @@ interface MenuItem {
   cost_price?: number
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = ['entrada', 'principal', 'postre', 'bebida', 'para compartir']
-
-const INITIAL_ITEMS: MenuItem[] = [
-  { id: '1', name: 'Lomo vetado', description: 'Con papas fritas y ensalada', price: 15900, category: 'principal', tags: [], available: true, cost_price: 6200 },
-  { id: '2', name: 'Pasta arrabiata', description: 'Salsa de tomate picante, albahaca fresca', price: 12900, category: 'principal', tags: ['vegano'], available: true, cost_price: 3100 },
-  { id: '3', name: 'Salmón grillado', description: 'Con puré de papas y salsa de limón', price: 16900, category: 'principal', tags: ['sin gluten'], available: true, cost_price: 7800 },
-  { id: '4', name: 'Ensalada César', description: 'Lechuga romana, crutones, parmesano', price: 8900, category: 'entrada', tags: [], available: true, cost_price: 2100 },
-  { id: '5', name: 'Tiramisú', description: 'Receta italiana tradicional', price: 6900, category: 'postre', tags: ['vegetariano'], available: true, cost_price: 1800 },
-  { id: '6', name: 'Gazpacho', description: 'Sopa fría de tomate andaluza', price: 7500, category: 'entrada', tags: ['vegano', 'sin gluten'], available: false, cost_price: 1500 },
-  { id: '7', name: 'Pisco sour', description: 'Clásico chileno con pisco 35°', price: 5900, category: 'bebida', tags: [], available: true, cost_price: 900 },
-  { id: '8', name: 'Tabla de quesos', description: 'Selección de quesos con frutos secos y mermelada', price: 13900, category: 'para compartir', tags: ['vegetariano'], available: true, cost_price: 4500 },
-]
-
 const TAG_OPTIONS = ['vegano', 'vegetariano', 'sin gluten', 'sin lactosa', 'picante', 'popular', 'nuevo']
 
-// ── ItemForm ──────────────────────────────────────────────────────────────────
+// ── ItemForm ─────────────────────────────────────────────────────────────────
 
 function ItemForm({
   initial,
@@ -45,7 +34,7 @@ function ItemForm({
   onCancel,
 }: {
   initial?: Partial<MenuItem>
-  onSave: (item: Omit<MenuItem, 'id'>) => void
+  onSave: (item: Omit<MenuItem, 'id'>) => Promise<void>
   onCancel: () => void
 }) {
   const [name, setName]               = useState(initial?.name ?? '')
@@ -79,18 +68,20 @@ function ItemForm({
   async function handleSave() {
     if (!name || !price) return
     setSaving(true)
-    await new Promise(r => setTimeout(r, 400)) // simulate API
-    onSave({
-      name,
-      description: desc,
-      price: parseInt(price),
-      category,
-      tags,
-      available,
-      cost_price: cost ? parseInt(cost) : undefined,
-      photo_url: photoPreview ?? undefined,
-    })
-    setSaving(false)
+    try {
+      await onSave({
+        name,
+        description: desc,
+        price: parseInt(price),
+        category,
+        tags,
+        available,
+        cost_price: cost ? parseInt(cost) : undefined,
+        photo_url: photoPreview ?? undefined,
+      })
+    } finally {
+      setSaving(false)
+    }
   }
 
   const margin = price && cost ? Math.round((1 - parseInt(cost) / parseInt(price)) * 100) : null
@@ -279,37 +270,115 @@ function ItemRow({ item, onEdit, onDelete, onToggle }: {
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function CartaPage() {
-  const [items, setItems]         = useState<MenuItem[]>(INITIAL_ITEMS)
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
+
+  const [items, setItems]         = useState<MenuItem[]>([])
+  const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState('todas')
   const [adding, setAdding]       = useState(false)
   const [editing, setEditing]     = useState<string | null>(null)
   const [deleting, setDeleting]   = useState<string | null>(null)
 
+  // ── Load items from API ──────────────────────────────────────────────────
+  const loadItems = useCallback(async () => {
+    if (!restId) return
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/menu-items?restaurant_id=${restId}`)
+      const data = await res.json()
+      if (data.items) {
+        setItems(data.items.map((i: Record<string, unknown>) => ({
+          id:          i.id as string,
+          name:        i.name as string,
+          description: (i.description as string) || '',
+          price:       i.price as number,
+          category:    (i.category as string) || 'principal',
+          tags:        (i.tags as string[]) || [],
+          available:   i.available !== false,
+          photo_url:   (i.photo_url as string) || undefined,
+          cost_price:  (i.cost_price as number) || undefined,
+        })))
+      }
+    } catch (err) {
+      console.error('Error loading menu items:', err)
+    }
+    setLoading(false)
+  }, [restId])
+
+  useEffect(() => { loadItems() }, [loadItems])
+
+  // ── CRUD handlers ────────────────────────────────────────────────────────
+  async function addItem(data: Omit<MenuItem, 'id'>) {
+    const res = await fetch('/api/menu-items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...data, restaurant_id: restId }),
+    })
+    const result = await res.json()
+    if (result.item) {
+      setItems(prev => [...prev, {
+        ...result.item,
+        description: result.item.description || '',
+        tags: result.item.tags || [],
+      }])
+      setAdding(false)
+    }
+  }
+
+  async function updateItem(id: string, data: Omit<MenuItem, 'id'>) {
+    const res = await fetch('/api/menu-items', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, restaurant_id: restId, ...data }),
+    })
+    const result = await res.json()
+    if (result.item) {
+      setItems(prev => prev.map(i => i.id === id ? {
+        ...result.item,
+        description: result.item.description || '',
+        tags: result.item.tags || [],
+      } : i))
+      setEditing(null)
+    }
+  }
+
+  async function deleteItem(id: string) {
+    const res = await fetch('/api/menu-items', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, restaurant_id: restId }),
+    })
+    const result = await res.json()
+    if (result.ok) {
+      setItems(prev => prev.filter(i => i.id !== id))
+      setDeleting(null)
+    }
+  }
+
+  async function toggleItem(id: string) {
+    const item = items.find(i => i.id === id)
+    if (!item) return
+    // Optimistic update
+    setItems(prev => prev.map(i => i.id === id ? { ...i, available: !i.available } : i))
+    await fetch('/api/menu-items', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, restaurant_id: restId, available: !item.available }),
+    })
+  }
+
+  // ── Derived data ─────────────────────────────────────────────────────────
   const cats = ['todas', ...CATEGORIES]
+  const allCategories = [...new Set(items.map(i => i.category))]
+  const displayCategories = catFilter === 'todas'
+    ? [...CATEGORIES, ...allCategories.filter(c => !CATEGORIES.includes(c))]
+    : [catFilter]
 
   const filtered = items
     .filter(i => catFilter === 'todas' || i.category === catFilter)
     .filter(i => !search || i.name.toLowerCase().includes(search.toLowerCase()) || i.description.toLowerCase().includes(search.toLowerCase()))
-
-  function addItem(data: Omit<MenuItem, 'id'>) {
-    setItems(prev => [...prev, { ...data, id: Date.now().toString() }])
-    setAdding(false)
-  }
-
-  function updateItem(id: string, data: Omit<MenuItem, 'id'>) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, ...data } : i))
-    setEditing(null)
-  }
-
-  function deleteItem(id: string) {
-    setItems(prev => prev.filter(i => i.id !== id))
-    setDeleting(null)
-  }
-
-  function toggleItem(id: string) {
-    setItems(prev => prev.map(i => i.id === id ? { ...i, available: !i.available } : i))
-  }
 
   const stats = {
     total: items.length,
@@ -317,6 +386,14 @@ export default function CartaPage() {
     avgMargin: items.filter(i => i.cost_price).length > 0
       ? Math.round(items.filter(i => i.cost_price).reduce((s, i) => s + (1 - i.cost_price! / i.price) * 100, 0) / items.filter(i => i.cost_price).length)
       : null,
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+      </div>
+    )
   }
 
   return (
@@ -332,11 +409,16 @@ export default function CartaPage() {
             {stats.avgMargin !== null && <><span>·</span><span className="text-[#FF6B35]/70">{stats.avgMargin}% margen promedio</span></>}
           </div>
         </div>
-        <button onClick={() => setAdding(true)} disabled={adding}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                     hover:bg-[#e85d2a] disabled:opacity-50 transition-colors">
-          <Plus size={14} /> Agregar plato
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={loadItems} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
+            <RefreshCw size={14} />
+          </button>
+          <button onClick={() => setAdding(true)} disabled={adding}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
+                       hover:bg-[#e85d2a] disabled:opacity-50 transition-colors">
+            <Plus size={14} /> Agregar plato
+          </button>
+        </div>
       </div>
 
       {/* Add form */}
@@ -361,9 +443,22 @@ export default function CartaPage() {
         </div>
       </div>
 
+      {/* Empty state */}
+      {items.length === 0 && !adding && (
+        <div className="text-center py-16 space-y-3">
+          <span className="text-4xl block">📋</span>
+          <p className="text-white/40 text-sm">Tu carta está vacía</p>
+          <p className="text-white/20 text-xs">Agrega tu primer plato y se publicará automáticamente en tu perfil de HiChapi.</p>
+          <button onClick={() => setAdding(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors mt-2">
+            <Plus size={14} /> Agregar primer plato
+          </button>
+        </div>
+      )}
+
       {/* Items by category */}
       <div className="space-y-6">
-        {(catFilter === 'todas' ? CATEGORIES : [catFilter]).map(cat => {
+        {displayCategories.map(cat => {
           const catItems = filtered.filter(i => i.category === cat)
           if (catItems.length === 0) return null
           return (
@@ -384,12 +479,22 @@ export default function CartaPage() {
             </div>
           )
         })}
-        {filtered.length === 0 && (
+        {filtered.length === 0 && items.length > 0 && (
           <div className="text-center py-16 text-white/20">
             <p className="text-sm">No hay platos que coincidan</p>
           </div>
         )}
       </div>
+
+      {/* Sync notice */}
+      {items.length > 0 && (
+        <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl px-4 py-3 flex items-center gap-2">
+          <Check size={14} className="text-emerald-400 shrink-0" />
+          <p className="text-emerald-400/70 text-xs">
+            Los cambios se sincronizan automáticamente con tu perfil público en HiChapi Discovery.
+          </p>
+        </div>
+      )}
 
       {/* Delete confirm */}
       {deleting && (
@@ -400,7 +505,7 @@ export default function CartaPage() {
               <div>
                 <p className="text-white font-semibold">¿Eliminar plato?</p>
                 <p className="text-white/40 text-sm mt-1">
-                  "{items.find(i => i.id === deleting)?.name}" se eliminará permanentemente de la carta.
+                  &quot;{items.find(i => i.id === deleting)?.name}&quot; se eliminará permanentemente de la carta.
                 </p>
               </div>
             </div>
