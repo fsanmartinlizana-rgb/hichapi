@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff } from 'lucide-react'
+import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 
@@ -13,10 +13,16 @@ type OrderStatus = 'recibida' | 'preparando' | 'lista' | 'entregada'
 
 type UserRole = 'cocina' | 'garzon' | 'admin'
 
+type Destination     = 'cocina' | 'barra' | 'ninguno'
+type StationStatus   = 'pending' | 'preparing' | 'ready'
+type StationFilter   = 'todo' | 'cocina' | 'barra'
+
 interface OrderItem {
   name: string
   qty: number
   note?: string
+  destination?: Destination
+  stationStatus?: StationStatus
 }
 
 interface Order {
@@ -34,7 +40,14 @@ interface Order {
 // ── DB Types & mapping ────────────────────────────────────────────────────────
 
 interface DbTable { id: string; label: string }
-interface DbOrderItem { id: string; name: string; quantity: number; notes: string | null }
+interface DbOrderItem {
+  id: string
+  name: string
+  quantity: number
+  notes: string | null
+  destination?: string | null
+  station_status?: string | null
+}
 interface DbOrder {
   id: string; table_id: string; status: string; total: number
   created_at: string; order_items: DbOrderItem[]
@@ -42,7 +55,7 @@ interface DbOrder {
 
 function dbToUI(status: string): OrderStatus | null {
   if (status === 'pending' || status === 'confirmed') return 'recibida'
-  if (status === 'preparing')                          return 'preparando'
+  if (status === 'preparing' || status === 'partial_ready') return 'preparando'
   if (status === 'ready')                              return 'lista'
   if (status === 'paying')                             return 'entregada'
   return null   // paid / cancelled → ocultar
@@ -71,6 +84,8 @@ function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
       name: item.name,
       qty:  item.quantity,
       note: item.notes ?? undefined,
+      destination:   ((item.destination as Destination) || 'cocina'),
+      stationStatus: ((item.station_status as StationStatus) || 'pending'),
     })),
     amount:    o.total,
     mins:      Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000),
@@ -222,6 +237,19 @@ const COLUMNS: {
 
 // Columns that cocina can see clearly (others dimmed)
 const COCINA_HIGHLIGHT: OrderStatus[] = ['preparando', 'lista']
+
+// Station filter chips (cocina / barra / todo)
+const STATION_FILTERS: { value: StationFilter; label: string; icon: typeof ChefHat; color: string }[] = [
+  { value: 'todo',   label: 'Todas',  icon: Bell,    color: '#9CA3AF' },
+  { value: 'cocina', label: 'Cocina', icon: ChefHat, color: '#FBBF24' },
+  { value: 'barra',  label: 'Barra',  icon: Wine,    color: '#A78BFA' },
+]
+
+const DEST_META: Record<Destination, { label: string; color: string }> = {
+  cocina:  { label: 'Cocina', color: '#FBBF24' },
+  barra:   { label: 'Barra',  color: '#A78BFA' },
+  ninguno: { label: 'Sin prep', color: '#9CA3AF' },
+}
 
 // ── Toast ─────────────────────────────────────────────────────────────────────
 
@@ -420,18 +448,22 @@ function OrderCard({
   order,
   col,
   role,
+  station,
   brokenItems,
   stockMap,
   onAdvance,
+  onMarkStationReady,
   onBreak,
   onMarkLow,
 }: {
   order: Order
   col: typeof COLUMNS[0]
   role: UserRole
+  station: StationFilter
   brokenItems: Set<string>
   stockMap: Record<string, StockEntry>
   onAdvance: (id: string, next: OrderStatus) => void
+  onMarkStationReady: (orderId: string, destination: 'cocina' | 'barra') => void
   onBreak: (orderId: string, itemIndex: number, itemName: string) => void
   onMarkLow: (itemName: string, qty: number) => void
 }) {
@@ -442,6 +474,22 @@ function OrderCard({
     || order.status === 'recibida' && order.mins > 8
   const canBreakItems = role === 'cocina' || role === 'admin'
   const actionAllowed = canAdvance(role, order.status)
+
+  // Items shown on this card depend on station filter
+  const visibleItems = station === 'todo'
+    ? order.items.map((it, i) => ({ it, i }))
+    : order.items
+        .map((it, i) => ({ it, i }))
+        .filter(({ it }) => (it.destination ?? 'cocina') === station)
+
+  // Per-station readiness — used to show "Marcar listo cocina/barra"
+  const stationItems = (dest: 'cocina' | 'barra') =>
+    order.items.filter(it => (it.destination ?? 'cocina') === dest)
+  const stationAllReady = (dest: 'cocina' | 'barra') => {
+    const items = stationItems(dest)
+    return items.length > 0 && items.every(it => it.stationStatus === 'ready')
+  }
+  const stationHasItems = (dest: 'cocina' | 'barra') => stationItems(dest).length > 0
 
   return (
     <div className={`bg-[#1C1C2E] rounded-xl border p-3.5 space-y-3 transition-all
@@ -473,12 +521,14 @@ function OrderCard({
 
       {/* Items */}
       <div className="space-y-1">
-        {order.items.map((item, i) => {
+        {visibleItems.map(({ it: item, i }) => {
           const key     = `${order.id}:${i}`
           const broken  = brokenItems.has(key)
           const stock   = getStock(stockMap, item.name)
           // broken overrides stock display (already marked 86)
           const display = broken ? '86' : stock.status
+          const dest    = (item.destination ?? 'cocina') as Destination
+          const itemReady = item.stationStatus === 'ready'
 
           return (
             <div
@@ -497,10 +547,31 @@ function OrderCard({
                       ? 'line-through text-white/25'
                       : display === 'out'
                         ? 'line-through text-white/25'
-                        : 'text-white/70'
+                        : itemReady
+                          ? 'line-through text-emerald-400/70'
+                          : 'text-white/70'
                   }`}>
                     {item.name}
                   </span>
+
+                  {/* Destination badge — only when in 'todo' (in station view it's redundant) */}
+                  {station === 'todo' && dest !== 'cocina' && (
+                    <span
+                      className="text-[8px] font-bold px-1 py-0.5 rounded shrink-0 border"
+                      style={{
+                        backgroundColor: DEST_META[dest].color + '15',
+                        borderColor:     DEST_META[dest].color + '30',
+                        color:           DEST_META[dest].color,
+                      }}
+                    >
+                      {DEST_META[dest].label}
+                    </span>
+                  )}
+
+                  {/* Per-station ready check */}
+                  {itemReady && (
+                    <CheckCircle2 size={9} className="text-emerald-400 shrink-0" />
+                  )}
 
                   {/* 86 badge */}
                   {display === '86' && (
@@ -578,20 +649,65 @@ function OrderCard({
         })}
       </div>
 
-      {/* Action */}
-      {col.next && actionAllowed && (
-        <button
-          onClick={() => onAdvance(order.id, col.next!)}
-          className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
-          style={{
-            backgroundColor: col.color + '18',
-            color: col.color,
-            border: `1px solid ${col.color}30`,
-          }}
-        >
-          {col.icon}
-          {col.nextLabel}
-        </button>
+      {/* Action — station mode shows "Marcar listo (cocina/barra)", todo mode shows the column action */}
+      {actionAllowed && order.status !== 'entregada' && (
+        station !== 'todo' ? (
+          stationHasItems(station) && !stationAllReady(station) && order.status !== 'lista' && (
+            <button
+              onClick={() => onMarkStationReady(order.id, station)}
+              className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
+              style={{
+                backgroundColor: DEST_META[station].color + '18',
+                color:           DEST_META[station].color,
+                border: `1px solid ${DEST_META[station].color}30`,
+              }}
+            >
+              <CheckCircle2 size={13} />
+              Marcar {DEST_META[station].label.toLowerCase()} lista
+            </button>
+          )
+        ) : (
+          col.next && (
+            <div className="space-y-1.5">
+              {/* When in 'preparando' show per-station shortcuts if both kitchen+bar exist */}
+              {order.status === 'preparando' && stationHasItems('cocina') && stationHasItems('barra') && (
+                <div className="flex gap-1.5">
+                  {(['cocina', 'barra'] as const).map(d => {
+                    const ready = stationAllReady(d)
+                    return (
+                      <button
+                        key={d}
+                        onClick={() => !ready && onMarkStationReady(order.id, d)}
+                        disabled={ready}
+                        className="flex-1 py-1 rounded-lg text-[10px] font-medium transition-colors flex items-center justify-center gap-1 disabled:opacity-50"
+                        style={{
+                          backgroundColor: DEST_META[d].color + (ready ? '08' : '18'),
+                          color:           DEST_META[d].color,
+                          border: `1px solid ${DEST_META[d].color}${ready ? '15' : '30'}`,
+                        }}
+                      >
+                        {ready ? <CheckCircle2 size={10} /> : <Clock size={10} />}
+                        {DEST_META[d].label} {ready ? 'lista' : 'pendiente'}
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+              <button
+                onClick={() => onAdvance(order.id, col.next!)}
+                className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: col.color + '18',
+                  color: col.color,
+                  border: `1px solid ${col.color}30`,
+                }}
+              >
+                {col.icon}
+                {col.nextLabel}
+              </button>
+            </div>
+          )
+        )
       )}
     </div>
   )
@@ -807,6 +923,7 @@ function ComandasPageInner() {
   const [online, setOnline]           = useState(true)
   const [search, setSearch]           = useState('')
   const [role, setRole]               = useState<UserRole>('admin')
+  const [station, setStation]         = useState<StationFilter>('todo')
   const [brokenItems, setBrokenItems] = useState<Set<string>>(new Set())
   const [stockMap, setStockMap]       = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
   const [toasts, setToasts]           = useState<ToastMsg[]>([])
@@ -822,7 +939,7 @@ function ComandasPageInner() {
       supabase.from('tables').select('id, label').eq('restaurant_id', restId),
       supabase
         .from('orders')
-        .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes)')
+        .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes, destination, station_status)')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
@@ -886,6 +1003,39 @@ function ComandasPageInner() {
     }
   }
 
+  async function markStationReady(orderId: string, dest: 'cocina' | 'barra') {
+    // Optimistic — flip station_status to 'ready' for matching items locally
+    setOrders(prev => prev.map(o => o.id !== orderId ? o : {
+      ...o,
+      items: o.items.map(it =>
+        (it.destination ?? 'cocina') === dest ? { ...it, stationStatus: 'ready' as StationStatus } : it
+      ),
+    }))
+    if (orderId.startsWith('ord-')) return // local mock
+    try {
+      const res = await fetch('/api/orders/station', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order_id: orderId, destination: dest }),
+      })
+      if (!res.ok) {
+        pushToast('No se pudo marcar listo. Intenta nuevamente.', 'break')
+        loadData()
+        return
+      }
+      const data = await res.json()
+      pushToast(
+        data.order_status === 'ready'
+          ? `${DEST_META[dest].label} lista · pedido completo`
+          : `${DEST_META[dest].label} lista · esperando otra estación`,
+        'info'
+      )
+    } catch {
+      pushToast('Sin conexión. No se pudo marcar listo.', 'break')
+      loadData()
+    }
+  }
+
   function markBreak(orderId: string, itemIndex: number, itemName: string) {
     const key = `${orderId}:${itemIndex}`
     setBrokenItems(prev => {
@@ -910,12 +1060,21 @@ function ComandasPageInner() {
     pushToast(`Comanda ${order.tableLabel} creada · En espera`, 'info' as ToastMsg['variant'])
   }
 
-  const filtered = search
-    ? orders.filter(o =>
-        o.tableLabel.toLowerCase().includes(search.toLowerCase()) ||
-        o.items.some(i => i.name.toLowerCase().includes(search.toLowerCase()))
+  const filtered = (() => {
+    let list = orders
+    if (search) {
+      const q = search.toLowerCase()
+      list = list.filter(o =>
+        o.tableLabel.toLowerCase().includes(q) ||
+        o.items.some(i => i.name.toLowerCase().includes(q))
       )
-    : orders
+    }
+    if (station !== 'todo') {
+      // Hide orders that have no items destined to the chosen station
+      list = list.filter(o => o.items.some(i => (i.destination ?? 'cocina') === station))
+    }
+    return list
+  })()
 
   const ROLE_OPTIONS: { value: UserRole; label: string; emoji: string }[] = [
     { value: 'cocina', label: 'Cocina', emoji: '👨‍🍳' },
@@ -941,6 +1100,26 @@ function ComandasPageInner() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {/* Station filter */}
+          <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/8">
+            {STATION_FILTERS.map(opt => {
+              const Icon   = opt.icon
+              const active = station === opt.value
+              return (
+                <button
+                  key={opt.value}
+                  onClick={() => setStation(opt.value)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-semibold transition-all select-none
+                              ${active ? 'bg-white/12 text-white shadow-sm' : 'text-white/35 hover:text-white/55'}`}
+                  style={active ? { color: opt.color } : undefined}
+                >
+                  <Icon size={11} />
+                  {opt.label}
+                </button>
+              )
+            })}
+          </div>
+
           {/* Role selector */}
           <div className="flex items-center gap-1 p-1 rounded-xl bg-white/5 border border-white/8">
             {ROLE_OPTIONS.map(opt => (
@@ -1035,9 +1214,11 @@ function ComandasPageInner() {
                         order={o}
                         col={col}
                         role={role}
+                        station={station}
                         brokenItems={brokenItems}
                         stockMap={stockMap}
                         onAdvance={advance}
+                        onMarkStationReady={markStationReady}
                         onBreak={markBreak}
                         onMarkLow={markLow}
                       />

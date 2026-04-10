@@ -90,18 +90,30 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 5. Create order items
+    // 5. Resolve destination for each cart item from menu_items (snapshot)
+    const menuItemIds = cart.map(c => c.menu_item_id)
+    const { data: menuRows } = await supabase
+      .from('menu_items')
+      .select('id, destination')
+      .in('id', menuItemIds)
+
+    const destByItem = new Map<string, string>(
+      (menuRows ?? []).map((r: { id: string; destination: string | null }) => [r.id, r.destination || 'cocina'])
+    )
+
+    // 6. Create order items with destination snapshot
     const { error: itemsErr } = await supabase
       .from('order_items')
       .insert(
         cart.map(item => ({
-          order_id: order.id,
+          order_id:    order.id,
           menu_item_id: item.menu_item_id,
-          name: item.name,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          notes: item.note ?? null,
-          status: 'pending',
+          name:        item.name,
+          quantity:    item.quantity,
+          unit_price:  item.unit_price,
+          notes:       item.note ?? null,
+          status:      'pending',
+          destination: destByItem.get(item.menu_item_id) || 'cocina',
         }))
       )
 
@@ -178,9 +190,10 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo actualizar' }, { status: 500 })
     }
 
-    // Deduct stock ingredients when order moves to 'preparing'
-    // Uses transactional batch RPC — single DB call instead of N+1
-    if (status === 'preparing') {
+    // Deduct stock when order is confirmed (entering prep flow).
+    // Idempotent on the DB side: deduct_order_stock is safe to call once per order.
+    // We trigger on 'confirmed' (admin accepts) so stock matches what kitchen will use.
+    if (status === 'confirmed' || status === 'preparing') {
       try {
         const { data: result, error: rpcErr } = await supabase.rpc('deduct_order_stock', {
           p_order_id: order_id,

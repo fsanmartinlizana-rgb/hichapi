@@ -4,6 +4,8 @@ import { z } from 'zod'
 
 // ── Schemas ──────────────────────────────────────────────────────────────────
 
+const DestinationEnum = z.enum(['cocina', 'barra', 'ninguno'])
+
 const CreateItemSchema = z.object({
   restaurant_id: z.string().uuid(),
   name:          z.string().min(1).max(100),
@@ -15,6 +17,7 @@ const CreateItemSchema = z.object({
   cost_price:    z.number().int().min(0).optional(),
   photo_url:     z.string().url().optional(),
   display_order: z.number().int().optional(),
+  destination:   DestinationEnum.default('cocina'),
 })
 
 const UpdateItemSchema = z.object({
@@ -29,6 +32,7 @@ const UpdateItemSchema = z.object({
   cost_price:    z.number().int().min(0).nullish(),
   photo_url:     z.string().url().nullish(),
   display_order: z.number().int().optional(),
+  destination:   DestinationEnum.optional(),
 })
 
 const DeleteItemSchema = z.object({
@@ -81,6 +85,7 @@ export async function POST(req: NextRequest) {
         cost_price:    data.cost_price || null,
         photo_url:     data.photo_url || null,
         display_order: data.display_order || null,
+        destination:   data.destination,
       })
       .select()
       .single()

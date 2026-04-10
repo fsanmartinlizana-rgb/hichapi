@@ -4,10 +4,13 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight,
   Image, X, Check, ChevronDown, AlertCircle, Loader2, Camera, RefreshCw,
+  ChefHat, Wine, Package,
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
+
+type Destination = 'cocina' | 'barra' | 'ninguno'
 
 interface MenuItem {
   id: string
@@ -19,12 +22,19 @@ interface MenuItem {
   available: boolean
   photo_url?: string
   cost_price?: number
+  destination: Destination
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = ['entrada', 'principal', 'postre', 'bebida', 'para compartir']
 const TAG_OPTIONS = ['vegano', 'vegetariano', 'sin gluten', 'sin lactosa', 'picante', 'popular', 'nuevo']
+
+const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; hint: string }[] = [
+  { value: 'cocina',  label: 'Cocina',  icon: ChefHat, hint: 'Va a la pantalla de cocina' },
+  { value: 'barra',   label: 'Barra',   icon: Wine,    hint: 'Va a la pantalla de barra' },
+  { value: 'ninguno', label: 'Sin prep', icon: Package, hint: 'No requiere preparación' },
+]
 
 // ── ItemForm ─────────────────────────────────────────────────────────────────
 
@@ -44,6 +54,7 @@ function ItemForm({
   const [category, setCategory]       = useState(initial?.category ?? 'principal')
   const [tags, setTags]               = useState<string[]>(initial?.tags ?? [])
   const [available, setAvailable]     = useState(initial?.available ?? true)
+  const [destination, setDestination] = useState<Destination>(initial?.destination ?? 'cocina')
   const [saving, setSaving]           = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null)
 
@@ -76,6 +87,7 @@ function ItemForm({
         category,
         tags,
         available,
+        destination,
         cost_price: cost ? parseInt(cost) : undefined,
         photo_url: photoPreview ?? undefined,
       })
@@ -192,6 +204,31 @@ function ItemForm({
           ))}
         </div>
       </div>
+      {/* Destino de comanda */}
+      <div className="space-y-1.5">
+        <label className="text-white/50 text-xs">Destino de comanda</label>
+        <div className="grid grid-cols-3 gap-2">
+          {DESTINATIONS.map(d => {
+            const Icon = d.icon
+            const active = destination === d.value
+            return (
+              <button
+                key={d.value}
+                type="button"
+                onClick={() => setDestination(d.value)}
+                className={`flex flex-col items-start gap-1 px-3 py-2.5 rounded-xl border text-left transition-all
+                  ${active
+                    ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35]'
+                    : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20 hover:text-white/60'}`}
+              >
+                <Icon size={14} />
+                <span className="text-xs font-semibold">{d.label}</span>
+                <span className="text-[10px] opacity-70 leading-tight">{d.hint}</span>
+              </button>
+            )
+          })}
+        </div>
+      </div>
       <div className="flex gap-2 pt-1">
         <button onClick={onCancel}
           className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors">
@@ -233,6 +270,15 @@ function ItemRow({ item, onEdit, onDelete, onToggle }: {
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
           <p className="text-white text-sm font-semibold truncate">{item.name}</p>
+          {item.destination !== 'cocina' && (
+            <span className={`text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1
+              ${item.destination === 'barra'
+                ? 'bg-purple-500/15 text-purple-300/90 border-purple-500/25'
+                : 'bg-white/5 text-white/40 border-white/10'}`}>
+              {item.destination === 'barra' ? <Wine size={9} /> : <Package size={9} />}
+              {item.destination === 'barra' ? 'barra' : 'sin prep'}
+            </span>
+          )}
           {item.tags.map(t => (
             <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#FF6B35]/80 border border-[#FF6B35]/20 shrink-0">
               {t}
@@ -299,6 +345,7 @@ export default function CartaPage() {
           available:   i.available !== false,
           photo_url:   (i.photo_url as string) || undefined,
           cost_price:  (i.cost_price as number) || undefined,
+          destination: ((i.destination as Destination) || 'cocina'),
         })))
       }
     } catch (err) {
