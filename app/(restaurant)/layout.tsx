@@ -55,7 +55,7 @@ const ALL_NAV = [
   {
     section: 'PLATAFORMA',
     items: [
-      { label: 'Super Admin', href: '/admin', icon: Crown, roles: ['super_admin'] },
+      { label: 'Super Admin', href: '/plataforma', icon: Crown, roles: ['super_admin'] },
     ],
   },
 ]
