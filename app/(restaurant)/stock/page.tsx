@@ -3,8 +3,9 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   Package, Plus, AlertTriangle, RefreshCw,
-  Pencil, Trash2, ChevronDown, X, Check, Minus
+  Pencil, Trash2, ChevronDown, X, Check, Minus, Upload, FileSpreadsheet, Camera, Loader2
 } from 'lucide-react'
+import { useRestaurant } from '@/lib/restaurant-context'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -20,15 +21,23 @@ interface StockItem {
   updated_at: string
 }
 
+interface ExtractedItem {
+  name: string
+  quantity: number | null
+  unit: string | null
+  category: string | null
+}
+
 const UNITS = ['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja'] as const
 const CLP = (v: number) =>
   new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(v)
 
-const DEMO_RESTAURANT_ID = process.env.NEXT_PUBLIC_DEMO_RESTAURANT_ID ?? ''
-
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function StockPage() {
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
+
   const [items,       setItems]       = useState<StockItem[]>([])
   const [loading,     setLoading]     = useState(true)
   const [showForm,    setShowForm]    = useState(false)
@@ -36,6 +45,14 @@ export default function StockPage() {
   const [adjustItem,  setAdjustItem]  = useState<StockItem | null>(null)
   const [adjustDelta, setAdjustDelta] = useState('')
   const [filterLow,   setFilterLow]   = useState(false)
+
+  // Import state
+  const [showImport,      setShowImport]      = useState(false)
+  const [importFile,      setImportFile]      = useState<File | null>(null)
+  const [importLoading,   setImportLoading]   = useState(false)
+  const [importStep,      setImportStep]      = useState<'upload' | 'review' | 'done'>('upload')
+  const [extractedItems,  setExtractedItems]  = useState<ExtractedItem[]>([])
+  const [importError,     setImportError]     = useState('')
 
   // Form state
   const [form, setForm] = useState({
@@ -47,12 +64,13 @@ export default function StockPage() {
   // ── Fetch ──────────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
+    if (!restId) return
     setLoading(true)
-    const res  = await fetch(`/api/stock?restaurant_id=${DEMO_RESTAURANT_ID}`)
+    const res  = await fetch(`/api/stock?restaurant_id=${restId}`)
     const data = await res.json()
     setItems(data.items ?? [])
     setLoading(false)
-  }, [])
+  }, [restId])
 
   useEffect(() => { load() }, [load])
 
@@ -60,8 +78,9 @@ export default function StockPage() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
+    if (!restId) return
     const payload = {
-      restaurant_id: DEMO_RESTAURANT_ID,
+      restaurant_id: restId,
       name:          form.name,
       unit:          form.unit,
       current_qty:   parseFloat(form.current_qty),
@@ -118,6 +137,75 @@ export default function StockPage() {
     await load()
   }
 
+  // ── Import handlers ───────────────────────────────────────────────────────
+
+  async function handleImportExtract() {
+    if (!importFile || !restId) return
+    setImportLoading(true)
+    setImportError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', importFile)
+      formData.append('restaurant_id', restId)
+
+      const res = await fetch('/api/inventory/import', { method: 'POST', body: formData })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setImportError(data.error || 'Error al procesar archivo')
+        return
+      }
+
+      setExtractedItems(data.items ?? [])
+      setImportStep('review')
+    } catch {
+      setImportError('Error de conexión')
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
+  async function handleImportConfirm() {
+    if (!restId || extractedItems.length === 0) return
+    setImportLoading(true)
+    setImportError('')
+    try {
+      const formData = new FormData()
+      formData.append('file', importFile!)
+      formData.append('restaurant_id', restId)
+      formData.append('confirm', 'true')
+      formData.append('items', JSON.stringify(extractedItems))
+
+      const res = await fetch('/api/inventory/import', { method: 'POST', body: formData })
+      const data = await res.json()
+
+      if (!res.ok) {
+        setImportError(data.error || 'Error al importar')
+        return
+      }
+
+      setImportStep('done')
+      await load()
+    } catch {
+      setImportError('Error de conexión')
+    } finally {
+      setImportLoading(false)
+    }
+  }
+
+  function resetImport() {
+    setShowImport(false)
+    setImportFile(null)
+    setImportStep('upload')
+    setExtractedItems([])
+    setImportError('')
+    setImportLoading(false)
+  }
+
+  function removeExtractedItem(index: number) {
+    setExtractedItems(prev => prev.filter((_, i) => i !== index))
+  }
+
   // ── Derived ────────────────────────────────────────────────────────────────
 
   const displayed   = filterLow ? items.filter(i => i.current_qty <= i.min_qty) : items
@@ -145,6 +233,12 @@ export default function StockPage() {
         <div className="flex gap-2">
           <button onClick={load} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
             <RefreshCw size={16} />
+          </button>
+          <button
+            onClick={() => setShowImport(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-white/12 hover:bg-white/5 text-white/70 hover:text-white text-sm font-medium transition-colors"
+          >
+            <Upload size={14} /> Importar
           </button>
           <button
             onClick={() => { resetForm(); setEditItem(null); setShowForm(true) }}
@@ -399,6 +493,167 @@ export default function StockPage() {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Import modal */}
+      {showImport && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1A1A2E] rounded-2xl border border-white/12 p-6 w-full max-w-lg max-h-[85vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-5">
+              <h3 className="text-white font-semibold">
+                {importStep === 'upload' && 'Importar inventario'}
+                {importStep === 'review' && 'Revisar ítems extraídos'}
+                {importStep === 'done' && 'Importación completada'}
+              </h3>
+              <button onClick={resetImport} className="text-white/40 hover:text-white">
+                <X size={18} />
+              </button>
+            </div>
+
+            {/* Step 1: Upload */}
+            {importStep === 'upload' && (
+              <div className="space-y-4">
+                <p className="text-white/50 text-sm">
+                  Sube una foto de tu inventario, una factura o un archivo CSV. La IA extraerá los productos automáticamente.
+                </p>
+
+                <div className="grid grid-cols-3 gap-3">
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/8 text-center">
+                    <Camera size={20} className="mx-auto text-[#FF6B35] mb-1.5" />
+                    <p className="text-white/60 text-xs">Foto</p>
+                    <p className="text-white/30 text-[10px]">JPG, PNG</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/8 text-center">
+                    <FileSpreadsheet size={20} className="mx-auto text-green-400 mb-1.5" />
+                    <p className="text-white/60 text-xs">Excel/CSV</p>
+                    <p className="text-white/30 text-[10px]">CSV</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/8 text-center">
+                    <Package size={20} className="mx-auto text-blue-400 mb-1.5" />
+                    <p className="text-white/60 text-xs">Factura</p>
+                    <p className="text-white/30 text-[10px]">PDF, Imagen</p>
+                  </div>
+                </div>
+
+                <label className="block">
+                  <div className={`border-2 border-dashed rounded-2xl p-8 text-center cursor-pointer transition-colors ${
+                    importFile ? 'border-[#FF6B35]/50 bg-[#FF6B35]/5' : 'border-white/12 hover:border-white/25'
+                  }`}>
+                    {importFile ? (
+                      <div className="space-y-1">
+                        <Check size={24} className="mx-auto text-[#FF6B35]" />
+                        <p className="text-white text-sm font-medium">{importFile.name}</p>
+                        <p className="text-white/40 text-xs">{(importFile.size / 1024).toFixed(0)} KB</p>
+                      </div>
+                    ) : (
+                      <div className="space-y-1">
+                        <Upload size={24} className="mx-auto text-white/30" />
+                        <p className="text-white/50 text-sm">Arrastra o haz click para seleccionar</p>
+                        <p className="text-white/30 text-xs">JPG, PNG, CSV, PDF (máx 10MB)</p>
+                      </div>
+                    )}
+                  </div>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp,.csv,.pdf"
+                    className="hidden"
+                    onChange={e => setImportFile(e.target.files?.[0] ?? null)}
+                  />
+                </label>
+
+                {importError && (
+                  <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{importError}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button onClick={resetImport}
+                    className="flex-1 py-2.5 rounded-xl border border-white/12 text-white/60 text-sm hover:bg-white/5 transition-colors">
+                    Cancelar
+                  </button>
+                  <button
+                    onClick={handleImportExtract}
+                    disabled={!importFile || importLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] disabled:opacity-40 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {importLoading ? (
+                      <><Loader2 size={14} className="animate-spin" /> Procesando...</>
+                    ) : (
+                      <><Upload size={14} /> Extraer ítems</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 2: Review extracted items */}
+            {importStep === 'review' && (
+              <div className="space-y-4">
+                <p className="text-white/50 text-sm">
+                  Se encontraron <span className="text-white font-semibold">{extractedItems.length} ítems</span>. Revisa y elimina los que no correspondan.
+                </p>
+
+                <div className="space-y-2 max-h-60 overflow-y-auto">
+                  {extractedItems.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between bg-white/5 rounded-xl px-3 py-2.5 border border-white/8">
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-sm font-medium truncate">{item.name}</p>
+                        <p className="text-white/40 text-xs">
+                          {item.quantity ?? '?'} {item.unit ?? 'unidad'}
+                          {item.category && ` · ${item.category}`}
+                        </p>
+                      </div>
+                      <button onClick={() => removeExtractedItem(i)}
+                        className="p-1.5 rounded-lg hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors shrink-0 ml-2">
+                        <X size={14} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+
+                {extractedItems.length === 0 && (
+                  <p className="text-white/30 text-sm text-center py-4">No quedan ítems para importar</p>
+                )}
+
+                {importError && (
+                  <p className="text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3 py-2">{importError}</p>
+                )}
+
+                <div className="flex gap-2">
+                  <button onClick={() => { setImportStep('upload'); setExtractedItems([]) }}
+                    className="flex-1 py-2.5 rounded-xl border border-white/12 text-white/60 text-sm hover:bg-white/5 transition-colors">
+                    Volver
+                  </button>
+                  <button
+                    onClick={handleImportConfirm}
+                    disabled={extractedItems.length === 0 || importLoading}
+                    className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] disabled:opacity-40 text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+                  >
+                    {importLoading ? (
+                      <><Loader2 size={14} className="animate-spin" /> Importando...</>
+                    ) : (
+                      <><Check size={14} /> Importar {extractedItems.length} ítems</>
+                    )}
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {/* Step 3: Done */}
+            {importStep === 'done' && (
+              <div className="space-y-4 text-center py-4">
+                <div className="w-14 h-14 rounded-full bg-green-500/10 border border-green-500/30 flex items-center justify-center mx-auto">
+                  <Check size={28} className="text-green-400" />
+                </div>
+                <p className="text-white text-lg font-semibold">Importación exitosa</p>
+                <p className="text-white/50 text-sm">Los ítems fueron agregados a tu inventario.</p>
+                <button onClick={resetImport}
+                  className="w-full py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] text-white text-sm font-semibold transition-colors">
+                  Cerrar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}

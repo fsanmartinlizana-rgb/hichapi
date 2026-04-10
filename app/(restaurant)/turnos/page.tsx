@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRestaurant } from '@/lib/restaurant-context'
 import {
   CalendarDays, Clock, User, Plus, RefreshCw,
   ChevronLeft, ChevronRight, Check, X, AlertCircle
@@ -56,6 +57,8 @@ function toDateStr(d: Date) {
 
 export default function TurnosPage() {
   const supabase = createClient()
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
 
   const [weekAnchor, setWeekAnchor] = useState(new Date())
   const [shifts,     setShifts]     = useState<Shift[]>([])
@@ -79,25 +82,28 @@ export default function TurnosPage() {
   // ── Load ───────────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
+    if (!restId) return
     setLoading(true)
 
     const [shiftsRes, teamRes] = await Promise.all([
       supabase
         .from('shifts')
         .select('*, team_members(role)')
+        .eq('restaurant_id', restId)
         .gte('shift_date', weekStart)
         .lte('shift_date', weekEnd)
         .order('start_time'),
       supabase
         .from('team_members')
         .select('id, role, user_id')
+        .eq('restaurant_id', restId)
         .eq('active', true),
     ])
 
     setShifts(shiftsRes.data ?? [])
     setTeam(teamRes.data ?? [])
     setLoading(false)
-  }, [supabase, weekStart, weekEnd])
+  }, [restId, supabase, weekStart, weekEnd])
 
   useEffect(() => { load() }, [load])
 

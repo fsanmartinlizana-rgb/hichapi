@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { useRestaurant } from '@/lib/restaurant-context'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -798,6 +799,9 @@ function NuevaComandaModal({
 
 function ComandasPageInner() {
   const searchParams = useSearchParams()
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
+
   const [orders, setOrders]           = useState<Order[]>([])
   const [loading, setLoading]         = useState(true)
   const [online, setOnline]           = useState(true)
@@ -813,11 +817,13 @@ function ComandasPageInner() {
   // ── Load from Supabase ─────────────────────────────────────────────────────
 
   const loadData = useCallback(async () => {
+    if (!restId) return
     const [tablesRes, ordersRes] = await Promise.all([
-      supabase.from('tables').select('id, label'),
+      supabase.from('tables').select('id, label').eq('restaurant_id', restId),
       supabase
         .from('orders')
         .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes)')
+        .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
     ])
@@ -838,7 +844,7 @@ function ComandasPageInner() {
       return [...localOnly, ...mapped]
     })
     setLoading(false)
-  }, [supabase])
+  }, [restId, supabase])
 
   useEffect(() => {
     loadData()

@@ -7,6 +7,7 @@ import {
   RefreshCw, Wifi, WifiOff, AlertCircle,
 } from 'lucide-react'
 import { PaymentMethodModal } from '@/components/PaymentMethodModal'
+import { useRestaurant } from '@/lib/restaurant-context'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -244,6 +245,9 @@ function OrderPanel({
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GarzonPage() {
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
+
   const [tables, setTables]       = useState<Table[]>([])
   const [orders, setOrders]       = useState<Order[]>([])
   const [selected, setSelected]   = useState<string | null>(null)
@@ -258,14 +262,17 @@ export default function GarzonPage() {
   // ── Load all data ─────────────────────────────────────────────────────────
 
   const loadData = useCallback(async () => {
+    if (!restId) return
     const [tablesRes, ordersRes] = await Promise.all([
       supabase
         .from('tables')
         .select('id, label, seats, status, zone')
+        .eq('restaurant_id', restId)
         .order('label'),
       supabase
         .from('orders')
         .select('id, table_id, status, total, client_name, notes, created_at, updated_at, order_items(id, name, quantity, unit_price, notes, status)')
+        .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
     ])
@@ -275,7 +282,7 @@ export default function GarzonPage() {
     setLastRefresh(new Date())
     setLoading(false)
     setOnline(true)
-  }, [supabase])
+  }, [restId, supabase])
 
   // ── Realtime subscription ─────────────────────────────────────────────────
 

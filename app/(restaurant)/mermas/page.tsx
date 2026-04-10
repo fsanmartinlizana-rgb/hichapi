@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useRestaurant } from '@/lib/restaurant-context'
 import {
   Trash2, Plus, AlertTriangle, TrendingDown,
   Package, ChevronDown, RefreshCw
@@ -46,6 +47,8 @@ const CLP = (v: number) =>
 
 export default function MermasPage() {
   const supabase = createClient()
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
 
   const [stockItems,  setStockItems]  = useState<StockItem[]>([])
   const [wasteLog,    setWasteLog]    = useState<WasteEntry[]>([])
@@ -61,15 +64,18 @@ export default function MermasPage() {
   // ── Load data ──────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
+    if (!restId) return
     const { data: stock } = await supabase
       .from('stock_items')
       .select('id, name, unit, current_qty, min_qty, cost_per_unit, category')
+      .eq('restaurant_id', restId)
       .eq('active', true)
       .order('name')
 
     const { data: waste } = await supabase
       .from('waste_log')
       .select('id, stock_item_id, qty_lost, reason, notes, cost_lost, logged_at, stock_items(name, unit)')
+      .eq('restaurant_id', restId)
       .order('logged_at', { ascending: false })
       .limit(100)
 
@@ -85,7 +91,7 @@ export default function MermasPage() {
       })
     )
     setLoading(false)
-  }, [supabase])
+  }, [restId, supabase])
 
   useEffect(() => { load() }, [load])
 
