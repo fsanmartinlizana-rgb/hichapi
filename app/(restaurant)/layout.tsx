@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, Grid3X3, BookOpen,
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
-  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes, Crown,
+  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes, Crown, FileText,
 } from 'lucide-react'
 import SupportModal from '@/components/SupportModal'
 import NpsModal from '@/components/NpsModal'
@@ -33,6 +33,7 @@ const ALL_NAV = [
       { label: 'Mermas', href: '/mermas', icon: Trash2,        roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Turnos', href: '/turnos', icon: CalendarDays,  roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Caja',   href: '/caja',   icon: Banknote,      roles: ['owner','admin','supervisor','super_admin'] },
+      { label: 'DTE Chile', href: '/dte',  icon: FileText,      roles: ['owner','admin','super_admin'] },
     ],
   },
   {
