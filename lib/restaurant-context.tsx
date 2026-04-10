@@ -8,6 +8,7 @@ export interface Restaurant {
   name: string
   slug: string
   neighborhood?: string | null
+  plan?: string
 }
 
 interface UserProfile {
@@ -64,7 +65,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
     // Get team membership(s)
     const { data: memberships } = await supabase
       .from('team_members')
-      .select('role, restaurant_id, restaurants(id, name, slug, neighborhood)')
+      .select('role, restaurant_id, restaurants(id, name, slug, neighborhood, plan)')
       .eq('user_id', user.id)
       .eq('active', true)
 
@@ -83,7 +84,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
       // Super admin sees ALL restaurants
       const { data: all } = await supabase
         .from('restaurants')
-        .select('id, name, slug, neighborhood')
+        .select('id, name, slug, neighborhood, plan')
         .order('name')
       allRestaurants = (all ?? []) as Restaurant[]
     } else {

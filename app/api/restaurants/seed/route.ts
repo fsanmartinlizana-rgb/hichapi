@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
           results.push({ name: r.name, slug, status: 'exists' })
         } else {
           console.error(`Seed error for ${r.name}:`, error)
-          results.push({ name: r.name, slug, status: 'error', error: error.message, code: error.code })
+          results.push({ name: r.name, slug, status: 'error' as const })
         }
       } else {
         results.push({ name: r.name, slug, status: 'created' })
