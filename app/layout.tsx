@@ -34,7 +34,7 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="es" className={`${dmSans.variable} ${dmMono.variable}`}>
+    <html lang="es" data-scroll-behavior="smooth" className={`${dmSans.variable} ${dmMono.variable}`}>
       <body style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
         {children}
       </body>
