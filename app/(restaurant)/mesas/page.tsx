@@ -5,7 +5,9 @@ import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
   Download, Copy, Check, Banknote, Wifi, WifiOff, RefreshCw,
+  Utensils,
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatEta } from '@/lib/waitlist/eta'
@@ -1091,10 +1093,11 @@ export default function MesasPage() {
         </div>
 
         {filteredMesas.length === 0 && (
-          <div className="flex flex-col items-center justify-center gap-2 py-16 text-white/20">
-            <span className="text-3xl">🍽</span>
-            <p className="text-sm">No hay mesas en esta zona</p>
-          </div>
+          <EmptyState
+            icon={Utensils}
+            title="No hay mesas en esta zona"
+            description="Selecciona otra zona o agrega mesas al layout"
+          />
         )}
 
         {/* Legend */}

@@ -7,6 +7,7 @@ import {
   Trash2, Plus, AlertTriangle, TrendingDown,
   Package, ChevronDown, RefreshCw
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -222,7 +223,11 @@ export default function MermasPage() {
           </div>
           <div className="overflow-y-auto max-h-[480px]">
             {wasteLog.length === 0 ? (
-              <div className="py-12 text-center text-white/30 text-sm">Sin registros aún</div>
+              <EmptyState
+                icon={TrendingDown}
+                title="Sin registros aún"
+                description="Cuando registres mermas, verás acá el historial con la pérdida estimada"
+              />
             ) : (
               <table className="w-full text-sm">
                 <thead>

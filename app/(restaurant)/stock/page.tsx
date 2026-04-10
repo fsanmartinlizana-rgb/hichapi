@@ -6,6 +6,7 @@ import {
   Pencil, Trash2, ChevronDown, X, Check, Minus, Upload, FileSpreadsheet, Camera, Loader2
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -287,9 +288,19 @@ export default function StockPage() {
           <RefreshCw size={18} className="animate-spin mr-2" />Cargando...
         </div>
       ) : displayed.length === 0 ? (
-        <div className="py-12 text-center text-white/30">
-          {filterLow ? 'Ningún ítem bajo mínimo' : 'Sin ítems en inventario. Agrega el primero.'}
-        </div>
+        filterLow ? (
+          <EmptyState
+            icon={Check}
+            title="Ningún ítem bajo mínimo"
+            description="Tu inventario está sano — todos los ítems están por sobre el stock mínimo"
+          />
+        ) : (
+          <EmptyState
+            icon={Package}
+            title="Sin ítems en inventario"
+            description="Agrega tu primer ingrediente para empezar a controlar stock y mermas"
+          />
+        )
       ) : (
         <div className="space-y-4">
           {Object.entries(byCategory).map(([cat, catItems]) => (

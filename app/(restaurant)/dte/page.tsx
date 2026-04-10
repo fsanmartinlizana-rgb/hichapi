@@ -3,9 +3,12 @@
 import { useEffect, useState } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
-  FileText, ShieldCheck, AlertCircle, Loader2, Upload, Check, Clock,
+  FileText, ShieldCheck, AlertCircle, Loader2, Upload, Clock,
   CheckCircle2, XCircle,
 } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -39,13 +42,13 @@ const DOC_TYPE_LABEL: Record<number, string> = {
   33: 'Factura',
 }
 
-const STATUS_STYLE: Record<string, { color: string; label: string; icon: typeof Check }> = {
-  draft:     { color: '#94A3B8', label: 'Borrador',  icon: Clock },
-  signed:    { color: '#60A5FA', label: 'Firmada',   icon: ShieldCheck },
-  sent:      { color: '#A78BFA', label: 'Enviada',   icon: Upload },
-  accepted:  { color: '#34D399', label: 'Aceptada',  icon: CheckCircle2 },
-  rejected:  { color: '#F87171', label: 'Rechazada', icon: XCircle },
-  cancelled: { color: '#71717A', label: 'Anulada',   icon: XCircle },
+const STATUS_STYLE: Record<string, { tone: Tone; label: string; icon: LucideIcon }> = {
+  draft:     { tone: 'neutral', label: 'Borrador',  icon: Clock },
+  signed:    { tone: 'info',    label: 'Firmada',   icon: ShieldCheck },
+  sent:      { tone: 'info',    label: 'Enviada',   icon: Upload },
+  accepted:  { tone: 'success', label: 'Aceptada',  icon: CheckCircle2 },
+  rejected:  { tone: 'danger',  label: 'Rechazada', icon: XCircle },
+  cancelled: { tone: 'neutral', label: 'Anulada',   icon: XCircle },
 }
 
 function fmtCLP(n: number): string {
@@ -244,16 +247,15 @@ export default function DtePage() {
         </div>
 
         {emissions.length === 0 ? (
-          <div className="p-10 text-center">
-            <FileText size={28} className="text-white/15 mx-auto mb-2" />
-            <p className="text-white/40 text-sm">Aún no has emitido documentos</p>
-            <p className="text-white/25 text-xs mt-1">Las boletas y facturas aparecerán aquí</p>
-          </div>
+          <EmptyState
+            icon={FileText}
+            title="Aún no has emitido documentos"
+            description="Cuando emitas boletas o facturas, aparecerán acá con su estado en el SII"
+          />
         ) : (
           <div className="divide-y divide-white/5">
             {emissions.map(em => {
               const style = STATUS_STYLE[em.status] ?? STATUS_STYLE.draft
-              const Icon  = style.icon
               return (
                 <div key={em.id} className="px-5 py-3 flex items-center gap-4">
                   <div className="flex-1 min-w-0">
@@ -270,17 +272,7 @@ export default function DtePage() {
                     </p>
                   </div>
                   <p className="text-white font-mono text-sm shrink-0">{fmtCLP(em.total_amount)}</p>
-                  <span
-                    className="shrink-0 flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border"
-                    style={{
-                      color: style.color,
-                      backgroundColor: `${style.color}1a`,
-                      borderColor: `${style.color}40`,
-                    }}
-                  >
-                    <Icon size={10} />
-                    {style.label}
-                  </span>
+                  <StatusBadge tone={style.tone} icon={style.icon} label={style.label} />
                 </div>
               )
             })}

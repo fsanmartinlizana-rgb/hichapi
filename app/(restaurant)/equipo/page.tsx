@@ -7,6 +7,7 @@ import {
   Users, Plus, Mail, RefreshCw, X, Check,
   ShieldCheck, ChefHat, UtensilsCrossed, UserCheck, Crown
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -188,7 +189,11 @@ export default function EquipoPage() {
             <RefreshCw size={16} className="animate-spin mx-auto mb-2" />Cargando...
           </div>
         ) : active.length === 0 ? (
-          <div className="py-10 text-center text-white/25 text-sm">Sin miembros aún</div>
+          <EmptyState
+            icon={Users}
+            title="Sin miembros aún"
+            description="Invita a tu equipo por correo y aparecerán acá una vez activados"
+          />
         ) : (
           <div className="divide-y divide-white/5">
             {active.map(m => (

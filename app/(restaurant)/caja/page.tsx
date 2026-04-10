@@ -4,9 +4,10 @@ import { useState, useEffect, useCallback } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
   DollarSign, TrendingUp, CreditCard, Banknote, AlertTriangle, Plus,
-  CheckCircle2, X, Receipt, Trash2, Clock, ArrowDownCircle, ArrowUpCircle,
+  CheckCircle2, Receipt, Trash2, Clock, ArrowDownCircle, ArrowUpCircle,
   Truck, Coffee, Wrench, HandCoins, MoreHorizontal,
 } from 'lucide-react'
+import { Modal } from '@/components/ui/Modal'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
@@ -345,112 +346,118 @@ export default function CajaPage() {
       )}
 
       {/* ── Open modal ───────────────────────────────────────────────────── */}
-      {openModal && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-sm border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold">Abrir caja</h3>
-              <button onClick={() => setOpenModal(false)}><X size={18} className="text-gray-400" /></button>
-            </div>
-            <label className="block text-gray-400 text-sm mb-2">Saldo inicial en efectivo (CLP)</label>
-            <input
-              type="number"
-              value={openingAmount}
-              onChange={e => setOpeningAmount(e.target.value)}
-              placeholder="0"
-              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
-            />
-            <div className="flex gap-3">
-              <button onClick={() => setOpenModal(false)} className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 text-sm">Cancelar</button>
-              <button onClick={handleOpen} disabled={saving} className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-50">
-                {saving ? 'Abriendo...' : 'Abrir caja'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <Modal
+        open={openModal}
+        onClose={() => setOpenModal(false)}
+        title="Abrir caja"
+        description="Cuenta el efectivo en caja antes de empezar el turno"
+        size="sm"
+        footer={
+          <>
+            <button onClick={() => setOpenModal(false)} className="py-2 px-4 rounded-lg border border-white/10 text-gray-400 text-sm">Cancelar</button>
+            <button onClick={handleOpen} disabled={saving} className="py-2 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-50">
+              {saving ? 'Abriendo...' : 'Abrir caja'}
+            </button>
+          </>
+        }
+      >
+        <label className="block text-gray-400 text-sm mb-2">Saldo inicial en efectivo (CLP)</label>
+        <input
+          type="number"
+          value={openingAmount}
+          onChange={e => setOpeningAmount(e.target.value)}
+          placeholder="0"
+          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+        />
+      </Modal>
 
       {/* ── Expense modal ───────────────────────────────────────────────── */}
-      {expenseModal && session && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-md border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold">Registrar gasto</h3>
-              <button onClick={() => setExpenseModal(false)}><X size={18} className="text-gray-400" /></button>
-            </div>
-
-            {/* Category picker */}
-            <label className="block text-gray-400 text-xs mb-2">Categoría</label>
-            <div className="grid grid-cols-5 gap-1.5 mb-4">
-              {CATEGORIES.map(c => {
-                const Icon   = c.icon
-                const active = expCategory === c.value
-                return (
-                  <button
-                    key={c.value}
-                    onClick={() => setExpCategory(c.value)}
-                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg border text-[10px] font-medium transition-all"
-                    style={{
-                      backgroundColor: active ? c.color + '20' : 'rgba(255,255,255,0.03)',
-                      borderColor:     active ? c.color + '50' : 'rgba(255,255,255,0.08)',
-                      color:           active ? c.color : 'rgba(255,255,255,0.5)',
-                    }}
-                  >
-                    <Icon size={14} />
-                    {c.label}
-                  </button>
-                )
-              })}
-            </div>
-
-            {/* Amount */}
-            <label className="block text-gray-400 text-xs mb-2">Monto (CLP)</label>
-            <input
-              type="number"
-              value={expAmount}
-              onChange={e => setExpAmount(e.target.value)}
-              placeholder="0"
-              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
-            />
-
-            {/* Description */}
-            <label className="block text-gray-400 text-xs mb-2">Descripción</label>
-            <input
-              value={expDescription}
-              onChange={e => setExpDescription(e.target.value)}
-              placeholder="Ej: Verduras mercado, pago repartidor…"
-              maxLength={200}
-              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
-            />
-
-            <div className="flex gap-3">
+      <Modal
+        open={expenseModal && !!session}
+        onClose={() => setExpenseModal(false)}
+        title="Registrar gasto"
+        description="Sale del efectivo en caja del turno actual"
+        footer={
+          <>
+            <button
+              onClick={() => setExpenseModal(false)}
+              className="py-2 px-4 rounded-lg border border-white/10 text-gray-400 text-sm"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleAddExpense}
+              disabled={saving || !expAmount || !expDescription}
+              className="py-2 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {saving ? 'Guardando…' : 'Registrar gasto'}
+            </button>
+          </>
+        }
+      >
+        {/* Category picker */}
+        <label className="block text-gray-400 text-xs mb-2">Categoría</label>
+        <div className="grid grid-cols-5 gap-1.5 mb-4">
+          {CATEGORIES.map(c => {
+            const Icon   = c.icon
+            const active = expCategory === c.value
+            return (
               <button
-                onClick={() => setExpenseModal(false)}
-                className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 text-sm"
+                key={c.value}
+                onClick={() => setExpCategory(c.value)}
+                className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg border text-[10px] font-medium transition-all"
+                style={{
+                  backgroundColor: active ? c.color + '20' : 'rgba(255,255,255,0.03)',
+                  borderColor:     active ? c.color + '50' : 'rgba(255,255,255,0.08)',
+                  color:           active ? c.color : 'rgba(255,255,255,0.5)',
+                }}
               >
-                Cancelar
+                <Icon size={14} />
+                {c.label}
               </button>
-              <button
-                onClick={handleAddExpense}
-                disabled={saving || !expAmount || !expDescription}
-                className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
-              >
-                {saving ? 'Guardando…' : 'Registrar gasto'}
-              </button>
-            </div>
-          </div>
+            )
+          })}
         </div>
-      )}
+
+        {/* Amount */}
+        <label className="block text-gray-400 text-xs mb-2">Monto (CLP)</label>
+        <input
+          type="number"
+          value={expAmount}
+          onChange={e => setExpAmount(e.target.value)}
+          placeholder="0"
+          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
+        />
+
+        {/* Description */}
+        <label className="block text-gray-400 text-xs mb-2">Descripción</label>
+        <input
+          value={expDescription}
+          onChange={e => setExpDescription(e.target.value)}
+          placeholder="Ej: Verduras mercado, pago repartidor…"
+          maxLength={200}
+          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+        />
+      </Modal>
 
       {/* ── Close modal ─────────────────────────────────────────────────── */}
-      {closeModal && session && summary && (
-        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-sm border border-white/10">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-white font-semibold">Cerrar caja</h3>
-              <button onClick={() => setCloseModal(false)}><X size={18} className="text-gray-400" /></button>
-            </div>
-
+      <Modal
+        open={closeModal && !!session && !!summary}
+        onClose={() => setCloseModal(false)}
+        title="Cerrar caja"
+        description="Cuadra el efectivo y registra cualquier diferencia"
+        size="sm"
+        footer={
+          <>
+            <button onClick={() => setCloseModal(false)} className="py-2 px-4 rounded-lg border border-white/10 text-gray-400 text-sm">Cancelar</button>
+            <button onClick={handleClose} disabled={saving} className="py-2 px-4 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-50">
+              {saving ? 'Cerrando...' : 'Cerrar caja'}
+            </button>
+          </>
+        }
+      >
+        {session && summary && (
+          <>
             <div className="bg-black/20 rounded-lg p-3 mb-4 space-y-1 text-sm">
               <div className="flex justify-between text-gray-400">
                 <span>Saldo inicial</span>
@@ -496,18 +503,11 @@ export default function CajaPage() {
               onChange={e => setCloseNotes(e.target.value)}
               placeholder="Notas (opcional)"
               rows={2}
-              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500 resize-none"
+              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500 resize-none"
             />
-
-            <div className="flex gap-3">
-              <button onClick={() => setCloseModal(false)} className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 text-sm">Cancelar</button>
-              <button onClick={handleClose} disabled={saving} className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-50">
-                {saving ? 'Cerrando...' : 'Cerrar caja'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+          </>
+        )}
+      </Modal>
     </div>
   )
 }

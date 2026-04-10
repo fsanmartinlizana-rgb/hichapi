@@ -4,9 +4,10 @@ import { useRef, useState, useEffect, useCallback } from 'react'
 import {
   Plus, Search, Edit2, Trash2, ToggleLeft, ToggleRight,
   Image, X, Check, ChevronDown, AlertCircle, Loader2, Camera, RefreshCw,
-  ChefHat, Wine, Package,
+  ChefHat, Wine, Package, BookOpen,
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -492,15 +493,12 @@ export default function CartaPage() {
 
       {/* Empty state */}
       {items.length === 0 && !adding && (
-        <div className="text-center py-16 space-y-3">
-          <span className="text-4xl block">📋</span>
-          <p className="text-white/40 text-sm">Tu carta está vacía</p>
-          <p className="text-white/20 text-xs">Agrega tu primer plato y se publicará automáticamente en tu perfil de HiChapi.</p>
-          <button onClick={() => setAdding(true)}
-            className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors mt-2">
-            <Plus size={14} /> Agregar primer plato
-          </button>
-        </div>
+        <EmptyState
+          icon={BookOpen}
+          title="Tu carta está vacía"
+          description="Agrega tu primer plato y se publicará automáticamente en tu perfil de HiChapi"
+          action={{ label: 'Agregar primer plato', onClick: () => setAdding(true) }}
+        />
       )}
 
       {/* Items by category */}
@@ -527,9 +525,11 @@ export default function CartaPage() {
           )
         })}
         {filtered.length === 0 && items.length > 0 && (
-          <div className="text-center py-16 text-white/20">
-            <p className="text-sm">No hay platos que coincidan</p>
-          </div>
+          <EmptyState
+            icon={Search}
+            title="No hay platos que coincidan"
+            description="Prueba con otra búsqueda o limpia los filtros"
+          />
         )}
       </div>
 

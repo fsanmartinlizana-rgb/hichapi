@@ -4,8 +4,11 @@ import { useEffect, useState } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
   Printer, Plus, Wifi, Usb, Cable, Loader2, Check, Clock, AlertCircle,
-  Copy, X, Play,
+  Copy, Play,
 } from 'lucide-react'
+import { EmptyState } from '@/components/ui/EmptyState'
+import { Modal } from '@/components/ui/Modal'
+import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -36,11 +39,11 @@ const KIND_ICONS = {
   serial:  Cable,
 }
 
-const STATUS_TONE: Record<string, string> = {
-  pending:   '#FBBF24',
-  printing:  '#60A5FA',
-  completed: '#34D399',
-  failed:    '#F87171',
+const STATUS_TONE: Record<string, Tone> = {
+  pending:   'warning',
+  printing:  'info',
+  completed: 'success',
+  failed:    'danger',
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
@@ -175,18 +178,14 @@ export default function ImpresorasPage() {
       )}
 
       {/* Issued token modal */}
-      {issuedToken && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
-          <div className="bg-[#161622] border border-[#FF6B35]/40 rounded-2xl p-6 max-w-md w-full space-y-4">
-            <div className="flex items-start justify-between">
-              <div>
-                <p className="text-white font-bold text-sm">Token generado</p>
-                <p className="text-white/40 text-xs mt-0.5">para “{issuedToken.name}”</p>
-              </div>
-              <button onClick={() => setIssuedToken(null)} className="text-white/40 hover:text-white">
-                <X size={16} />
-              </button>
-            </div>
+      <Modal
+        open={!!issuedToken}
+        onClose={() => setIssuedToken(null)}
+        title="Token generado"
+        description={issuedToken ? `para "${issuedToken.name}"` : undefined}
+      >
+        {issuedToken && (
+          <div className="space-y-4">
             <p className="text-white/60 text-xs">
               Guarda este token en el archivo <span className="font-mono text-[#FF6B35]">.env</span> del print-server.
               No volverá a aparecer.
@@ -202,8 +201,8 @@ export default function ImpresorasPage() {
               <Copy size={12} /> Copiar token
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Add form */}
       {showAdd && (
@@ -282,11 +281,12 @@ export default function ImpresorasPage() {
           <p className="text-white font-semibold text-sm">Servidores registrados</p>
         </div>
         {servers.length === 0 ? (
-          <div className="p-10 text-center">
-            <Printer size={28} className="text-white/15 mx-auto mb-2" />
-            <p className="text-white/40 text-sm">Aún no tienes impresoras registradas</p>
-            <p className="text-white/25 text-xs mt-1">Agrega una para empezar a imprimir</p>
-          </div>
+          <EmptyState
+            icon={Printer}
+            title="Aún no tienes impresoras registradas"
+            description="Agrega una para empezar a imprimir comandas y boletas"
+            action={{ label: 'Agregar impresora', onClick: () => setShowAdd(true) }}
+          />
         ) : (
           <div className="divide-y divide-white/5">
             {servers.map(srv => {
@@ -301,17 +301,11 @@ export default function ImpresorasPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-white text-sm font-semibold">{srv.name}</p>
-                      <span
-                        className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                        style={{
-                          color: fresh ? '#34D399' : '#94A3B8',
-                          backgroundColor: fresh ? '#10b9811a' : '#94a3b81a',
-                          border: `1px solid ${fresh ? '#10b98140' : '#94a3b840'}`,
-                        }}
-                      >
-                        {fresh ? <Check size={9} strokeWidth={3} /> : <Clock size={9} />}
-                        {fresh ? 'Online' : seen ? 'Offline' : 'Sin conexión'}
-                      </span>
+                      <StatusBadge
+                        tone={fresh ? 'success' : 'neutral'}
+                        icon={fresh ? Check : Clock}
+                        label={fresh ? 'Online' : seen ? 'Offline' : 'Sin conexión'}
+                      />
                     </div>
                     <p className="text-white/30 text-[11px]">
                       {srv.printer_kind} · {srv.printer_addr ?? 'addr en .env'} · {srv.paper_width} cols
@@ -337,7 +331,11 @@ export default function ImpresorasPage() {
           <p className="text-white font-semibold text-sm">Jobs recientes</p>
         </div>
         {jobs.length === 0 ? (
-          <p className="p-10 text-center text-white/30 text-sm">Sin jobs aún</p>
+          <EmptyState
+            icon={Play}
+            title="Sin jobs aún"
+            description="Cuando envíes una comanda o boleta a una impresora, aparecerá aquí"
+          />
         ) : (
           <div className="divide-y divide-white/5">
             {jobs.map(j => (
@@ -352,16 +350,7 @@ export default function ImpresorasPage() {
                     {j.error_message && <span className="text-red-400"> — {j.error_message}</span>}
                   </p>
                 </div>
-                <span
-                  className="px-2 py-0.5 rounded-full text-[10px] font-semibold"
-                  style={{
-                    color: STATUS_TONE[j.status] ?? '#94A3B8',
-                    backgroundColor: `${STATUS_TONE[j.status] ?? '#94A3B8'}1a`,
-                    border: `1px solid ${STATUS_TONE[j.status] ?? '#94A3B8'}40`,
-                  }}
-                >
-                  {j.status}
-                </span>
+                <StatusBadge tone={STATUS_TONE[j.status] ?? 'neutral'} label={j.status} />
               </div>
             ))}
           </div>
