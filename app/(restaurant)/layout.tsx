@@ -8,8 +8,10 @@ import {
   LayoutDashboard, ClipboardList, Grid3X3, BookOpen,
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
-  ShieldCheck, Users, Banknote,
+  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare,
 } from 'lucide-react'
+import SupportModal from '@/components/SupportModal'
+import NpsModal from '@/components/NpsModal'
 
 // ── Nav definition ────────────────────────────────────────────────────────────
 
@@ -79,6 +81,8 @@ function SidebarContent() {
   const pathname = usePathname()
   const { restaurant, restaurants, profile, isSuperAdmin, loading, switchTo, logout } = useRestaurant()
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [supportOpen, setSupportOpen] = useState(false)
+  const [npsOpen, setNpsOpen] = useState(false)
 
   const role     = profile?.role ?? 'admin'
   const initials = profile?.initials ?? '??'
@@ -180,6 +184,41 @@ function SidebarContent() {
           </div>
         ))}
       </nav>
+
+      {/* Support + NPS buttons */}
+      <div className="px-3 py-2 space-y-1">
+        <button
+          onClick={() => setSupportOpen(true)}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px]
+                     text-white/40 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <HelpCircle size={14} strokeWidth={1.8} className="shrink-0" />
+          <span className="flex-1 text-left truncate">Soporte</span>
+        </button>
+        <button
+          onClick={() => setNpsOpen(true)}
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px]
+                     text-white/40 hover:text-white hover:bg-white/5 transition-all"
+        >
+          <MessageSquare size={14} strokeWidth={1.8} className="shrink-0" />
+          <span className="flex-1 text-left truncate">Feedback</span>
+        </button>
+      </div>
+
+      {/* Modals */}
+      <SupportModal
+        open={supportOpen}
+        onClose={() => setSupportOpen(false)}
+        restaurantId={restaurant?.id}
+        userId={profile?.id}
+      />
+      <NpsModal
+        open={npsOpen}
+        onClose={() => setNpsOpen(false)}
+        npsType="platform_admin"
+        restaurantId={restaurant?.id}
+        userId={profile?.id}
+      />
 
       {/* User + Logout */}
       <div className="px-3 py-3 border-t border-white/5 flex items-center gap-2">
