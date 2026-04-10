@@ -8,7 +8,7 @@ import {
   LayoutDashboard, ClipboardList, Grid3X3, BookOpen,
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
-  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
+  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes, Crown,
 } from 'lucide-react'
 import SupportModal from '@/components/SupportModal'
 import NpsModal from '@/components/NpsModal'
@@ -50,6 +50,12 @@ const ALL_NAV = [
       { label: 'Mi restaurante', href: '/restaurante', icon: Store,             roles: ['admin','owner','super_admin'] },
       { label: 'Módulos y Plan', href: '/modulos',     icon: Boxes,             roles: ['admin','owner','super_admin'] },
       { label: 'Tono de Chapi',  href: '/tono',        icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
+    ],
+  },
+  {
+    section: 'PLATAFORMA',
+    items: [
+      { label: 'Super Admin', href: '/admin', icon: Crown, roles: ['super_admin'] },
     ],
   },
 ]
