@@ -54,7 +54,20 @@ export async function GET(req: NextRequest) {
     hichapi_commission:(todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + (o.hichapi_commission ?? 0), 0),
   }
 
-  return NextResponse.json({ session, summary })
+  // Expenses (only for the currently open session — zero if none)
+  let expenses: Array<{ id: string; amount: number; category: string; description: string; created_at: string }> = []
+  let total_expenses = 0
+  if (session) {
+    const { data: expRows } = await supabase
+      .from('cash_session_expenses')
+      .select('id, amount, category, description, created_at')
+      .eq('session_id', session.id)
+      .order('created_at', { ascending: false })
+    expenses = expRows ?? []
+    total_expenses = expenses.reduce((s, e) => s + e.amount, 0)
+  }
+
+  return NextResponse.json({ session, summary, expenses, total_expenses })
 }
 
 // POST /api/cash/register — open new session
@@ -121,28 +134,37 @@ export async function PATCH(req: NextRequest) {
     const total_cash    = (orders ?? [] as OrderRow[]).reduce((s: number, o: OrderRow) => s + (o.cash_amount ?? 0), 0)
     const total_digital = (orders ?? [] as OrderRow[]).reduce((s: number, o: OrderRow) => s + (o.digital_amount ?? 0), 0)
     const total_orders  = (orders ?? []).length
-    const expected_cash = session.opening_amount + total_cash
+
+    // Sum of gastos (expenses) during this session — subtracts from expected cash
+    const { data: expRows } = await supabase
+      .from('cash_session_expenses')
+      .select('amount')
+      .eq('session_id', body.session_id)
+    const total_expenses = (expRows ?? []).reduce((s: number, e: { amount: number }) => s + e.amount, 0)
+
+    const expected_cash = session.opening_amount + total_cash - total_expenses
     const difference    = body.actual_cash - expected_cash
 
     const { data, error } = await supabase
       .from('cash_register_sessions')
       .update({
-        status:       'closed',
-        closed_at:    new Date().toISOString(),
-        closed_by:    user.id,
-        actual_cash:  body.actual_cash,
+        status:         'closed',
+        closed_at:      new Date().toISOString(),
+        closed_by:      user.id,
+        actual_cash:    body.actual_cash,
         total_cash,
         total_digital,
         total_orders,
+        total_expenses,
         difference,
-        notes:        body.notes ?? null,
+        notes:          body.notes ?? null,
       })
       .eq('id', body.session_id)
       .select()
       .single()
 
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-    return NextResponse.json({ session: data, difference })
+    return NextResponse.json({ session: data, difference, expected_cash, total_expenses })
   } catch {
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }

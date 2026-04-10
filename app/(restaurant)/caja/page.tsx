@@ -2,11 +2,17 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
-import { DollarSign, TrendingUp, CreditCard, Banknote, AlertTriangle, Plus, CheckCircle2, X } from 'lucide-react'
+import {
+  DollarSign, TrendingUp, CreditCard, Banknote, AlertTriangle, Plus,
+  CheckCircle2, X, Receipt, Trash2, Clock, ArrowDownCircle, ArrowUpCircle,
+  Truck, Coffee, Wrench, HandCoins, MoreHorizontal,
+} from 'lucide-react'
 
 function clp(n: number) {
   return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
 }
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 interface CashSession {
   id: string
@@ -26,17 +32,51 @@ interface DaySummary {
   hichapi_commission: number
 }
 
+type ExpenseCategory = 'proveedor' | 'propina' | 'insumos' | 'servicios' | 'otros'
+
+interface Expense {
+  id: string
+  amount: number
+  category: ExpenseCategory
+  description: string
+  created_at: string
+}
+
+const CATEGORIES: { value: ExpenseCategory; label: string; icon: typeof Truck; color: string }[] = [
+  { value: 'proveedor', label: 'Proveedor', icon: Truck,         color: '#60A5FA' },
+  { value: 'insumos',   label: 'Insumos',   icon: Coffee,        color: '#FBBF24' },
+  { value: 'servicios', label: 'Servicios', icon: Wrench,        color: '#A78BFA' },
+  { value: 'propina',   label: 'Propina',   icon: HandCoins,     color: '#34D399' },
+  { value: 'otros',     label: 'Otros',     icon: MoreHorizontal, color: '#9CA3AF' },
+]
+
+function catMeta(cat: ExpenseCategory) {
+  return CATEGORIES.find(c => c.value === cat) ?? CATEGORIES[4]
+}
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
 export default function CajaPage() {
   const { restaurant } = useRestaurant()
-  const [session, setSession]   = useState<CashSession | null>(null)
-  const [summary, setSummary]   = useState<DaySummary | null>(null)
-  const [loading, setLoading]   = useState(true)
-  const [openModal, setOpenModal]   = useState(false)
-  const [closeModal, setCloseModal] = useState(false)
+  const [session, setSession]       = useState<CashSession | null>(null)
+  const [summary, setSummary]       = useState<DaySummary | null>(null)
+  const [expenses, setExpenses]     = useState<Expense[]>([])
+  const [totalExpenses, setTotalExpenses] = useState(0)
+  const [loading, setLoading]       = useState(true)
+
+  const [openModal, setOpenModal]           = useState(false)
+  const [closeModal, setCloseModal]         = useState(false)
+  const [expenseModal, setExpenseModal]     = useState(false)
+
   const [openingAmount, setOpeningAmount] = useState('')
   const [actualCash, setActualCash]       = useState('')
   const [closeNotes, setCloseNotes]       = useState('')
   const [saving, setSaving] = useState(false)
+
+  // Expense form
+  const [expAmount, setExpAmount]     = useState('')
+  const [expCategory, setExpCategory] = useState<ExpenseCategory>('proveedor')
+  const [expDescription, setExpDescription] = useState('')
 
   const load = useCallback(async () => {
     if (!restaurant) return
@@ -46,12 +86,16 @@ export default function CajaPage() {
       const data = await res.json()
       setSession(data.session ?? null)
       setSummary(data.summary ?? null)
+      setExpenses(data.expenses ?? [])
+      setTotalExpenses(data.total_expenses ?? 0)
     } finally {
       setLoading(false)
     }
   }, [restaurant])
 
   useEffect(() => { load() }, [load])
+
+  // ── Handlers ───────────────────────────────────────────────────────────────
 
   async function handleOpen() {
     if (!restaurant) return
@@ -82,34 +126,87 @@ export default function CajaPage() {
     load()
   }
 
-  const discrepancy = session && summary ? Math.abs((parseInt(actualCash) || 0) - (session.opening_amount + summary.total_cash)) : 0
-  const discrepancyPct = summary?.total_cash && session ? (discrepancy / (session.opening_amount + summary.total_cash)) * 100 : 0
+  async function handleAddExpense() {
+    if (!session || !restaurant || !expAmount || !expDescription) return
+    setSaving(true)
+    const res = await fetch('/api/cash/expenses', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        session_id:    session.id,
+        restaurant_id: restaurant.id,
+        amount:        parseInt(expAmount) || 0,
+        category:      expCategory,
+        description:   expDescription,
+      }),
+    })
+    setSaving(false)
+    if (res.ok) {
+      setExpenseModal(false)
+      setExpAmount('')
+      setExpDescription('')
+      setExpCategory('proveedor')
+      load()
+    }
+  }
+
+  async function handleDeleteExpense(id: string) {
+    if (!restaurant) return
+    await fetch('/api/cash/expenses', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, restaurant_id: restaurant.id }),
+    })
+    load()
+  }
+
+  // ── Derived values ─────────────────────────────────────────────────────────
+
+  const expectedCash  = session && summary
+    ? session.opening_amount + summary.total_cash - totalExpenses
+    : 0
+  const actualCashNum = parseInt(actualCash) || 0
+  const diffRaw       = actualCashNum - expectedCash
+  const diffAbs       = Math.abs(diffRaw)
+  const diffPct       = expectedCash > 0 ? (diffAbs / expectedCash) * 100 : 0
 
   return (
-    <div className="p-6 max-w-4xl mx-auto space-y-6">
+    <div className="p-6 max-w-5xl mx-auto space-y-6">
+
+      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-white">Caja del día</h1>
-          <p className="text-gray-400 text-sm mt-1">Control de efectivo y pagos digitales</p>
+          <p className="text-gray-400 text-sm mt-1">Control de efectivo, pagos digitales y gastos</p>
         </div>
-        {!session ? (
-          <button
-            onClick={() => setOpenModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <Plus size={16} /> Abrir caja
-          </button>
-        ) : (
-          <button
-            onClick={() => setCloseModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
-          >
-            <CheckCircle2 size={16} /> Cerrar caja
-          </button>
-        )}
+        <div className="flex items-center gap-2">
+          {session && (
+            <button
+              onClick={() => setExpenseModal(true)}
+              className="flex items-center gap-2 px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Receipt size={16} /> Registrar gasto
+            </button>
+          )}
+          {!session ? (
+            <button
+              onClick={() => setOpenModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <Plus size={16} /> Abrir caja
+            </button>
+          ) : (
+            <button
+              onClick={() => setCloseModal(true)}
+              className="flex items-center gap-2 px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white rounded-lg text-sm font-medium transition-colors"
+            >
+              <CheckCircle2 size={16} /> Cerrar caja
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Session status */}
+      {/* Session banner */}
       {session && (
         <div className="bg-[#1a1a2e] rounded-xl p-4 border border-green-500/20 flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
@@ -124,7 +221,7 @@ export default function CajaPage() {
       {!session && !loading && (
         <div className="bg-[#1a1a2e] rounded-xl p-4 border border-gray-700 flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-gray-500" />
-          <p className="text-gray-400 text-sm">Caja cerrada — abre la caja para registrar pagos</p>
+          <p className="text-gray-400 text-sm">Caja cerrada — abre la caja para registrar pagos y gastos</p>
         </div>
       )}
 
@@ -155,7 +252,99 @@ export default function CajaPage() {
         </div>
       )}
 
-      {/* Open modal */}
+      {/* Movements & expenses */}
+      {session && (
+        <div className="grid lg:grid-cols-2 gap-4">
+
+          {/* Expenses list */}
+          <div className="bg-[#1a1a2e] rounded-xl border border-white/5">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+              <div className="flex items-center gap-2">
+                <Receipt size={14} className="text-red-400" />
+                <h3 className="text-white text-sm font-semibold">Gastos de la caja</h3>
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400">
+                  {expenses.length}
+                </span>
+              </div>
+              <span className="text-red-400 text-sm font-bold">−{clp(totalExpenses)}</span>
+            </div>
+            <div className="max-h-64 overflow-y-auto divide-y divide-white/5">
+              {expenses.length === 0 ? (
+                <div className="p-6 text-center text-white/25 text-xs">
+                  Sin gastos registrados
+                </div>
+              ) : (
+                expenses.map(e => {
+                  const meta = catMeta(e.category)
+                  const Icon = meta.icon
+                  return (
+                    <div key={e.id} className="flex items-center gap-3 px-4 py-2.5 group/row hover:bg-white/3">
+                      <div
+                        className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
+                        style={{ backgroundColor: meta.color + '15', color: meta.color }}
+                      >
+                        <Icon size={13} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-xs font-medium truncate">{e.description}</p>
+                        <p className="text-white/35 text-[10px]">
+                          {meta.label} · {new Date(e.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </div>
+                      <span className="text-red-400 text-xs font-semibold shrink-0">−{clp(e.amount)}</span>
+                      <button
+                        onClick={() => handleDeleteExpense(e.id)}
+                        className="w-6 h-6 rounded flex items-center justify-center text-white/25 hover:text-red-400 hover:bg-red-500/10 opacity-0 group-hover/row:opacity-100 transition-all shrink-0"
+                        title="Eliminar"
+                      >
+                        <Trash2 size={11} />
+                      </button>
+                    </div>
+                  )
+                })
+              )}
+            </div>
+          </div>
+
+          {/* Live reconciliation preview */}
+          <div className="bg-[#1a1a2e] rounded-xl border border-white/5">
+            <div className="flex items-center gap-2 px-4 py-3 border-b border-white/5">
+              <Clock size={14} className="text-orange-400" />
+              <h3 className="text-white text-sm font-semibold">Cuadratura en vivo</h3>
+            </div>
+            <div className="p-4 space-y-2 text-sm">
+              <div className="flex justify-between text-gray-400">
+                <span className="flex items-center gap-2">
+                  <ArrowUpCircle size={12} className="text-white/40" />
+                  Saldo inicial
+                </span>
+                <span className="text-white">{clp(session.opening_amount)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span className="flex items-center gap-2">
+                  <ArrowUpCircle size={12} className="text-green-400" />
+                  Efectivo recibido
+                </span>
+                <span className="text-green-400">{summary ? clp(summary.total_cash) : '—'}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span className="flex items-center gap-2">
+                  <ArrowDownCircle size={12} className="text-red-400" />
+                  Gastos
+                </span>
+                <span className="text-red-400">−{clp(totalExpenses)}</span>
+              </div>
+              <div className="flex justify-between font-medium border-t border-white/10 pt-2 mt-1">
+                <span className="text-white/60">Esperado en caja</span>
+                <span className="text-white text-base">{clp(expectedCash)}</span>
+              </div>
+            </div>
+          </div>
+
+        </div>
+      )}
+
+      {/* ── Open modal ───────────────────────────────────────────────────── */}
       {openModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-sm border border-white/10">
@@ -181,7 +370,79 @@ export default function CajaPage() {
         </div>
       )}
 
-      {/* Close modal */}
+      {/* ── Expense modal ───────────────────────────────────────────────── */}
+      {expenseModal && session && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-md border border-white/10">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-white font-semibold">Registrar gasto</h3>
+              <button onClick={() => setExpenseModal(false)}><X size={18} className="text-gray-400" /></button>
+            </div>
+
+            {/* Category picker */}
+            <label className="block text-gray-400 text-xs mb-2">Categoría</label>
+            <div className="grid grid-cols-5 gap-1.5 mb-4">
+              {CATEGORIES.map(c => {
+                const Icon   = c.icon
+                const active = expCategory === c.value
+                return (
+                  <button
+                    key={c.value}
+                    onClick={() => setExpCategory(c.value)}
+                    className="flex flex-col items-center justify-center gap-1 py-2.5 rounded-lg border text-[10px] font-medium transition-all"
+                    style={{
+                      backgroundColor: active ? c.color + '20' : 'rgba(255,255,255,0.03)',
+                      borderColor:     active ? c.color + '50' : 'rgba(255,255,255,0.08)',
+                      color:           active ? c.color : 'rgba(255,255,255,0.5)',
+                    }}
+                  >
+                    <Icon size={14} />
+                    {c.label}
+                  </button>
+                )
+              })}
+            </div>
+
+            {/* Amount */}
+            <label className="block text-gray-400 text-xs mb-2">Monto (CLP)</label>
+            <input
+              type="number"
+              value={expAmount}
+              onChange={e => setExpAmount(e.target.value)}
+              placeholder="0"
+              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
+            />
+
+            {/* Description */}
+            <label className="block text-gray-400 text-xs mb-2">Descripción</label>
+            <input
+              value={expDescription}
+              onChange={e => setExpDescription(e.target.value)}
+              placeholder="Ej: Verduras mercado, pago repartidor…"
+              maxLength={200}
+              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
+            />
+
+            <div className="flex gap-3">
+              <button
+                onClick={() => setExpenseModal(false)}
+                className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 text-sm"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddExpense}
+                disabled={saving || !expAmount || !expDescription}
+                className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Guardando…' : 'Registrar gasto'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Close modal ─────────────────────────────────────────────────── */}
       {closeModal && session && summary && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-sm border border-white/10">
@@ -189,17 +450,26 @@ export default function CajaPage() {
               <h3 className="text-white font-semibold">Cerrar caja</h3>
               <button onClick={() => setCloseModal(false)}><X size={18} className="text-gray-400" /></button>
             </div>
+
             <div className="bg-black/20 rounded-lg p-3 mb-4 space-y-1 text-sm">
               <div className="flex justify-between text-gray-400">
-                <span>Saldo inicial</span><span className="text-white">{clp(session.opening_amount)}</span>
+                <span>Saldo inicial</span>
+                <span className="text-white">{clp(session.opening_amount)}</span>
               </div>
               <div className="flex justify-between text-gray-400">
-                <span>Efectivo recibido</span><span className="text-green-400">{clp(summary.total_cash)}</span>
+                <span>+ Efectivo recibido</span>
+                <span className="text-green-400">{clp(summary.total_cash)}</span>
+              </div>
+              <div className="flex justify-between text-gray-400">
+                <span>− Gastos ({expenses.length})</span>
+                <span className="text-red-400">{clp(totalExpenses)}</span>
               </div>
               <div className="flex justify-between text-gray-400 font-medium border-t border-white/10 pt-1">
-                <span>Esperado en caja</span><span className="text-white">{clp(session.opening_amount + summary.total_cash)}</span>
+                <span>Esperado en caja</span>
+                <span className="text-white">{clp(expectedCash)}</span>
               </div>
             </div>
+
             <label className="block text-gray-400 text-sm mb-2">¿Cuánto hay físicamente en caja?</label>
             <input
               type="number"
@@ -208,12 +478,19 @@ export default function CajaPage() {
               placeholder="0"
               className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-2 focus:outline-none focus:border-orange-500"
             />
-            {actualCash && discrepancyPct > 1 && (
-              <div className="flex items-center gap-2 text-yellow-400 text-xs mb-3">
+
+            {actualCash !== '' && diffAbs > 0 && (
+              <div className={`flex items-center gap-2 text-xs mb-3 ${
+                diffRaw > 0 ? 'text-blue-400' : 'text-yellow-400'
+              }`}>
                 <AlertTriangle size={12} />
-                <span>Diferencia de {clp(discrepancy)} ({discrepancyPct.toFixed(1)}%)</span>
+                <span>
+                  {diffRaw > 0 ? 'Sobrante' : 'Faltante'} de {clp(diffAbs)}
+                  {diffPct > 0 && <> ({diffPct.toFixed(1)}%)</>}
+                </span>
               </div>
             )}
+
             <textarea
               value={closeNotes}
               onChange={e => setCloseNotes(e.target.value)}
@@ -221,6 +498,7 @@ export default function CajaPage() {
               rows={2}
               className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500 resize-none"
             />
+
             <div className="flex gap-3">
               <button onClick={() => setCloseModal(false)} className="flex-1 py-2 rounded-lg border border-white/10 text-gray-400 text-sm">Cancelar</button>
               <button onClick={handleClose} disabled={saving} className="flex-1 py-2 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-50">
