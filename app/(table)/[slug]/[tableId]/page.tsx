@@ -1,12 +1,13 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useRouter } from 'next/navigation'
 import {
   Send, ShoppingCart, X, Plus, Minus, CheckCircle2,
   Loader2, Utensils, SplitSquareHorizontal, Receipt,
   Trash2, Bell,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -435,6 +436,7 @@ export default function TablePage() {
   const tableId = params.tableId as string
 
   const [restaurantName, setRestaurantName] = useState('el restaurante')
+  const [restaurantPhoto, setRestaurantPhoto] = useState<string | null>(null)
 
   const [messages, setMessages]       = useState<Message[]>([{
     id: 'welcome',
@@ -454,9 +456,46 @@ export default function TablePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLInputElement>(null)
 
+  const router = useRouter()
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, waiting])
+
+  // Fetch restaurant branding on mount (header + review page share this)
+  useEffect(() => {
+    if (!slug) return
+    const supabase = createClient()
+    supabase
+      .from('restaurants')
+      .select('name, photo_url')
+      .eq('slug', slug)
+      .single()
+      .then(({ data }) => {
+        if (data?.name) setRestaurantName(data.name)
+        if (data?.photo_url) setRestaurantPhoto(data.photo_url)
+      })
+  }, [slug])
+
+  // Subscribe to order status changes — when admin marks 'paid', send user to review
+  useEffect(() => {
+    if (!orderId) return
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`order-${orderId}`)
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
+        payload => {
+          const next = (payload.new as { status?: string } | null)?.status
+          if (next === 'paid') {
+            router.push(`/${slug}/review?order=${orderId}`)
+          }
+        }
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [orderId, router, slug])
 
   const cartTotal = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
@@ -675,13 +714,22 @@ export default function TablePage() {
       {/* ── Header ─────────────────────────────────────────────────────────── */}
       <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-3
                       border-b border-white/5 bg-[#0A0A14]">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center
-                          text-white font-bold text-sm shrink-0">
-            hi
-          </div>
-          <div>
-            <p className="text-white text-sm font-semibold leading-tight">{restaurantName}</p>
+        <div className="flex items-center gap-2.5 min-w-0">
+          {restaurantPhoto ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img
+              src={restaurantPhoto}
+              alt={restaurantName}
+              className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10"
+            />
+          ) : (
+            <div className="w-10 h-10 rounded-xl bg-[#FF6B35] flex items-center justify-center
+                            text-white font-bold text-base shrink-0">
+              {(restaurantName?.charAt(0) ?? 'h').toUpperCase()}
+            </div>
+          )}
+          <div className="min-w-0">
+            <p className="text-white text-sm font-bold leading-tight truncate">{restaurantName}</p>
             <p className="text-white/35 text-[10px]">Chapi · tu asistente</p>
           </div>
         </div>

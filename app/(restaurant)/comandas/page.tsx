@@ -35,6 +35,7 @@ interface Order {
   amount: number
   mins: number        // elapsed minutes
   viaChapi: boolean
+  billRequested?: boolean  // customer pressed "pedir la cuenta" (raw status === 'paying')
 }
 
 // ── DB Types & mapping ────────────────────────────────────────────────────────
@@ -56,9 +57,8 @@ interface DbOrder {
 function dbToUI(status: string): OrderStatus | null {
   if (status === 'pending' || status === 'confirmed') return 'recibida'
   if (status === 'preparing' || status === 'partial_ready') return 'preparando'
-  if (status === 'ready')                              return 'lista'
-  if (status === 'paying')                             return 'entregada'
-  return null   // paid / cancelled → ocultar
+  if (status === 'ready' || status === 'paying')      return 'lista'
+  return null   // paid / cancelled / entregada-only → ocultar
 }
 
 function uiToDb(next: OrderStatus): string {
@@ -87,9 +87,10 @@ function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
       destination:   ((item.destination as Destination) || 'cocina'),
       stationStatus: ((item.station_status as StationStatus) || 'pending'),
     })),
-    amount:    o.total,
-    mins:      Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000),
-    viaChapi:  false,
+    amount:        o.total,
+    mins:          Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000),
+    viaChapi:      false,
+    billRequested: o.status === 'paying',
   }
 }
 
@@ -472,6 +473,7 @@ function OrderCard({
 
   const urgent = order.status === 'preparando' && order.mins > 20
     || order.status === 'recibida' && order.mins > 8
+    || Boolean(order.billRequested)   // customer waiting for bill is always urgent
   const canBreakItems = role === 'cocina' || role === 'admin'
   const actionAllowed = canAdvance(role, order.status)
 
@@ -517,6 +519,13 @@ function OrderCard({
             </div>
           </div>
         </div>
+
+        {order.billRequested && (
+          <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+            <Bell size={9} />
+            Pidieron la cuenta
+          </span>
+        )}
       </div>
 
       {/* Items */}
