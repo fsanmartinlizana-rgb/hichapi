@@ -1,0 +1,22 @@
+{
+  "name": "hichapi-print-server",
+  "version": "0.1.0",
+  "description": "Local agent that listens for print jobs and drives ESC/POS thermal printers",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "tsx src/index.ts"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.101.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20",
+    "tsx": "^4.16.0",
+    "typescript": "^5.6.0"
+  }
+}
