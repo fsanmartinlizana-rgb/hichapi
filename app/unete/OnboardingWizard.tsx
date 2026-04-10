@@ -156,8 +156,12 @@ export function OnboardingWizard() {
           owner_name: state.businessName,
           owner_email: `${slug}@pendiente.hichapi.com`,
           owner_phone: state.phone,
-          description: `Plan: ${state.plan}. ${state.dishes.length} platos cargados.`,
-          instagram_url: '',
+          plan: state.plan,
+          dishes: state.dishes.filter(d => d.name.trim()).map(d => ({
+            name:        d.name.trim(),
+            price:       parseInt(d.price) || 0,
+            description: d.description.trim() || undefined,
+          })),
         }),
       })
 

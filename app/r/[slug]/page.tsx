@@ -1,9 +1,8 @@
-'use client'
-
-import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Star, Clock, MapPin, Globe, DollarSign, ArrowLeft, Tag } from 'lucide-react'
+import { createClient } from '@supabase/supabase-js'
+import { notFound } from 'next/navigation'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -11,69 +10,69 @@ interface MenuItemData {
   id: string
   category: string
   name: string
-  description: string
+  description: string | null
   price: number
   tags: string[]
   available: boolean
-  chapi_pick?: boolean
-}
-
-interface Promotion {
-  name: string
-  description: string
-  hours: string
+  photo_url: string | null
 }
 
 interface RestaurantData {
+  id: string
   name: string
   slug: string
   neighborhood: string
   cuisine_type: string
   rating: number
+  review_count: number
   address: string
-  phone: string
-  website?: string
-  price_range: string
-  hours: string
-  tags: string[]
+  phone: string | null
   photo_url: string | null
-  promotions: Promotion[]
-  menu: MenuItemData[]
+  price_range: string
+  active: boolean
+  claimed: boolean
+  menu_items: MenuItemData[]
 }
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+// ── Supabase server client ──────────────────────────────────────────────────
 
-const MOCK_RESTAURANTS: Record<string, RestaurantData> = {
-  'el-rincon-de-don-jose': {
-    name: 'El Rincón de Don José',
-    slug: 'el-rincon-de-don-jose',
-    neighborhood: 'Providencia',
-    cuisine_type: 'Chilena / Italiana',
-    rating: 4.7,
-    address: 'Av. Providencia 2124, Providencia',
-    phone: '+56 2 2344 5678',
-    website: 'elrincondedonjose.cl',
-    price_range: '$$',
-    hours: '12:00 – 23:00',
-    tags: ['familiar', 'romántico', 'para reuniones'],
-    photo_url: null,
-    promotions: [
-      {
-        name: 'Happy Hour tarde',
-        description: '20% de descuento en toda la carta',
-        hours: '15:00–17:00 Lun–Jue',
-      },
-    ],
-    menu: [
-      { id: '1', category: 'Principal', name: 'Lomo vetado', description: 'Con papas fritas y ensalada', price: 15900, tags: [], available: true, chapi_pick: true },
-      { id: '2', category: 'Principal', name: 'Pasta arrabiata', description: 'Salsa de tomate picante', price: 12900, tags: ['vegano'], available: true },
-      { id: '3', category: 'Principal', name: 'Salmón grillado', description: 'Con puré y salsa de limón', price: 16900, tags: ['sin gluten'], available: true },
-      { id: '4', category: 'Entrada', name: 'Ensalada César', description: 'Lechuga, crutones, parmesano', price: 8900, tags: [], available: true },
-      { id: '5', category: 'Entrada', name: 'Gazpacho', description: 'Sopa fría de tomate', price: 7500, tags: ['vegano', 'sin gluten'], available: false },
-      { id: '6', category: 'Postre', name: 'Tiramisú', description: 'Receta italiana tradicional', price: 6900, tags: ['vegetariano'], available: true },
-      { id: '7', category: 'Bebida', name: 'Pisco sour', description: 'Clásico chileno', price: 5900, tags: [], available: true },
-    ],
-  },
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
+
+// ── Data fetching (server component) ────────────────────────────────────────
+
+async function getRestaurant(slug: string): Promise<RestaurantData | null> {
+  const supabase = getSupabase()
+
+  const { data, error } = await supabase
+    .from('restaurants')
+    .select(`
+      id, name, slug, neighborhood, cuisine_type, rating, review_count,
+      address, photo_url, price_range, active, claimed,
+      menu_items (id, name, description, price, category, tags, available, photo_url)
+    `)
+    .eq('slug', slug)
+    .eq('active', true)
+    .single()
+
+  if (error || !data) return null
+  return data as RestaurantData
+}
+
+async function getReviews(restaurantId: string) {
+  const supabase = getSupabase()
+  const { data } = await supabase
+    .from('reviews')
+    .select('id, rating, comment, created_at')
+    .eq('restaurant_id', restaurantId)
+    .order('created_at', { ascending: false })
+    .limit(10)
+
+  return data ?? []
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -115,8 +114,9 @@ const CATEGORY_ORDER = ['Entrada', 'Principal', 'Postre', 'Bebida']
 function groupByCategory(items: MenuItemData[]): Record<string, MenuItemData[]> {
   const groups: Record<string, MenuItemData[]> = {}
   for (const item of items) {
-    if (!groups[item.category]) groups[item.category] = []
-    groups[item.category].push(item)
+    const cat = item.category || 'Otros'
+    if (!groups[cat]) groups[cat] = []
+    groups[cat].push(item)
   }
   return groups
 }
@@ -136,6 +136,7 @@ function DietaryTag({ tag }: { tag: string }) {
     vegano: 'bg-green-100 text-green-700',
     vegetariano: 'bg-lime-100 text-lime-700',
     'sin gluten': 'bg-yellow-100 text-yellow-700',
+    promovido: 'bg-[#FF6B35]/10 text-[#FF6B35]',
   }
   const cls = colorMap[tag] ?? 'bg-neutral-100 text-neutral-500'
   return (
@@ -146,6 +147,7 @@ function DietaryTag({ tag }: { tag: string }) {
 }
 
 function MenuItemRow({ item }: { item: MenuItemData }) {
+  const isPromoted = item.tags?.includes('promovido')
   return (
     <div
       className={`flex items-start justify-between gap-4 py-3 border-b border-neutral-100 last:border-0
@@ -153,9 +155,9 @@ function MenuItemRow({ item }: { item: MenuItemData }) {
     >
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-          {item.chapi_pick && (
+          {isPromoted && (
             <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-semibold">
-              ✨ Chapi sugiere
+              Chapi sugiere
             </span>
           )}
           {!item.available && (
@@ -173,9 +175,9 @@ function MenuItemRow({ item }: { item: MenuItemData }) {
         {item.description && (
           <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">{item.description}</p>
         )}
-        {item.tags.length > 0 && (
+        {item.tags && item.tags.filter(t => t !== 'promovido').length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
-            {item.tags.map(t => <DietaryTag key={t} tag={t} />)}
+            {item.tags.filter(t => t !== 'promovido').map(t => <DietaryTag key={t} tag={t} />)}
           </div>
         )}
       </div>
@@ -187,13 +189,13 @@ function MenuItemRow({ item }: { item: MenuItemData }) {
 }
 
 function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
+  const priceLabel = restaurant.price_range === 'economico' ? '$'
+    : restaurant.price_range === 'medio' ? '$$'
+    : restaurant.price_range === 'premium' ? '$$$' : '$$'
+
   const items = [
-    { icon: <Clock size={15} className="text-[#FF6B35]" />, label: restaurant.hours },
-    { icon: <MapPin size={15} className="text-[#FF6B35]" />, label: restaurant.address },
-    ...(restaurant.website
-      ? [{ icon: <Globe size={15} className="text-[#FF6B35]" />, label: restaurant.website }]
-      : []),
-    { icon: <DollarSign size={15} className="text-[#FF6B35]" />, label: `Precio: ${restaurant.price_range}` },
+    { icon: <MapPin size={15} className="text-[#FF6B35]" />, label: restaurant.address || 'Dirección por confirmar' },
+    { icon: <DollarSign size={15} className="text-[#FF6B35]" />, label: `Precio: ${priceLabel}` },
   ]
   return (
     <div className="flex flex-wrap gap-3 bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4">
@@ -208,112 +210,120 @@ function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
 }
 
 function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
-  const hasWaitlist = true // In production, derive from restaurant data
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      <h3 className="font-bold text-[#1A1A2E] text-base">¿Listo para ir?</h3>
+      <h3 className="font-bold text-[#1A1A2E] text-base">Listo para ir?</h3>
 
-      {hasWaitlist && (
-        <Link
-          href={`/espera/${restaurant.slug}`}
-          className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
-                     bg-[#FF6B35] text-white font-semibold text-sm
-                     hover:bg-[#e55a2b] transition-colors"
-        >
-          📋 Unirme a lista de espera
-        </Link>
-      )}
+      <Link
+        href={`/espera/${restaurant.slug}`}
+        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
+                   bg-[#FF6B35] text-white font-semibold text-sm
+                   hover:bg-[#e55a2b] transition-colors"
+      >
+        Unirme a lista de espera
+      </Link>
 
       <div className="bg-[#FAFAF8] rounded-xl p-4 space-y-2">
-        <p className="text-xs font-semibold text-[#1A1A2E]">¿Ya estás en el local?</p>
+        <p className="text-xs font-semibold text-[#1A1A2E]">Ya estas en el local?</p>
         <p className="text-xs text-neutral-400 leading-relaxed">
           Escanea el QR de tu mesa para pedir con Chapi sin esperar al mozo.
         </p>
-        <Link
-          href={`/${restaurant.slug}/1`}
-          className="inline-flex items-center gap-1.5 text-xs text-[#FF6B35] font-semibold
-                     hover:underline underline-offset-2 mt-1"
-        >
-          Ir a Mesa 1 (demo) →
-        </Link>
       </div>
     </div>
   )
 }
 
-function PromotionsCard({ promotions }: { promotions: Promotion[] }) {
-  if (!promotions.length) return null
+function ReviewsSection({ reviews, rating, reviewCount }: {
+  reviews: { id: string; rating: number; comment: string | null; created_at: string }[]
+  rating: number
+  reviewCount: number
+}) {
   return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-3">
-      <h3 className="font-bold text-[#1A1A2E] text-base">🎯 Ofertas de hoy</h3>
-      <div className="space-y-2">
-        {promotions.map((promo, i) => (
-          <div key={i} className="bg-[#FF6B35]/5 border border-[#FF6B35]/15 rounded-xl p-3">
-            <p className="text-sm font-semibold text-[#1A1A2E]">{promo.name}</p>
-            <p className="text-xs text-neutral-500 mt-0.5">{promo.description}</p>
-            <p className="text-[10px] text-[#FF6B35] font-medium mt-1.5">{promo.hours}</p>
-          </div>
-        ))}
+    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold text-[#1A1A2E] text-base flex items-center gap-2">
+          <Star size={15} className="text-[#FF6B35]" />
+          Opiniones
+        </h3>
+        <div className="flex items-center gap-1.5">
+          <span className="text-sm font-bold text-[#1A1A2E]">{rating.toFixed(1)}</span>
+          <RatingStars rating={rating} />
+          <span className="text-xs text-neutral-400">({reviewCount})</span>
+        </div>
       </div>
+
+      {reviews.length === 0 ? (
+        <p className="text-sm text-neutral-400 text-center py-4">
+          Aun no hay opiniones. Se el primero!
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {reviews.slice(0, 5).map(review => (
+            <div key={review.id} className="bg-[#FAFAF8] rounded-xl p-3">
+              <div className="flex items-center gap-2 mb-1">
+                <RatingStars rating={review.rating} />
+                <span className="text-[10px] text-neutral-400">
+                  {new Date(review.created_at).toLocaleDateString('es-CL')}
+                </span>
+              </div>
+              {review.comment && (
+                <p className="text-xs text-neutral-600 leading-relaxed">{review.comment}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }
 
-function TagsCard({ tags }: { tags: string[] }) {
-  if (!tags.length) return null
+function ClaimBanner({ slug }: { slug: string }) {
   return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-3">
-      <h3 className="font-bold text-[#1A1A2E] text-base flex items-center gap-2">
-        <Tag size={15} className="text-[#FF6B35]" />
-        Ambiente
-      </h3>
-      <div className="flex flex-wrap gap-2">
-        {tags.map(tag => (
-          <span
-            key={tag}
-            className="text-xs px-3 py-1 rounded-full bg-neutral-100 text-neutral-600 capitalize font-medium"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
+    <div className="bg-[#FF6B35]/5 border border-[#FF6B35]/20 rounded-2xl p-5 text-center space-y-2">
+      <p className="text-sm font-semibold text-[#1A1A2E]">Es tu restaurante?</p>
+      <p className="text-xs text-neutral-500">Reclama tu perfil para subir la carta, recibir pedidos y mas.</p>
+      <Link
+        href={`/reclamar/${slug}`}
+        className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors mt-1"
+      >
+        Reclamar restaurante
+      </Link>
     </div>
   )
 }
 
-// ── Page ──────────────────────────────────────────────────────────────────────
+function NoMenuBanner() {
+  return (
+    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 text-center">
+      <span className="text-5xl block mb-3">📋</span>
+      <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Carta no disponible</h2>
+      <p className="text-sm text-neutral-400 leading-relaxed">
+        Este restaurante aun no ha subido su carta a HiChapi.
+        Si eres el dueño, reclama tu perfil para publicarla.
+      </p>
+    </div>
+  )
+}
 
-export default function RestaurantPage() {
-  const params   = useParams()
-  const router   = useRouter()
-  const slug     = params.slug as string
-  const restaurant = MOCK_RESTAURANTS[slug]
+// ── Page (Server Component) ──────────────────────────────────────────────────
+
+export default async function RestaurantPage({
+  params,
+}: {
+  params: Promise<{ slug: string }>
+}) {
+  const { slug } = await params
+  const restaurant = await getRestaurant(slug)
 
   if (!restaurant) {
-    return (
-      <main
-        className="min-h-screen flex flex-col items-center justify-center px-4 text-center"
-        style={{ background: '#FAFAF8', fontFamily: 'var(--font-dm-sans), sans-serif' }}
-      >
-        <span className="text-6xl mb-4">🍽️</span>
-        <h1 className="text-2xl font-bold text-[#1A1A2E] mb-2">Restaurante no encontrado</h1>
-        <p className="text-neutral-400 text-sm mb-6">
-          No tenemos información para <span className="font-mono text-[#1A1A2E]">{slug}</span> todavía.
-        </p>
-        <button
-          onClick={() => router.back()}
-          className="flex items-center gap-2 text-sm px-5 py-2.5 rounded-full
-                     bg-[#FF6B35] text-white font-semibold hover:bg-[#e55a2b] transition-colors"
-        >
-          <ArrowLeft size={14} />
-          Volver a resultados
-        </button>
-      </main>
-    )
+    notFound()
   }
 
-  const groups     = groupByCategory(restaurant.menu)
+  const reviews = await getReviews(restaurant.id)
+  const availableItems = restaurant.menu_items.filter(i => i.available !== false)
+  const groups     = groupByCategory(availableItems)
   const categories = sortedCategories(groups)
+  const hasMenu    = restaurant.menu_items.length > 0
 
   return (
     <main
@@ -326,14 +336,14 @@ export default function RestaurantPage() {
           <Link href="/" className="font-bold text-xl tracking-tight text-[#1A1A2E]">
             hi<span className="text-[#FF6B35]">chapi</span>
           </Link>
-          <button
-            onClick={() => router.back()}
+          <Link
+            href="/"
             className="flex items-center gap-1.5 text-sm text-neutral-500 font-medium
                        hover:text-[#FF6B35] transition-colors"
           >
             <ArrowLeft size={15} />
-            Volver a resultados
-          </button>
+            Volver
+          </Link>
         </div>
       </nav>
 
@@ -356,13 +366,11 @@ export default function RestaurantPage() {
             </div>
           )}
 
-          {/* Gradient overlay */}
           <div
             className="absolute inset-0"
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }}
           />
 
-          {/* Name + meta on overlay */}
           <div className="absolute bottom-0 left-0 right-0 p-6">
             <h1 className="text-3xl font-bold text-white leading-tight mb-2">
               {restaurant.name}
@@ -371,11 +379,18 @@ export default function RestaurantPage() {
               <div className="flex items-center gap-1.5">
                 <RatingStars rating={restaurant.rating} />
                 <span className="text-white font-semibold text-sm">{restaurant.rating.toFixed(1)}</span>
+                {restaurant.review_count > 0 && (
+                  <span className="text-white/50 text-xs">({restaurant.review_count})</span>
+                )}
               </div>
               <span className="text-white/60 text-sm">·</span>
               <span className="text-white/80 text-sm">{restaurant.neighborhood}</span>
-              <span className="text-white/60 text-sm">·</span>
-              <span className="text-white/80 text-sm">{restaurant.cuisine_type}</span>
+              {restaurant.cuisine_type && (
+                <>
+                  <span className="text-white/60 text-sm">·</span>
+                  <span className="text-white/80 text-sm">{restaurant.cuisine_type}</span>
+                </>
+              )}
             </div>
           </div>
         </section>
@@ -383,33 +398,45 @@ export default function RestaurantPage() {
         {/* ── Quick info bar ── */}
         <QuickInfoBar restaurant={restaurant} />
 
+        {/* ── Claim banner for unclaimed restaurants ── */}
+        {!restaurant.claimed && <ClaimBanner slug={restaurant.slug} />}
+
         {/* ── Main 2-col layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
           {/* Left: Carta completa (2/3) */}
-          <section className="lg:col-span-2 bg-white rounded-2xl border border-neutral-100 shadow-sm p-6">
-            <h2 className="text-lg font-bold text-[#1A1A2E] mb-5">Carta completa</h2>
-            <div className="space-y-7">
-              {categories.map(category => (
-                <div key={category}>
-                  <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3 pb-2 border-b border-neutral-100">
-                    {category}s
-                  </h3>
-                  <div>
-                    {groups[category].map(item => (
-                      <MenuItemRow key={item.id} item={item} />
-                    ))}
-                  </div>
+          <section className="lg:col-span-2">
+            {hasMenu ? (
+              <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6">
+                <h2 className="text-lg font-bold text-[#1A1A2E] mb-5">Carta completa</h2>
+                <div className="space-y-7">
+                  {categories.map(category => (
+                    <div key={category}>
+                      <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3 pb-2 border-b border-neutral-100">
+                        {category}s
+                      </h3>
+                      <div>
+                        {groups[category].map(item => (
+                          <MenuItemRow key={item.id} item={item} />
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              </div>
+            ) : (
+              <NoMenuBanner />
+            )}
           </section>
 
-          {/* Right: Actions + promos + tags (1/3) */}
+          {/* Right: Actions + reviews (1/3) */}
           <aside className="lg:col-span-1 space-y-4">
             <ActionCard restaurant={restaurant} />
-            <PromotionsCard promotions={restaurant.promotions} />
-            <TagsCard tags={restaurant.tags} />
+            <ReviewsSection
+              reviews={reviews}
+              rating={restaurant.rating}
+              reviewCount={restaurant.review_count}
+            />
           </aside>
         </div>
       </div>
@@ -422,10 +449,10 @@ export default function RestaurantPage() {
             href="/unete"
             className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2"
           >
-            ¿Eres dueño de un restaurante? Súmate a Chapi →
+            Eres dueño de un restaurante? Sumate a Chapi
           </Link>
         </p>
-        <p className="text-neutral-300">© {new Date().getFullYear()} HiChapi. Todos los derechos reservados.</p>
+        <p className="text-neutral-300">&copy; {new Date().getFullYear()} HiChapi. Todos los derechos reservados.</p>
       </footer>
     </main>
   )

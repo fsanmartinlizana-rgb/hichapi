@@ -1,20 +1,17 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
   TrendingUp, TrendingDown, Users, Star,
   ChevronRight, ArrowUpRight, Zap, AlertCircle, Info,
-  Plus, FileText, Clock, Check,
+  Plus, FileText, Clock, Check, RefreshCw,
 } from 'lucide-react'
 import Link from 'next/link'
+import { createClient } from '@/lib/supabase/client'
+import { useRestaurant } from '@/lib/restaurant-context'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-/**
- * Formats a Chilean peso amount.
- * >= 100 000 → "$847K"  (compact, no decimals)
- *  < 100 000 → "$18.400" (es-CL full thousands separator)
- */
 function clp(amount: number): string {
   if (amount >= 100_000) {
     const k = Math.round(amount / 1_000)
@@ -28,478 +25,213 @@ function clp(amount: number): string {
   }).format(amount)
 }
 
-// ── Mock data ───────────────────────────────────────────────────────────────
+// ── Types ────────────────────────────────────────────────────────────────────
 
-const KPIS = [
-  {
-    label: 'Ventas hoy',
-    value: clp(847_000),
-    delta: '+12%',
-    sub: 'vs lunes típico',
-    showTooltip: true,
-    up: true,
-    color: '#FF6B35',
-  },
-  {
-    label: 'Ticket promedio',
-    value: clp(18_400),
-    delta: '+4%',
-    sub: 'vs promedio',
-    showTooltip: false,
-    up: true,
-    color: '#60A5FA',
-  },
-  {
-    label: 'Pedidos activos',
-    value: '7',
-    delta: null,
-    sub: null,
-    showTooltip: false,
-    up: null,
-    color: '#FBBF24',
-    statusBreakdown: [
-      { label: 'en espera', count: 2, color: '#94A3B8',  bg: 'bg-slate-500/15'  },
-      { label: 'en cocina', count: 3, color: '#FBBF24',  bg: 'bg-yellow-500/15' },
-      { label: 'listos',    count: 1, color: '#34D399',  bg: 'bg-emerald-500/15'},
-      { label: 'entregados',count: 1, color: '#60A5FA',  bg: 'bg-blue-500/15'   },
-    ],
-  },
-  {
-    label: 'NPS del día',
-    value: '74',
-    delta: '↑ 8 pts',
-    sub: 'vs semana',
-    showTooltip: false,
-    up: true,
-    color: '#34D399',
-  },
-]
-
-const ORDERS = [
-  {
-    id: 'M-4',
-    table: 'Mesa 4',
-    pax: '3 personas',
-    items: 'Lomo vetado, Ensalada César, Pasta arrabiata',
-    amount: 54_200,
-    mins: 12,
-    via: true,
-    status: 'active',
-    color: '#FF6B35',
-  },
-  {
-    id: 'M-7',
-    table: 'Mesa 7',
-    pax: '2 personas',
-    items: 'Salmón grillado (sin gluten), Gazpacho',
-    amount: 38_900,
-    mins: 3,
-    via: true,
-    status: 'active',
-    color: '#60A5FA',
-  },
-  {
-    id: 'M-2',
-    table: 'Mesa 2',
-    pax: '4 personas',
-    items: 'Pizza napolitana ×2, Risotto, Tiramisú',
-    amount: 71_600,
-    mins: 28,
-    via: true,
-    status: 'active',
-    color: '#FF6B35',
-  },
-  {
-    id: 'M-11',
-    table: 'Mesa 11',
-    pax: '5 personas',
-    items: 'Solicitando cuenta · split en proceso',
-    amount: 112_400,
-    mins: 52,
-    via: true,
-    status: 'cuenta',
-    color: '#FBBF24',
-  },
-  {
-    id: 'M-9',
-    table: 'Mesa 9',
-    pax: '2 personas',
-    items: 'Ceviche, Pisco sour ×2, Pan de ajo',
-    amount: 29_800,
-    mins: 8,
-    via: true,
-    status: 'active',
-    color: '#60A5FA',
-  },
-]
-
-const MESAS = [
-  { id: '01', status: 'ocupada' },
-  { id: '02', status: 'cuenta'  },
-  { id: '03', status: 'libre'   },
-  { id: '04', status: 'ocupada' },
-  { id: '05', status: 'libre'   },
-  { id: '06', status: 'libre'   },
-  { id: '07', status: 'ocupada' },
-  { id: '08', status: 'reserva' },
-  { id: '09', status: 'ocupada' },
-  { id: '10', status: 'libre'   },
-  { id: '11', status: 'cuenta'  },
-  { id: '12', status: 'libre'   },
-]
-
-const MESA_STYLES: Record<string, { bg: string; border: string; text: string }> = {
-  ocupada: { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#FF6B35]' },
-  cuenta:  { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
-  libre:   { bg: 'bg-white/3',       border: 'border-white/8',       text: 'text-white/30'  },
-  reserva: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-400'},
+interface DashboardData {
+  salesToday: number
+  ordersToday: number
+  activeOrders: { id: string; table_label: string; status: string; total: number; items_text: string; mins: number }[]
+  tables: { id: string; label: string; status: string }[]
+  topDishes: { name: string; count: number }[]
+  statusBreakdown: { pending: number; preparing: number; ready: number; paying: number }
 }
 
-const CHAPI_TIPS = [
-  {
-    icon: <ArrowUpRight size={14} />,
-    color: '#34D399',
-    bg: 'bg-emerald-500/10',
-    title: 'Sugerencia del chef',
-    text: 'El lomo vetado tiene stock para 4 porciones más y es tu plato más pedido de la tarde.',
-  },
-  {
-    icon: <AlertCircle size={14} />,
-    color: '#FBBF24',
-    bg: 'bg-yellow-500/10',
-    title: 'Peak en 45 min',
-    text: 'Históricamente recibes 6–8 mesas entre las 13:15 y 14:00. Tienes 5 mesas libres.',
-  },
-  {
-    icon: <Zap size={14} />,
-    color: '#60A5FA',
-    bg: 'bg-blue-500/10',
-    title: 'Cross-sell activo',
-    text: 'Chapi ofrece tiramisú de postre. 3 de 4 mesas lo aceptaron hoy.',
-  },
-]
+// ── Data hook ────────────────────────────────────────────────────────────────
 
-const TOP_PLATOS = [
-  { name: 'Lomo vetado',    count: 18, max: 18 },
-  { name: 'Pasta arrabiata', count: 13, max: 18 },
-  { name: 'Salmón grillado', count: 11, max: 18 },
-  { name: 'Tiramisú',        count: 8,  max: 18 },
-  { name: 'Ensalada César',  count: 6,  max: 18 },
-]
+function useDashboardData(restaurantId: string | undefined) {
+  const [data, setData] = useState<DashboardData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const supabase = createClient()
 
-const HOURLY = [
-  { h: '11h', v: 3  },
-  { h: '12h', v: 8  },
-  { h: '13h', v: 15 },
-  { h: '14h', v: 11 },
-  { h: '15h', v: 7  },
-  { h: '16h', v: 5  },
-  { h: '17h', v: 9  },
-  { h: '18h', v: 13 },
-  { h: '19h', v: 10 },
-  { h: '20h', v: 6  },
-]
+  const load = useCallback(async () => {
+    if (!restaurantId) return
 
-// state: 'ok' | 'warning' | 'bottleneck'
-const TIEMPOS = [
-  {
-    label: 'Tiempo en cocina',
-    actual: 14,
-    target: 12,
-    unit: 'min',
-    state: 'warning' as const,
-    stateLabel: 'Atención',
-  },
-  {
-    label: 'Tiempo de espera',
-    actual: 22,
-    target: 20,
-    unit: 'min',
-    state: 'warning' as const,
-    stateLabel: 'Atención',
-  },
-  {
-    label: 'Tiempo de entrega',
-    actual: 3,
-    target: 5,
-    unit: 'min',
-    state: 'ok' as const,
-    stateLabel: 'OK',
-  },
-]
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const todayISO = today.toISOString()
 
-const STATE_COLORS = {
-  ok:         { bar: '#34D399', badge: 'bg-emerald-500/15 text-emerald-400', dot: 'bg-emerald-400' },
-  warning:    { bar: '#FBBF24', badge: 'bg-yellow-500/15 text-yellow-400',   dot: 'bg-yellow-400'  },
-  bottleneck: { bar: '#F87171', badge: 'bg-red-500/15 text-red-400',         dot: 'bg-red-400'     },
+    const [ordersRes, tablesRes, paidRes, itemsRes] = await Promise.all([
+      // Active orders with items
+      supabase
+        .from('orders')
+        .select('id, table_id, status, total, created_at, order_items(name, quantity)')
+        .eq('restaurant_id', restaurantId)
+        .not('status', 'in', '("paid","cancelled")')
+        .order('created_at', { ascending: false }),
+      // Tables
+      supabase
+        .from('tables')
+        .select('id, label, status')
+        .eq('restaurant_id', restaurantId)
+        .order('label'),
+      // Paid orders today (for sales total)
+      supabase
+        .from('orders')
+        .select('id, total')
+        .eq('restaurant_id', restaurantId)
+        .eq('status', 'paid')
+        .gte('created_at', todayISO),
+      // All order items today (for top dishes)
+      supabase
+        .from('order_items')
+        .select('name, quantity, order_id, orders!inner(restaurant_id, created_at)')
+        .eq('orders.restaurant_id', restaurantId)
+        .gte('orders.created_at', todayISO),
+    ])
+
+    const activeOrders = ordersRes.data ?? []
+    const tables = tablesRes.data ?? []
+    const paidOrders = paidRes.data ?? []
+    const allItems = itemsRes.data ?? []
+
+    // Calculate sales
+    const salesToday = paidOrders.reduce((s, o) => s + (o.total || 0), 0)
+    // Add active orders' totals too
+    const activeTotals = activeOrders.reduce((s, o) => s + (o.total || 0), 0)
+
+    // Status breakdown
+    const statusBreakdown = {
+      pending: activeOrders.filter(o => o.status === 'pending').length,
+      preparing: activeOrders.filter(o => o.status === 'preparing').length,
+      ready: activeOrders.filter(o => o.status === 'ready').length,
+      paying: activeOrders.filter(o => o.status === 'paying').length,
+    }
+
+    // Map active orders with table labels
+    const mappedOrders = activeOrders.map(o => {
+      const table = tables.find(t => t.id === o.table_id)
+      const items = (o.order_items as { name: string; quantity: number }[]) || []
+      const elapsed = Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000)
+      return {
+        id: o.id,
+        table_label: table?.label ?? 'Mesa',
+        status: o.status,
+        total: o.total,
+        items_text: items.map(i => `${i.quantity}× ${i.name}`).join(', '),
+        mins: elapsed,
+      }
+    })
+
+    // Top dishes
+    const dishCounts: Record<string, number> = {}
+    for (const item of allItems) {
+      const name = (item as { name: string }).name
+      const qty = (item as { quantity: number }).quantity || 1
+      dishCounts[name] = (dishCounts[name] || 0) + qty
+    }
+    const topDishes = Object.entries(dishCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([name, count]) => ({ name, count }))
+
+    setData({
+      salesToday: salesToday + activeTotals,
+      ordersToday: paidOrders.length + activeOrders.length,
+      activeOrders: mappedOrders,
+      tables,
+      topDishes,
+      statusBreakdown,
+    })
+    setLoading(false)
+  }, [restaurantId, supabase])
+
+  useEffect(() => { load() }, [load])
+
+  // Realtime subscription
+  useEffect(() => {
+    if (!restaurantId) return
+    const channel = supabase
+      .channel('dashboard-rt')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, () => load())
+      .subscribe()
+    return () => { supabase.removeChannel(channel) }
+  }, [restaurantId, supabase, load])
+
+  return { data, loading, refresh: load }
 }
 
 // ── Components ───────────────────────────────────────────────────────────────
 
-function KpiCard({ kpi }: { kpi: typeof KPIS[0] }) {
-  const [tip, setTip] = useState(false)
-
-  return (
-    <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
-      <div className="flex items-start justify-between">
-        <p className="text-white/40 text-xs">{kpi.label}</p>
-        <div className="w-0.5 h-8 rounded-full" style={{ backgroundColor: kpi.color + '60' }} />
-      </div>
-
-      <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-        {kpi.value}
-      </p>
-
-      {/* Status breakdown for "Pedidos activos" */}
-      {'statusBreakdown' in kpi && kpi.statusBreakdown ? (
-        <div className="flex flex-wrap gap-1.5 mt-0.5">
-          {kpi.statusBreakdown.map(s => (
-            <span
-              key={s.label}
-              className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold ${s.bg}`}
-              style={{ color: s.color }}
-            >
-              <span
-                className="w-1 h-1 rounded-full inline-block shrink-0"
-                style={{ backgroundColor: s.color }}
-              />
-              {s.label} ({s.count})
-            </span>
-          ))}
-        </div>
-      ) : (
-        <div className="flex items-center gap-1.5">
-          {kpi.up !== null && (
-            kpi.up
-              ? <TrendingUp size={11} className="text-emerald-400" />
-              : <TrendingDown size={11} className="text-red-400" />
-          )}
-          <span className={`text-xs font-medium ${kpi.up === true ? 'text-emerald-400' : kpi.up === false ? 'text-red-400' : 'text-white/50'}`}>
-            {kpi.delta}
-          </span>
-          {kpi.sub && (
-            <span className="text-white/25 text-xs flex items-center gap-1">
-              {kpi.sub}
-              {kpi.showTooltip && (
-                <span className="relative inline-flex">
-                  <button
-                    onMouseEnter={() => setTip(true)}
-                    onMouseLeave={() => setTip(false)}
-                    className="text-white/25 hover:text-white/50 transition-colors"
-                  >
-                    <Info size={10} />
-                  </button>
-                  {tip && (
-                    <span className="absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 z-50
-                                     bg-[#1E1E2E] border border-white/10 rounded-lg px-2.5 py-1.5
-                                     text-white/70 text-[10px] leading-snug whitespace-nowrap shadow-xl pointer-events-none">
-                      Compara con el promedio de<br />todos los lunes de este mes
-                    </span>
-                  )}
-                </span>
-              )}
-            </span>
-          )}
-        </div>
-      )}
-    </div>
-  )
+const MESA_STYLES: Record<string, { bg: string; border: string; text: string }> = {
+  ocupada:   { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#FF6B35]' },
+  cuenta:    { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
+  libre:     { bg: 'bg-white/3',       border: 'border-white/8',       text: 'text-white/30'  },
+  reservada: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-400' },
+  bloqueada: { bg: 'bg-white/5',       border: 'border-white/10',      text: 'text-white/20'  },
 }
 
-function ChapiTipCard({ tip }: { tip: typeof CHAPI_TIPS[0] }) {
+function MesaCell({ mesa }: { mesa: { id: string; label: string; status: string } }) {
+  const s = MESA_STYLES[mesa.status] ?? MESA_STYLES.libre
   return (
-    <div className="bg-[#161622] rounded-2xl border border-white/5 p-4 flex-1 min-w-0 flex flex-col gap-2">
-      <div className="flex items-center gap-2">
-        <div
-          className={`w-6 h-6 rounded-lg ${tip.bg} shrink-0 flex items-center justify-center`}
-          style={{ color: tip.color }}
-        >
-          {tip.icon}
-        </div>
-        <p className="text-white text-xs font-semibold">{tip.title}</p>
-      </div>
-      <p className="text-white/50 text-xs leading-relaxed">{tip.text}</p>
-    </div>
-  )
-}
-
-function OrderRow({ order }: { order: typeof ORDERS[0] }) {
-  return (
-    <div className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/3 transition-colors group cursor-pointer">
-      <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold border"
-           style={{ backgroundColor: order.color + '15', borderColor: order.color + '30', color: order.color }}>
-        {order.id}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-white text-sm font-semibold">{order.table} — {order.pax}</p>
-        </div>
-        <p className="text-white/35 text-xs truncate">
-          {order.items}
-          {order.via && (
-            <span className="ml-2 text-[#FF6B35]/70 text-[10px] font-medium
-                             px-1.5 py-0.5 rounded bg-[#FF6B35]/10">vía Chapi</span>
-          )}
-        </p>
-      </div>
-      <div className="text-right shrink-0">
-        <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-          {clp(order.amount)}
-        </p>
-        <p className="text-white/30 text-[10px]">{order.mins} min</p>
-      </div>
-    </div>
-  )
-}
-
-function MesaCell({ mesa }: { mesa: typeof MESAS[0] }) {
-  const s = MESA_STYLES[mesa.status]
-  return (
-    <div className={`${s.bg} border ${s.border} rounded-xl p-3 flex flex-col items-center gap-1 cursor-pointer hover:opacity-80 transition-opacity`}>
+    <div className={`${s.bg} border ${s.border} rounded-xl p-3 flex flex-col items-center gap-1`}>
       <p className="text-white font-bold text-lg leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-        {mesa.id}
+        {mesa.label.replace('Mesa ', '')}
       </p>
       <p className={`text-[9px] font-medium ${s.text}`}>{mesa.status}</p>
     </div>
   )
 }
 
-function TiemposPanel() {
-  return (
-    <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-4">
-      <div className="flex items-center gap-2">
-        <Clock size={13} className="text-white/40" />
-        <p className="text-white text-sm font-semibold">Tiempos operacionales</p>
-      </div>
-      <div className="space-y-4">
-        {TIEMPOS.map((t) => {
-          const colors = STATE_COLORS[t.state]
-          // Progress: actual vs target. Cap bar at 120% for overflow display.
-          const pct = Math.min((t.actual / (t.target * 1.5)) * 100, 100)
-          const targetPct = (t.target / (t.target * 1.5)) * 100
-
-          return (
-            <div key={t.label} className="space-y-1.5">
-              <div className="flex items-center justify-between">
-                <span className="text-white/60 text-xs">{t.label}</span>
-                <div className="flex items-center gap-2">
-                  <span
-                    className="text-sm font-bold"
-                    style={{ fontFamily: 'var(--font-dm-mono)', color: colors.bar }}
-                  >
-                    {t.actual} {t.unit}
-                  </span>
-                  <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-md ${colors.badge}`}>
-                    {t.stateLabel}
-                  </span>
-                </div>
-              </div>
-
-              {/* Progress bar with target marker */}
-              <div className="relative h-1.5 bg-white/5 rounded-full overflow-visible">
-                <div
-                  className="h-full rounded-full transition-all"
-                  style={{ width: `${pct}%`, backgroundColor: colors.bar }}
-                />
-                {/* Target tick */}
-                <div
-                  className="absolute top-1/2 -translate-y-1/2 w-px h-3 bg-white/30 rounded-full"
-                  style={{ left: `${targetPct}%` }}
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <span className="text-white/20 text-[9px]">0 {t.unit}</span>
-                <span className="text-white/20 text-[9px]">objetivo: {t.target} {t.unit}</span>
-              </div>
-            </div>
-          )
-        })}
-      </div>
-    </div>
-  )
-}
-
-// ── PromocionesCard ──────────────────────────────────────────────────────────
-
-function PromocionesCard() {
-  const [comboActivo, setComboActivo] = useState(false)
+function OrderRow({ order }: { order: DashboardData['activeOrders'][0] }) {
+  const statusColor = order.status === 'pending' ? '#60A5FA'
+    : order.status === 'preparing' ? '#FBBF24'
+    : order.status === 'ready' ? '#34D399'
+    : order.status === 'paying' ? '#FBBF24'
+    : '#94A3B8'
 
   return (
-    <div className="bg-[#161622] rounded-2xl border border-white/5 p-4 flex flex-col gap-3">
-      {/* Header */}
-      <div className="flex items-center gap-2">
-        <div className="w-6 h-6 rounded-lg bg-[#FF6B35]/15 flex items-center justify-center shrink-0">
-          <Zap size={12} className="text-[#FF6B35]" />
-        </div>
-        <p className="text-white text-sm font-semibold flex-1">Promociones activas</p>
-      </div>
-
-      {/* Promo pills */}
-      <div className="space-y-2">
-        {/* Active promo */}
-        <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-emerald-500/8 border border-emerald-500/15">
-          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0 animate-pulse" />
-          <div className="flex-1 min-w-0">
-            <p className="text-white/80 text-[11px] font-semibold truncate">🎯 Happy Hour tarde</p>
-            <p className="text-white/35 text-[9px]">15:00–17:00 · Activa</p>
-          </div>
-          <span className="text-emerald-400 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 shrink-0">
-            Activa
-          </span>
-        </div>
-
-        {/* Inactive promo */}
-        <div className="flex items-center gap-2 px-2.5 py-2 rounded-xl bg-white/3 border border-white/8">
-          <span className="w-1.5 h-1.5 rounded-full bg-white/20 shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-white/40 text-[11px] font-semibold truncate">🍽 Combo mediodía</p>
-            <p className="text-white/25 text-[9px]">Inactiva</p>
-          </div>
-          {comboActivo ? (
-            <span className="flex items-center gap-1 text-emerald-400 text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-emerald-500/15 shrink-0">
-              <Check size={8} strokeWidth={3} /> Activada
-            </span>
-          ) : (
-            <button
-              onClick={() => setComboActivo(true)}
-              className="text-[#FF6B35] text-[9px] font-semibold px-1.5 py-0.5 rounded-full bg-[#FF6B35]/10 hover:bg-[#FF6B35]/20 transition-colors shrink-0 whitespace-nowrap"
-            >
-              Activar →
-            </button>
-          )}
-        </div>
-      </div>
-
-      {/* Loyalty section */}
-      <div className="pt-2 border-t border-white/5 space-y-1.5">
-        <p className="text-white/25 text-[9px] uppercase tracking-widest font-semibold">Beneficios para clientes frecuentes</p>
-        <div className="flex items-center gap-2">
-          <span className="text-sm">💎</span>
-          <p className="text-white/60 text-[11px] flex-1">3 clientes con canje disponible hoy</p>
-          <button className="text-[10px] text-white/40 hover:text-white/70 border border-white/10 hover:border-white/20 px-2 py-0.5 rounded-lg transition-colors shrink-0">
-            Ver
-          </button>
-        </div>
-      </div>
-
-      {/* Footer link */}
-      <Link
-        href="/reporte"
-        className="flex items-center justify-center gap-1 text-[#FF6B35] text-[10px] font-semibold hover:text-[#ff8255] transition-colors pt-0.5"
+    <Link
+      href="/garzon"
+      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/3 transition-colors"
+    >
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[10px] font-bold border"
+        style={{ backgroundColor: statusColor + '15', borderColor: statusColor + '30', color: statusColor }}
       >
-        <Plus size={10} />
-        Nueva promoción
-      </Link>
-    </div>
+        {order.table_label.replace('Mesa ', 'M')}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-white text-sm font-semibold">{order.table_label}</p>
+        <p className="text-white/35 text-xs truncate">{order.items_text || 'Sin ítems'}</p>
+      </div>
+      <div className="text-right shrink-0">
+        <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+          {clp(order.total)}
+        </p>
+        <p className="text-white/30 text-[10px]">{order.mins} min</p>
+      </div>
+    </Link>
   )
 }
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const [orderTab, setOrderTab] = useState<'activas' | 'hoy' | 'historial'>('activas')
-  const maxH = Math.max(...HOURLY.map(h => h.v))
+  const { restaurant } = useRestaurant()
+  const restId = restaurant?.id
+  const { data, loading, refresh } = useDashboardData(restId)
+
+  const today = new Date()
+  const dateStr = today.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short' })
+
+  if (loading || !data) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+      </div>
+    )
+  }
+
+  const ticketPromedio = data.ordersToday > 0 ? Math.round(data.salesToday / data.ordersToday) : 0
+  const totalActive = data.statusBreakdown.pending + data.statusBreakdown.preparing + data.statusBreakdown.ready + data.statusBreakdown.paying
+
+  const mesaStats = {
+    ocupadas:  data.tables.filter(t => t.status === 'ocupada').length,
+    libres:    data.tables.filter(t => t.status === 'libre').length,
+    pagando:   data.tables.filter(t => t.status === 'cuenta').length,
+    reservadas: data.tables.filter(t => t.status === 'reservada').length,
+  }
 
   return (
     <div className="p-6 space-y-5 min-h-full">
@@ -507,9 +239,9 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold">Resumen del día</h1>
+          <h1 className="text-white text-xl font-bold">Resumen del dia</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-white/40 text-sm">Lunes 6 abr</p>
+            <p className="text-white/40 text-sm capitalize">{dateStr}</p>
             <span className="flex items-center gap-1 text-emerald-400 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               En vivo
@@ -517,14 +249,9 @@ export default function DashboardPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <Link
-            href="/reporte"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-white/10
-                       text-white/60 text-sm hover:border-white/20 hover:text-white transition-colors"
-          >
-            <FileText size={13} />
-            Ver reporte completo
-          </Link>
+          <button onClick={refresh} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
+            <RefreshCw size={14} />
+          </button>
           <Link
             href="/comandas?nueva=1"
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
@@ -538,67 +265,128 @@ export default function DashboardPage() {
 
       {/* KPIs */}
       <div className="grid grid-cols-4 gap-4">
-        {KPIS.map(k => <KpiCard key={k.label} kpi={k} />)}
-      </div>
+        {/* Ventas hoy */}
+        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
+          <div className="flex items-start justify-between">
+            <p className="text-white/40 text-xs">Ventas hoy</p>
+            <div className="w-0.5 h-8 rounded-full bg-[#FF6B35]/60" />
+          </div>
+          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+            {clp(data.salesToday)}
+          </p>
+          <p className="text-white/25 text-xs">{data.ordersToday} pedidos</p>
+        </div>
 
-      {/* Chapi recomienda — horizontal row of 3 cards */}
-      <div>
-        <p className="text-white/30 text-[10px] uppercase tracking-widest font-semibold mb-2.5 px-0.5">
-          Chapi recomienda
-        </p>
-        <div className="flex gap-4">
-          {CHAPI_TIPS.map((tip, i) => (
-            <ChapiTipCard key={i} tip={tip} />
-          ))}
+        {/* Ticket promedio */}
+        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
+          <div className="flex items-start justify-between">
+            <p className="text-white/40 text-xs">Ticket promedio</p>
+            <div className="w-0.5 h-8 rounded-full bg-blue-400/60" />
+          </div>
+          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+            {clp(ticketPromedio)}
+          </p>
+          <p className="text-white/25 text-xs">por pedido</p>
+        </div>
+
+        {/* Pedidos activos */}
+        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
+          <div className="flex items-start justify-between">
+            <p className="text-white/40 text-xs">Pedidos activos</p>
+            <div className="w-0.5 h-8 rounded-full bg-yellow-400/60" />
+          </div>
+          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+            {totalActive}
+          </p>
+          <div className="flex flex-wrap gap-1.5 mt-0.5">
+            {data.statusBreakdown.pending > 0 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-blue-500/15 text-blue-300">
+                <span className="w-1 h-1 rounded-full bg-blue-300" /> nuevos ({data.statusBreakdown.pending})
+              </span>
+            )}
+            {data.statusBreakdown.preparing > 0 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-yellow-500/15 text-yellow-300">
+                <span className="w-1 h-1 rounded-full bg-yellow-300" /> cocina ({data.statusBreakdown.preparing})
+              </span>
+            )}
+            {data.statusBreakdown.ready > 0 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-emerald-500/15 text-emerald-300">
+                <span className="w-1 h-1 rounded-full bg-emerald-300" /> listos ({data.statusBreakdown.ready})
+              </span>
+            )}
+            {data.statusBreakdown.paying > 0 && (
+              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-amber-500/15 text-amber-300">
+                <span className="w-1 h-1 rounded-full bg-amber-300" /> pagando ({data.statusBreakdown.paying})
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Mesas */}
+        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
+          <div className="flex items-start justify-between">
+            <p className="text-white/40 text-xs">Mesas</p>
+            <div className="w-0.5 h-8 rounded-full bg-emerald-400/60" />
+          </div>
+          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+            {data.tables.length}
+          </p>
+          <div className="flex items-center gap-2">
+            <span className="text-[#FF6B35] text-xs">{mesaStats.ocupadas} ocupadas</span>
+            <span className="text-white/20">·</span>
+            <span className="text-emerald-400 text-xs">{mesaStats.libres} libres</span>
+          </div>
         </div>
       </div>
 
-      {/* Middle row — orders (2 cols) + right column (mesa grid + promos) */}
+      {/* Middle row — orders + mesa grid */}
       <div className="grid grid-cols-3 gap-4">
 
         {/* Orders — 2 cols */}
         <div className="col-span-2 bg-[#161622] rounded-2xl border border-white/5 overflow-hidden">
-          {/* Tabs */}
-          <div className="flex items-center gap-1 px-4 pt-4 pb-0">
-            {(['activas', 'hoy', 'historial'] as const).map(t => (
-              <button
-                key={t}
-                onClick={() => setOrderTab(t)}
-                className={[
-                  'px-3 py-1.5 rounded-lg text-xs font-medium capitalize transition-all',
-                  orderTab === t
-                    ? 'bg-white/10 text-white'
-                    : 'text-white/35 hover:text-white/60',
-                ].join(' ')}
-              >
-                {t === 'activas' ? `Activas (${ORDERS.length})` : t === 'hoy' ? 'Hoy (46)' : 'Historial'}
-              </button>
-            ))}
+          <div className="flex items-center justify-between px-4 pt-4 pb-2">
+            <p className="text-white text-sm font-semibold">
+              Pedidos activos ({data.activeOrders.length})
+            </p>
+            <Link href="/garzon" className="text-white/35 text-xs hover:text-white/60 flex items-center gap-0.5">
+              Ver todos <ChevronRight size={11} />
+            </Link>
           </div>
-          <div className="p-2 space-y-0.5 mt-2">
-            {ORDERS.map(o => <OrderRow key={o.id} order={o} />)}
-          </div>
+
+          {data.activeOrders.length === 0 ? (
+            <div className="px-4 py-8 text-center">
+              <p className="text-white/25 text-sm">Sin pedidos activos</p>
+              <p className="text-white/15 text-xs mt-1">Los nuevos pedidos apareceran aqui</p>
+            </div>
+          ) : (
+            <div className="p-2 space-y-0.5">
+              {data.activeOrders.slice(0, 8).map(o => <OrderRow key={o.id} order={o} />)}
+            </div>
+          )}
         </div>
 
-        {/* Right column — mesa grid + promociones */}
+        {/* Right column — mesa grid */}
         <div className="flex flex-col gap-4">
-          {/* Mesa grid */}
           <div className="bg-[#161622] rounded-2xl border border-white/5 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-white text-sm font-semibold">Estado de mesas</p>
-              <button className="text-white/35 text-xs hover:text-white/60 flex items-center gap-0.5">
+              <Link href="/mesas" className="text-white/35 text-xs hover:text-white/60 flex items-center gap-0.5">
                 Ver todas <ChevronRight size={11} />
-              </button>
+              </Link>
             </div>
-            <div className="grid grid-cols-4 gap-2">
-              {MESAS.map(m => <MesaCell key={m.id} mesa={m} />)}
-            </div>
+            {data.tables.length === 0 ? (
+              <p className="text-white/25 text-sm text-center py-4">Sin mesas configuradas</p>
+            ) : (
+              <div className="grid grid-cols-4 gap-2">
+                {data.tables.map(m => <MesaCell key={m.id} mesa={m} />)}
+              </div>
+            )}
             <div className="flex items-center gap-3 mt-3 flex-wrap">
               {[
-                { color: 'bg-[#FF6B35]', label: '4 ocupadas' },
-                { color: 'bg-yellow-400', label: '2 por pagar' },
-                { color: 'bg-violet-400', label: '1 reserva' },
-                { color: 'bg-white/20', label: '5 libres' },
+                { color: 'bg-[#FF6B35]', label: `${mesaStats.ocupadas} ocupadas` },
+                { color: 'bg-yellow-400', label: `${mesaStats.pagando} pagando` },
+                { color: 'bg-violet-400', label: `${mesaStats.reservadas} reservadas` },
+                { color: 'bg-white/20', label: `${mesaStats.libres} libres` },
               ].map(({ color, label }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
@@ -608,98 +396,38 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Promociones activas */}
-          <PromocionesCard />
-        </div>
-      </div>
-
-      {/* Bottom row — charts + tiempos */}
-      <div className="grid grid-cols-4 gap-4">
-
-        {/* Pedidos por hora */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-white text-sm font-semibold">Pedidos por hora</p>
-            <span className="text-[#FF6B35] text-xs font-medium px-2 py-0.5 rounded bg-[#FF6B35]/10">hoy</span>
-          </div>
-          <div className="flex items-end gap-1.5 h-20">
-            {HOURLY.map(({ h, v }) => {
-              const pct = v / maxH
-              const isPeak = v >= 11
-              return (
-                <div key={h} className="flex-1 flex flex-col items-center gap-1">
-                  <span className="text-white/30 text-[8px]">{v}</span>
-                  <div
-                    className="w-full rounded-sm transition-all"
-                    style={{
-                      height: `${pct * 52}px`,
-                      backgroundColor: isPeak ? '#FF6B35' : '#3A3A55',
-                    }}
-                  />
-                  <span className="text-white/20 text-[8px]">{h}</span>
-                </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Top platos */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
-          <p className="text-white text-sm font-semibold mb-4">Top platos hoy</p>
-          <div className="space-y-2.5">
-            {TOP_PLATOS.map((p, i) => (
-              <div key={p.name} className="flex items-center gap-2.5">
-                <span className="text-white/25 text-xs w-3 shrink-0">{i + 1}</span>
-                <span className="text-white/70 text-xs flex-1 truncate">{p.name}</span>
-                <div className="flex items-center gap-1.5">
-                  <div className="w-20 h-1.5 rounded-full bg-white/5 overflow-hidden">
-                    <div
-                      className="h-full rounded-full"
-                      style={{
-                        width: `${(p.count / p.max) * 100}%`,
-                        backgroundColor: i === 0 ? '#FF6B35' : '#3A3A55',
-                      }}
-                    />
-                  </div>
-                  <span className="text-white/30 text-[10px] w-4 text-right">{p.count}</span>
-                </div>
+          {/* Top platos */}
+          <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
+            <p className="text-white text-sm font-semibold mb-4">Top platos hoy</p>
+            {data.topDishes.length === 0 ? (
+              <p className="text-white/25 text-xs text-center py-3">Sin datos aun</p>
+            ) : (
+              <div className="space-y-2.5">
+                {data.topDishes.map((p, i) => {
+                  const maxCount = data.topDishes[0]?.count || 1
+                  return (
+                    <div key={p.name} className="flex items-center gap-2.5">
+                      <span className="text-white/25 text-xs w-3 shrink-0">{i + 1}</span>
+                      <span className="text-white/70 text-xs flex-1 truncate">{p.name}</span>
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-20 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                          <div
+                            className="h-full rounded-full"
+                            style={{
+                              width: `${(p.count / maxCount) * 100}%`,
+                              backgroundColor: i === 0 ? '#FF6B35' : '#3A3A55',
+                            }}
+                          />
+                        </div>
+                        <span className="text-white/30 text-[10px] w-4 text-right">{p.count}</span>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
+            )}
           </div>
         </div>
-
-        {/* NPS */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
-          <p className="text-white text-sm font-semibold mb-3">NPS · satisfacción</p>
-          <div className="flex items-center justify-center my-2">
-            <div className="text-center">
-              <p className="text-5xl font-bold" style={{ color: '#34D399', fontFamily: 'var(--font-dm-mono)' }}>
-                74
-              </p>
-              <p className="text-white/30 text-xs mt-1">Net Promoter Score</p>
-            </div>
-          </div>
-          {/* Bar */}
-          <div className="flex rounded-full overflow-hidden h-2 mt-3">
-            <div className="bg-emerald-400" style={{ width: '70%' }} />
-            <div className="bg-yellow-400/60" style={{ width: '20%' }} />
-            <div className="bg-red-400/50" style={{ width: '10%' }} />
-          </div>
-          <div className="flex justify-between mt-1.5">
-            {[['70%', 'promotores', 'text-emerald-400'], ['20%', 'neutros', 'text-yellow-400/60'], ['10%', 'detrac.', 'text-red-400/60']].map(([pct, label, cls]) => (
-              <span key={label} className={`text-[9px] ${cls}`}>{pct} {label}</span>
-            ))}
-          </div>
-          {/* Quote */}
-          <div className="mt-3 pt-3 border-t border-white/5">
-            <p className="text-white/30 text-[10px] leading-relaxed italic">
-              "El salmón estaba perfecto, volveré el viernes" — Mesa 6, hace 1h
-            </p>
-          </div>
-        </div>
-
-        {/* Tiempos operacionales */}
-        <TiemposPanel />
       </div>
     </div>
   )
