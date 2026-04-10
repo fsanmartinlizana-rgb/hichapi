@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Star, Clock, MapPin, Globe, DollarSign, ArrowLeft, Tag } from 'lucide-react'
+import { Star, Clock, MapPin, Globe, DollarSign, ArrowLeft, Phone, AtSign, Users } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import { notFound } from 'next/navigation'
 
@@ -17,6 +17,8 @@ interface MenuItemData {
   photo_url: string | null
 }
 
+interface DaySchedule { open: string; close: string; closed: boolean }
+
 interface RestaurantData {
   id: string
   name: string
@@ -27,6 +29,12 @@ interface RestaurantData {
   review_count: number
   address: string
   phone: string | null
+  website: string | null
+  instagram: string | null
+  description: string | null
+  capacity: number | null
+  tags: string[] | null
+  hours: Record<string, DaySchedule> | null
   photo_url: string | null
   price_range: string
   active: boolean
@@ -52,7 +60,8 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .from('restaurants')
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
-      address, photo_url, price_range, active, claimed,
+      address, phone, website, instagram, description, capacity, tags, hours,
+      photo_url, price_range, active, claimed,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -188,23 +197,144 @@ function MenuItemRow({ item }: { item: MenuItemData }) {
   )
 }
 
+const DAY_KEYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as const
+const DAY_TO_INDEX: Record<string, number> = {
+  Domingo: 0, Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5, Sábado: 6,
+}
+
+function todayName(): string {
+  const idx = new Date().getDay()
+  return DAY_KEYS.find(d => DAY_TO_INDEX[d] === idx) ?? 'Lunes'
+}
+
 function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
-  const priceLabel = restaurant.price_range === 'economico' ? '$'
-    : restaurant.price_range === 'medio' ? '$$'
-    : restaurant.price_range === 'premium' ? '$$$' : '$$'
+  const priceLabel =
+    restaurant.price_range === 'economico' || restaurant.price_range === '$'   ? '$'   :
+    restaurant.price_range === 'premium'   || restaurant.price_range === '$$$' ? '$$$' :
+    restaurant.price_range === 'medio'     || restaurant.price_range === '$$'  ? '$$'  :
+    '$$'
+
+  const today = restaurant.hours?.[todayName()]
+  const todayLabel = today
+    ? today.closed ? 'Hoy cerrado' : `Hoy ${today.open} – ${today.close}`
+    : null
 
   const items = [
     { icon: <MapPin size={15} className="text-[#FF6B35]" />, label: restaurant.address || 'Dirección por confirmar' },
     { icon: <DollarSign size={15} className="text-[#FF6B35]" />, label: `Precio: ${priceLabel}` },
   ]
+  if (todayLabel) items.push({ icon: <Clock size={15} className="text-[#FF6B35]" />, label: todayLabel })
+  if (restaurant.capacity) items.push({ icon: <Users size={15} className="text-[#FF6B35]" />, label: `${restaurant.capacity} mesas` })
+
   return (
-    <div className="flex flex-wrap gap-3 bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4">
+    <div className="flex flex-wrap gap-x-5 gap-y-2 bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4">
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-1.5 text-sm text-neutral-600 min-w-0">
           {item.icon}
           <span className="truncate">{item.label}</span>
         </div>
       ))}
+    </div>
+  )
+}
+
+// ── Description, hours, contact ─────────────────────────────────────────────
+
+function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
+  const hasContact = restaurant.phone || restaurant.website || restaurant.instagram
+  const hasHours   = restaurant.hours && Object.keys(restaurant.hours).length > 0
+
+  if (!restaurant.description && !hasContact && !hasHours && (!restaurant.tags || restaurant.tags.length === 0)) {
+    return null
+  }
+
+  const todayKey = todayName()
+
+  return (
+    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
+      {restaurant.description && (
+        <div>
+          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2">
+            Sobre el lugar
+          </h3>
+          <p className="text-sm text-neutral-600 leading-relaxed">{restaurant.description}</p>
+        </div>
+      )}
+
+      {restaurant.tags && restaurant.tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {restaurant.tags.map(t => (
+            <span
+              key={t}
+              className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-medium capitalize"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+
+      {hasHours && (
+        <div>
+          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <Clock size={12} className="text-[#FF6B35]" />
+            Horarios
+          </h3>
+          <div className="space-y-1">
+            {DAY_KEYS.map(day => {
+              const s = restaurant.hours?.[day]
+              const isToday = day === todayKey
+              return (
+                <div
+                  key={day}
+                  className={`flex items-center justify-between text-xs ${isToday ? 'font-semibold text-[#1A1A2E]' : 'text-neutral-500'}`}
+                >
+                  <span>{day}{isToday && ' · hoy'}</span>
+                  <span>{s ? (s.closed ? 'Cerrado' : `${s.open} – ${s.close}`) : '—'}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {hasContact && (
+        <div className="pt-1 border-t border-neutral-100">
+          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 mt-3">
+            Contacto
+          </h3>
+          <div className="space-y-1.5 text-sm">
+            {restaurant.phone && (
+              <a href={`tel:${restaurant.phone}`} className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
+                <Phone size={13} className="text-[#FF6B35]" />
+                {restaurant.phone}
+              </a>
+            )}
+            {restaurant.website && (
+              <a
+                href={restaurant.website.startsWith('http') ? restaurant.website : `https://${restaurant.website}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors"
+              >
+                <Globe size={13} className="text-[#FF6B35]" />
+                {restaurant.website}
+              </a>
+            )}
+            {restaurant.instagram && (
+              <a
+                href={`https://instagram.com/${restaurant.instagram.replace(/^@/, '')}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors"
+              >
+                <AtSign size={13} className="text-[#FF6B35]" />
+                {restaurant.instagram}
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -429,9 +559,10 @@ export default async function RestaurantPage({
             )}
           </section>
 
-          {/* Right: Actions + reviews (1/3) */}
+          {/* Right: Actions + about + reviews (1/3) */}
           <aside className="lg:col-span-1 space-y-4">
             <ActionCard restaurant={restaurant} />
+            <AboutSection restaurant={restaurant} />
             <ReviewsSection
               reviews={reviews}
               rating={restaurant.rating}

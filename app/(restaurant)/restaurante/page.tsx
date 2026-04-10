@@ -1,59 +1,172 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { Check, MapPin, Clock, Globe, Phone, Camera, Loader2, Plus, AtSign, Eye, MousePointerClick, CalendarCheck, ChevronRight, Zap } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import {
+  Check, MapPin, Clock, Globe, Phone, Camera, Loader2, Plus, AtSign,
+  ExternalLink, Sparkles, AlertCircle,
+} from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { MODULE_LABELS, MODULE_PLAN_REQUIRED, type ModulesConfig } from '@/lib/defaults/moduleDefaults'
 
-const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+// ── Constants ────────────────────────────────────────────────────────────────
+
+const DIAS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as const
 const PRICE_RANGES = [
   { value: '$',   label: '$',   sub: 'menos de $8k/plato' },
-  { value: '$$',  label: '$$',  sub: '$8k–$15k/plato' },
-  { value: '$$$', label: '$$$', sub: 'más de $15k/plato' },
-]
+  { value: '$$',  label: '$$',  sub: '$8k–$15k/plato'      },
+  { value: '$$$', label: '$$$', sub: 'más de $15k/plato'    },
+] as const
+
+const DEFAULT_HOURS: Record<string, Schedule> = {
+  Lunes:     { open: '12:00', close: '22:00', closed: false },
+  Martes:    { open: '12:00', close: '22:00', closed: false },
+  Miércoles: { open: '12:00', close: '22:00', closed: false },
+  Jueves:    { open: '12:00', close: '22:00', closed: false },
+  Viernes:   { open: '12:00', close: '23:30', closed: false },
+  Sábado:    { open: '12:00', close: '23:30', closed: false },
+  Domingo:   { open: '12:00', close: '17:00', closed: false },
+}
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 interface Schedule { open: string; close: string; closed: boolean }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
+interface ProfileScoreField { key: string; label: string; complete: boolean; weight: number }
+interface ProfileScore       { total: number; fields: ProfileScoreField[] }
+
+interface RestaurantProfile {
+  id:            string
+  name:          string
+  slug:          string
+  description:   string | null
+  address:       string | null
+  neighborhood:  string | null
+  phone:         string | null
+  website:       string | null
+  instagram:     string | null
+  cuisine_type:  string | null
+  price_range:   string | null
+  capacity:      number | null
+  tags:          string[] | null
+  hours:         Record<string, Schedule> | null
+  photo_url:     string | null
+  profile_score: number | null
+}
+
+// ── Small UI atoms ───────────────────────────────────────────────────────────
+
+function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <div className="space-y-1.5">
       <label className="text-white/40 text-xs font-medium">{label}</label>
       {children}
+      {hint && <p className="text-white/20 text-[10px]">{hint}</p>}
     </div>
   )
 }
 
-function TextInput({ value, onChange, placeholder }: { value: string; onChange: (v: string) => void; placeholder?: string }) {
+function TextInput({
+  value, onChange, placeholder, type = 'text',
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+  type?: string
+}) {
   return (
-    <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+    <input
+      type={type}
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      placeholder={placeholder}
       className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                 placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                 placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+    />
   )
 }
 
+// ── Page ─────────────────────────────────────────────────────────────────────
+
 export default function RestaurantePage() {
   const { restaurant } = useRestaurant()
-  const [saving, setSaving]       = useState(false)
-  const [saved, setSaved]         = useState(false)
 
-  // Modules config
-  const [modules, setModules] = useState<ModulesConfig | null>(null)
-  const [modulesSaving, setModulesSaving] = useState(false)
+  // Loading + persistence state
+  const [loading, setLoading] = useState(true)
+  const [saving,  setSaving]  = useState(false)
+  const [saved,   setSaved]   = useState(false)
+  const [error,   setError]   = useState<string | null>(null)
 
+  // Modules
+  const [modules, setModules]               = useState<ModulesConfig | null>(null)
+  const [modulesSaving, setModulesSaving]   = useState(false)
+
+  // Profile fields
+  const [name, setName]               = useState('')
+  const [slug, setSlug]               = useState('')
+  const [description, setDescription] = useState('')
+  const [address, setAddress]         = useState('')
+  const [phone, setPhone]             = useState('')
+  const [website, setWebsite]         = useState('')
+  const [instagram, setInstagram]     = useState('')
+  const [cuisine, setCuisine]         = useState('')
+  const [priceRange, setPriceRange]   = useState('$$')
+  const [capacity, setCapacity]       = useState('')
+  const [tags, setTags]               = useState<string[]>([])
+  const [newTag, setNewTag]           = useState('')
+  const [photoUrl, setPhotoUrl]       = useState<string | null>(null)
+  const [schedule, setSchedule]       = useState<Record<string, Schedule>>(DEFAULT_HOURS)
+
+  // Score (from API)
+  const [score, setScore] = useState<ProfileScore | null>(null)
+
+  // ── Initial load ──────────────────────────────────────────────────────────
   useEffect(() => {
     if (!restaurant) return
-    const supabase = createClient()
-    supabase
-      .from('restaurants')
-      .select('modules_config')
-      .eq('id', restaurant.id)
-      .single()
-      .then(({ data }) => {
-        if (data?.modules_config) setModules(data.modules_config as ModulesConfig)
-      })
+    setLoading(true)
+    ;(async () => {
+      try {
+        const [profileRes, modsRes] = await Promise.all([
+          fetch(`/api/restaurants/profile?restaurant_id=${restaurant.id}`),
+          (async () => {
+            const supabase = createClient()
+            return supabase.from('restaurants').select('modules_config').eq('id', restaurant.id).single()
+          })(),
+        ])
+
+        const profileJson = await profileRes.json()
+        if (profileRes.ok && profileJson.restaurant) {
+          const r: RestaurantProfile = profileJson.restaurant
+          setName(r.name ?? '')
+          setSlug(r.slug ?? '')
+          setDescription(r.description ?? '')
+          setAddress(r.address ?? '')
+          setPhone(r.phone ?? '')
+          setWebsite(r.website ?? '')
+          setInstagram(r.instagram ?? '')
+          setCuisine(r.cuisine_type ?? '')
+          setPriceRange(r.price_range ?? '$$')
+          setCapacity(r.capacity?.toString() ?? '')
+          setTags(r.tags ?? [])
+          setPhotoUrl(r.photo_url)
+          setSchedule(
+            r.hours && Object.keys(r.hours).length > 0
+              ? { ...DEFAULT_HOURS, ...r.hours }
+              : DEFAULT_HOURS
+          )
+          setScore(profileJson.score)
+        }
+
+        if (modsRes.data?.modules_config) {
+          setModules(modsRes.data.modules_config as ModulesConfig)
+        }
+      } finally {
+        setLoading(false)
+      }
+    })()
   }, [restaurant])
 
+  // ── Modules toggle ────────────────────────────────────────────────────────
   async function toggleModule(key: keyof ModulesConfig) {
     if (!modules || !restaurant) return
     const updated = { ...modules, [key]: !modules[key] }
@@ -61,503 +174,557 @@ export default function RestaurantePage() {
     setModulesSaving(true)
     try {
       const supabase = createClient()
-      await supabase
-        .from('restaurants')
-        .update({ modules_config: updated })
-        .eq('id', restaurant.id)
+      await supabase.from('restaurants').update({ modules_config: updated }).eq('id', restaurant.id)
     } finally {
       setModulesSaving(false)
     }
   }
-
-  const [name, setName]           = useState('El Rincón de Don José')
-  const [desc, setDesc]           = useState('Cocina chilena e italiana de autor en el corazón de Providencia. Carta de temporada con ingredientes frescos.')
-  const [address, setAddress]     = useState('Av. Providencia 2124, Providencia')
-  const [phone, setPhone]         = useState('+56 2 2344 5678')
-  const [website, setWebsite]     = useState('elrincondedonjose.cl')
-  const [instagram, setInstagram] = useState('@rincondonjose')
-  const [cuisine, setCuisine]     = useState('Chilena / Italiana')
-  const [priceRange, setPriceRange] = useState('$$')
-  const [capacity, setCapacity]   = useState('14')
-  const [tags, setTags]           = useState(['familiar', 'romántico', 'para reuniones'])
-  const [newTag, setNewTag]       = useState('')
-
-  const [schedule, setSchedule] = useState<Record<string, Schedule>>({
-    Lunes:      { open: '12:00', close: '22:00', closed: false },
-    Martes:     { open: '12:00', close: '22:00', closed: false },
-    Miércoles:  { open: '12:00', close: '22:00', closed: false },
-    Jueves:     { open: '12:00', close: '22:00', closed: false },
-    Viernes:    { open: '12:00', close: '23:30', closed: false },
-    Sábado:     { open: '12:00', close: '23:30', closed: false },
-    Domingo:    { open: '12:00', close: '17:00', closed: false },
-  })
-
-  // HiChapi Discovery
-  const [discoveryEnabled, setDiscoveryEnabled] = useState(true)
-  const discoveryScore = 78
-  const discoveryStats = { views: 234, clicks: 12, reservations: 3 }
-  const profileFields: { label: string; complete: boolean }[] = [
-    { label: 'Nombre',          complete: true  },
-    { label: 'Horarios',        complete: true  },
-    { label: 'Teléfono',        complete: true  },
-    { label: 'Fotos del local', complete: false },
-    { label: 'Menú destacado',  complete: false },
-    { label: 'Tags',            complete: false },
-  ]
-  const completedFields = profileFields.filter(f => f.complete).length
-
-  // Chapi en lista de espera
-  const [chapiWaitlistEnabled, setChapiWaitlistEnabled] = useState(true)
-  const [chapiStartMinutes, setChapiStartMinutes]       = useState('10')
-  const [chapiWaitlistNumber, setChapiWaitlistNumber]   = useState('')
-  const [chapiInitMessage, setChapiInitMessage]         = useState(
-    'Hola! Mientras esperas tu mesa, puedes ver nuestra carta y elegir tu pedido para que lo tengamos listo al sentarte 🍽'
-  )
 
   function updateSchedule(day: string, field: keyof Schedule, value: string | boolean) {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }))
   }
 
   function addTag() {
-    if (newTag.trim() && !tags.includes(newTag.trim())) {
-      setTags(prev => [...prev, newTag.trim()])
+    const v = newTag.trim().toLowerCase()
+    if (v && !tags.includes(v) && tags.length < 20) {
+      setTags(prev => [...prev, v])
       setNewTag('')
     }
   }
 
-  function scrollToIncompleteFields() {
-    document.getElementById('profile-fields-section')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  // ── Save ──────────────────────────────────────────────────────────────────
+  async function handleSave() {
+    if (!restaurant) return
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/restaurants/profile', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurant.id,
+          name,
+          description: description || null,
+          address:     address || null,
+          phone:       phone || null,
+          website:     website || null,
+          instagram:   instagram || null,
+          cuisine_type: cuisine || null,
+          price_range:  priceRange || null,
+          capacity:    capacity ? parseInt(capacity, 10) : null,
+          tags,
+          hours:       schedule,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error ?? 'No se pudo guardar')
+        return
+      }
+      setScore(data.score)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 2500)
+    } catch {
+      setError('Sin conexión')
+    } finally {
+      setSaving(false)
+    }
   }
 
-  async function handleSave() {
-    setSaving(true)
-    // Mock payload
-    const _payload = {
-      name, desc, address, phone, website, instagram,
-      cuisine, priceRange, capacity, tags, schedule,
-      discoveryEnabled,
-      chapiWaitlistEnabled,
-      chapiStartMinutes,
-      chapiWaitlistNumber,
-      chapiInitMessage,
-    }
-    await new Promise(r => setTimeout(r, 800))
-    setSaving(false)
-    setSaved(true)
-    setTimeout(() => setSaved(false), 2500)
+  // ── Loading skeleton ──────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+      </div>
+    )
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
+    <div className="grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-6 p-6">
 
-      {/* Header */}
-      <div className="flex items-start justify-between">
-        <div>
-          <h1 className="text-white text-xl font-bold">Mi restaurante</h1>
-          <p className="text-white/40 text-sm mt-0.5">Esta información aparece en HiChapi para los clientes</p>
-        </div>
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                     hover:bg-[#e85d2a] disabled:opacity-60 transition-colors">
-          {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : null}
-          {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
-        </button>
-      </div>
+      {/* ═════════════════════════════════════════════════════════════════════
+          LEFT — Editable form
+          ═════════════════════════════════════════════════════════════════════ */}
+      <div className="space-y-6 max-w-3xl">
 
-      {/* Photo */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5">
-        <p className="text-white font-semibold text-sm mb-4">Foto principal</p>
-        <div className="flex items-center gap-4">
-          <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed
-                          flex flex-col items-center justify-center gap-1.5 cursor-pointer
-                          hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 transition-colors">
-            <Camera size={18} className="text-white/25" />
-            <span className="text-white/20 text-[10px]">Subir foto</span>
-          </div>
-          <div>
-            <p className="text-white/50 text-sm">JPG o PNG · Mínimo 800×600px</p>
-            <p className="text-white/25 text-xs mt-0.5">Esta foto aparece en las cards de búsqueda</p>
-          </div>
-        </div>
-      </div>
-
-      {/* ── HiChapi Discovery ──────────────────────────────────────── */}
-      <div className="rounded-2xl p-[1px]"
-           style={{ background: 'linear-gradient(135deg, rgba(255,107,53,0.55) 0%, rgba(255,107,53,0.08) 50%, rgba(255,107,53,0.30) 100%)' }}>
-        <div className="bg-[#161622] rounded-2xl p-5 space-y-5">
-
-          {/* Card header */}
-          <div className="flex items-start justify-between gap-3">
-            <div className="flex items-center gap-2.5">
-              <span className="text-base leading-none">📍</span>
-              <div>
-                <p className="text-white font-semibold text-sm">HiChapi Discovery</p>
-                <p className="text-white/35 text-xs mt-0.5">Aparece en búsquedas de clientes en Santiago</p>
-              </div>
-            </div>
-            <span className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full
-                             bg-emerald-500/12 border border-emerald-500/25 text-emerald-400 text-[11px] font-medium">
-              <Check size={10} strokeWidth={3} />
-              Conectado
-            </span>
-          </div>
-
-          {/* Toggle */}
-          <div className="flex items-start justify-between gap-4">
-            <div className="space-y-0.5">
-              <p className="text-white/80 text-sm font-medium">Estado en discovery</p>
-              <p className={`text-xs transition-colors ${discoveryEnabled ? 'text-white/35' : 'text-white/20'}`}>
-                {discoveryEnabled
-                  ? 'Tu restaurante aparece en HiChapi cuando clientes buscan lugares para comer en Santiago'
-                  : 'Tu restaurante no aparece en búsquedas de HiChapi'}
-              </p>
-            </div>
-            <button
-              onClick={() => setDiscoveryEnabled(v => !v)}
-              className={`shrink-0 px-4 py-2 rounded-xl border text-xs font-semibold transition-all
-                ${discoveryEnabled
-                  ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]'
-                  : 'bg-white/3 border-white/8 text-white/30 hover:border-white/20'}`}>
-              {discoveryEnabled ? 'Activo' : 'Inactivo'}
-            </button>
-          </div>
-
-          {/* Visibility + stats — dimmed when disabled */}
-          <div className={`space-y-4 transition-opacity ${discoveryEnabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-
-            {/* Visibility score bar */}
-            <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-white/40 text-xs font-medium">Visibilidad</p>
-                <p className="text-[#FF6B35] text-xs font-bold">{discoveryScore} puntos</p>
-              </div>
-              <div className="h-2 rounded-full bg-white/6 overflow-hidden">
-                <div
-                  className="h-full rounded-full transition-all duration-700"
-                  style={{
-                    width: `${discoveryScore}%`,
-                    background: 'linear-gradient(90deg, #FF6B35 0%, #ff9a6c 100%)',
-                  }} />
-              </div>
-            </div>
-
-            {/* Weekly stats */}
-            <div>
-              <p className="text-white/40 text-xs font-medium mb-2.5">Esta semana via HiChapi</p>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="flex flex-col items-center gap-1 py-3 rounded-xl bg-white/4 border border-white/6">
-                  <Eye size={14} className="text-white/30" />
-                  <p className="text-white font-bold text-base leading-none">{discoveryStats.views}</p>
-                  <p className="text-white/30 text-[10px]">vistas</p>
-                </div>
-                <div className="flex flex-col items-center gap-1 py-3 rounded-xl bg-white/4 border border-white/6">
-                  <MousePointerClick size={14} className="text-white/30" />
-                  <p className="text-white font-bold text-base leading-none">{discoveryStats.clicks}</p>
-                  <p className="text-white/30 text-[10px]">clicks</p>
-                </div>
-                <div className="flex flex-col items-center gap-1 py-3 rounded-xl bg-white/4 border border-white/6">
-                  <CalendarCheck size={14} className="text-white/30" />
-                  <p className="text-white font-bold text-base leading-none">{discoveryStats.reservations}</p>
-                  <p className="text-white/30 text-[10px]">reservas</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Profile completeness */}
-            <div id="profile-fields-section">
-              <div className="flex items-center justify-between mb-2.5">
-                <p className="text-white/40 text-xs font-medium">Optimización del perfil</p>
-                <p className="text-white/50 text-xs">
-                  <span className="text-white font-semibold">{completedFields}</span>
-                  <span className="text-white/30">/{profileFields.length} campos completos</span>
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {profileFields.map(f => (
-                  <span key={f.label}
-                    className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-colors
-                      ${f.complete
-                        ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400/80'
-                        : 'bg-white/3 border-white/8 text-white/25'}`}>
-                    {f.complete
-                      ? <Check size={9} strokeWidth={3} />
-                      : <span className="text-white/20 text-[9px] font-bold leading-none">✗</span>}
-                    {f.label}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* CTA buttons */}
-            <div className="flex gap-2 pt-1">
-              <a href="/"
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30
-                           text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors">
-                Ver mi perfil en HiChapi
-                <ChevronRight size={12} />
-              </a>
-              <button onClick={scrollToIncompleteFields}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50
-                           text-xs font-semibold hover:border-white/20 hover:text-white/70 transition-colors">
-                Optimizar perfil
-              </button>
-            </div>
-
-          </div>
-        </div>
-      </div>
-      {/* ── /HiChapi Discovery ─────────────────────────────────────── */}
-
-      {/* Info básica */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <p className="text-white font-semibold text-sm">Información básica</p>
-        <Field label="Nombre del restaurante">
-          <TextInput value={name} onChange={setName} />
-        </Field>
-        <Field label="Descripción (aparece en Chapi)">
-          <textarea value={desc} onChange={e => setDesc(e.target.value)} rows={3}
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors" />
-          <p className="text-white/20 text-[10px] mt-1">{desc.length}/300 caracteres</p>
-        </Field>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Tipo de cocina"><TextInput value={cuisine} onChange={setCuisine} /></Field>
-          <Field label="Capacidad (mesas)">
-            <TextInput value={capacity} onChange={setCapacity} placeholder="14" />
-          </Field>
-        </div>
-        <Field label="Rango de precios">
-          <div className="flex gap-2">
-            {PRICE_RANGES.map(p => (
-              <button key={p.value} onClick={() => setPriceRange(p.value)}
-                className={`flex-1 py-2.5 rounded-xl border text-center transition-all
-                  ${priceRange === p.value
-                    ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]'
-                    : 'bg-white/3 border-white/8 text-white/30 hover:border-white/20'}`}>
-                <p className="font-bold text-sm">{p.label}</p>
-                <p className="text-[9px] mt-0.5 opacity-70">{p.sub}</p>
-              </button>
-            ))}
-          </div>
-        </Field>
-        <Field label="Tags / Ambiente">
-          <div className="flex flex-wrap gap-1.5 mb-2">
-            {tags.map(t => (
-              <span key={t} className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
-                                       bg-[#FF6B35]/15 border border-[#FF6B35]/25 text-[#FF6B35]/80">
-                {t}
-                <button onClick={() => setTags(prev => prev.filter(x => x !== t))}
-                  className="text-[#FF6B35]/40 hover:text-[#FF6B35] ml-0.5">×</button>
-              </span>
-            ))}
-          </div>
-          <div className="flex gap-2">
-            <input value={newTag} onChange={e => setNewTag(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && addTag()}
-              placeholder="Agregar tag (ej: romántico)"
-              className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                         placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-            <button onClick={addTag}
-              className="px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white/40
-                         hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors">
-              <Plus size={14} />
-            </button>
-          </div>
-        </Field>
-      </div>
-
-      {/* Contacto */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <p className="text-white font-semibold text-sm">Contacto y redes</p>
-        <div className="grid grid-cols-2 gap-4">
-          <Field label="Dirección">
-            <div className="relative">
-              <MapPin size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
-              <input value={address} onChange={e => setAddress(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-            </div>
-          </Field>
-          <Field label="Teléfono">
-            <div className="relative">
-              <Phone size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
-              <input value={phone} onChange={e => setPhone(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-            </div>
-          </Field>
-          <Field label="Sitio web">
-            <div className="relative">
-              <Globe size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
-              <input value={website} onChange={e => setWebsite(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-            </div>
-          </Field>
-          <Field label="Instagram">
-            <div className="relative">
-              <AtSign size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
-              <input value={instagram} onChange={e => setInstagram(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-            </div>
-          </Field>
-        </div>
-      </div>
-
-      {/* Horarios */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Clock size={14} className="text-[#FF6B35]" />
-          <p className="text-white font-semibold text-sm">Horarios de atención</p>
-        </div>
-        <div className="space-y-2">
-          {DIAS.map(day => {
-            const s = schedule[day]
-            return (
-              <div key={day} className="flex items-center gap-3">
-                <button onClick={() => updateSchedule(day, 'closed', !s.closed)}
-                  className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold border transition-all
-                    ${!s.closed ? 'bg-[#FF6B35]/20 border-[#FF6B35]/30 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/20'}`}>
-                  {day[0]}
-                </button>
-                <p className={`text-sm w-20 shrink-0 ${s.closed ? 'text-white/20' : 'text-white/60'}`}>{day}</p>
-                {s.closed ? (
-                  <span className="text-white/20 text-xs italic">Cerrado</span>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <input type="time" value={s.open} onChange={e => updateSchedule(day, 'open', e.target.value)}
-                      className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs
-                                 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-                    <span className="text-white/25 text-xs">–</span>
-                    <input type="time" value={s.close} onChange={e => updateSchedule(day, 'close', e.target.value)}
-                      className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs
-                                 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-                  </div>
-                )}
-              </div>
-            )
-          })}
-        </div>
-      </div>
-
-      {/* Chapi en lista de espera */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-
-        {/* Section header with separator */}
-        <div className="border-t border-white/5 -mx-5 px-5 pt-4 -mt-4">
-          <p className="text-white font-semibold text-sm">🤖 Chapi en lista de espera</p>
-        </div>
-
-        {/* Toggle: Activar conversación previa */}
+        {/* Header */}
         <div className="flex items-start justify-between gap-4">
-          <div className="space-y-0.5">
-            <p className="text-white/80 text-sm font-medium">Activar conversación previa</p>
-            <p className="text-white/30 text-xs">
-              Chapi inicia una conversación con el cliente por WhatsApp mientras espera
+          <div>
+            <h1 className="text-white text-xl font-bold">Mi restaurante</h1>
+            <p className="text-white/40 text-sm mt-0.5">
+              Esta información aparece en HiChapi para los clientes
             </p>
           </div>
           <button
-            onClick={() => setChapiWaitlistEnabled(v => !v)}
-            className={`shrink-0 px-4 py-2 rounded-xl border text-xs font-semibold transition-all
-              ${chapiWaitlistEnabled
-                ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400'
-                : 'bg-white/3 border-white/8 text-white/30 hover:border-white/20'}`}>
-            {chapiWaitlistEnabled ? 'Activado' : 'Desactivado'}
+            onClick={handleSave}
+            disabled={saving}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
+                       hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
+          >
+            {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : null}
+            {saving ? 'Guardando…' : saved ? 'Guardado' : 'Guardar cambios'}
           </button>
         </div>
 
-        {/* Dependent fields — dimmed when disabled */}
-        <div className={`space-y-4 transition-opacity ${chapiWaitlistEnabled ? 'opacity-100' : 'opacity-30 pointer-events-none'}`}>
-
-          {/* Iniciar a cuántos minutos */}
-          <Field label="Iniciar a cuántos minutos de ser llamado">
-            <input
-              type="number"
-              min={0}
-              max={60}
-              value={chapiStartMinutes}
-              onChange={e => setChapiStartMinutes(e.target.value)}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                         placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-            <p className="text-white/20 text-[10px] mt-1">0 = al unirse a la lista</p>
-          </Field>
-
-          {/* Número WhatsApp */}
-          <Field label="Número WhatsApp del restaurante">
-            <TextInput
-              value={chapiWaitlistNumber}
-              onChange={setChapiWaitlistNumber}
-              placeholder="+56 9 XXXX XXXX" />
-            <p className="text-white/20 text-[10px] mt-1">Requiere WhatsApp Business API</p>
-          </Field>
-
-          {/* Mensaje inicial */}
-          <Field label="Mensaje inicial de Chapi">
-            <textarea
-              value={chapiInitMessage}
-              onChange={e => setChapiInitMessage(e.target.value)}
-              rows={3}
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                         placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors" />
-          </Field>
-
-        </div>
-      </div>
-
-      {/* Save button (bottom) */}
-      <div className="flex justify-end">
-        <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                     hover:bg-[#e85d2a] disabled:opacity-60 transition-colors">
-          {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : null}
-          {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar cambios'}
-        </button>
-      </div>
-
-      {/* ── Crossover activo ───────────────────────────────────────── */}
-      <div className="flex items-start gap-3 px-4 py-3.5 rounded-xl bg-white/3 border border-white/6">
-        <Zap size={15} className="text-[#FF6B35]/60 shrink-0 mt-0.5" />
-        <p className="text-white/35 text-xs leading-relaxed">
-          <span className="text-white/55 font-medium">Crossover activo —</span>{' '}
-          Cuando un cliente descubre tu restaurante en HiChapi y escanea el QR de mesa,
-          Chapi ya conoce sus preferencias de la búsqueda.
-        </p>
-      </div>
-
-      {/* ── Módulos activos ────────────────────────────────────────── */}
-      {modules && (
-        <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-          <div className="flex items-center justify-between">
-            <p className="text-white font-semibold text-sm">Módulos activos</p>
-            {modulesSaving && <span className="text-[#FF6B35] text-xs">Guardando...</span>}
+        {error && (
+          <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
+            <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+            <p className="text-red-200 text-xs">{error}</p>
           </div>
-          <div className="space-y-3">
-            {(Object.keys(MODULE_LABELS) as Array<keyof ModulesConfig>).map(key => {
-              const isActive = modules[key]
-              const planReq  = MODULE_PLAN_REQUIRED[key]
-              return (
-                <div key={key} className="flex items-center justify-between gap-3">
-                  <div className="flex-1 min-w-0">
-                    <p className={`text-sm ${isActive ? 'text-white/80' : 'text-white/30'}`}>{MODULE_LABELS[key]}</p>
-                    <p className="text-white/20 text-[10px]">Plan requerido: {planReq}</p>
-                  </div>
+        )}
+
+        {/* Profile completion score */}
+        <ProfileScoreCard score={score} slug={slug} />
+
+        {/* Photo */}
+        <Section title="Foto principal">
+          <div className="flex items-center gap-4">
+            <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed
+                            flex items-center justify-center overflow-hidden">
+              {photoUrl ? (
+                /* eslint-disable-next-line @next/next/no-img-element */
+                <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
+              ) : (
+                <Camera size={18} className="text-white/25" />
+              )}
+            </div>
+            <div className="flex-1">
+              <p className="text-white/50 text-sm">JPG o PNG · Mínimo 800×600px</p>
+              <p className="text-white/25 text-xs mt-0.5">Esta foto aparece en las cards de búsqueda</p>
+              <input
+                type="url"
+                value={photoUrl ?? ''}
+                onChange={e => setPhotoUrl(e.target.value || null)}
+                placeholder="https://…"
+                className="w-full mt-2 px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-xs
+                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+              />
+            </div>
+          </div>
+        </Section>
+
+        {/* Basic info */}
+        <Section title="Información básica">
+          <Field label="Nombre del restaurante">
+            <TextInput value={name} onChange={setName} />
+          </Field>
+          <Field label="Descripción (aparece en Chapi)" hint={`${description.length}/300 caracteres`}>
+            <textarea
+              value={description}
+              onChange={e => setDescription(e.target.value.slice(0, 300))}
+              rows={3}
+              placeholder="Cuenta a los clientes qué hace especial tu restaurante…"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
+                         placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors"
+            />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Tipo de cocina">
+              <TextInput value={cuisine} onChange={setCuisine} placeholder="Chilena / Italiana" />
+            </Field>
+            <Field label="Capacidad (mesas)">
+              <TextInput value={capacity} onChange={setCapacity} type="number" placeholder="14" />
+            </Field>
+          </div>
+          <Field label="Rango de precios">
+            <div className="flex gap-2">
+              {PRICE_RANGES.map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => setPriceRange(p.value)}
+                  className={`flex-1 py-2.5 rounded-xl border text-center transition-all
+                    ${priceRange === p.value
+                      ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]'
+                      : 'bg-white/3 border-white/8 text-white/30 hover:border-white/20'}`}
+                >
+                  <p className="font-bold text-sm">{p.label}</p>
+                  <p className="text-[9px] mt-0.5 opacity-70">{p.sub}</p>
+                </button>
+              ))}
+            </div>
+          </Field>
+          <Field label="Tags / Ambiente" hint="Hasta 20 etiquetas. Aparecen en tu landing pública.">
+            <div className="flex flex-wrap gap-1.5 mb-2">
+              {tags.map(t => (
+                <span
+                  key={t}
+                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
+                             bg-[#FF6B35]/15 border border-[#FF6B35]/25 text-[#FF6B35]/80"
+                >
+                  {t}
                   <button
-                    onClick={() => toggleModule(key)}
-                    className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
-                      ${isActive
-                        ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]'
-                        : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}
+                    onClick={() => setTags(prev => prev.filter(x => x !== t))}
+                    className="text-[#FF6B35]/40 hover:text-[#FF6B35] ml-0.5"
+                  >×</button>
+                </span>
+              ))}
+            </div>
+            <div className="flex gap-2">
+              <input
+                value={newTag}
+                onChange={e => setNewTag(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
+                placeholder="Agregar tag (ej: romántico)"
+                className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
+                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+              />
+              <button
+                onClick={addTag}
+                className="px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white/40
+                           hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors"
+              >
+                <Plus size={14} />
+              </button>
+            </div>
+          </Field>
+        </Section>
+
+        {/* Contact */}
+        <Section title="Contacto y redes">
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Dirección">
+              <IconInput icon={<MapPin size={13} />} value={address} onChange={setAddress} />
+            </Field>
+            <Field label="Teléfono">
+              <IconInput icon={<Phone size={13} />} value={phone} onChange={setPhone} placeholder="+56 2 ..." />
+            </Field>
+            <Field label="Sitio web">
+              <IconInput icon={<Globe size={13} />} value={website} onChange={setWebsite} placeholder="ejemplo.cl" />
+            </Field>
+            <Field label="Instagram">
+              <IconInput icon={<AtSign size={13} />} value={instagram} onChange={setInstagram} placeholder="@usuario" />
+            </Field>
+          </div>
+        </Section>
+
+        {/* Hours */}
+        <Section title="Horarios de atención" icon={<Clock size={14} className="text-[#FF6B35]" />}>
+          <div className="space-y-2">
+            {DIAS.map(day => {
+              const s = schedule[day] ?? DEFAULT_HOURS[day]
+              return (
+                <div key={day} className="flex items-center gap-3">
+                  <button
+                    onClick={() => updateSchedule(day, 'closed', !s.closed)}
+                    className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold border transition-all
+                      ${!s.closed
+                        ? 'bg-[#FF6B35]/20 border-[#FF6B35]/30 text-[#FF6B35]'
+                        : 'bg-white/3 border-white/8 text-white/20'}`}
                   >
-                    {isActive ? 'Activo' : 'Inactivo'}
+                    {day[0]}
                   </button>
+                  <p className={`text-sm w-20 shrink-0 ${s.closed ? 'text-white/20' : 'text-white/60'}`}>{day}</p>
+                  {s.closed ? (
+                    <span className="text-white/20 text-xs italic">Cerrado</span>
+                  ) : (
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="time"
+                        value={s.open}
+                        onChange={e => updateSchedule(day, 'open', e.target.value)}
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs
+                                   focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                      />
+                      <span className="text-white/25 text-xs">–</span>
+                      <input
+                        type="time"
+                        value={s.close}
+                        onChange={e => updateSchedule(day, 'close', e.target.value)}
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs
+                                   focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                      />
+                    </div>
+                  )}
                 </div>
               )
             })}
           </div>
-        </div>
-      )}
+        </Section>
 
+        {/* Modules */}
+        {modules && (
+          <Section title="Módulos activos" extra={modulesSaving ? <span className="text-[#FF6B35] text-xs">Guardando…</span> : null}>
+            <div className="space-y-3">
+              {(Object.keys(MODULE_LABELS) as Array<keyof ModulesConfig>).map(key => {
+                const isActive = modules[key]
+                const planReq  = MODULE_PLAN_REQUIRED[key]
+                return (
+                  <div key={key} className="flex items-center justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <p className={`text-sm ${isActive ? 'text-white/80' : 'text-white/30'}`}>{MODULE_LABELS[key]}</p>
+                      <p className="text-white/20 text-[10px]">Plan requerido: {planReq}</p>
+                    </div>
+                    <button
+                      onClick={() => toggleModule(key)}
+                      className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
+                        ${isActive
+                          ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]'
+                          : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}
+                    >
+                      {isActive ? 'Activo' : 'Inactivo'}
+                    </button>
+                  </div>
+                )
+              })}
+            </div>
+          </Section>
+        )}
+      </div>
+
+      {/* ═════════════════════════════════════════════════════════════════════
+          RIGHT — Live preview (sticky)
+          ═════════════════════════════════════════════════════════════════════ */}
+      <LivePreview
+        name={name}
+        description={description}
+        photoUrl={photoUrl}
+        address={address}
+        cuisine={cuisine}
+        priceRange={priceRange}
+        tags={tags}
+        schedule={schedule}
+        slug={slug}
+      />
+    </div>
+  )
+}
+
+// ── Helper components ───────────────────────────────────────────────────────
+
+function Section({
+  title, icon, extra, children,
+}: {
+  title: string
+  icon?: React.ReactNode
+  extra?: React.ReactNode
+  children: React.ReactNode
+}) {
+  return (
+    <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          {icon}
+          <p className="text-white font-semibold text-sm">{title}</p>
+        </div>
+        {extra}
+      </div>
+      <div className="space-y-4">{children}</div>
+    </div>
+  )
+}
+
+function IconInput({
+  icon, value, onChange, placeholder,
+}: {
+  icon: React.ReactNode
+  value: string
+  onChange: (v: string) => void
+  placeholder?: string
+}) {
+  return (
+    <div className="relative">
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25">{icon}</span>
+      <input
+        value={value}
+        onChange={e => onChange(e.target.value)}
+        placeholder={placeholder}
+        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
+                   placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+      />
+    </div>
+  )
+}
+
+function ProfileScoreCard({ score, slug }: { score: ProfileScore | null; slug: string }) {
+  if (!score) return null
+
+  const tone =
+    score.total >= 80 ? { color: '#34D399', label: 'Excelente' }    :
+    score.total >= 50 ? { color: '#FBBF24', label: 'Casi listo' }   :
+                        { color: '#F87171', label: 'Necesita info' }
+
+  return (
+    <div
+      className="rounded-2xl p-[1px]"
+      style={{ background: `linear-gradient(135deg, ${tone.color}80 0%, ${tone.color}10 60%, ${tone.color}40 100%)` }}
+    >
+      <div className="bg-[#161622] rounded-2xl p-5 space-y-4">
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Sparkles size={16} style={{ color: tone.color }} />
+            <div>
+              <p className="text-white font-semibold text-sm">Perfil en HiChapi</p>
+              <p className="text-white/35 text-xs mt-0.5">
+                Mientras más completo, más visible eres en discovery
+              </p>
+            </div>
+          </div>
+          <span
+            className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold"
+            style={{ backgroundColor: `${tone.color}1a`, border: `1px solid ${tone.color}40`, color: tone.color }}
+          >
+            {score.total} / 100
+          </span>
+        </div>
+
+        <div className="h-2 rounded-full bg-white/6 overflow-hidden">
+          <div
+            className="h-full rounded-full transition-all duration-700"
+            style={{ width: `${score.total}%`, background: `linear-gradient(90deg, ${tone.color} 0%, ${tone.color}cc 100%)` }}
+          />
+        </div>
+
+        <div className="flex items-center justify-between">
+          <p className="text-white/40 text-[11px]">{tone.label}</p>
+          {slug && (
+            <a
+              href={`/r/${slug}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 text-[11px] text-[#FF6B35] hover:text-[#FF8A5B] transition-colors"
+            >
+              Ver landing pública
+              <ExternalLink size={11} />
+            </a>
+          )}
+        </div>
+
+        <div className="flex flex-wrap gap-2 pt-1">
+          {score.fields.map(f => (
+            <span
+              key={f.key}
+              className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-colors
+                ${f.complete
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400/80'
+                  : 'bg-white/3 border-white/8 text-white/30'}`}
+            >
+              {f.complete
+                ? <Check size={9} strokeWidth={3} />
+                : <span className="text-white/20 text-[9px] font-bold leading-none">✗</span>}
+              {f.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function LivePreview({
+  name, description, photoUrl, address, cuisine, priceRange, tags, schedule, slug,
+}: {
+  name:        string
+  description: string
+  photoUrl:    string | null
+  address:     string
+  cuisine:     string
+  priceRange:  string
+  tags:        string[]
+  schedule:    Record<string, Schedule>
+  slug:        string
+}) {
+  // Compute open status (very rough — based on local time)
+  const today = useMemo(() => {
+    const d = new Date().getDay() // 0 = Sunday
+    const map = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
+    return map[d]
+  }, [])
+  const todaySchedule = schedule[today]
+
+  return (
+    <div className="lg:sticky lg:top-6 self-start space-y-3">
+      <div className="flex items-center justify-between">
+        <p className="text-white/40 text-xs font-semibold uppercase tracking-wide">Vista previa</p>
+        <span className="text-white/25 text-[10px]">Como te ven en HiChapi</span>
+      </div>
+
+      <div className="bg-white rounded-2xl overflow-hidden shadow-xl border border-white/10">
+        {/* Hero */}
+        <div className="relative aspect-video bg-neutral-200">
+          {photoUrl ? (
+            /* eslint-disable-next-line @next/next/no-img-element */
+            <img src={photoUrl} alt={name || 'Restaurante'} className="w-full h-full object-cover" />
+          ) : (
+            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-200 to-neutral-300">
+              <span className="text-5xl">🍽️</span>
+            </div>
+          )}
+          <div
+            className="absolute inset-0"
+            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 60%)' }}
+          />
+          <div className="absolute bottom-0 left-0 right-0 p-4">
+            <h2 className="text-white text-lg font-bold leading-tight">
+              {name || 'Tu restaurante'}
+            </h2>
+            <div className="flex items-center gap-2 mt-1 text-white/85 text-[11px]">
+              {cuisine && <span>{cuisine}</span>}
+              {cuisine && priceRange && <span className="text-white/50">·</span>}
+              {priceRange && <span>{priceRange}</span>}
+            </div>
+          </div>
+        </div>
+
+        {/* Body */}
+        <div className="p-4 space-y-3 text-[#1A1A2E]">
+          {description ? (
+            <p className="text-[12px] text-neutral-500 leading-relaxed line-clamp-3">{description}</p>
+          ) : (
+            <p className="text-[11px] text-neutral-300 italic">Agrega una descripción para llamar la atención…</p>
+          )}
+
+          {address && (
+            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+              <MapPin size={11} className="text-[#FF6B35]" />
+              <span className="truncate">{address}</span>
+            </div>
+          )}
+
+          {todaySchedule && (
+            <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
+              <Clock size={11} className="text-[#FF6B35]" />
+              {todaySchedule.closed
+                ? <span className="text-neutral-400">Hoy cerrado</span>
+                : <span>Hoy {todaySchedule.open} – {todaySchedule.close}</span>}
+            </div>
+          )}
+
+          {tags.length > 0 && (
+            <div className="flex flex-wrap gap-1 pt-1">
+              {tags.slice(0, 6).map(t => (
+                <span
+                  key={t}
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-medium capitalize"
+                >
+                  {t}
+                </span>
+              ))}
+            </div>
+          )}
+
+          <div className="pt-2 border-t border-neutral-100">
+            <button
+              type="button"
+              className="w-full py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold opacity-90"
+            >
+              Unirme a lista de espera
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {slug && (
+        <a
+          href={`/r/${slug}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1.5 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+        >
+          Abrir vista pública en pestaña nueva
+          <ExternalLink size={10} />
+        </a>
+      )}
     </div>
   )
 }
