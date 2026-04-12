@@ -3,6 +3,7 @@
 import { useEffect, useRef, memo } from 'react'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { RestaurantResult } from '@/lib/types'
+import { formatCurrency } from '@/lib/i18n'
 
 const BRAND = '#FF6B35'
 const DARK  = '#1A1A2E'
@@ -80,9 +81,7 @@ export const ResultsMap = memo(function ResultsMap({ results }: ResultsMapProps)
 
           // Format price for popup
           const priceStr = result.suggested_dish
-            ? new Intl.NumberFormat('es-CL', {
-                style: 'currency', currency: 'CLP', minimumFractionDigits: 0,
-              }).format(result.suggested_dish.price)
+            ? formatCurrency(result.suggested_dish.price)
             : ''
 
           // Pill card (the visible label)

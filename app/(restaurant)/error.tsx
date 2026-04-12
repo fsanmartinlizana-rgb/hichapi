@@ -30,8 +30,7 @@ export default function RestaurantError({
         <div className="flex items-center justify-center gap-3 pt-2">
           <button
             onClick={reset}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e55a2b] transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors"
           >
             <RefreshCw size={14} /> Reintentar
           </button>

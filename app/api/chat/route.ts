@@ -10,8 +10,13 @@ const rateMap = new Map<string, { count: number; reset: number }>()
 const RATE_LIMIT = 20
 const RATE_WINDOW = 60_000
 
+let _rateSweepCounter = 0
 function checkRate(ip: string): boolean {
   const now = Date.now()
+  // Evict expired entries every 200 calls to prevent memory leak
+  if (++_rateSweepCounter % 200 === 0) {
+    for (const [k, v] of rateMap) { if (now > v.reset) rateMap.delete(k) }
+  }
   const entry = rateMap.get(ip)
   if (!entry || now > entry.reset) {
     rateMap.set(ip, { count: 1, reset: now + RATE_WINDOW })
@@ -82,24 +87,32 @@ type Intent = {
   user_lng?: number | null
 }
 
+function stripAccents(s: string): string {
+  return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
+}
+
 async function fetchAndFilter(intent: Intent, withZone: boolean) {
-  let query = supabase
+  // Fetch broadly: filter accent-insensitive in JS to avoid Postgres collation issues
+  // (e.g. "Nunoa" vs "Ñuñoa", "Patagonica" vs "Patagónica").
+  const { data: restaurants, error } = await supabase
     .from('restaurants')
     .select(`*, menu_items (id, name, description, price, tags, photo_url, available)`)
     .eq('active', true)
-    .limit(15)
+    .limit(300)
 
-  if (withZone && intent.zone) {
-    query = query.ilike('neighborhood', `%${intent.zone}%`)
-  }
-  if (intent.cuisine_type) {
-    query = query.ilike('cuisine_type', `%${intent.cuisine_type}%`)
-  }
-
-  const { data: restaurants, error } = await query
   if (error || !restaurants) return []
 
-  const sorted = [...restaurants].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  let filtered = restaurants
+  if (withZone && intent.zone) {
+    const z = stripAccents(intent.zone)
+    filtered = filtered.filter(r => r.neighborhood && stripAccents(r.neighborhood).includes(z))
+  }
+  if (intent.cuisine_type) {
+    const c = stripAccents(intent.cuisine_type)
+    filtered = filtered.filter(r => r.cuisine_type && stripAccents(r.cuisine_type).includes(c))
+  }
+
+  const sorted = [...filtered].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
 
   return sorted
     .map((restaurant) => {

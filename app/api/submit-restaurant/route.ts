@@ -170,7 +170,7 @@ async function createSubmissionRecord(
     owner_phone:    data.owner_phone || null,
     description:    `Plan: ${data.plan}. ${data.dishes.length} platos.`,
     instagram_url,
-    status:         'auto_published',
+    status:         'approved',
   })
   if (error) console.error('Submission record error:', error)
 }

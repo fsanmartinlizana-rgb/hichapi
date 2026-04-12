@@ -5,7 +5,8 @@ import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
   Download, Copy, Check, Banknote, Wifi, WifiOff, RefreshCw,
-  Utensils,
+  Utensils, Trash2, Split, MoreVertical, Merge, AlertCircle,
+  Move, Lock,
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
@@ -13,11 +14,14 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import { formatEta } from '@/lib/waitlist/eta'
 import { QRCodeCanvas } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
+import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 type MesaStatus = 'ocupada' | 'cuenta' | 'libre' | 'limpia' | 'reserva'
 type MesaZone = 'interior' | 'terraza' | 'barra'
+
+type MesaStatusRaw = MesaStatus | 'bloqueada'
 
 interface Mesa {
   id: string
@@ -31,6 +35,10 @@ interface Mesa {
   reservedUntil?: string // ISO string - when reservation expires
   reservedFor?: string   // name of person who reserved
   qrToken?: string       // unique token for QR code URL
+  splitIntoIds?: string[]  // if this mesa is split into children, their ids
+  isBlocked?: boolean       // parent mesa while it's split
+  posX?: number | null     // floorplan x in px (null = auto-grid)
+  posY?: number | null     // floorplan y in px (null = auto-grid)
 }
 
 // ── DB types ──────────────────────────────────────────────────────────────────
@@ -38,10 +46,14 @@ interface Mesa {
 interface DbTable {
   id: string; label: string; seats: number; status: string
   zone: string | null; smoking: boolean | null; qr_token: string | null
+  split_into_ids?: string[] | null
+  pos_x?: number | null
+  pos_y?: number | null
 }
 interface DbOrder { id: string; table_id: string; status: string }
 
 function dbToMesa(t: DbTable): Mesa {
+  const isBlocked = t.status === 'bloqueada'
   const status: MesaStatus =
     t.status === 'reservada' ? 'reserva' :
     t.status === 'bloqueada' ? 'libre' :
@@ -54,6 +66,10 @@ function dbToMesa(t: DbTable): Mesa {
     zone: (t.zone as MesaZone | null) ?? undefined,
     smoking: t.smoking ?? false,
     qrToken: t.qr_token ?? undefined,
+    splitIntoIds: t.split_into_ids ?? undefined,
+    isBlocked,
+    posX: t.pos_x ?? null,
+    posY: t.pos_y ?? null,
   }
 }
 
@@ -97,14 +113,12 @@ function maskPhone(p: string) {
 
 // ── QR Modal ──────────────────────────────────────────────────────────────────
 
-const DEMO_SLUG = 'demo-restaurante'
-
-function QrModal({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
+function QrModal({ mesa, slug, onClose }: { mesa: Mesa; slug: string; onClose: () => void }) {
   const canvasRef = useRef<HTMLDivElement>(null)
   const [copied, setCopied] = useState(false)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://hichapi.com')
-  const qrUrl = `${origin}/${DEMO_SLUG}/${mesa.qrToken}`
+  const qrUrl = `${origin}/${slug}/${mesa.qrToken}`
 
   function downloadQr() {
     const canvas = canvasRef.current?.querySelector('canvas')
@@ -168,16 +182,14 @@ function QrModal({ mesa, onClose }: { mesa: Mesa; onClose: () => void }) {
         <div className="flex gap-2">
           <button
             onClick={copyLink}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
-                       border border-white/10 text-white/50 text-xs hover:border-white/25 hover:text-white/80 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-white/10 text-white/50 text-xs hover:border-white/25 hover:text-white/80 transition-colors"
           >
             {copied ? <Check size={12} className="text-emerald-400" /> : <Copy size={12} />}
             {copied ? 'Copiado' : 'Copiar link'}
           </button>
           <button
             onClick={downloadQr}
-            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl
-                       bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] transition-colors"
+            className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] transition-colors"
           >
             <Download size={12} /> Descargar PNG
           </button>
@@ -200,6 +212,9 @@ function MesaCard({
   onAssign,
   onAutoRelease,
   onShowQr,
+  onDelete,
+  onSplit,
+  onMerge,
 }: {
   mesa: Mesa
   orderAlert?: 'new_order' | 'bill'
@@ -207,7 +222,11 @@ function MesaCard({
   onAssign: (id: string) => void
   onAutoRelease: (id: string) => void
   onShowQr: (mesa: Mesa) => void
+  onDelete: (mesa: Mesa) => void
+  onSplit: (mesa: Mesa) => void
+  onMerge: (mesa: Mesa) => void
 }) {
+  const [menuOpen, setMenuOpen] = useState(false)
   const s = MESA_STYLES[mesa.status]
   const elapsed = mesa.seatedAt ? elapsedMin(mesa.seatedAt) : null
   const isLong = elapsed !== null && elapsed > 70
@@ -242,23 +261,68 @@ function MesaCard({
   return (
     <div className={`${s.bg} border ${s.border} rounded-xl p-3 flex flex-col gap-2 relative
                      ${mesa.status === 'limpia' ? 'ring-1 ring-teal-400/30' : ''}
+                     ${mesa.isBlocked ? 'opacity-60 ring-1 ring-indigo-400/30' : ''}
                      ${orderAlert === 'new_order' ? 'ring-1 ring-blue-400/40' : ''}
                      ${orderAlert === 'bill'      ? 'ring-1 ring-amber-400/50' : ''}`}>
+      {/* Split badge */}
+      {mesa.isBlocked && (
+        <span className="absolute -top-2 left-1/2 -translate-x-1/2 text-[8px] font-bold px-2 py-0.5 rounded-full bg-indigo-500/25 text-indigo-200 border border-indigo-400/40 leading-none whitespace-nowrap">
+          dividida en {mesa.splitIntoIds?.length ?? 0}
+        </span>
+      )}
+
+      {/* Menu button */}
+      <div className="absolute top-1.5 right-1.5">
+        <button
+          onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
+          className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-colors"
+        >
+          <MoreVertical size={11} />
+        </button>
+        {menuOpen && (
+          <>
+            <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
+            <div className="absolute top-6 right-0 z-50 w-36 rounded-xl bg-[#1C1C2E] border border-white/12 py-1 shadow-xl">
+              {!mesa.isBlocked && (
+                <button
+                  onClick={e => { e.stopPropagation(); setMenuOpen(false); onSplit(mesa) }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-white/70 hover:bg-white/5 transition-colors"
+                >
+                  <Split size={11} /> Dividir mesa
+                </button>
+              )}
+              {mesa.isBlocked && (
+                <button
+                  onClick={e => { e.stopPropagation(); setMenuOpen(false); onMerge(mesa) }}
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-indigo-300 hover:bg-white/5 transition-colors"
+                >
+                  <Merge size={11} /> Volver a unir
+                </button>
+              )}
+              <button
+                onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(mesa) }}
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-red-300 hover:bg-red-500/10 transition-colors"
+              >
+                <Trash2 size={11} /> Eliminar
+              </button>
+            </div>
+          </>
+        )}
+      </div>
+
       {/* Pulsing ring for limpia */}
       {mesa.status === 'limpia' && (
         <span className="absolute -top-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-teal-400 animate-ping opacity-60" />
       )}
       {/* New order alert badge */}
       {orderAlert === 'new_order' && (
-        <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#60A5FA] ring-2 ring-[#0A0A14]
-                         flex items-center justify-center animate-bounce">
+        <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#60A5FA] ring-2 ring-[#0A0A14] flex items-center justify-center animate-bounce">
           <Bell size={8} className="text-white" />
         </span>
       )}
       {/* Bill requested badge */}
       {orderAlert === 'bill' && (
-        <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#FBBF24] ring-2 ring-[#0A0A14]
-                         flex items-center justify-center">
+        <span className="absolute -top-2 -left-2 w-5 h-5 rounded-full bg-[#FBBF24] ring-2 ring-[#0A0A14] flex items-center justify-center">
           <Banknote size={8} className="text-[#0A0A14]" />
         </span>
       )}
@@ -303,8 +367,7 @@ function MesaCard({
             <button
               onClick={e => { e.stopPropagation(); onShowQr(mesa) }}
               title="Ver QR de mesa"
-              className="w-5 h-5 flex items-center justify-center rounded text-white/20
-                         hover:text-[#FF6B35]/80 hover:bg-[#FF6B35]/10 transition-colors"
+              className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-[#FF6B35]/80 hover:bg-[#FF6B35]/10 transition-colors"
             >
               <QrCode size={11} />
             </button>
@@ -337,8 +400,7 @@ function MesaCard({
       {mesa.status === 'ocupada' && (
         <button
           onClick={() => onMarkClean(mesa.id)}
-          className="mt-1 w-full py-1 rounded-lg text-[9px] font-medium text-white/40
-                     border border-white/8 hover:border-teal-400/30 hover:text-teal-400 transition-colors"
+          className="mt-1 w-full py-1 rounded-lg text-[9px] font-medium text-white/40 border border-white/8 hover:border-teal-400/30 hover:text-teal-400 transition-colors"
         >
           Marcar limpia
         </button>
@@ -346,8 +408,7 @@ function MesaCard({
       {mesa.status === 'limpia' && (
         <button
           onClick={() => onAssign(mesa.id)}
-          className="mt-1 w-full py-1 rounded-lg text-[9px] font-semibold text-teal-400
-                     border border-teal-400/30 bg-teal-400/10 hover:bg-teal-400/20 transition-colors"
+          className="mt-1 w-full py-1 rounded-lg text-[9px] font-semibold text-teal-400 border border-teal-400/30 bg-teal-400/10 hover:bg-teal-400/20 transition-colors"
         >
           Asignar →
         </button>
@@ -434,17 +495,13 @@ function WaitlistCard({
         <div className="flex gap-1.5 pt-0.5">
           <button
             onClick={() => onNotify(entry.id)}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg
-                       bg-[#FF6B35]/15 text-[#FF6B35] text-[10px] font-semibold
-                       border border-[#FF6B35]/20 hover:bg-[#FF6B35]/25 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-[#FF6B35]/15 text-[#FF6B35] text-[10px] font-semibold border border-[#FF6B35]/20 hover:bg-[#FF6B35]/25 transition-colors"
           >
             <MessageCircle size={10} /> Notificar vía WhatsApp
           </button>
           <button
             onClick={() => onCancel(entry.id)}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg
-                       border border-white/8 text-white/30 text-[10px]
-                       hover:border-red-500/30 hover:text-red-400 transition-colors"
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-white/8 text-white/30 text-[10px] hover:border-red-500/30 hover:text-red-400 transition-colors"
           >
             <X size={10} />
           </button>
@@ -454,17 +511,13 @@ function WaitlistCard({
         <div className="flex gap-1.5 pt-0.5">
           <button
             onClick={() => onSeat(entry.id)}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg
-                       bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold
-                       border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-400 text-[10px] font-semibold border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors"
           >
             <UserCheck size={10} /> Confirmar asiento
           </button>
           <button
             onClick={() => onCancel(entry.id)}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg
-                       border border-white/8 text-white/30 text-[10px]
-                       hover:border-red-500/30 hover:text-red-400 transition-colors"
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-white/8 text-white/30 text-[10px] hover:border-red-500/30 hover:text-red-400 transition-colors"
           >
             <Ban size={10} />
           </button>
@@ -524,9 +577,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl
-                   border border-dashed border-white/10 text-white/25 text-xs
-                   hover:border-white/20 hover:text-white/50 transition-colors"
+        className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-dashed border-white/10 text-white/25 text-xs hover:border-white/20 hover:text-white/50 transition-colors"
       >
         <Plus size={12} /> Agregar manualmente
       </button>
@@ -559,9 +610,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
           value={name}
           onChange={e => setName(e.target.value)}
           placeholder="Ej. María López"
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2
-                     text-white text-xs placeholder:text-white/20
-                     focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
         />
       </div>
 
@@ -576,9 +625,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
           onChange={e => setPhone(e.target.value)}
           placeholder="+56 9 XXXX XXXX"
           type="tel"
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2
-                     text-white text-xs placeholder:text-white/20
-                     focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
         />
         <p className="text-[9px] text-white/25 flex items-center gap-1 pt-0.5">
           <MessageCircle size={9} className="text-green-400/60 shrink-0" />
@@ -595,8 +642,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
           <button
             type="button"
             onClick={() => setPax(p => Math.max(1, p - 1))}
-            className="w-7 h-7 rounded-lg border border-white/10 text-white/50 text-sm
-                       hover:border-white/25 hover:text-white transition-colors flex items-center justify-center"
+            className="w-7 h-7 rounded-lg border border-white/10 text-white/50 text-sm hover:border-white/25 hover:text-white transition-colors flex items-center justify-center"
           >
             −
           </button>
@@ -604,8 +650,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
           <button
             type="button"
             onClick={() => setPax(p => Math.min(8, p + 1))}
-            className="w-7 h-7 rounded-lg border border-white/10 text-white/50 text-sm
-                       hover:border-white/25 hover:text-white transition-colors flex items-center justify-center"
+            className="w-7 h-7 rounded-lg border border-white/10 text-white/50 text-sm hover:border-white/25 hover:text-white transition-colors flex items-center justify-center"
           >
             +
           </button>
@@ -623,9 +668,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
           onChange={e => setNotes(e.target.value)}
           placeholder="Alergias, preferencias, etc."
           rows={2}
-          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2
-                     text-white text-xs placeholder:text-white/20 resize-none
-                     focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
+          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-xs placeholder:text-white/20 resize-none focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/8 transition-colors"
         />
       </div>
 
@@ -633,8 +676,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
       <button
         type="submit"
         disabled={submitting}
-        className="w-full py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold
-                   hover:bg-[#e85d2a] disabled:opacity-50 transition-colors"
+        className="w-full py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] disabled:opacity-50 transition-colors"
       >
         {submitting ? 'Agregando…' : 'Agregar a la espera'}
       </button>
@@ -706,12 +748,211 @@ function AssignModal({
   )
 }
 
+// ── Split Mesa Modal ──────────────────────────────────────────────────────────
+//
+// Permite tomar una mesa grande y dividirla en varias sub-mesas.
+// Plantillas rápidas: "2 de X pax", "X + X + X", etc.
+
+function SplitMesaModal({
+  mesa,
+  restaurantId,
+  onClose,
+  onSaved,
+}: {
+  mesa: Mesa
+  restaurantId: string
+  onClose: () => void
+  onSaved: (parent: Mesa, children: Mesa[]) => void
+}) {
+  // Start with two equal children
+  const defaultSize = Math.max(1, Math.floor(mesa.seats / 2))
+  const [children, setChildren] = useState<{ label: string; seats: number }[]>([
+    { label: `${mesa.label}A`, seats: defaultSize },
+    { label: `${mesa.label}B`, seats: mesa.seats - defaultSize },
+  ])
+  const [saving, setSaving] = useState(false)
+  const [error, setError]   = useState<string | null>(null)
+
+  const totalChildSeats = children.reduce((s, c) => s + c.seats, 0)
+  const exceeds = totalChildSeats > mesa.seats + 2
+
+  function applyPreset(n: number) {
+    const base = Math.max(1, Math.floor(mesa.seats / n))
+    const rest = mesa.seats - base * n
+    setChildren(
+      Array.from({ length: n }).map((_, i) => ({
+        label: `${mesa.label}${String.fromCharCode(65 + i)}`,
+        seats: i === 0 ? base + rest : base,
+      }))
+    )
+  }
+
+  function addChild() {
+    if (children.length >= 8) return
+    setChildren(prev => [
+      ...prev,
+      { label: `${mesa.label}${String.fromCharCode(65 + prev.length)}`, seats: 2 },
+    ])
+  }
+
+  function removeChild(idx: number) {
+    if (children.length <= 2) return
+    setChildren(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updateChild(idx: number, field: 'label' | 'seats', value: string | number) {
+    setChildren(prev => prev.map((c, i) => i === idx ? { ...c, [field]: value } : c))
+  }
+
+  async function handleSave() {
+    setSaving(true)
+    setError(null)
+    const res = await fetch('/api/tables/split', {
+      method:  'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        parent_id:     mesa.id,
+        restaurant_id: restaurantId,
+        children,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok || data.error) {
+      setError(data.error ?? 'No se pudo dividir la mesa')
+      setSaving(false)
+      return
+    }
+    onSaved(
+      { ...mesa, isBlocked: true, splitIntoIds: (data.children ?? []).map((c: { id: string }) => c.id) },
+      (data.children ?? []).map((c: DbTable) => dbToMesa(c))
+    )
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-5 w-full max-w-md space-y-4"
+           onClick={e => e.stopPropagation()}>
+
+        <div className="flex items-start justify-between">
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <Split size={14} className="text-indigo-300" />
+              <h3 className="text-white font-bold text-sm">Dividir Mesa {mesa.label}</h3>
+            </div>
+            <p className="text-white/40 text-[11px]">
+              {mesa.seats} pax → se convertirán en {children.length} sub-mesas
+            </p>
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white/60">
+            <X size={15} />
+          </button>
+        </div>
+
+        {/* Presets */}
+        <div className="flex gap-1.5 flex-wrap">
+          <span className="text-white/30 text-[10px] self-center mr-1">Plantillas:</span>
+          {[2, 3, 4].map(n => (
+            <button
+              key={n}
+              onClick={() => applyPreset(n)}
+              className="text-[10px] px-2 py-1 rounded-lg border border-white/10 text-white/50 hover:border-indigo-400/40 hover:text-indigo-300 transition-colors"
+            >
+              Dividir en {n}
+            </button>
+          ))}
+        </div>
+
+        {/* Children list */}
+        <div className="space-y-2">
+          {children.map((c, i) => (
+            <div key={i} className="flex items-center gap-2 bg-white/4 border border-white/8 rounded-xl p-2.5">
+              <input
+                value={c.label}
+                onChange={e => updateChild(i, 'label', e.target.value)}
+                placeholder="Nombre"
+                className="flex-1 min-w-0 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+              />
+              <div className="flex items-center gap-1 shrink-0">
+                <button
+                  onClick={() => updateChild(i, 'seats', Math.max(1, c.seats - 1))}
+                  className="w-6 h-6 rounded-md border border-white/10 text-white/50 text-xs hover:border-white/25 hover:text-white"
+                >−</button>
+                <span className="text-white text-xs font-bold w-5 text-center">{c.seats}</span>
+                <button
+                  onClick={() => updateChild(i, 'seats', Math.min(20, c.seats + 1))}
+                  className="w-6 h-6 rounded-md border border-white/10 text-white/50 text-xs hover:border-white/25 hover:text-white"
+                >+</button>
+                <span className="text-white/30 text-[9px] ml-0.5">pax</span>
+              </div>
+              {children.length > 2 && (
+                <button
+                  onClick={() => removeChild(i)}
+                  className="p-1 text-white/25 hover:text-red-400 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {children.length < 8 && (
+          <button
+            onClick={addChild}
+            className="w-full py-1.5 rounded-lg border border-dashed border-white/15 text-white/40 text-[11px] hover:border-white/30 hover:text-white/70 transition-colors flex items-center justify-center gap-1"
+          >
+            <Plus size={11} /> Agregar otra sub-mesa
+          </button>
+        )}
+
+        {/* Totals */}
+        <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px]
+          ${exceeds ? 'bg-red-500/10 border border-red-500/30 text-red-300'
+                    : 'bg-white/4 border border-white/8 text-white/50'}`}>
+          <span>Total sub-mesas</span>
+          <span className="font-bold">
+            {totalChildSeats} / {mesa.seats} pax
+          </span>
+        </div>
+
+        {error && (
+          <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
+            <AlertCircle size={12} className="text-red-300 mt-0.5 shrink-0" />
+            <p className="text-red-200 text-[11px]">{error}</p>
+          </div>
+        )}
+
+        <div className="text-[10px] text-white/30 leading-relaxed bg-white/3 rounded-lg p-2.5 border border-white/6">
+          <strong className="text-white/50">Cómo funciona:</strong> La mesa madre quedará bloqueada mientras esté dividida. Cada sub-mesa recibe su propio QR único. Puedes deshacer la división cuando quieras, siempre que las sub-mesas estén libres.
+        </div>
+
+        <div className="flex gap-2">
+          <button onClick={onClose}
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 transition-colors">
+            Cancelar
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving || exceeds}
+            className="flex-1 py-2.5 rounded-xl bg-indigo-500/90 text-white text-sm font-semibold hover:bg-indigo-500 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+          >
+            {saving ? <RefreshCw size={13} className="animate-spin" /> : <Split size={13} />}
+            {saving ? 'Dividiendo…' : 'Confirmar división'}
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── Nueva Mesa Modal ──────────────────────────────────────────────────────────
 
 function NuevaMesaModal({
+  restaurantId,
   onClose,
   onSave,
 }: {
+  restaurantId: string
   onClose: () => void
   onSave: (mesa: Mesa) => void
 }) {
@@ -730,7 +971,7 @@ function NuevaMesaModal({
     const res = await fetch('/api/tables', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ label: label.trim(), seats, zone, smoking }),
+      body: JSON.stringify({ label: label.trim(), seats, zone, smoking, restaurant_id: restaurantId }),
     })
     const json = await res.json()
 
@@ -764,8 +1005,7 @@ function NuevaMesaModal({
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Ej. 13 o Mesa 13"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 transition-colors"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 transition-colors"
           />
         </div>
 
@@ -811,9 +1051,7 @@ function NuevaMesaModal({
             Cancelar
           </button>
           <button onClick={handleSave} disabled={saving}
-            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors
-                       flex items-center justify-center gap-2">
+            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
             {saving ? <><RefreshCw size={13} className="animate-spin" /> Guardando…</> : <><Plus size={13} /> Crear mesa</>}
           </button>
         </div>
@@ -846,6 +1084,9 @@ export default function MesasPage() {
   const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('todos')
   const [qrMesa, setQrMesa]       = useState<Mesa | null>(null)
   const [showNuevaMesa, setShowNuevaMesa] = useState(false)
+  const [splitMesa, setSplitMesa] = useState<Mesa | null>(null)
+  const [deleteMesa, setDeleteMesa] = useState<Mesa | null>(null)
+  const [editingLayout, setEditingLayout] = useState(false)
 
   const supabase = createClient()
 
@@ -855,7 +1096,7 @@ export default function MesasPage() {
   const loadData = useCallback(async () => {
     if (!restId) return
     const [tablesRes, ordersRes] = await Promise.all([
-      supabase.from('tables').select('id, label, seats, status, zone, smoking, qr_token').eq('restaurant_id', restId).order('label'),
+      supabase.from('tables').select('id, label, seats, status, zone, smoking, qr_token, split_into_ids, pos_x, pos_y').eq('restaurant_id', restId).order('label'),
       supabase.from('orders').select('id, table_id, status').eq('restaurant_id', restId).not('status', 'in', '("paid","cancelled")'),
     ])
 
@@ -965,6 +1206,78 @@ export default function MesasPage() {
     showToast(`Mesa ${mesa.label} creada — QR generado`)
   }
 
+  async function confirmDeleteMesa() {
+    if (!deleteMesa || !restaurant?.id) return
+    const res = await fetch('/api/tables', {
+      method:  'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ id: deleteMesa.id, restaurant_id: restaurant.id }),
+    })
+    const data = await res.json()
+    if (!res.ok || data.error) {
+      showToast(data.error ?? 'No se pudo eliminar la mesa')
+      setDeleteMesa(null)
+      return
+    }
+    setMesas(prev => prev.filter(m => m.id !== deleteMesa.id))
+    showToast(`Mesa ${deleteMesa.label} eliminada`)
+    setDeleteMesa(null)
+  }
+
+  function onSplitSaved(parent: Mesa, children: Mesa[]) {
+    setMesas(prev => [
+      ...prev.map(m => m.id === parent.id ? { ...m, ...parent } : m),
+      ...children,
+    ])
+    setSplitMesa(null)
+    showToast(`Mesa ${parent.label} dividida en ${children.length} sub-mesas`)
+  }
+
+  async function mergeBack(parent: Mesa) {
+    if (!restaurant?.id || !parent.splitIntoIds?.length) return
+    const res = await fetch('/api/tables/split', {
+      method:  'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({
+        parent_id:     parent.id,
+        restaurant_id: restaurant.id,
+        child_ids:     parent.splitIntoIds,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok || data.error) {
+      showToast(data.error ?? 'No se pudo volver a unir la mesa')
+      return
+    }
+    const childSet = new Set(parent.splitIntoIds)
+    setMesas(prev => prev
+      .filter(m => !childSet.has(m.id))
+      .map(m => m.id === parent.id ? { ...m, isBlocked: false, splitIntoIds: undefined, status: 'libre' as MesaStatus } : m)
+    )
+    showToast(`Mesa ${parent.label} restablecida`)
+  }
+
+  // Persist mesa positions after drag in floorplan mode.
+  // Optimistic local update + bulk PATCH.
+  const persistPositions = useCallback(async (
+    positions: { id: string; pos_x: number; pos_y: number }[]
+  ) => {
+    if (!restaurant?.id) return
+    setMesas(prev => prev.map(m => {
+      const found = positions.find(p => p.id === m.id)
+      return found ? { ...m, posX: found.pos_x, posY: found.pos_y } : m
+    }))
+    try {
+      await fetch('/api/tables', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ restaurant_id: restaurant.id, positions }),
+      })
+    } catch {
+      showToast('No se pudo guardar el layout')
+    }
+  }, [restaurant?.id])
+
   function autoReleaseMesa(mesaId: string) {
     setMesas(prev => prev.map(m =>
       m.id === mesaId && m.status === 'reserva'
@@ -1021,9 +1334,20 @@ export default function MesasPage() {
               {online ? 'En vivo' : 'Sin conexión'}
             </span>
             <button
+              onClick={() => setEditingLayout(e => !e)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-colors
+                ${editingLayout
+                  ? 'bg-[#FF6B35] border-[#FF6B35] text-white hover:bg-[#e55a2b]'
+                  : 'bg-white/5 border-white/10 text-white/70 hover:text-white hover:border-white/20'
+                }`}
+              title={editingLayout ? 'Bloquear layout' : 'Mover mesas en el plano'}
+            >
+              {editingLayout ? <Lock size={12} /> : <Move size={12} />}
+              {editingLayout ? 'Listo' : 'Editar plano'}
+            </button>
+            <button
               onClick={() => setShowNuevaMesa(true)}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30
-                         text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
             >
               <Plus size={12} /> Agregar mesa
             </button>
@@ -1077,27 +1401,37 @@ export default function MesasPage() {
           ))}
         </div>
 
-        {/* Grid */}
-        <div className="grid grid-cols-4 gap-3">
-          {filteredMesas.map(m => (
+        {/* Floorplan — drag-enabled when editingLayout is true */}
+        <MesasFloorplan
+          mesas={filteredMesas}
+          editing={editingLayout}
+          onPositionsChange={persistPositions}
+          renderCard={(m) => (
             <MesaCard
-              key={m.id}
               mesa={m}
               orderAlert={orderAlerts[m.id]}
               onMarkClean={markClean}
               onAssign={openAssign}
               onAutoRelease={autoReleaseMesa}
               onShowQr={setQrMesa}
+              onDelete={setDeleteMesa}
+              onSplit={setSplitMesa}
+              onMerge={mergeBack}
             />
-          ))}
-        </div>
+          )}
+          emptyState={
+            <EmptyState
+              icon={Utensils}
+              title="No hay mesas en esta zona"
+              description="Selecciona otra zona o agrega mesas al layout"
+            />
+          }
+        />
 
-        {filteredMesas.length === 0 && (
-          <EmptyState
-            icon={Utensils}
-            title="No hay mesas en esta zona"
-            description="Selecciona otra zona o agrega mesas al layout"
-          />
+        {editingLayout && filteredMesas.length > 0 && (
+          <p className="text-white/40 text-[11px] mt-2 text-center">
+            Tip: arrastra cada mesa para reorganizar el plano. Cuando termines, presiona <span className="text-[#FF6B35] font-semibold">Listo</span>.
+          </p>
         )}
 
         {/* Legend */}
@@ -1167,8 +1501,7 @@ export default function MesasPage() {
         {/* Entries */}
         <div className="flex-1 overflow-y-auto px-3 pb-4 space-y-2">
           {activeWaitlist.length === 0 ? (
-            <div className="border border-dashed border-white/8 rounded-xl mt-4 h-28
-                            flex flex-col items-center justify-center gap-2">
+            <div className="border border-dashed border-white/8 rounded-xl mt-4 h-28 flex flex-col items-center justify-center gap-2">
               <CheckCircle2 size={20} className="text-white/15" />
               <p className="text-white/20 text-xs">Sin personas en espera</p>
             </div>
@@ -1202,26 +1535,71 @@ export default function MesasPage() {
       )}
 
       {/* ── Nueva mesa modal ─────────────────────────────────────────────── */}
-      {showNuevaMesa && (
+      {showNuevaMesa && restaurant?.id && (
         <NuevaMesaModal
+          restaurantId={restaurant.id}
           onClose={() => setShowNuevaMesa(false)}
           onSave={addMesa}
         />
+      )}
+
+      {/* ── Split mesa modal ─────────────────────────────────────────────── */}
+      {splitMesa && restaurant?.id && (
+        <SplitMesaModal
+          mesa={splitMesa}
+          restaurantId={restaurant.id}
+          onClose={() => setSplitMesa(null)}
+          onSaved={onSplitSaved}
+        />
+      )}
+
+      {/* ── Delete mesa confirm ──────────────────────────────────────────── */}
+      {deleteMesa && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
+             onClick={() => setDeleteMesa(null)}>
+          <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4"
+               onClick={e => e.stopPropagation()}>
+            <div className="flex items-start gap-3">
+              <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
+                <Trash2 size={15} className="text-red-300" />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-sm">¿Eliminar Mesa {deleteMesa.label}?</h3>
+                <p className="text-white/40 text-xs mt-1 leading-relaxed">
+                  Su QR dejará de funcionar. Si tiene pedidos activos, primero deberás cerrarlos o cancelarlos.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setDeleteMesa(null)}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmDeleteMesa}
+                className="flex-1 py-2.5 rounded-xl bg-red-500/90 text-white text-sm font-semibold hover:bg-red-500 transition-colors"
+              >
+                Eliminar mesa
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── QR modal ─────────────────────────────────────────────────────── */}
       {qrMesa && (
         <QrModal
           mesa={qrMesa}
+          slug={restaurant?.slug ?? 'demo-restaurante'}
           onClose={() => setQrMesa(null)}
         />
       )}
 
       {/* ── Toast ────────────────────────────────────────────────────────── */}
       {toast && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50
-                        bg-[#1C1C2E] border border-[#FF6B35]/30 text-white px-5 py-3
-                        rounded-xl text-sm shadow-xl flex items-center gap-2">
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 bg-[#1C1C2E] border border-[#FF6B35]/30 text-white px-5 py-3 rounded-xl text-sm shadow-xl flex items-center gap-2">
           <Bell size={14} className="text-[#FF6B35]" />
           {toast}
         </div>

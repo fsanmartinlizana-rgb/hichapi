@@ -8,6 +8,10 @@ import {
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { TagPicker } from '@/components/ui/TagPicker'
+import { MENU_ITEM_TAG_GROUPS } from '@/lib/tags/catalog'
+import { ImportMenuModal } from '@/components/carta/ImportMenuModal'
+import { Sparkles } from 'lucide-react'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -29,7 +33,6 @@ interface MenuItem {
 // ── Constants ────────────────────────────────────────────────────────────────
 
 const CATEGORIES = ['entrada', 'principal', 'postre', 'bebida', 'para compartir']
-const TAG_OPTIONS = ['vegano', 'vegetariano', 'sin gluten', 'sin lactosa', 'picante', 'popular', 'nuevo']
 
 const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; hint: string }[] = [
   { value: 'cocina',  label: 'Cocina',  icon: ChefHat, hint: 'Va a la pantalla de cocina' },
@@ -71,10 +74,6 @@ function ItemForm({
   function removePhoto() {
     setPhotoPreview(null)
     if (fileRef.current) fileRef.current.value = ''
-  }
-
-  function toggleTag(t: string) {
-    setTags(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t])
   }
 
   async function handleSave() {
@@ -128,9 +127,7 @@ function ItemForm({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="w-full h-40 rounded-xl border-2 border-dashed border-white/15 bg-white/3
-                     hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 transition-all
-                     flex flex-col items-center justify-center gap-2 group"
+          className="w-full h-40 rounded-xl border-2 border-dashed border-white/15 bg-white/3 hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 transition-all flex flex-col items-center justify-center gap-2 group"
         >
           <Camera size={22} className="text-white/25 group-hover:text-[#FF6B35]/60 transition-colors" />
           <span className="text-white/35 group-hover:text-white/50 text-sm font-medium transition-colors">
@@ -144,20 +141,17 @@ function ItemForm({
         <div className="col-span-2 space-y-1.5">
           <label className="text-white/50 text-xs">Nombre del plato</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Lomo vetado"
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
         </div>
         <div className="col-span-2 space-y-1.5">
           <label className="text-white/50 text-xs">Descripción</label>
           <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ingredientes, preparación..."
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
         </div>
         <div className="space-y-1.5">
           <label className="text-white/50 text-xs">Precio (CLP)</label>
           <input value={price} onChange={e => setPrice(e.target.value.replace(/\D/g, ''))} placeholder="15900"
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
@@ -169,15 +163,13 @@ function ItemForm({
             )}
           </div>
           <input value={cost} onChange={e => setCost(e.target.value.replace(/\D/g, ''))} placeholder="6200"
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
+            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
         </div>
         <div className="space-y-1.5">
           <label className="text-white/50 text-xs">Categoría</label>
           <div className="relative">
             <select value={category} onChange={e => setCategory(e.target.value)}
-              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                         focus:outline-none focus:border-[#FF6B35]/50 transition-colors">
+              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors">
               {CATEGORIES.map(c => <option key={c} value={c} className="bg-[#1C1C2E]">{c}</option>)}
             </select>
             <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
@@ -194,16 +186,15 @@ function ItemForm({
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="text-white/50 text-xs">Tags</label>
-        <div className="flex flex-wrap gap-1.5">
-          {TAG_OPTIONS.map(t => (
-            <button key={t} onClick={() => toggleTag(t)}
-              className={`text-xs px-2.5 py-1 rounded-full border transition-all
-                ${tags.includes(t) ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/30 hover:border-white/20'}`}>
-              {t}
-            </button>
-          ))}
-        </div>
+        <label className="text-white/50 text-xs">Tags · ayuda a que Chapi y los buscadores de IA recomienden este plato</label>
+        <TagPicker
+          groups={MENU_ITEM_TAG_GROUPS}
+          selected={tags}
+          onChange={setTags}
+          max={15}
+          allowCustom
+          size="sm"
+        />
       </div>
       {/* Destino de comanda */}
       <div className="space-y-1.5">
@@ -236,8 +227,7 @@ function ItemForm({
           Cancelar
         </button>
         <button onClick={handleSave} disabled={!name || !price || saving}
-          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm
-                     font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors">
+          className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors">
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
           {saving ? 'Guardando...' : 'Guardar plato'}
         </button>
@@ -327,6 +317,7 @@ export default function CartaPage() {
   const [adding, setAdding]       = useState(false)
   const [editing, setEditing]     = useState<string | null>(null)
   const [deleting, setDeleting]   = useState<string | null>(null)
+  const [importing, setImporting] = useState(false)
 
   // ── Load items from API ──────────────────────────────────────────────────
   const loadItems = useCallback(async () => {
@@ -461,9 +452,14 @@ export default function CartaPage() {
           <button onClick={loadItems} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
             <RefreshCw size={14} />
           </button>
+          <button
+            onClick={() => setImporting(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white hover:border-[#FF6B35]/40 text-sm font-medium transition-colors"
+          >
+            <Sparkles size={13} className="text-[#FF6B35]" /> Importar carta
+          </button>
           <button onClick={() => setAdding(true)} disabled={adding}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e85d2a] disabled:opacity-50 transition-colors">
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-50 transition-colors">
             <Plus size={14} /> Agregar plato
           </button>
         </div>
@@ -477,8 +473,7 @@ export default function CartaPage() {
         <div className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar plato..."
-            className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 w-44 transition-colors" />
+            className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 w-44 transition-colors" />
         </div>
         <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
           {cats.map(c => (
@@ -541,6 +536,15 @@ export default function CartaPage() {
             Los cambios se sincronizan automáticamente con tu perfil público en HiChapi Discovery.
           </p>
         </div>
+      )}
+
+      {/* Import modal */}
+      {importing && restId && (
+        <ImportMenuModal
+          restaurantId={restId}
+          onClose={() => setImporting(false)}
+          onImported={() => { loadItems(); }}
+        />
       )}
 
       {/* Delete confirm */}

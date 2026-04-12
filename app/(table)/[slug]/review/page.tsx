@@ -187,8 +187,7 @@ function ReviewInner() {
             placeholder="¿Qué tal la comida, el servicio, el ambiente…?"
             rows={4}
             maxLength={1000}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm
-                       placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/50 transition-colors resize-none"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/50 transition-colors resize-none"
           />
           <p className="text-right text-white/25 text-[10px]">{comment.length}/1000</p>
         </div>
@@ -204,9 +203,7 @@ function ReviewInner() {
         <button
           onClick={handleSubmit}
           disabled={rating === 0 || saving}
-          className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                     hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed
-                     transition-colors flex items-center justify-center gap-2"
+          className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
         >
           {saving ? (
             <><Clock size={15} className="animate-spin" /> Enviando…</>

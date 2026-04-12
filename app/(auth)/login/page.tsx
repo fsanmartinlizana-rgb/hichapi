@@ -85,8 +85,7 @@ function LoginForm() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center
-                        text-white font-bold text-xl mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
           hi
         </div>
         <h1 className="text-white font-bold text-2xl">Bienvenido de vuelta</h1>
@@ -97,8 +96,7 @@ function LoginForm() {
       <div className="bg-[#161622] border border-white/8 rounded-2xl p-6 space-y-4">
 
         {error && (
-          <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20
-                          rounded-xl px-4 py-3">
+          <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
             <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
             <p className="text-red-400 text-sm leading-relaxed">{error}</p>
           </div>
@@ -117,9 +115,7 @@ function LoginForm() {
               autoComplete="email"
               disabled={blocked}
               placeholder="tu@restaurante.cl"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                         placeholder:text-white/20 text-sm focus:outline-none
-                         focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
+              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
             />
           </div>
 
@@ -140,9 +136,7 @@ function LoginForm() {
                 autoComplete="current-password"
                 disabled={blocked}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white
-                           placeholder:text-white/20 text-sm focus:outline-none
-                           focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
+                className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
               />
               <button
                 type="button"
@@ -158,9 +152,7 @@ function LoginForm() {
           <button
             type="submit"
             disabled={loading || blocked || !email || !password}
-            className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                       hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed
-                       transition-colors flex items-center justify-center gap-2"
+            className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {loading
               ? <><Loader2 size={15} className="animate-spin" /> Ingresando...</>
@@ -187,9 +179,7 @@ function LoginForm() {
             })
           }}
           disabled={loading || blocked}
-          className="w-full py-3 rounded-xl bg-white/5 border border-white/8 text-white/70 text-sm
-                     hover:bg-white/8 hover:text-white disabled:opacity-40
-                     transition-colors flex items-center justify-center gap-2.5"
+          className="w-full py-3 rounded-xl bg-white/5 border border-white/8 text-white/70 text-sm hover:bg-white/8 hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2.5"
         >
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

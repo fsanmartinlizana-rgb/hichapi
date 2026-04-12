@@ -164,9 +164,7 @@ export function SubmissionForm() {
         </p>
         <a
           href="/"
-          className="inline-flex items-center gap-2 text-sm px-6 py-3 rounded-full
-                     bg-[#FF6B35] hover:bg-[#e55a2b] text-white font-medium
-                     transition-colors duration-150"
+          className="inline-flex items-center gap-2 text-sm px-6 py-3 rounded-full bg-[#FF6B35] hover:bg-[#e55a2b] text-white font-medium transition-colors duration-150"
         >
           Volver a Chapi
         </a>
@@ -388,10 +386,7 @@ export function SubmissionForm() {
       <button
         type="submit"
         disabled={status === 'loading'}
-        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl
-                   bg-[#FF6B35] hover:bg-[#e55a2b] disabled:bg-neutral-200
-                   text-white font-semibold text-base
-                   transition-colors duration-150"
+        className="w-full flex items-center justify-center gap-2 py-4 rounded-xl bg-[#FF6B35] hover:bg-[#e55a2b] disabled:bg-neutral-200 text-white font-semibold text-base transition-colors duration-150"
       >
         {status === 'loading' ? (
           <>

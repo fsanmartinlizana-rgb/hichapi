@@ -397,8 +397,7 @@ function StockQtyPopover({
 
   return (
     <div
-      className="absolute right-0 top-6 z-20 bg-[#12121E] border border-white/12 rounded-xl
-                  shadow-2xl p-3 w-48 flex flex-col gap-2"
+      className="absolute right-0 top-6 z-20 bg-[#12121E] border border-white/12 rounded-xl shadow-2xl p-3 w-48 flex flex-col gap-2"
       onClick={e => e.stopPropagation()}
     >
       <p className="text-white/60 text-[10px] leading-tight">
@@ -417,24 +416,20 @@ function StockQtyPopover({
             if (e.key === 'Enter') onConfirm(value)
             if (e.key === 'Escape') onClose()
           }}
-          className="flex-1 bg-white/8 border border-white/12 rounded-lg px-2 py-1
-                     text-white text-sm text-center focus:outline-none focus:border-amber-400/50
-                     [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
+          className="flex-1 bg-white/8 border border-white/12 rounded-lg px-2 py-1 text-white text-sm text-center focus:outline-none focus:border-amber-400/50 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none"
         />
         <span className="text-white/35 text-[10px]">unds.</span>
       </div>
       <div className="flex gap-1.5">
         <button
           onClick={() => onConfirm(value)}
-          className="flex-1 py-1 rounded-lg text-[11px] font-semibold
-                     bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
+          className="flex-1 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/20 text-amber-300 hover:bg-amber-500/30 transition-colors"
         >
           Confirmar
         </button>
         <button
           onClick={onClose}
-          className="px-2 py-1 rounded-lg text-[11px]
-                     text-white/30 hover:text-white/60 transition-colors"
+          className="px-2 py-1 rounded-lg text-[11px] text-white/30 hover:text-white/60 transition-colors"
         >
           Cancelar
         </button>
@@ -618,8 +613,7 @@ function OrderCard({
                   {!broken && (
                     <button
                       onClick={() => onBreak(order.id, i, item.name)}
-                      className="w-4 h-4 rounded flex items-center justify-center
-                                  text-red-400/60 hover:text-red-400 hover:bg-red-500/15 transition-all"
+                      className="w-4 h-4 rounded flex items-center justify-center text-red-400/60 hover:text-red-400 hover:bg-red-500/15 transition-all"
                       title="Marcar quiebre"
                     >
                       <X size={9} />
@@ -631,9 +625,7 @@ function OrderCard({
                     <div className="relative">
                       <button
                         onClick={() => setPopoverItem(popoverItem === i ? null : i)}
-                        className="w-4 h-4 rounded flex items-center justify-center
-                                    text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/15
-                                    transition-all text-[9px] font-bold"
+                        className="w-4 h-4 rounded flex items-center justify-center text-amber-400/60 hover:text-amber-400 hover:bg-amber-500/15 transition-all text-[9px] font-bold"
                         title="Marcar pocas unidades"
                       >
                         !
@@ -730,7 +722,7 @@ const MENU_ITEMS_QUICK  = [
   'Ensalada César','Tiramisú','Gazpacho','Ceviche','Pan de ajo','Pisco sour',
 ]
 
-interface NuevaComandaLine { name: string; qty: number; note: string }
+interface NuevaComandaLine { name: string; qty: number; note: string; dest: Destination }
 
 function NuevaComandaModal({
   onClose,
@@ -741,10 +733,10 @@ function NuevaComandaModal({
 }) {
   const [mesa, setMesa]   = useState('')
   const [pax, setPax]     = useState(2)
-  const [lines, setLines] = useState<NuevaComandaLine[]>([{ name: '', qty: 1, note: '' }])
+  const [lines, setLines] = useState<NuevaComandaLine[]>([{ name: '', qty: 1, note: '', dest: 'cocina' }])
   const [saving, setSaving] = useState(false)
 
-  function addLine() { setLines(prev => [...prev, { name: '', qty: 1, note: '' }]) }
+  function addLine() { setLines(prev => [...prev, { name: '', qty: 1, note: '', dest: 'cocina' }]) }
   function removeLine(i: number) { setLines(prev => prev.filter((_, idx) => idx !== i)) }
   function updateLine(i: number, patch: Partial<NuevaComandaLine>) {
     setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l))
@@ -760,7 +752,7 @@ function NuevaComandaModal({
       tableLabel: mesa,
       pax,
       status:     'recibida',
-      items:      validLines.map(l => ({ name: l.name, qty: l.qty, note: l.note || undefined })),
+      items:      validLines.map(l => ({ name: l.name, qty: l.qty, note: l.note || undefined, destination: l.dest })),
       amount:     0,
       mins:       0,
       viaChapi:   false,
@@ -779,8 +771,7 @@ function NuevaComandaModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Panel */}
-      <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-md
-                      shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
 
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
@@ -806,8 +797,7 @@ function NuevaComandaModal({
               <select
                 value={mesa}
                 onChange={e => setMesa(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           focus:outline-none focus:border-[#FF6B35]/50 transition-colors appearance-none"
+                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors appearance-none"
               >
                 <option value="" className="bg-[#161622]">Seleccionar…</option>
                 {MESAS_DISPONIBLES.map(m => (
@@ -850,8 +840,7 @@ function NuevaComandaModal({
                     <select
                       value={line.qty}
                       onChange={e => updateLine(i, { qty: Number(e.target.value) })}
-                      className="w-14 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                                 focus:outline-none focus:border-[#FF6B35]/50 appearance-none text-center"
+                      className="w-14 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none text-center"
                     >
                       {[1,2,3,4,5,6].map(n => <option key={n} value={n} className="bg-[#161622]">{n}×</option>)}
                     </select>
@@ -859,8 +848,7 @@ function NuevaComandaModal({
                     <select
                       value={line.name}
                       onChange={e => updateLine(i, { name: e.target.value })}
-                      className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                                 focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
+                      className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
                     >
                       <option value="" className="bg-[#161622]">Seleccionar plato…</option>
                       {MENU_ITEMS_QUICK.map(item => (
@@ -871,20 +859,35 @@ function NuevaComandaModal({
                     {lines.length > 1 && (
                       <button
                         onClick={() => removeLine(i)}
-                        className="w-9 h-9 rounded-xl bg-white/5 hover:bg-red-500/15 border border-white/8
-                                   hover:border-red-500/30 text-white/30 hover:text-red-400 transition-colors flex items-center justify-center"
+                        className="w-9 h-9 rounded-xl bg-white/5 hover:bg-red-500/15 border border-white/8 hover:border-red-500/30 text-white/30 hover:text-red-400 transition-colors flex items-center justify-center"
                       >
                         <X size={13} />
                       </button>
                     )}
+                  </div>
+                  {/* Destination toggle */}
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      onClick={() => updateLine(i, { dest: 'cocina' })}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors ${line.dest === 'cocina' ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30' : 'bg-white/3 text-white/30 border border-white/6 hover:text-white/50'}`}
+                    >
+                      <ChefHat size={10} /> Cocina
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => updateLine(i, { dest: 'barra' })}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors ${line.dest === 'barra' ? 'bg-purple-500/20 text-purple-300 border border-purple-500/30' : 'bg-white/3 text-white/30 border border-white/6 hover:text-white/50'}`}
+                    >
+                      <Wine size={10} /> Barra
+                    </button>
                   </div>
                   {/* Note */}
                   <input
                     value={line.note}
                     onChange={e => updateLine(i, { note: e.target.value })}
                     placeholder="Nota opcional (sin gluten, sin cebolla…)"
-                    className="w-full px-3 py-1.5 rounded-lg bg-white/3 border border-white/6 text-white/70
-                               placeholder:text-white/20 text-[11px] focus:outline-none focus:border-white/15"
+                    className="w-full px-3 py-1.5 rounded-lg bg-white/3 border border-white/6 text-white/70 placeholder:text-white/20 text-[11px] focus:outline-none focus:border-white/15"
                   />
                 </div>
               ))}
@@ -896,17 +899,14 @@ function NuevaComandaModal({
         <div className="px-5 py-4 border-t border-white/8 flex gap-2">
           <button
             onClick={onClose}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm
-                       hover:border-white/20 hover:text-white/60 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-colors"
           >
             Cancelar
           </button>
           <button
             onClick={handleSave}
             disabled={!canSave || saving}
-            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed
-                       transition-colors flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
           >
             {saving ? (
               <><Clock size={14} className="animate-spin" /> Creando…</>
@@ -948,7 +948,7 @@ function ComandasPageInner() {
       supabase.from('tables').select('id, label').eq('restaurant_id', restId),
       supabase
         .from('orders')
-        .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes, destination, station_status)')
+        .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes)')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
@@ -1053,6 +1053,26 @@ function ComandasPageInner() {
       return next
     })
     pushToast(`${itemName} marcado como quiebre · Chapi dejará de ofrecerlo`, 'break')
+
+    // Mirror to centralized notifications so it shows in the bell + history
+    if (restId) {
+      fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restId,
+          type: 'item_86',
+          severity: 'warning',
+          category: 'inventario',
+          title: `${itemName} marcado como quiebre`,
+          message: 'Está oculto del menú y de Chapi. Cuando tengas reposición, desmárcalo en Carta.',
+          action_url: `/carta?search=${encodeURIComponent(itemName)}`,
+          action_label: 'Gestionar en Carta',
+          dedupe_key: `item_86:${itemName.toLowerCase()}`,
+          metadata: { item_name: itemName },
+        }),
+      }).catch(() => { /* silent */ })
+    }
   }
 
   function markLow(itemName: string, qty: number) {
@@ -1061,6 +1081,31 @@ function ComandasPageInner() {
       `${itemName} marcado con ${qty} unidades disponibles · Chapi dejará de recomendarlo activamente`,
       'stock'
     )
+
+    // Notify
+    if (restId) {
+      const isOut = qty <= 0
+      fetch('/api/notifications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restId,
+          type: isOut ? 'stock_out' : 'stock_low',
+          severity: isOut ? 'critical' : 'warning',
+          category: 'inventario',
+          title: isOut
+            ? `Sin stock: ${itemName}`
+            : `Stock bajo: ${itemName}`,
+          message: isOut
+            ? `${itemName} llegó a 0. Chapi dejará de ofrecerlo en discovery.`
+            : `Quedan ${qty} unidades de ${itemName}. Reabastece antes que se quiebre.`,
+          action_url: `/stock?search=${encodeURIComponent(itemName)}`,
+          action_label: 'Ir a Stock',
+          dedupe_key: `stock_low:${itemName.toLowerCase()}`,
+          metadata: { item_name: itemName, qty },
+        }),
+      }).catch(() => { /* silent */ })
+    }
   }
 
   function handleNuevaComanda(order: Order) {
@@ -1155,25 +1200,19 @@ function ComandasPageInner() {
               value={search}
               onChange={e => setSearch(e.target.value)}
               placeholder="Mesa o plato..."
-              className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                         placeholder:text-white/25 focus:outline-none focus:border-white/20 w-44"
+              className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-white/20 w-44"
             />
           </div>
           <button
             onClick={() => setShowNueva(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
-                       text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
             <Plus size={14} />
             Nueva comanda
           </button>
         </div>
       </div>
 
-      {/* Stock alert banner — above the kanban, below the header */}
-      <StockAlertBanner
-        stockMap={stockMap}
-        onGestionar={() => pushToast('Panel de gestión de stock — próximamente', 'stock')}
-      />
+      {/* Stock alert banner removed — notifications system handles this now */}
 
       {/* Loading */}
       {loading && (
@@ -1212,8 +1251,7 @@ function ComandasPageInner() {
                 {/* Cards */}
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                   {colOrders.length === 0 ? (
-                    <div className="border border-dashed border-white/8 rounded-xl h-24
-                                    flex items-center justify-center">
+                    <div className="border border-dashed border-white/8 rounded-xl h-24 flex items-center justify-center">
                       <p className="text-white/15 text-xs">Sin comandas</p>
                     </div>
                   ) : (

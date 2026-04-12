@@ -8,6 +8,7 @@ import {
   Package, ChevronDown, RefreshCw
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { formatCurrency } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -41,8 +42,7 @@ const REASONS: { value: string; label: string }[] = [
   { value: 'otro',         label: 'Otro' },
 ]
 
-const CLP = (v: number) =>
-  new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(v)
+const CLP = (v: number) => formatCurrency(v)
 
 // ── Component ────────────────────────────────────────────────────────────────
 
@@ -357,8 +357,7 @@ export default function MermasPage() {
             <button
               type="submit"
               disabled={submitting || !selectedItem || !qty}
-              className="w-full py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed
-                         text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed text-white text-sm font-semibold transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? <RefreshCw size={14} className="animate-spin" /> : <Package size={14} />}
               {submitting ? 'Registrando...' : 'Registrar merma'}

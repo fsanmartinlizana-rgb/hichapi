@@ -8,6 +8,7 @@ import {
 } from 'lucide-react'
 import { PaymentMethodModal } from '@/components/PaymentMethodModal'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { formatCurrency } from '@/lib/i18n'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -64,9 +65,7 @@ const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; b
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function clp(amount: number) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(amount)
-}
+const clp = (amount: number) => formatCurrency(amount)
 
 function elapsedMin(iso: string) {
   return Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
@@ -225,9 +224,7 @@ function OrderPanel({
           <button
             onClick={() => onAdvance(order.id, cfg.next!)}
             disabled={advancing}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm
-                       hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed
-                       transition-all flex items-center justify-center gap-2"
+            className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
             style={{ backgroundColor: cfg.color }}
           >
             {advancing ? (
@@ -409,8 +406,7 @@ export default function GarzonPage() {
         </div>
         <button
           onClick={loadData}
-          className="p-2 rounded-xl bg-white/5 border border-white/8 text-white/40
-                     hover:bg-white/8 hover:text-white transition-colors"
+          className="p-2 rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors"
         >
           <RefreshCw size={14} />
         </button>
@@ -507,9 +503,7 @@ export default function GarzonPage() {
               <button
                 key={order.id}
                 onClick={() => setSelected(order.table_id)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl
-                           bg-[#161622] border border-white/5
-                           hover:border-[#FF6B35]/30 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#161622] border border-white/5 hover:border-[#FF6B35]/30 transition-colors text-left"
               >
                 <div
                   className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"

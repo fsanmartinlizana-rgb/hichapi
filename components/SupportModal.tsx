@@ -124,8 +124,7 @@ export default function SupportModal({ open, onClose, restaurantId, userId }: Su
                 value={subject}
                 onChange={e => setSubject(e.target.value)}
                 placeholder="Ej: No puedo crear comandas"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
               />
             </div>
 
@@ -138,8 +137,7 @@ export default function SupportModal({ open, onClose, restaurantId, userId }: Su
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Describe qué pasó, en qué página, y qué esperabas que ocurriera..."
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm
-                           placeholder:text-white/20 resize-none focus:outline-none focus:border-[#FF6B35]/50"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 resize-none focus:outline-none focus:border-[#FF6B35]/50"
               />
             </div>
 
@@ -153,9 +151,7 @@ export default function SupportModal({ open, onClose, restaurantId, userId }: Su
             <button
               type="submit"
               disabled={submitting || !subject.trim() || !description.trim()}
-              className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                         hover:bg-[#e55a2b] disabled:opacity-40 transition-colors
-                         flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>

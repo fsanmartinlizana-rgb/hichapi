@@ -2,12 +2,14 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import {
-  Check, MapPin, Clock, Globe, Phone, Camera, Loader2, Plus, AtSign,
+  Check, MapPin, Clock, Globe, Phone, Camera, Loader2, AtSign,
   ExternalLink, Sparkles, AlertCircle,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { MODULE_LABELS, MODULE_PLAN_REQUIRED, type ModulesConfig } from '@/lib/defaults/moduleDefaults'
+import { TagPicker } from '@/components/ui/TagPicker'
+import { RESTAURANT_TAG_GROUPS } from '@/lib/tags/catalog'
 
 // ── Constants ────────────────────────────────────────────────────────────────
 
@@ -80,8 +82,7 @@ function TextInput({
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                 placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
     />
   )
 }
@@ -113,7 +114,6 @@ export default function RestaurantePage() {
   const [priceRange, setPriceRange]   = useState('$$')
   const [capacity, setCapacity]       = useState('')
   const [tags, setTags]               = useState<string[]>([])
-  const [newTag, setNewTag]           = useState('')
   const [photoUrl, setPhotoUrl]       = useState<string | null>(null)
   const [schedule, setSchedule]       = useState<Record<string, Schedule>>(DEFAULT_HOURS)
 
@@ -184,14 +184,6 @@ export default function RestaurantePage() {
     setSchedule(prev => ({ ...prev, [day]: { ...prev[day], [field]: value } }))
   }
 
-  function addTag() {
-    const v = newTag.trim().toLowerCase()
-    if (v && !tags.includes(v) && tags.length < 20) {
-      setTags(prev => [...prev, v])
-      setNewTag('')
-    }
-  }
-
   // ── Save ──────────────────────────────────────────────────────────────────
   async function handleSave() {
     if (!restaurant) return
@@ -259,8 +251,7 @@ export default function RestaurantePage() {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : null}
             {saving ? 'Guardando…' : saved ? 'Guardado' : 'Guardar cambios'}
@@ -280,8 +271,7 @@ export default function RestaurantePage() {
         {/* Photo */}
         <Section title="Foto principal">
           <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed
-                            flex items-center justify-center overflow-hidden">
+            <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed flex items-center justify-center overflow-hidden">
               {photoUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
@@ -297,8 +287,7 @@ export default function RestaurantePage() {
                 value={photoUrl ?? ''}
                 onChange={e => setPhotoUrl(e.target.value || null)}
                 placeholder="https://…"
-                className="w-full mt-2 px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-xs
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full mt-2 px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
             </div>
           </div>
@@ -315,8 +304,7 @@ export default function RestaurantePage() {
               onChange={e => setDescription(e.target.value.slice(0, 300))}
               rows={3}
               placeholder="Cuenta a los clientes qué hace especial tu restaurante…"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                         placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors"
             />
           </Field>
           <div className="grid grid-cols-2 gap-4">
@@ -344,39 +332,17 @@ export default function RestaurantePage() {
               ))}
             </div>
           </Field>
-          <Field label="Tags / Ambiente" hint="Hasta 20 etiquetas. Aparecen en tu landing pública.">
-            <div className="flex flex-wrap gap-1.5 mb-2">
-              {tags.map(t => (
-                <span
-                  key={t}
-                  className="flex items-center gap-1 text-xs px-2.5 py-1 rounded-full
-                             bg-[#FF6B35]/15 border border-[#FF6B35]/25 text-[#FF6B35]/80"
-                >
-                  {t}
-                  <button
-                    onClick={() => setTags(prev => prev.filter(x => x !== t))}
-                    className="text-[#FF6B35]/40 hover:text-[#FF6B35] ml-0.5"
-                  >×</button>
-                </span>
-              ))}
-            </div>
-            <div className="flex gap-2">
-              <input
-                value={newTag}
-                onChange={e => setNewTag(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addTag())}
-                placeholder="Agregar tag (ej: romántico)"
-                className="flex-1 px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
-              />
-              <button
-                onClick={addTag}
-                className="px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white/40
-                           hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors"
-              >
-                <Plus size={14} />
-              </button>
-            </div>
+          <Field
+            label="Servicios y ambiente"
+            hint="Elige los que aplican. Más tags = mejor ranking en Chapi y en buscadores de IA (ChatGPT, Perplexity, etc.)."
+          >
+            <TagPicker
+              groups={RESTAURANT_TAG_GROUPS}
+              selected={tags}
+              onChange={setTags}
+              max={30}
+              allowCustom
+            />
           </Field>
         </Section>
 
@@ -423,16 +389,14 @@ export default function RestaurantePage() {
                         type="time"
                         value={s.open}
                         onChange={e => updateSchedule(day, 'open', e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs
-                                   focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                       />
                       <span className="text-white/25 text-xs">–</span>
                       <input
                         type="time"
                         value={s.close}
                         onChange={e => updateSchedule(day, 'close', e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs
-                                   focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                       />
                     </div>
                   )}
@@ -529,8 +493,7 @@ function IconInput({
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                   placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
       />
     </div>
   )

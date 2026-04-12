@@ -8,10 +8,9 @@ import {
   Truck, Coffee, Wrench, HandCoins, MoreHorizontal,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
+import { formatCurrency } from '@/lib/i18n'
 
-function clp(n: number) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
-}
+const clp = (n: number) => formatCurrency(n)
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 

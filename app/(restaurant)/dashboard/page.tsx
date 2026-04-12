@@ -2,27 +2,19 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import {
-  TrendingUp, TrendingDown, Users, Star,
-  ChevronRight, ArrowUpRight, Zap, AlertCircle, Info,
-  Plus, FileText, Clock, Check, RefreshCw,
+  ChevronRight, Plus, RefreshCw,
+  DollarSign, Receipt, ClipboardList, Grid3X3,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { formatCurrency, formatCompactCurrency } from '@/lib/i18n'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function clp(amount: number): string {
-  if (amount >= 100_000) {
-    const k = Math.round(amount / 1_000)
-    return `$${k}K`
-  }
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
+  if (amount >= 100_000) return formatCompactCurrency(amount)
+  return formatCurrency(amount)
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -44,7 +36,7 @@ function useDashboardData(restaurantId: string | undefined) {
   const supabase = createClient()
 
   const load = useCallback(async () => {
-    if (!restaurantId) return
+    if (!restaurantId) { setLoading(false); return }
 
     const today = new Date()
     today.setHours(0, 0, 0, 0)
@@ -153,6 +145,67 @@ function useDashboardData(restaurantId: string | undefined) {
 
 // ── Components ───────────────────────────────────────────────────────────────
 
+// Circular KPI hero card — SVG ring + value at center
+function CircularKPI({
+  label, value, sublabel, percent, color, icon: Icon, accent,
+}: {
+  label:    string
+  value:    string
+  sublabel?: React.ReactNode
+  percent:  number               // 0–100
+  color:    string               // ring color
+  accent:   string               // background tint hex
+  icon:     React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
+}) {
+  const size       = 132
+  const stroke     = 9
+  const radius     = (size - stroke) / 2
+  const circumf    = 2 * Math.PI * radius
+  const clamped    = Math.max(0, Math.min(100, percent))
+  const dashOffset = circumf - (clamped / 100) * circumf
+
+  return (
+    <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col items-center gap-3">
+      <div className="flex items-center gap-1.5 self-start">
+        <div
+          className="w-5 h-5 rounded-md flex items-center justify-center"
+          style={{ background: accent }}
+        >
+          <Icon size={11} strokeWidth={2.4} className="text-white" />
+        </div>
+        <p className="text-white/45 text-[11px] font-medium uppercase tracking-wide">{label}</p>
+      </div>
+
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg width={size} height={size} className="-rotate-90">
+          <circle
+            cx={size / 2} cy={size / 2} r={radius}
+            stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} fill="none"
+          />
+          <circle
+            cx={size / 2} cy={size / 2} r={radius}
+            stroke={color} strokeWidth={stroke} fill="none"
+            strokeLinecap="round"
+            strokeDasharray={circumf}
+            strokeDashoffset={dashOffset}
+            style={{ transition: 'stroke-dashoffset 600ms ease' }}
+          />
+        </svg>
+        <div className="absolute inset-0 flex flex-col items-center justify-center">
+          <p
+            className="text-white text-[22px] font-bold leading-none"
+            style={{ fontFamily: 'var(--font-dm-mono)' }}
+          >
+            {value}
+          </p>
+        </div>
+      </div>
+
+      <div className="text-center min-h-[18px]">{sublabel}</div>
+    </div>
+  )
+}
+
 const MESA_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   ocupada:   { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#FF6B35]' },
   cuenta:    { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
@@ -208,17 +261,37 @@ function OrderRow({ order }: { order: DashboardData['activeOrders'][0] }) {
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
-  const { restaurant } = useRestaurant()
+  const { restaurant, loading: ctxLoading } = useRestaurant()
   const restId = restaurant?.id
   const { data, loading, refresh } = useDashboardData(restId)
 
   const today = new Date()
   const dateStr = today.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'short' })
 
-  if (loading || !data) {
+  if (loading || ctxLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
         <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+      </div>
+    )
+  }
+
+  if (!restaurant || !data) {
+    return (
+      <div className="flex flex-col items-center justify-center h-screen gap-4 px-6 text-center">
+        <div className="w-16 h-16 rounded-2xl bg-[#FF6B35]/15 flex items-center justify-center">
+          <DollarSign size={28} className="text-[#FF6B35]" />
+        </div>
+        <h2 className="text-white text-xl font-bold">Sin restaurante asociado</h2>
+        <p className="text-white/50 text-sm max-w-sm">
+          Tu cuenta aún no está vinculada a un restaurante. Pide al administrador que te agregue al equipo o registra tu restaurante.
+        </p>
+        <Link
+          href="/unete"
+          className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e55a2b] transition-colors"
+        >
+          Registrar mi restaurante
+        </Link>
       </div>
     )
   }
@@ -232,6 +305,26 @@ export default function DashboardPage() {
     pagando:   data.tables.filter(t => t.status === 'cuenta').length,
     reservadas: data.tables.filter(t => t.status === 'reservada').length,
   }
+
+  // Ring percentages — visual progress indicators for the circular KPIs
+  // Sales: rough "progress through the day" assuming ops 11:00–23:00 (12h shift)
+  const now      = new Date()
+  const minutes  = now.getHours() * 60 + now.getMinutes()
+  const dayStart = 11 * 60
+  const dayEnd   = 23 * 60
+  const salesProgressPct = Math.max(0, Math.min(100,
+    Math.round(((minutes - dayStart) / (dayEnd - dayStart)) * 100)
+  ))
+  // Ticket: full ring if avg > 25K CLP (a healthy mid-range ticket)
+  const ticketRingPct  = Math.min(100, Math.round((ticketPromedio / 25_000) * 100))
+  // Active orders: ring fills relative to table count (1 active per table = 100%)
+  const activeRingPct  = data.tables.length > 0
+    ? Math.min(100, Math.round((totalActive / data.tables.length) * 100))
+    : 0
+  // Occupation: real % of tables occupied
+  const occupationPct  = data.tables.length > 0
+    ? Math.round((mesaStats.ocupadas / data.tables.length) * 100)
+    : 0
 
   return (
     <div className="p-6 space-y-5 min-h-full">
@@ -254,8 +347,7 @@ export default function DashboardPage() {
           </button>
           <Link
             href="/comandas?nueva=1"
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35]
-                       text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors"
           >
             <Plus size={14} />
             Nueva comanda
@@ -263,80 +355,62 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* KPIs */}
-      <div className="grid grid-cols-4 gap-4">
-        {/* Ventas hoy */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
-          <div className="flex items-start justify-between">
-            <p className="text-white/40 text-xs">Ventas hoy</p>
-            <div className="w-0.5 h-8 rounded-full bg-[#FF6B35]/60" />
-          </div>
-          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-            {clp(data.salesToday)}
-          </p>
-          <p className="text-white/25 text-xs">{data.ordersToday} pedidos</p>
-        </div>
-
-        {/* Ticket promedio */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
-          <div className="flex items-start justify-between">
-            <p className="text-white/40 text-xs">Ticket promedio</p>
-            <div className="w-0.5 h-8 rounded-full bg-blue-400/60" />
-          </div>
-          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-            {clp(ticketPromedio)}
-          </p>
-          <p className="text-white/25 text-xs">por pedido</p>
-        </div>
-
-        {/* Pedidos activos */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
-          <div className="flex items-start justify-between">
-            <p className="text-white/40 text-xs">Pedidos activos</p>
-            <div className="w-0.5 h-8 rounded-full bg-yellow-400/60" />
-          </div>
-          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-            {totalActive}
-          </p>
-          <div className="flex flex-wrap gap-1.5 mt-0.5">
-            {data.statusBreakdown.pending > 0 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-blue-500/15 text-blue-300">
-                <span className="w-1 h-1 rounded-full bg-blue-300" /> nuevos ({data.statusBreakdown.pending})
-              </span>
-            )}
-            {data.statusBreakdown.preparing > 0 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-yellow-500/15 text-yellow-300">
-                <span className="w-1 h-1 rounded-full bg-yellow-300" /> cocina ({data.statusBreakdown.preparing})
-              </span>
-            )}
-            {data.statusBreakdown.ready > 0 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-emerald-500/15 text-emerald-300">
-                <span className="w-1 h-1 rounded-full bg-emerald-300" /> listos ({data.statusBreakdown.ready})
-              </span>
-            )}
-            {data.statusBreakdown.paying > 0 && (
-              <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-md text-[9px] font-semibold bg-amber-500/15 text-amber-300">
-                <span className="w-1 h-1 rounded-full bg-amber-300" /> pagando ({data.statusBreakdown.paying})
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Mesas */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col gap-2">
-          <div className="flex items-start justify-between">
-            <p className="text-white/40 text-xs">Mesas</p>
-            <div className="w-0.5 h-8 rounded-full bg-emerald-400/60" />
-          </div>
-          <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-            {data.tables.length}
-          </p>
-          <div className="flex items-center gap-2">
-            <span className="text-[#FF6B35] text-xs">{mesaStats.ocupadas} ocupadas</span>
-            <span className="text-white/20">·</span>
-            <span className="text-emerald-400 text-xs">{mesaStats.libres} libres</span>
-          </div>
-        </div>
+      {/* Circular KPIs — hero row */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        <CircularKPI
+          label="Ventas hoy"
+          icon={DollarSign}
+          color="#FF6B35"
+          accent="#FF6B35"
+          value={clp(data.salesToday)}
+          percent={salesProgressPct}
+          sublabel={
+            <p className="text-white/35 text-[11px]">
+              {data.ordersToday} pedidos · {salesProgressPct}% del día
+            </p>
+          }
+        />
+        <CircularKPI
+          label="Ticket promedio"
+          icon={Receipt}
+          color="#60A5FA"
+          accent="#60A5FA"
+          value={clp(ticketPromedio)}
+          percent={ticketRingPct}
+          sublabel={<p className="text-white/35 text-[11px]">por pedido</p>}
+        />
+        <CircularKPI
+          label="Pedidos activos"
+          icon={ClipboardList}
+          color="#FBBF24"
+          accent="#FBBF24"
+          value={String(totalActive)}
+          percent={activeRingPct}
+          sublabel={
+            <div className="flex items-center justify-center gap-2 text-[10px]">
+              {data.statusBreakdown.preparing > 0 && (
+                <span className="text-yellow-300">{data.statusBreakdown.preparing} cocina</span>
+              )}
+              {data.statusBreakdown.ready > 0 && (
+                <span className="text-emerald-300">{data.statusBreakdown.ready} listos</span>
+              )}
+              {totalActive === 0 && <span className="text-white/30">sin pedidos</span>}
+            </div>
+          }
+        />
+        <CircularKPI
+          label="Ocupación"
+          icon={Grid3X3}
+          color="#34D399"
+          accent="#34D399"
+          value={`${occupationPct}%`}
+          percent={occupationPct}
+          sublabel={
+            <p className="text-white/35 text-[11px]">
+              {mesaStats.ocupadas}/{data.tables.length} mesas ocupadas
+            </p>
+          }
+        />
       </div>
 
       {/* Middle row — orders + mesa grid */}

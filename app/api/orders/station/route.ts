@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/auth-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -13,6 +14,8 @@ const StationReadySchema = z.object({
 })
 
 export async function PATCH(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = await req.json()
     const { order_id, destination } = StationReadySchema.parse(body)

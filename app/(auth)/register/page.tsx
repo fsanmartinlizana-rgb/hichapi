@@ -86,50 +86,49 @@ export default function RegisterPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
-      // 1. Create auth user
-      const { data, error: authErr } = await supabase.auth.signUp({
-        email: email.trim().toLowerCase(),
-        password,
-        options: {
-          data: { owner_name: ownerName.trim() },
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
-        },
+      // 1. Crear cuenta + restaurante + team_members en server (service role)
+      const res = await fetch('/api/auth/register-restaurant', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          email:       email.trim().toLowerCase(),
+          password,
+          ownerName:   ownerName.trim(),
+          restName:    restName.trim(),
+          restAddress: restAddr.trim(),
+          restBarrio:  restBarrio.trim(),
+          restCocina:  restCocina.trim(),
+        }),
       })
 
-      if (authErr) {
-        if (authErr.message.includes('already registered')) {
-          setError('Este email ya tiene una cuenta. ¿Quieres iniciar sesión?')
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        if (res.status === 409) {
+          setError(json.error ?? 'Este email ya tiene una cuenta.')
+          setStep(0)
         } else {
-          setError('No pudimos crear tu cuenta. Intenta de nuevo.')
+          setError(json.error ?? 'No pudimos crear tu cuenta. Intenta de nuevo.')
         }
-        setStep(0)
         return
       }
 
-      if (!data.user) {
-        setError('Error inesperado. Intenta de nuevo.')
-        return
-      }
-
-      // 2. Create restaurant record (pending approval)
-      const slug = restName.trim()
-        .toLowerCase()
-        .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-
-      await supabase.from('restaurants').insert({
-        name: restName.trim(),
-        address: restAddr.trim(),
-        neighborhood: restBarrio.trim(),
-        cuisine_type: restCocina.trim(),
-        slug: `${slug}-${Date.now().toString(36)}`,
-        owner_id: data.user.id,
-        active: false, // needs admin approval
+      // 2. Auto-login para que el usuario entre al panel inmediatamente
+      const supabase = createClient()
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email:    email.trim().toLowerCase(),
+        password,
       })
+
+      if (signInErr) {
+        // Cuenta creada pero el auto-login falló — manda al login manual
+        setStep(2)
+        return
+      }
 
       setStep(2)
+      // Redirigir al panel después de mostrar el éxito
+      setTimeout(() => router.replace('/dashboard'), 1500)
 
     } catch {
       setError('Error de conexión. Revisa tu internet.')
@@ -143,8 +142,7 @@ export default function RegisterPage() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center
-                        text-white font-bold text-xl mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
           hi
         </div>
         <h1 className="text-white font-bold text-2xl">Registra tu restaurante</h1>
@@ -169,8 +167,7 @@ export default function RegisterPage() {
       <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
 
         {error && (
-          <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20
-                          rounded-xl px-4 py-3 mb-4">
+          <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
             <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
             <p className="text-red-400 text-sm">{error}</p>
           </div>
@@ -183,16 +180,14 @@ export default function RegisterPage() {
               <label className="text-white/50 text-xs font-medium">Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
                 autoComplete="email" placeholder="tu@restaurante.cl"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                           placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-white/50 text-xs font-medium">Tu nombre</label>
               <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} required
                 placeholder="María González"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                           placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="space-y-1.5">
@@ -201,8 +196,7 @@ export default function RegisterPage() {
                 <input type={showPass ? 'text' : 'password'} value={password}
                   onChange={e => setPassword(e.target.value)} required autoComplete="new-password"
                   placeholder="Mínimo 12 caracteres"
-                  className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white
-                             placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                  className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
                 <button type="button" onClick={() => setShowPass(v => !v)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
@@ -231,8 +225,7 @@ export default function RegisterPage() {
             </div>
 
             <button type="submit" disabled={!passwordOk || !passwordsMatch || !email || !ownerName}
-              className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                         hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
+              className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors">
               Continuar →
             </button>
           </form>
@@ -249,16 +242,14 @@ export default function RegisterPage() {
               <label className="text-white/50 text-xs font-medium">Nombre del restaurante</label>
               <input type="text" value={restName} onChange={e => setRestName(e.target.value)} required
                 placeholder="El Rincón de Don José"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                           placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="space-y-1.5">
               <label className="text-white/50 text-xs font-medium">Dirección</label>
               <input type="text" value={restAddr} onChange={e => setRestAddr(e.target.value)} required
                 placeholder="Av. Italia 1234"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                           placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
@@ -266,15 +257,13 @@ export default function RegisterPage() {
                 <label className="text-white/50 text-xs font-medium">Barrio</label>
                 <input type="text" value={restBarrio} onChange={e => setRestBarrio(e.target.value)} required
                   placeholder="Providencia"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                             placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
               </div>
               <div className="space-y-1.5">
                 <label className="text-white/50 text-xs font-medium">Tipo de cocina</label>
                 <input type="text" value={restCocina} onChange={e => setRestCocina(e.target.value)} required
                   placeholder="Italiana"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white
-                             placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
               </div>
             </div>
 
@@ -284,9 +273,7 @@ export default function RegisterPage() {
                 ← Volver
               </button>
               <button type="submit" disabled={loading || !restName || !restAddr || !restBarrio || !restCocina}
-                className="flex-1 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                           hover:bg-[#e85d2a] disabled:opacity-40 transition-colors
-                           flex items-center justify-center gap-2">
+                className="flex-1 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {loading ? <><Loader2 size={15} className="animate-spin" /> Creando cuenta...</> : 'Crear cuenta'}
               </button>
             </div>
@@ -296,38 +283,33 @@ export default function RegisterPage() {
         {/* ── Step 2: Listo ────────────────────────────────────────────────── */}
         {step === 2 && (
           <div className="text-center space-y-4 py-4">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25
-                            flex items-center justify-center mx-auto">
+            <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto">
               <Check size={28} className="text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Cuenta creada!</h2>
+              <h2 className="text-white font-bold text-lg">¡Bienvenido a HiChapi!</h2>
               <p className="text-white/40 text-sm mt-1 leading-relaxed">
-                Estamos revisando tu solicitud. En menos de 24 horas activamos tu restaurante en HiChapi.
+                Tu restaurante ya está creado y activo. Te llevamos al panel…
               </p>
             </div>
             <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-left space-y-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Mientras tanto puedes</p>
+              <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Próximos pasos sugeridos</p>
               <div className="space-y-1.5">
                 <p className="text-white/40 text-xs flex items-center gap-2">
-                  <span className="text-emerald-400">✓</span> Explorar el panel con datos de demostración
+                  <span className="text-emerald-400">1.</span> Cargar tu carta y fotos de platos
                 </p>
                 <p className="text-white/40 text-xs flex items-center gap-2">
-                  <span className="text-emerald-400">✓</span> Configurar tu carta y fotos de platos
+                  <span className="text-emerald-400">2.</span> Crear las mesas y descargar los QR
                 </p>
                 <p className="text-white/40 text-xs flex items-center gap-2">
-                  <span className="text-emerald-400">✓</span> Personalizar el tono de Chapi
+                  <span className="text-emerald-400">3.</span> Invitar a tu equipo (garzones, cocina)
                 </p>
               </div>
             </div>
-            <Link href="/api/admin/demo-setup"
-              className="block w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                         hover:bg-[#e85d2a] transition-colors text-center">
-              Explorar el panel →
+            <Link href="/dashboard"
+              className="block w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors text-center">
+              Ir al panel →
             </Link>
-            <p className="text-white/20 text-xs">
-              Usarás el restaurante demo hasta que aprobemos el tuyo
-            </p>
           </div>
         )}
       </div>

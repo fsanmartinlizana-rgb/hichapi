@@ -147,8 +147,7 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 placeholder="¿Algo que quieras agregar? (opcional)"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm
-                           placeholder:text-white/20 resize-none focus:outline-none focus:border-[#FF6B35]/50"
+                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 resize-none focus:outline-none focus:border-[#FF6B35]/50"
               />
             </div>
 
@@ -156,9 +155,7 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
             <button
               onClick={handleSubmit}
               disabled={score === null || submitting}
-              className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                         hover:bg-[#e55a2b] disabled:opacity-40 transition-colors
-                         flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <>

@@ -8,6 +8,7 @@ import {
   Trash2, Bell,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { formatCurrency } from '@/lib/i18n'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -32,14 +33,7 @@ type SplitMode = 'equal' | 'byItem'
 
 // ── CLP formatter ─────────────────────────────────────────────────────────────
 
-function clp(amount: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
+const clp = (amount: number) => formatCurrency(amount)
 
 // ── Quick chips ───────────────────────────────────────────────────────────────
 
@@ -226,18 +220,14 @@ function CartDrawer({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => onChangeQty(item.menu_item_id, -1)}
-                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10
-                               flex items-center justify-center text-white/50
-                               hover:border-white/20 hover:text-white transition-colors"
+                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:border-white/20 hover:text-white transition-colors"
                   >
                     <Minus size={11} />
                   </button>
                   <span className="text-white text-sm font-medium w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => onChangeQty(item.menu_item_id, +1)}
-                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10
-                               flex items-center justify-center text-white/50
-                               hover:border-white/20 hover:text-white transition-colors"
+                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:border-white/20 hover:text-white transition-colors"
                   >
                     <Plus size={11} />
                   </button>
@@ -315,8 +305,7 @@ function CartDrawer({
                       splitMode === 'equal' ? splitN : undefined,
                       splitMode === 'byItem' ? assignments : undefined
                     )}
-                    className="flex-1 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                               hover:bg-[#e85d2a] transition-colors"
+                    className="flex-1 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
                   >
                     Confirmar división
                   </button>
@@ -337,9 +326,7 @@ function CartDrawer({
               <div className="flex gap-2">
                 <button
                   onClick={() => onSplit('equal', 0)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl
-                             border border-white/10 text-white/40 text-sm
-                             hover:border-white/20 hover:text-white/60 transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-colors"
                 >
                   <SplitSquareHorizontal size={14} />
                   Dividir
@@ -347,9 +334,7 @@ function CartDrawer({
                 <button
                   onClick={onConfirm}
                   disabled={orderStatus === 'confirming'}
-                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl
-                             bg-[#FF6B35] text-white font-semibold text-sm
-                             hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
+                  className="flex-1 flex items-center justify-center gap-2 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
                 >
                   {orderStatus === 'confirming'
                     ? <><Loader2 size={14} className="animate-spin" /> Enviando...</>
@@ -712,8 +697,7 @@ export default function TablePage() {
     <div className="relative flex flex-col h-full">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-3
-                      border-b border-white/5 bg-[#0A0A14]">
+      <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/5 bg-[#0A0A14]">
         <div className="flex items-center gap-2.5 min-w-0">
           {restaurantPhoto ? (
             /* eslint-disable-next-line @next/next/no-img-element */
@@ -723,8 +707,7 @@ export default function TablePage() {
               className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10"
             />
           ) : (
-            <div className="w-10 h-10 rounded-xl bg-[#FF6B35] flex items-center justify-center
-                            text-white font-bold text-base shrink-0">
+            <div className="w-10 h-10 rounded-xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-base shrink-0">
               {(restaurantName?.charAt(0) ?? 'h').toUpperCase()}
             </div>
           )}
@@ -746,8 +729,7 @@ export default function TablePage() {
           {cartCount > 0 && (
             <>
               <span className="text-sm font-semibold">{clp(cartTotal)}</span>
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#FF6B35]
-                               text-white text-[9px] font-bold flex items-center justify-center">
+              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#FF6B35] text-white text-[9px] font-bold flex items-center justify-center">
                 {cartCount}
               </span>
             </>
@@ -760,8 +742,7 @@ export default function TablePage() {
         {messages.map(msg => (
           <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             {msg.role === 'chapi' && (
-              <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center
-                              text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">
+              <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">
                 C
               </div>
             )}
@@ -776,8 +757,7 @@ export default function TablePage() {
 
         {waiting && (
           <div className="flex justify-start">
-            <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center
-                            text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">C</div>
+            <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">C</div>
             <div className="bg-[#1C1C2E] border border-white/5 px-4 py-3 rounded-2xl rounded-bl-sm">
               <TypingDots />
             </div>
@@ -794,9 +774,7 @@ export default function TablePage() {
             <button
               key={chip}
               onClick={() => sendMessage(chip)}
-              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/8
-                         text-white/50 hover:border-[#FF6B35]/40 hover:text-[#FF6B35]
-                         transition-colors whitespace-nowrap"
+              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/8 text-white/50 hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors whitespace-nowrap"
             >
               {chip}
             </button>
@@ -806,8 +784,7 @@ export default function TablePage() {
 
       {/* ── Input ──────────────────────────────────────────────────────────── */}
       <div className="shrink-0 px-4 pb-5 pt-2 bg-[#0A0A14] border-t border-white/5">
-        <div className="flex items-center gap-2 bg-[#161622] border border-white/8 rounded-2xl px-4 py-2.5
-                        focus-within:border-[#FF6B35]/40 transition-colors">
+        <div className="flex items-center gap-2 bg-[#161622] border border-white/8 rounded-2xl px-4 py-2.5 focus-within:border-[#FF6B35]/40 transition-colors">
           <input
             ref={inputRef}
             value={input}
@@ -815,14 +792,12 @@ export default function TablePage() {
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
             placeholder="Dile a Chapi qué quieres pedir..."
             disabled={loading}
-            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/20
-                       focus:outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/20 focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={() => sendMessage(input)}
             disabled={!input.trim() || loading}
-            className="w-8 h-8 rounded-xl bg-[#FF6B35] flex items-center justify-center
-                       disabled:opacity-30 hover:bg-[#e85d2a] transition-colors shrink-0"
+            className="w-8 h-8 rounded-xl bg-[#FF6B35] flex items-center justify-center disabled:opacity-30 hover:bg-[#e85d2a] transition-colors shrink-0"
           >
             {loading
               ? <Loader2 size={14} className="text-white animate-spin" />

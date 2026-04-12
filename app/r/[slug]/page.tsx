@@ -1,8 +1,10 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Star, Clock, MapPin, Globe, DollarSign, ArrowLeft, Phone, AtSign, Users } from 'lucide-react'
+import { Star, Clock, MapPin, Globe, DollarSign, Phone, AtSign, Users } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
+import { formatCurrency } from '@/lib/i18n'
 import { notFound } from 'next/navigation'
+import { BackButton } from './BackButton'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -56,12 +58,14 @@ function getSupabase() {
 async function getRestaurant(slug: string): Promise<RestaurantData | null> {
   const supabase = getSupabase()
 
+  // Sprint 12 columns (phone/website/instagram/description/capacity/tags/hours)
+  // not yet migrated in this DB — query only the columns that exist and
+  // backfill the rest as null so the UI gracefully hides them.
   const { data, error } = await supabase
     .from('restaurants')
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
-      address, phone, website, instagram, description, capacity, tags, hours,
-      photo_url, price_range, active, claimed,
+      address, photo_url, price_range, active, claimed,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -69,7 +73,16 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .single()
 
   if (error || !data) return null
-  return data as RestaurantData
+  return {
+    ...data,
+    phone:       null,
+    website:     null,
+    instagram:   null,
+    description: null,
+    capacity:    null,
+    tags:        null,
+    hours:       null,
+  } as RestaurantData
 }
 
 async function getReviews(restaurantId: string) {
@@ -86,13 +99,7 @@ async function getReviews(restaurantId: string) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatPrice(clp: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency',
-    currency: 'CLP',
-    minimumFractionDigits: 0,
-  }).format(clp)
-}
+const formatPrice = (clp: number) => formatCurrency(clp)
 
 function RatingStars({ rating }: { rating: number }) {
   const full  = Math.floor(rating)
@@ -466,14 +473,7 @@ export default async function RestaurantPage({
           <Link href="/" className="font-bold text-xl tracking-tight text-[#1A1A2E]">
             hi<span className="text-[#FF6B35]">chapi</span>
           </Link>
-          <Link
-            href="/"
-            className="flex items-center gap-1.5 text-sm text-neutral-500 font-medium
-                       hover:text-[#FF6B35] transition-colors"
-          >
-            <ArrowLeft size={15} />
-            Volver
-          </Link>
+          <BackButton />
         </div>
       </nav>
 

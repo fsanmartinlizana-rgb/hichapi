@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { X, Banknote, CreditCard, Layers } from 'lucide-react'
+import { formatCurrency } from '@/lib/i18n'
 
 interface PaymentMethodModalProps {
   orderId:    string
@@ -10,9 +11,7 @@ interface PaymentMethodModalProps {
   onClose:    () => void
 }
 
-function clp(n: number) {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
-}
+const clp = (n: number) => formatCurrency(n)
 
 export function PaymentMethodModal({ orderId: _orderId, total, onConfirm, onClose }: PaymentMethodModalProps) {
   const [method, setMethod]     = useState<'cash' | 'digital' | 'mixed' | null>(null)

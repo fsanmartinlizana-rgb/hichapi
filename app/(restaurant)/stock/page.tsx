@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { formatCurrency } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -30,8 +31,7 @@ interface ExtractedItem {
 }
 
 const UNITS = ['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja'] as const
-const CLP = (v: number) =>
-  new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', minimumFractionDigits: 0 }).format(v)
+const CLP = (v: number) => formatCurrency(v)
 
 // ── Component ────────────────────────────────────────────────────────────────
 

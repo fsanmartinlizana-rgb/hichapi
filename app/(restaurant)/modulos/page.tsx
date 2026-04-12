@@ -134,9 +134,7 @@ function UpgradeModal({
             <button
               onClick={handleUpgrade}
               disabled={submitting}
-              className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                         hover:bg-[#e55a2b] disabled:opacity-40 transition-colors
-                         flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
                 <><Loader2 size={14} className="animate-spin" /> Procesando...</>
@@ -185,8 +183,7 @@ export default function ModulosPage() {
         {nextPlan && (
           <button
             onClick={() => setUpgradeTarget(nextPlan.id)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e85d2a] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors"
           >
             <Zap size={14} /> Upgrade a {nextPlan.name}
           </button>
@@ -256,8 +253,7 @@ export default function ModulosPage() {
                 {!hasAccess && (
                   <button
                     onClick={() => setUpgradeTarget(requiredPlan)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#FF6B35]/30
-                               text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/10 transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/10 transition-colors"
                   >
                     <Zap size={12} /> Desbloquear con {planInfo?.name}
                   </button>
@@ -305,8 +301,7 @@ export default function ModulosPage() {
                 <div className="space-y-1 pt-1">
                   <p className="text-white font-bold text-lg">{plan.name}</p>
                   <p className="text-white text-xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-                    {plan.price === 0 ? 'Gratis' : `$${(plan.price / 1000).toFixed(0)}K`}
-                    {plan.price > 0 && <span className="text-white/30 text-xs font-normal">/mes</span>}
+                    {plan.price === 0 ? 'Gratis' : plan.priceLabel}
                   </p>
                   <p className="text-white/30 text-xs">{plan.description}</p>
                 </div>
@@ -328,8 +323,7 @@ export default function ModulosPage() {
                   ) : isUpgrade ? (
                     <button
                       onClick={() => setUpgradeTarget(planId)}
-                      className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm
-                                 font-semibold hover:bg-[#e55a2b] transition-colors"
+                      className="w-full flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors"
                     >
                       {plan.cta} <ArrowRight size={14} />
                     </button>

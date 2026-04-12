@@ -181,48 +181,45 @@ export function OnboardingWizard() {
   }, [slug])
 
   /* ─── Step Indicator ──────────────────────────────────────────── */
-  function StepIndicator() {
-    const steps = ['Lo basico', 'Tu carta', 'Publicar']
-    return (
-      <div className="flex items-center justify-center gap-2 mb-10">
-        {steps.map((label, i) => {
-          const stepNum = i + 1
-          const isActive = state.step === stepNum
-          const isDone = state.step > stepNum
-          return (
-            <div key={label} className="flex items-center gap-2">
-              {i > 0 && (
-                <div className={`w-8 h-px ${isDone ? 'bg-[#FF6B35]' : 'bg-neutral-200'}`} />
-              )}
-              <div className="flex items-center gap-2">
-                <div
-                  className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
-                    isDone
+  const stepLabels = ['Lo basico', 'Tu carta', 'Publicar']
+  const stepIndicator = (
+    <div className="flex items-center justify-center gap-2 mb-10">
+      {stepLabels.map((label, i) => {
+        const stepNum = i + 1
+        const isActive = state.step === stepNum
+        const isDone = state.step > stepNum
+        return (
+          <div key={label} className="flex items-center gap-2">
+            {i > 0 && (
+              <div className={`w-8 h-px ${isDone ? 'bg-[#FF6B35]' : 'bg-neutral-200'}`} />
+            )}
+            <div className="flex items-center gap-2">
+              <div
+                className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold transition-colors ${
+                  isDone
+                    ? 'bg-[#FF6B35] text-white'
+                    : isActive
                       ? 'bg-[#FF6B35] text-white'
-                      : isActive
-                        ? 'bg-[#FF6B35] text-white'
-                        : 'bg-neutral-100 text-neutral-400'
-                  }`}
-                >
-                  {isDone ? <CheckCircle size={16} /> : stepNum}
-                </div>
-                <span className={`text-xs font-medium hidden sm:block ${
-                  isActive ? 'text-[#1A1A2E]' : 'text-neutral-400'
-                }`}>
-                  {label}
-                </span>
+                      : 'bg-neutral-100 text-neutral-400'
+                }`}
+              >
+                {isDone ? <CheckCircle size={16} /> : stepNum}
               </div>
+              <span className={`text-xs font-medium hidden sm:block ${
+                isActive ? 'text-[#1A1A2E]' : 'text-neutral-400'
+              }`}>
+                {label}
+              </span>
             </div>
-          )
-        })}
-      </div>
-    )
-  }
+          </div>
+        )
+      })}
+    </div>
+  )
 
   /* ─── Step 1: Lo basico ───────────────────────────────────────── */
-  function Step1() {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8">
+  const step1 = (
+    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8">
         <h2 className="text-xl font-bold text-[#1A1A2E] mb-6">Lo basico</h2>
 
         <div className="space-y-5">
@@ -297,13 +294,11 @@ export function OnboardingWizard() {
           Siguiente <ArrowRight size={16} />
         </button>
       </div>
-    )
-  }
+  )
 
   /* ─── Step 2: Tu carta ────────────────────────────────────────── */
-  function Step2() {
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8">
+  const step2 = (
+    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8">
         <h2 className="text-xl font-bold text-[#1A1A2E] mb-2">Tu carta</h2>
         <p className="text-sm text-neutral-400 mb-6">
           Tienes tu carta en algun formato?
@@ -433,14 +428,12 @@ export function OnboardingWizard() {
           </button>
         </div>
       </div>
-    )
-  }
+  )
 
   /* ─── Step 3: Publicar ────────────────────────────────────────── */
-  function Step3() {
-    const selectedPlan = state.plan
-    return (
-      <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8 text-center">
+  const selectedPlan = state.plan
+  const step3 = (
+    <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-6 md:p-8 text-center">
         <div className="flex justify-center mb-4">
           <CheckCircle size={52} className="text-[#FF6B35]" strokeWidth={1.5} />
         </div>
@@ -515,16 +508,15 @@ export function OnboardingWizard() {
           </div>
         </div>
       </div>
-    )
-  }
+  )
 
   /* ─── Render ──────────────────────────────────────────────────── */
   return (
     <div>
-      <StepIndicator />
-      {state.step === 1 && <Step1 />}
-      {state.step === 2 && <Step2 />}
-      {state.step === 3 && <Step3 />}
+      {stepIndicator}
+      {state.step === 1 && step1}
+      {state.step === 2 && step2}
+      {state.step === 3 && step3}
     </div>
   )
 }

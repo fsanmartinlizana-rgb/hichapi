@@ -2,43 +2,62 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { RestaurantProvider, useRestaurant } from '@/lib/restaurant-context'
 import {
   LayoutDashboard, ClipboardList, Grid3X3, BookOpen,
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
-  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes, Crown, FileText, Printer,
+  ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
+  Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit,
 } from 'lucide-react'
 import SupportModal from '@/components/SupportModal'
 import NpsModal from '@/components/NpsModal'
+import { ChapiAssistant } from '@/components/restaurant/ChapiAssistant'
+import { NotificationsProvider } from '@/lib/notifications-context'
+import { NotificationsBell } from '@/components/restaurant/NotificationsBell'
 
 // ── Nav definition ────────────────────────────────────────────────────────────
+//
+// Grouping principles:
+//   • MI RESTAURANTE   — operación día a día (lo que se usa varias veces al día)
+//   • INTELIGENCIA     — análisis y reportes
+//   • CONFIGURACIÓN    — cosas que se tocan poco (DTE, impresoras, módulos, etc.)
+//   • PLATAFORMA       — solo super admin
 
-const ALL_NAV = [
+type NavSection = {
+  key: string
+  label: string
+  icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
+  items: {
+    label: string
+    href: string
+    icon: React.ComponentType<{ size?: number; strokeWidth?: number; className?: string }>
+    roles: string[]
+  }[]
+}
+
+const ALL_NAV: NavSection[] = [
   {
-    section: 'OPERACIÓN',
+    key: 'mi-restaurante',
+    label: 'Mi Restaurante',
+    icon: Utensils,
     items: [
       { label: 'Dashboard',     href: '/dashboard', icon: LayoutDashboard, roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
-      { label: 'Garzón',        href: '/garzon',    icon: LayoutDashboard, roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Garzón',        href: '/garzon',    icon: Users,           roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
       { label: 'Comandas',      href: '/comandas',  icon: ClipboardList,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
       { label: 'Mesas',         href: '/mesas',     icon: Grid3X3,         roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
       { label: 'Carta digital', href: '/carta',     icon: BookOpen,        roles: ['admin','owner','supervisor','garzon','waiter','super_admin'] },
+      { label: 'Stock',         href: '/stock',     icon: Package,         roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Mermas',        href: '/mermas',    icon: Trash2,          roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Caja',          href: '/caja',      icon: Banknote,        roles: ['owner','admin','supervisor','super_admin'] },
+      { label: 'Turnos',        href: '/turnos',    icon: CalendarDays,    roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },
   {
-    section: 'INVENTARIO',
-    items: [
-      { label: 'Stock',  href: '/stock',  icon: Package,      roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Mermas', href: '/mermas', icon: Trash2,        roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Turnos', href: '/turnos', icon: CalendarDays,  roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Caja',   href: '/caja',   icon: Banknote,      roles: ['owner','admin','supervisor','super_admin'] },
-      { label: 'DTE Chile', href: '/dte',  icon: FileText,      roles: ['owner','admin','super_admin'] },
-      { label: 'Impresoras',href: '/impresoras', icon: Printer,  roles: ['owner','admin','supervisor','super_admin'] },
-    ],
-  },
-  {
-    section: 'INTELIGENCIA',
+    key: 'inteligencia',
+    label: 'Inteligencia',
+    icon: BrainCircuit,
     items: [
       { label: 'Reporte del día', href: '/reporte',   icon: BarChart2,  roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Analytics',       href: '/analytics', icon: TrendingUp, roles: ['admin','owner','supervisor','super_admin'] },
@@ -46,29 +65,48 @@ const ALL_NAV = [
     ],
   },
   {
-    section: 'CONFIGURACIÓN',
+    key: 'configuracion',
+    label: 'Configuración',
+    icon: Settings,
     items: [
-      { label: 'Equipo',         href: '/equipo',      icon: Users,             roles: ['admin','owner','super_admin'] },
-      { label: 'Mi restaurante', href: '/restaurante', icon: Store,             roles: ['admin','owner','super_admin'] },
-      { label: 'Módulos y Plan', href: '/modulos',     icon: Boxes,             roles: ['admin','owner','super_admin'] },
-      { label: 'Tono de Chapi',  href: '/tono',        icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
+      { label: 'Equipo',         href: '/equipo',        icon: Users,             roles: ['admin','owner','super_admin'] },
+      { label: 'Mi restaurante', href: '/restaurante',   icon: Store,             roles: ['admin','owner','super_admin'] },
+      { label: 'Módulos y Plan', href: '/modulos',       icon: Boxes,             roles: ['admin','owner','super_admin'] },
+      { label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] },
+      { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },
+      { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },
+      { label: 'Tono de Chapi',  href: '/tono',          icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
     ],
   },
   {
-    section: 'PLATAFORMA',
+    key: 'plataforma',
+    label: 'Plataforma',
+    icon: Crown,
     items: [
       { label: 'Super Admin', href: '/plataforma', icon: Crown, roles: ['super_admin'] },
     ],
   },
 ]
 
-function getNav(role: string) {
+function getNav(role: string): NavSection[] {
   return ALL_NAV
     .map(section => ({
       ...section,
       items: section.items.filter(item => item.roles.includes(role)),
     }))
     .filter(section => section.items.length > 0)
+}
+
+// Find which section contains the current route
+function findActiveSection(pathname: string, sections: NavSection[]): string | null {
+  for (const section of sections) {
+    for (const item of section.items) {
+      if (pathname === item.href || pathname.startsWith(item.href + '/')) {
+        return section.key
+      }
+    }
+  }
+  return null
 }
 
 // ── Role label ────────────────────────────────────────────────────────────────
@@ -95,20 +133,71 @@ function SidebarContent() {
 
   const role     = profile?.role ?? 'admin'
   const initials = profile?.initials ?? '??'
-  const nav      = getNav(role)
+  const nav      = useMemo(() => getNav(role), [role])
+
+  // Collapsible groups: open the group that matches the current route by default.
+  // User toggles are remembered in sessionStorage per browser tab.
+  const activeSectionKey = useMemo(
+    () => findActiveSection(pathname, nav) ?? nav[0]?.key ?? null,
+    [pathname, nav]
+  )
+  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set())
+
+  // Hydrate from sessionStorage; auto-open active section
+  useEffect(() => {
+    let initial: Set<string>
+    try {
+      const raw = sessionStorage.getItem('hichapi_sidebar_groups')
+      initial = raw ? new Set(JSON.parse(raw)) : new Set()
+    } catch {
+      initial = new Set()
+    }
+    if (activeSectionKey) initial.add(activeSectionKey)
+    setOpenGroups(initial)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // When the user navigates to a different section, auto-open it (without
+  // closing other manually-opened groups).
+  useEffect(() => {
+    if (!activeSectionKey) return
+    setOpenGroups(prev => {
+      if (prev.has(activeSectionKey)) return prev
+      const next = new Set(prev)
+      next.add(activeSectionKey)
+      return next
+    })
+  }, [activeSectionKey])
+
+  // Persist open groups
+  useEffect(() => {
+    try {
+      sessionStorage.setItem('hichapi_sidebar_groups', JSON.stringify(Array.from(openGroups)))
+    } catch { /* ignore */ }
+  }, [openGroups])
+
+  function toggleGroup(key: string) {
+    setOpenGroups(prev => {
+      const next = new Set(prev)
+      if (next.has(key)) next.delete(key)
+      else next.add(key)
+      return next
+    })
+  }
 
   return (
-    <aside className="w-[210px] shrink-0 flex flex-col bg-[#0F0F1C] border-r border-white/5">
+    <aside className="w-[230px] shrink-0 flex flex-col bg-[#0F0F1C] border-r border-white/5">
 
-      {/* Logo */}
+      {/* Logo + Notifications bell */}
       <div className="px-4 pt-5 pb-3 flex items-center gap-2.5">
         <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm shrink-0">
           hi
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-white font-semibold text-sm leading-tight">HiChapi</p>
           <p className="text-white/40 text-[10px]">Panel Restaurante</p>
         </div>
+        <NotificationsBell />
       </div>
 
       {/* Restaurant card / picker */}
@@ -143,7 +232,7 @@ function SidebarContent() {
 
         {/* Restaurant picker dropdown */}
         {pickerOpen && restaurants.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A2E] border border-white/12 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto">
+          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A2E] border border-white/12 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto sidebar-scroll">
             {restaurants.map(r => (
               <button
                 key={r.id}
@@ -163,51 +252,78 @@ function SidebarContent() {
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-2 space-y-3">
-        {nav.map(({ section, items }) => (
-          <div key={section}>
-            <p className="text-white/25 text-[9px] font-semibold tracking-widest px-2 mb-1">
-              {section}
-            </p>
-            <div className="space-y-0.5">
-              {items.map(({ label, href, icon: Icon }) => {
-                const active = pathname === href || pathname.startsWith(href + '/')
-                return (
-                  <Link
-                    key={href}
-                    href={href}
-                    className={[
-                      'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all',
-                      active
-                        ? 'bg-[#FF6B35] text-white font-medium'
-                        : 'text-white/50 hover:text-white hover:bg-white/5',
-                    ].join(' ')}
-                  >
-                    <Icon size={14} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
-                    <span className="flex-1 truncate">{label}</span>
-                  </Link>
-                )
-              })}
+      {/* Nav — collapsible groups */}
+      <nav className="flex-1 overflow-y-auto px-2 pb-2 sidebar-scroll">
+        {nav.map(({ key, label, icon: SectionIcon, items }) => {
+          const open = openGroups.has(key)
+          const sectionHasActive = items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
+          return (
+            <div key={key} className="mb-1">
+              <button
+                type="button"
+                onClick={() => toggleGroup(key)}
+                aria-expanded={open}
+                className={[
+                  'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-semibold tracking-wider transition-colors',
+                  sectionHasActive
+                    ? 'text-white/85'
+                    : 'text-white/40 hover:text-white/70',
+                ].join(' ')}
+              >
+                <SectionIcon size={13} strokeWidth={2} className="shrink-0 opacity-70" />
+                <span className="flex-1 text-left uppercase">{label}</span>
+                <ChevronDown
+                  size={12}
+                  className={`shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+                />
+              </button>
+
+              <div
+                className={[
+                  'grid transition-all duration-200 ease-out',
+                  open ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0',
+                ].join(' ')}
+              >
+                <div className="overflow-hidden">
+                  <div className="space-y-0.5 pt-1 pb-1.5 pl-1">
+                    {items.map(({ label, href, icon: Icon }) => {
+                      const active = pathname === href || pathname.startsWith(href + '/')
+                      return (
+                        <Link
+                          key={href}
+                          href={href}
+                          className={[
+                            'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all',
+                            active
+                              ? 'bg-[#FF6B35] text-white font-medium shadow-sm shadow-[#FF6B35]/20'
+                              : 'text-white/55 hover:text-white hover:bg-white/5',
+                          ].join(' ')}
+                        >
+                          <Icon size={14} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
+                          <span className="flex-1 truncate">{label}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
-          </div>
-        ))}
+          )
+        })}
       </nav>
 
       {/* Support + NPS buttons */}
-      <div className="px-3 py-2 space-y-1">
+      <div className="px-3 py-2 space-y-1 border-t border-white/5">
         <button
           onClick={() => setSupportOpen(true)}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px]
-                     text-white/40 hover:text-white hover:bg-white/5 transition-all"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5 transition-all"
         >
           <HelpCircle size={14} strokeWidth={1.8} className="shrink-0" />
           <span className="flex-1 text-left truncate">Soporte</span>
         </button>
         <button
           onClick={() => setNpsOpen(true)}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px]
-                     text-white/40 hover:text-white hover:bg-white/5 transition-all"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5 transition-all"
         >
           <MessageSquare size={14} strokeWidth={1.8} className="shrink-0" />
           <span className="flex-1 text-left truncate">Feedback</span>
@@ -231,8 +347,7 @@ function SidebarContent() {
 
       {/* User + Logout */}
       <div className="px-3 py-3 border-t border-white/5 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30
-                        flex items-center justify-center text-[#FF6B35] text-[10px] font-bold shrink-0">
+        <div className="w-7 h-7 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold shrink-0">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
@@ -249,6 +364,32 @@ function SidebarContent() {
           <LogOut size={13} />
         </button>
       </div>
+
+      {/* Themed scrollbar — matches the dark sidebar tone */}
+      <style jsx global>{`
+        .sidebar-scroll {
+          scrollbar-width: thin;
+          scrollbar-color: rgba(255,107,53,0.35) transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar {
+          width: 6px;
+          height: 6px;
+        }
+        .sidebar-scroll::-webkit-scrollbar-track {
+          background: transparent;
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb {
+          background: rgba(255,255,255,0.08);
+          border-radius: 999px;
+          transition: background 0.2s;
+        }
+        .sidebar-scroll:hover::-webkit-scrollbar-thumb {
+          background: rgba(255,107,53,0.35);
+        }
+        .sidebar-scroll::-webkit-scrollbar-thumb:hover {
+          background: rgba(255,107,53,0.55);
+        }
+      `}</style>
     </aside>
   )
 }
@@ -258,13 +399,17 @@ function SidebarContent() {
 export default function RestaurantLayout({ children }: { children: React.ReactNode }) {
   return (
     <RestaurantProvider>
-      <div className="flex h-screen bg-[#0A0A14] text-white overflow-hidden"
-           style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
-        <SidebarContent />
-        <main className="flex-1 overflow-y-auto">
-          {children}
-        </main>
-      </div>
+      <NotificationsProvider>
+        <div className="flex h-screen bg-[#0A0A14] text-white overflow-hidden"
+             style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+          <SidebarContent />
+          <main className="flex-1 overflow-y-auto">
+            {children}
+          </main>
+          {/* Chapi flotante — disponible en todas las páginas del panel */}
+          <ChapiAssistant />
+        </div>
+      </NotificationsProvider>
     </RestaurantProvider>
   )
 }

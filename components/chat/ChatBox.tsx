@@ -185,17 +185,14 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
       <div className="mb-3 text-center min-h-[36px] flex items-center justify-center">
         {waitingFirstToken ? (
           <span
-            className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm
-                       rounded-xl px-4 py-2 inline-flex items-center gap-1
-                       border border-neutral-100"
+            className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 inline-flex items-center gap-1 border border-neutral-100"
           >
             <span className="font-medium text-[#FF6B35]">Chapi</span>
             <TypingDots />
           </span>
         ) : chapiMessage ? (
           <p
-            className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm
-                       rounded-xl px-4 py-2 inline-block border border-neutral-100"
+            className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 inline-block border border-neutral-100"
           >
             <span className="font-medium text-[#FF6B35]">Chapi:</span>{' '}
             {chapiMessage}
@@ -205,9 +202,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
 
       {/* Input box */}
       <div
-        className="relative bg-white rounded-2xl shadow-lg border border-neutral-100
-                   focus-within:border-[#FF6B35]/30 focus-within:shadow-xl
-                   transition-all duration-200"
+        className="relative bg-white rounded-2xl shadow-lg border border-neutral-100 focus-within:border-[#FF6B35]/30 focus-within:shadow-xl transition-all duration-200"
       >
         <textarea
           ref={inputRef}
@@ -216,9 +211,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
           onKeyDown={handleKeyDown}
           placeholder="¿Qué quieres comer hoy? Cuéntale a Chapi..."
           rows={1}
-          className="w-full resize-none bg-transparent px-5 pt-4 pb-3 pr-16
-                     text-[#1A1A2E] placeholder:text-neutral-300
-                     focus:outline-none text-base leading-relaxed"
+          className="w-full resize-none bg-transparent px-5 pt-4 pb-3 pr-16 text-[#1A1A2E] placeholder:text-neutral-300 focus:outline-none text-base leading-relaxed"
           style={{ minHeight: '56px', maxHeight: '120px' }}
           onInput={e => {
             const t = e.target as HTMLTextAreaElement
@@ -231,9 +224,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
         <button
           onClick={() => sendMessage(input)}
           disabled={loading || !input.trim()}
-          className="absolute right-3 bottom-3 w-10 h-10 rounded-xl
-                     bg-[#FF6B35] hover:bg-[#e55a2b] disabled:bg-neutral-200
-                     flex items-center justify-center transition-colors duration-150"
+          className="absolute right-3 bottom-3 w-10 h-10 rounded-xl bg-[#FF6B35] hover:bg-[#e55a2b] disabled:bg-neutral-200 flex items-center justify-center transition-colors duration-150"
           aria-label="Enviar"
         >
           {loading
@@ -252,9 +243,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
                 key={zone}
                 onClick={() => sendMessage(zone)}
                 disabled={loading}
-                className="text-xs px-3 py-1.5 rounded-full bg-white border border-[#FF6B35]/30
-                           text-[#FF6B35] font-medium hover:bg-[#FF6B35] hover:text-white
-                           disabled:opacity-50 transition-colors duration-150"
+                className="text-xs px-3 py-1.5 rounded-full bg-white border border-[#FF6B35]/30 text-[#FF6B35] font-medium hover:bg-[#FF6B35] hover:text-white disabled:opacity-50 transition-colors duration-150"
               >
                 {zone}
               </button>
@@ -268,9 +257,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
               key={chip}
               onClick={() => sendMessage(chip)}
               disabled={loading}
-              className="text-xs px-3 py-1.5 rounded-full bg-white border border-neutral-200
-                         text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35]
-                         disabled:opacity-50 transition-colors duration-150"
+              className="text-xs px-3 py-1.5 rounded-full bg-white border border-neutral-200 text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35] disabled:opacity-50 transition-colors duration-150"
             >
               {chip}
             </button>

@@ -162,8 +162,7 @@ export default function ImpresorasPage() {
         </div>
         <button
           onClick={() => setShowAdd(v => !v)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold
-                     hover:bg-[#e85d2a] transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] transition-colors"
         >
           <Plus size={13} />
           Agregar impresora
@@ -195,8 +194,7 @@ export default function ImpresorasPage() {
             </div>
             <button
               onClick={() => navigator.clipboard.writeText(issuedToken.token)}
-              className="w-full py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-semibold
-                         hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-semibold hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
             >
               <Copy size={12} /> Copiar token
             </button>
@@ -215,8 +213,7 @@ export default function ImpresorasPage() {
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 placeholder="Cocina, Caja, Barra…"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
@@ -247,8 +244,7 @@ export default function ImpresorasPage() {
               <input
                 value={newAddr}
                 onChange={e => setNewAddr(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
             </div>
             <div className="space-y-1.5">
@@ -257,8 +253,7 @@ export default function ImpresorasPage() {
                 type="number"
                 value={newWidth}
                 onChange={e => setNewWidth(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
               <p className="text-white/20 text-[10px]">32 = papel 58mm · 48 = papel 80mm</p>
             </div>
@@ -266,8 +261,7 @@ export default function ImpresorasPage() {
           <button
             onClick={createServer}
             disabled={creating || !newName.trim()}
-            className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                       hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+            className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
           >
             {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
             Crear y generar token
@@ -313,8 +307,7 @@ export default function ImpresorasPage() {
                   </div>
                   <button
                     onClick={() => sendTestJob(srv.id)}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10
-                               text-white/60 hover:text-[#FF6B35] hover:border-[#FF6B35]/40 transition-colors"
+                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-[#FF6B35] hover:border-[#FF6B35]/40 transition-colors"
                   >
                     <Play size={11} /> Test
                   </button>

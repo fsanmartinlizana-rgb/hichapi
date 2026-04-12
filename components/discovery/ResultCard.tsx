@@ -5,12 +5,9 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { Star, MapPin, ChevronDown, ChevronUp } from 'lucide-react'
 import { RestaurantResult, MenuItem } from '@/lib/types'
+import { formatCurrency } from '@/lib/i18n'
 
-function formatPrice(clp: number): string {
-  return new Intl.NumberFormat('es-CL', {
-    style: 'currency', currency: 'CLP', minimumFractionDigits: 0,
-  }).format(clp)
-}
+const formatPrice = (clp: number) => formatCurrency(clp)
 
 function formatDistance(meters?: number): string {
   if (!meters) return ''
@@ -64,8 +61,7 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
   return (
     <Link
       href={`/r/${restaurant.slug}`}
-      className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100
-                 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
+      className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     >
       {/* Foto */}
       <div className="relative aspect-video overflow-hidden bg-neutral-100">
@@ -85,9 +81,7 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
         )}
 
         {distance_m && (
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm
-                         text-[#1A1A2E] text-xs font-medium px-2 py-1 rounded-full
-                         flex items-center gap-1">
+          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[#1A1A2E] text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
             <MapPin size={10} />
             {formatDistance(distance_m)}
           </div>
@@ -95,13 +89,11 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
 
         {/* Index number + optional promo badge stacked top-left */}
         <div className="absolute top-3 left-3 flex items-center gap-1.5">
-          <div className="bg-[#FF6B35] text-white text-xs font-bold w-6 h-6 rounded-full
-                          flex items-center justify-center">
+          <div className="bg-[#FF6B35] text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
             {index + 1}
           </div>
           {showPromoBadge && (
-            <span className="bg-orange-500 text-white text-[10px] font-bold
-                             px-2 py-0.5 rounded-full leading-none">
+            <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
               🎯 Oferta hoy
             </span>
           )}
@@ -146,8 +138,7 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
             {hasExtras && (
               <button
                 onClick={e => { e.preventDefault(); setExpanded(v => !v) }}
-                className="w-full flex items-center justify-center gap-1 pt-1 pb-2
-                           text-[11px] text-neutral-400 hover:text-[#FF6B35] transition-colors"
+                className="w-full flex items-center justify-center gap-1 pt-1 pb-2 text-[11px] text-neutral-400 hover:text-[#FF6B35] transition-colors"
               >
                 {expanded
                   ? <><ChevronUp size={12} /> Ver menos</>

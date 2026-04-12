@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
+import { requireUser } from '@/lib/supabase/auth-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -53,11 +54,11 @@ export async function GET(req: NextRequest) {
     .from('menu_items')
     .select('*')
     .eq('restaurant_id', restaurantId)
-    .order('display_order', { ascending: true, nullsFirst: false })
     .order('category')
     .order('name')
 
   if (error) {
+    console.error('menu-items GET error:', error)
     return NextResponse.json({ error: 'Error al consultar' }, { status: 500 })
   }
 
@@ -67,6 +68,8 @@ export async function GET(req: NextRequest) {
 // ── POST /api/menu-items — create ────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = await req.json()
     const data = CreateItemSchema.parse(body)
@@ -82,10 +85,7 @@ export async function POST(req: NextRequest) {
         category:      data.category,
         tags:          data.tags,
         available:     data.available,
-        cost_price:    data.cost_price || null,
         photo_url:     data.photo_url || null,
-        display_order: data.display_order || null,
-        destination:   data.destination,
       })
       .select()
       .single()
@@ -107,16 +107,19 @@ export async function POST(req: NextRequest) {
 // ── PATCH /api/menu-items — update ───────────────────────────────────────────
 
 export async function PATCH(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = await req.json()
     const data = UpdateItemSchema.parse(body)
 
     const { id, restaurant_id, ...updates } = data
 
-    // Clean undefined values
+    // Clean undefined values + drop fields not present in current schema
+    const SCHEMA_DROPPED = new Set(['cost_price', 'display_order', 'destination'])
     const payload: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(updates)) {
-      if (v !== undefined) payload[k] = v
+      if (v !== undefined && !SCHEMA_DROPPED.has(k)) payload[k] = v
     }
 
     if (Object.keys(payload).length === 0) {
@@ -149,6 +152,8 @@ export async function PATCH(req: NextRequest) {
 // ── DELETE /api/menu-items — delete ──────────────────────────────────────────
 
 export async function DELETE(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
   try {
     const body = await req.json()
     const { id, restaurant_id } = DeleteItemSchema.parse(body)

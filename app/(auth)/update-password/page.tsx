@@ -88,8 +88,7 @@ export default function UpdatePasswordPage() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center
-                        text-white font-bold text-xl mx-auto">
+        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
           hi
         </div>
         <h1 className="text-white font-bold text-2xl">Nueva contraseña</h1>
@@ -101,8 +100,7 @@ export default function UpdatePasswordPage() {
         {!done ? (
           <>
             {error && (
-              <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20
-                              rounded-xl px-4 py-3 mb-4">
+              <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
                 <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
                 <p className="text-red-400 text-sm leading-relaxed">{error}</p>
               </div>
@@ -119,9 +117,7 @@ export default function UpdatePasswordPage() {
                     required
                     autoComplete="new-password"
                     placeholder="Mínimo 12 caracteres"
-                    className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white
-                               placeholder:text-white/20 text-sm focus:outline-none
-                               focus:border-[#FF6B35]/50 transition-colors"
+                    className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                   />
                   <button
                     type="button"
@@ -162,9 +158,7 @@ export default function UpdatePasswordPage() {
               <button
                 type="submit"
                 disabled={loading || !passwordOk || !passwordsMatch}
-                className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                           hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed
-                           transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
               >
                 {loading
                   ? <><Loader2 size={15} className="animate-spin" /> Actualizando...</>
@@ -175,8 +169,7 @@ export default function UpdatePasswordPage() {
           </>
         ) : (
           <div className="text-center space-y-4 py-2">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/25
-                            flex items-center justify-center mx-auto">
+            <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto">
               <CheckCircle2 size={26} className="text-emerald-400" />
             </div>
             <div>
@@ -187,8 +180,7 @@ export default function UpdatePasswordPage() {
             </div>
             <button
               onClick={() => { window.location.href = '/dashboard' }}
-              className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm
-                         hover:bg-[#e85d2a] transition-colors"
+              className="w-full py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
             >
               Ir al panel →
             </button>

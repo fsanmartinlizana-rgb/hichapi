@@ -9,6 +9,7 @@ import {
 import type { LucideIcon } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
+import { formatCurrency } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -51,9 +52,7 @@ const STATUS_STYLE: Record<string, { tone: Tone; label: string; icon: LucideIcon
   cancelled: { tone: 'neutral', label: 'Anulada',   icon: XCircle },
 }
 
-function fmtCLP(n: number): string {
-  return new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP', maximumFractionDigits: 0 }).format(n)
-}
+const fmtCLP = (n: number) => formatCurrency(n)
 
 // ── Page ─────────────────────────────────────────────────────────────────────
 
@@ -208,9 +207,7 @@ export default function DtePage() {
                 type="file"
                 accept=".pfx,.p12"
                 onChange={e => setCertFile(e.target.files?.[0] ?? null)}
-                className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg
-                           file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold
-                           hover:file:bg-[#FF6B35]/30"
+                className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30"
               />
             </div>
             <div className="space-y-1.5">
@@ -219,8 +216,7 @@ export default function DtePage() {
                 type="password"
                 value={certPassword}
                 onChange={e => setCertPassword(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                           placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
               <p className="text-white/20 text-[10px]">
                 Se cifra con AES-256-GCM antes de guardarse. Nunca queda en logs.
@@ -229,9 +225,7 @@ export default function DtePage() {
             <button
               onClick={handleUpload}
               disabled={!certFile || !certPassword || uploading}
-              className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                         hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors
-                         flex items-center justify-center gap-2"
+              className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
             >
               {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
               {uploading ? 'Cifrando y subiendo…' : 'Subir certificado'}

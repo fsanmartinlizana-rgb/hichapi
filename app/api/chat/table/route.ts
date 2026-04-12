@@ -8,8 +8,12 @@ const rateMap = new Map<string, { count: number; reset: number }>()
 const RATE_LIMIT = 30
 const RATE_WINDOW = 60_000
 
+let _rateSweepCounter = 0
 function checkRate(ip: string): boolean {
   const now = Date.now()
+  if (++_rateSweepCounter % 200 === 0) {
+    for (const [k, v] of rateMap) { if (now > v.reset) rateMap.delete(k) }
+  }
   const entry = rateMap.get(ip)
   if (!entry || now > entry.reset) {
     rateMap.set(ip, { count: 1, reset: now + RATE_WINDOW })
@@ -33,7 +37,7 @@ const CartItemSchema = z.object({
   name: z.string(),
   quantity: z.number().int().min(1),
   unit_price: z.number(),
-  note: z.string().optional(),
+  note: z.string().nullable().optional(),
 })
 
 const RequestSchema = z.object({

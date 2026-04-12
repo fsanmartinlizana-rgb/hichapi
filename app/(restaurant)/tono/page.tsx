@@ -174,8 +174,7 @@ export default function TonoPage() {
           <p className="text-white/40 text-sm mt-0.5">Personaliza cómo Chapi habla con tus clientes</p>
         </div>
         <button onClick={handleSave} disabled={saving}
-          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold
-                     hover:bg-[#e85d2a] disabled:opacity-60 transition-colors">
+          className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-60 transition-colors">
           {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : <Sparkles size={14} />}
           {saving ? 'Guardando...' : saved ? 'Guardado' : 'Guardar tono'}
         </button>
@@ -268,8 +267,7 @@ export default function TonoPage() {
                 value={config[key as keyof ToneConfig] as string}
                 onChange={e => setConfig(c => ({ ...c, [key]: e.target.value }))}
                 rows={2}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-xs
-                           placeholder:text-white/15 focus:outline-none focus:border-[#FF6B35]/40 resize-none transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/15 focus:outline-none focus:border-[#FF6B35]/40 resize-none transition-colors"
               />
             </div>
           ))}
@@ -291,8 +289,7 @@ export default function TonoPage() {
           <button
             onClick={saveFeatures}
             disabled={savingFeatures}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold
-                       hover:bg-[#e85d2a] disabled:opacity-40 transition-colors"
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors"
           >
             {savingFeatures ? <Loader2 size={12} className="animate-spin" /> : featuresSaved ? <Check size={12} /> : <Star size={12} />}
             {featuresSaved ? 'Guardado' : 'Guardar'}
@@ -313,8 +310,7 @@ export default function TonoPage() {
                   const item = menuItems.find(m => m.id === id)
                   if (!item) return null
                   return (
-                    <span key={id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold
-                                              bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[#FBBF24]">
+                    <span key={id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[#FBBF24]">
                       ⭐ {item.name}
                       <button onClick={() => toggleFeatured(id)} className="hover:text-white transition-colors ml-0.5">
                         <X size={10} />
@@ -390,8 +386,7 @@ export default function TonoPage() {
           <input value={testInput} onChange={e => setTestInput(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleTest()}
             placeholder='Escribe un mensaje de cliente...'
-            className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm
-                       placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+            className="flex-1 px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
           <button onClick={handleTest} disabled={testing || !testInput.trim()}
             className="px-4 py-2.5 rounded-xl bg-[#FF6B35] text-white disabled:opacity-40 hover:bg-[#e85d2a] transition-colors flex items-center gap-1.5 text-sm font-medium">
             {testing ? <Loader2 size={14} className="animate-spin" /> : <Play size={14} />}

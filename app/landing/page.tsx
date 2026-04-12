@@ -26,7 +26,7 @@ import { FAQAccordion } from './FAQAccordion'
 export const metadata: Metadata = {
   title: 'HiChapi — Tu guia gastronomica inteligente en Santiago',
   description:
-    'Chapi es tu asistente de IA que entiende lo que quieres comer. Descubre restaurantes por barrio, presupuesto o dieta. Para restaurantes: gestion inteligente sin comisiones.',
+    'Chapi es tu asistente de IA que entiende lo que quieres comer. Descubre restaurantes por barrio, presupuesto o dieta. Para restaurantes: gestión inteligente con solo 1% sobre ventas digitales.',
   openGraph: {
     title: 'HiChapi — Descubre donde comer en Santiago con IA',
     description:
@@ -41,7 +41,7 @@ const STATS = [
   { value: '50+', label: 'Restaurantes' },
   { value: '12', label: 'Barrios' },
   { value: '24/7', label: 'Disponible' },
-  { value: '0%', label: 'Comisiones' },
+  { value: '1%', label: 'Comisión digital' },
 ]
 
 const HOW_IT_WORKS = [
@@ -145,7 +145,7 @@ const TESTIMONIALS = [
     rating: 5,
   },
   {
-    quote: 'Por fin algo que no cobra comision y me da visibilidad real. No es otro delivery app.',
+    quote: 'Solo cobran 1% de lo digital y me dan visibilidad real. No es otro delivery app.',
     author: 'Andrea L.',
     role: 'Chef, La Meson',
     rating: 5,
@@ -179,7 +179,7 @@ const PLANS = [
   {
     name: 'Starter',
     badge: 'Mas popular',
-    price: '$49.900',
+    price: '$29.990',
     period: '/ mes',
     description: 'Tus clientes piden desde la mesa. Sin papeles, sin errores.',
     features: [
@@ -198,7 +198,7 @@ const PLANS = [
   {
     name: 'Pro',
     badge: 'Para crecer',
-    price: '$89.900',
+    price: '$59.990',
     period: '/ mes',
     description: 'Inteligencia de negocio y control total de operaciones.',
     features: [
@@ -548,7 +548,7 @@ function ComparisonSection() {
             <p className="text-sm font-bold text-[#FF6B35] uppercase tracking-wider mb-6">Discovery + Gestion</p>
             <ul className="space-y-4">
               {[
-                'Sin comisiones — jamas',
+                'Solo 1% en ventas digitales (Rappi: 30%)',
                 'El cliente va presencial',
                 'Recomendacion inteligente por IA',
                 'Relacion directa con el comensal',
@@ -581,7 +581,7 @@ function RestaurantNumbers() {
           {[
             { value: '$0', label: 'en web propia', sub: 'vs $200k en agencia' },
             { value: '<5 min', label: 'para publicar', sub: 'tu pagina' },
-            { value: '0%', label: 'de comisiones', sub: '(Rappi: 30%)' },
+            { value: '1%', label: 'comisión digital', sub: '(Rappi: 30%)' },
             { value: '+23%', label: 'ticket promedio', sub: 'con QR' },
           ].map(({ value, label, sub }) => (
             <div key={label} className="text-center">
@@ -617,7 +617,7 @@ function RestaurantFeatures() {
             </h2>
             <p className="text-neutral-400 text-lg mb-8 leading-relaxed">
               Panel completo para gestionar pedidos, equipo, inventario y mesas.
-              Sin comisiones, sin intermediarios. El cliente llega directo a ti.
+              Solo 1% sobre ventas digitales. El cliente llega directo a ti.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4">
