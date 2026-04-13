@@ -813,20 +813,18 @@ function OrderCard({
 
 // ── Nueva Comanda Modal ────────────────────────────────────────────────────────
 
-const MESAS_DISPONIBLES = ['Mesa 1','Mesa 2','Mesa 3','Mesa 5','Mesa 6','Mesa 8','Mesa 10','Mesa 12']
-const MENU_ITEMS_QUICK  = [
-  'Lomo vetado','Pasta arrabiata','Salmón grillado','Risotto','Pizza napolitana',
-  'Ensalada César','Tiramisú','Gazpacho','Ceviche','Pan de ajo','Pisco sour',
-]
-
 interface NuevaComandaLine { name: string; qty: number; note: string; dest: Destination }
 
 function NuevaComandaModal({
   onClose,
   onSave,
+  tables,
+  menuItems,
 }: {
   onClose: () => void
   onSave: (order: Order) => void
+  tables: { id: string; label: string }[]
+  menuItems: { name: string; destination?: string }[]
 }) {
   const [mesa, setMesa]   = useState('')
   const [pax, setPax]     = useState(2)
@@ -897,8 +895,8 @@ function NuevaComandaModal({
                 className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors appearance-none"
               >
                 <option value="" className="bg-[#161622]">Seleccionar…</option>
-                {MESAS_DISPONIBLES.map(m => (
-                  <option key={m} value={m} className="bg-[#161622]">{m}</option>
+                {tables.map(t => (
+                  <option key={t.id} value={t.label} className="bg-[#161622]">{t.label}</option>
                 ))}
               </select>
             </div>
@@ -944,12 +942,15 @@ function NuevaComandaModal({
                     {/* Item name */}
                     <select
                       value={line.name}
-                      onChange={e => updateLine(i, { name: e.target.value })}
+                      onChange={e => {
+                        const selected = menuItems.find(m => m.name === e.target.value)
+                        updateLine(i, { name: e.target.value, dest: (selected?.destination as Destination) ?? 'cocina' })
+                      }}
                       className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
                     >
                       <option value="" className="bg-[#161622]">Seleccionar plato…</option>
-                      {MENU_ITEMS_QUICK.map(item => (
-                        <option key={item} value={item} className="bg-[#161622]">{item}</option>
+                      {menuItems.map(item => (
+                        <option key={item.name} value={item.name} className="bg-[#161622]">{item.name}</option>
                       ))}
                     </select>
                     {/* Remove */}
@@ -1035,6 +1036,8 @@ function ComandasPageInner() {
   const [stockMap, setStockMap]       = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
   const [toasts, setToasts]           = useState<ToastMsg[]>([])
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
+  const [realTables, setRealTables]   = useState<{ id: string; label: string }[]>([])
+  const [realMenuItems, setRealMenuItems] = useState<{ name: string; destination?: string }[]>([])
 
   const supabase = createClient()
 
@@ -1042,14 +1045,20 @@ function ComandasPageInner() {
 
   const loadData = useCallback(async () => {
     if (!restId) return
-    const [tablesRes, ordersRes] = await Promise.all([
-      supabase.from('tables').select('id, label').eq('restaurant_id', restId),
+    const [tablesRes, ordersRes, menuRes] = await Promise.all([
+      supabase.from('tables').select('id, label').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
         .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes)')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
+      supabase
+        .from('menu_items')
+        .select('name, destination')
+        .eq('restaurant_id', restId)
+        .eq('available', true)
+        .order('name'),
     ])
 
     if (ordersRes.error) { setOnline(false); setLoading(false); return }
@@ -1057,6 +1066,10 @@ function ComandasPageInner() {
 
     const tables: DbTable[]  = tablesRes.data  ?? []
     const dbOrders: DbOrder[] = ordersRes.data ?? []
+
+    // Store real tables and menu for NuevaComandaModal
+    setRealTables(tables.map(t => ({ id: t.id, label: t.label })))
+    setRealMenuItems((menuRes.data ?? []).map((m: { name: string; destination?: string | null }) => ({ name: m.name, destination: m.destination ?? undefined })))
 
     const mapped = dbOrders
       .map(o => mapDbOrder(o, tables))
@@ -1436,6 +1449,8 @@ function ComandasPageInner() {
         <NuevaComandaModal
           onClose={() => setShowNueva(false)}
           onSave={handleNuevaComanda}
+          tables={realTables}
+          menuItems={realMenuItems}
         />
       )}
     </div>
