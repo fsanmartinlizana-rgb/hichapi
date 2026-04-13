@@ -629,11 +629,14 @@ export default function TablePage() {
       const data = await res.json()
       setOrderId(data.orderId)
       setOrderStatus('sent')
+      const orderSummary = cart.map(c => `${c.quantity}× ${c.name}`).join(', ')
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'chapi',
-        text: `¡Perfecto! Tu pedido ya está en cocina 🔥 ${cart.map(c => `${c.quantity}× ${c.name}`).join(', ')}. ¿Algo más mientras esperas?`,
+        text: `¡Perfecto! Tu pedido ya está en cocina 🔥 ${orderSummary}. ¿Algo más mientras esperas?`,
       }])
+      // Clear cart and close panel — order is placed, prevent duplicate orders
+      setCart([])
       setTimeout(() => {
         setCartOpen(false)
         setOrderStatus('idle')

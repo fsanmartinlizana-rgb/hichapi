@@ -153,26 +153,43 @@ export async function POST(req: NextRequest) {
     // Run sentiment analysis (Haiku) — best effort
     const analysis = await analyzeSentiment(body.rating, body.comment)
 
-    // Insert review
-    const { data: review, error: insertErr } = await supabase
-      .from('reviews')
-      .insert({
-        restaurant_id:   restaurant.id,
-        order_id:        body.order_id,
-        rating:          body.rating,
-        comment:         body.comment || null,
-        source:          'post_order',
-        sentiment:       analysis.sentiment,
-        sentiment_score: analysis.score,
-        topics:          analysis.topics,
-        ai_summary:      analysis.summary,
-      })
-      .select()
-      .single()
+    // Insert review — try with sentiment fields first, fallback to basic insert
+    let review = null
+    let insertErr = null
+
+    const fullPayload = {
+      restaurant_id:   restaurant.id,
+      order_id:        body.order_id,
+      rating:          body.rating,
+      comment:         body.comment || null,
+      source:          'post_order',
+      sentiment:       analysis.sentiment,
+      sentiment_score: analysis.score,
+      topics:          analysis.topics,
+      ai_summary:      analysis.summary,
+    }
+
+    const basicPayload = {
+      restaurant_id:   restaurant.id,
+      order_id:        body.order_id,
+      rating:          body.rating,
+      comment:         body.comment || null,
+      source:          'post_order',
+    }
+
+    const res1 = await supabase.from('reviews').insert(fullPayload).select().single()
+    if (res1.error) {
+      console.warn('Review full insert failed, trying basic:', res1.error.message)
+      const res2 = await supabase.from('reviews').insert(basicPayload).select().single()
+      review = res2.data
+      insertErr = res2.error
+    } else {
+      review = res1.data
+    }
 
     if (insertErr) {
       console.error('Review insert error:', insertErr)
-      return NextResponse.json({ error: 'No se pudo guardar la reseña' }, { status: 500 })
+      return NextResponse.json({ error: `No se pudo guardar la reseña: ${insertErr.message}` }, { status: 500 })
     }
 
     return NextResponse.json({

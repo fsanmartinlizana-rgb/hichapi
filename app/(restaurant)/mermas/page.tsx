@@ -119,7 +119,10 @@ export default function MermasPage() {
       restaurant_id: restId,
     })
 
-    if (!error) {
+    if (error) {
+      console.error('Merma insert error:', error)
+      alert(`Error al registrar merma: ${error.message}`)
+    } else {
       setSelectedItem('')
       setQty('')
       setNotes('')

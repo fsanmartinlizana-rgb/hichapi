@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
 import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine, RotateCcw } from 'lucide-react'
@@ -820,11 +820,13 @@ function NuevaComandaModal({
   onSave,
   tables,
   menuItems,
+  restaurantId,
 }: {
   onClose: () => void
-  onSave: (order: Order) => void
+  onSave: () => void
   tables: { id: string; label: string }[]
   menuItems: { name: string; destination?: string }[]
+  restaurantId: string
 }) {
   const [mesa, setMesa]   = useState('')
   const [pax, setPax]     = useState(2)
@@ -837,25 +839,57 @@ function NuevaComandaModal({
     setLines(prev => prev.map((l, idx) => idx === i ? { ...l, ...patch } : l))
   }
 
-  function handleSave() {
+  async function handleSave() {
     if (!mesa || lines.every(l => !l.name)) return
     setSaving(true)
     const validLines = lines.filter(l => l.name)
-    const newOrder: Order = {
-      id:         `ord-${Date.now()}`,
-      tableId:    mesa.replace(' ', '-').toLowerCase(),
-      tableLabel: mesa,
-      pax,
-      status:     'recibida',
-      items:      validLines.map(l => ({ name: l.name, qty: l.qty, note: l.note || undefined, destination: l.dest })),
-      amount:     0,
-      mins:       0,
-      viaChapi:   false,
-    }
-    setTimeout(() => {
-      onSave(newOrder)
+    const selectedTable = tables.find(t => t.label === mesa)
+
+    try {
+      // Create real order in Supabase via the admin client
+      const supabase = createClient()
+
+      // 1. Insert order
+      const { data: order, error: orderErr } = await supabase
+        .from('orders')
+        .insert({
+          restaurant_id: restaurantId,
+          table_id: selectedTable?.id ?? null,
+          status: 'pending',
+          total: 0,
+        })
+        .select('id')
+        .single()
+
+      if (orderErr || !order) throw new Error(orderErr?.message ?? 'Error creating order')
+
+      // 2. Insert order items
+      await supabase.from('order_items').insert(
+        validLines.map(l => ({
+          order_id: order.id,
+          name: l.name,
+          quantity: l.qty,
+          notes: l.note || null,
+          status: 'pending',
+          destination: l.dest,
+          unit_price: 0,
+        }))
+      )
+
+      // 3. Mark table as occupied
+      if (selectedTable) {
+        await supabase
+          .from('tables')
+          .update({ status: 'ocupada' })
+          .eq('id', selectedTable.id)
+      }
+
+      onSave()
+    } catch (err) {
+      console.error('Error creating comanda:', err)
+    } finally {
       setSaving(false)
-    }, 400)
+    }
   }
 
   const canSave = mesa && lines.some(l => l.name)
@@ -1039,7 +1073,7 @@ function ComandasPageInner() {
   const [realTables, setRealTables]   = useState<{ id: string; label: string }[]>([])
   const [realMenuItems, setRealMenuItems] = useState<{ name: string; destination?: string }[]>([])
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // ── Load from Supabase ─────────────────────────────────────────────────────
 
@@ -1075,29 +1109,76 @@ function ComandasPageInner() {
       .map(o => mapDbOrder(o, tables))
       .filter(Boolean) as Order[]
 
-    setOrders(prev => {
-      // Keep locally-created orders (from NuevaComanda) — they have ids starting with 'ord-'
-      const localOnly = prev.filter(o => o.id.startsWith('ord-'))
-      return [...localOnly, ...mapped]
-    })
+    setOrders(mapped)
     setLoading(false)
   }, [restId, supabase])
-
-  useEffect(() => {
-    loadData()
-    const ch = supabase
-      .channel('comandas-rt')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, loadData)
-      .subscribe(s => setOnline(s === 'SUBSCRIBED'))
-    return () => { supabase.removeChannel(ch) }
-  }, [loadData, supabase])
 
   function pushToast(text: string, variant: ToastMsg['variant'] = 'break') {
     const id = Date.now()
     setToasts(prev => [...prev, { id, text, variant }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }
+
+  // Browser notification helper
+  function notifyBrowser(title: string, body: string) {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
+      new Notification(title, { body })
+    }
+  }
+
+  useEffect(() => {
+    loadData()
+    // Request notification permission on mount
+    if (typeof Notification !== 'undefined' && Notification.permission === 'default') {
+      Notification.requestPermission()
+    }
+
+    const ch = supabase
+      .channel('comandas-rt')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        loadData()
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, loadData)
+      .subscribe(s => setOnline(s === 'SUBSCRIBED'))
+    return () => { supabase.removeChannel(ch) }
+  }, [loadData, supabase])
+
+  // Detect new orders and bill requests via order count changes
+  const prevOrderIdsRef = useRef<Set<string>>(new Set())
+  useEffect(() => {
+    const currentIds = new Set(orders.map(o => o.id))
+    const prevIds = prevOrderIdsRef.current
+
+    // New orders that weren't in previous set
+    for (const id of currentIds) {
+      if (!prevIds.has(id)) {
+        const order = orders.find(o => o.id === id)
+        if (order?.status === 'recibida') {
+          pushToast(`Nuevo pedido · ${order.tableLabel}`, 'info')
+          notifyBrowser('HiChapi — Nuevo pedido', `Pedido en ${order.tableLabel}`)
+        }
+      }
+    }
+
+    // Check for bill requests
+    for (const order of orders) {
+      if (order.billRequested) {
+        const wasBillBefore = [...prevIds].some(id => {
+          const prev = orders.find(o => o.id === id)
+          return prev?.billRequested
+        })
+        if (!wasBillBefore && currentIds.has(order.id)) {
+          pushToast(`Cuenta solicitada · ${order.tableLabel}`, 'stock')
+          notifyBrowser('HiChapi — Cuenta', `${order.tableLabel} pidió la cuenta`)
+        }
+      }
+    }
+
+    prevOrderIdsRef.current = currentIds
+  }, [orders])
 
   async function advance(id: string, next: OrderStatus) {
     const prevStatus = orders.find(o => o.id === id)?.status
@@ -1263,10 +1344,10 @@ function ComandasPageInner() {
     pushToast('Devolución registrada · Merma creada automáticamente', 'info')
   }
 
-  function handleNuevaComanda(order: Order) {
-    setOrders(prev => [order, ...prev])
+  function handleNuevaComanda() {
     setShowNueva(false)
-    pushToast(`Comanda ${order.tableLabel} creada · En espera`, 'info' as ToastMsg['variant'])
+    pushToast('Comanda creada · En espera', 'info')
+    loadData() // Reload from Supabase to show the new order
   }
 
   const filtered = (() => {
@@ -1451,6 +1532,7 @@ function ComandasPageInner() {
           onSave={handleNuevaComanda}
           tables={realTables}
           menuItems={realMenuItems}
+          restaurantId={restId!}
         />
       )}
     </div>

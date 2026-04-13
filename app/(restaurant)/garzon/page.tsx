@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
@@ -254,7 +254,7 @@ export default function GarzonPage() {
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [payingOrder, setPayingOrder] = useState<{ id: string; total: number } | null>(null)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // ── Load all data ─────────────────────────────────────────────────────────
 
