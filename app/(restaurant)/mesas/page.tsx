@@ -1095,15 +1095,17 @@ export default function MesasPage() {
   const restId = restaurant?.id
   const loadData = useCallback(async () => {
     if (!restId) return
+
+    // Use select('*') to avoid column-not-found errors if schema hasn't been migrated
     const [tablesRes, ordersRes] = await Promise.all([
-      supabase.from('tables').select('id, label, seats, status, zone, smoking, qr_token, split_into_ids, pos_x, pos_y').eq('restaurant_id', restId).order('label'),
+      supabase.from('tables').select('*').eq('restaurant_id', restId).order('label'),
       supabase.from('orders').select('id, table_id, status').eq('restaurant_id', restId).not('status', 'in', '("paid","cancelled")'),
     ])
 
     if (tablesRes.error) {
       console.error('Error loading tables:', tablesRes.error)
     } else {
-      setMesas(tablesRes.data?.map(t => dbToMesa(t as DbTable)) ?? [])
+      setMesas((tablesRes.data ?? []).map(t => dbToMesa(t as DbTable)))
     }
 
     if (!ordersRes.error && ordersRes.data) {
