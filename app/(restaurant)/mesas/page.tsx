@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
@@ -1088,7 +1088,7 @@ export default function MesasPage() {
   const [deleteMesa, setDeleteMesa] = useState<Mesa | null>(null)
   const [editingLayout, setEditingLayout] = useState(false)
 
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
 
   // ── Load tables + order alerts from Supabase ────────────────────────────────
 
@@ -1100,8 +1100,10 @@ export default function MesasPage() {
       supabase.from('orders').select('id, table_id, status').eq('restaurant_id', restId).not('status', 'in', '("paid","cancelled")'),
     ])
 
-    if (!tablesRes.error && tablesRes.data?.length) {
-      setMesas(tablesRes.data.map(t => dbToMesa(t as DbTable)))
+    if (tablesRes.error) {
+      console.error('Error loading tables:', tablesRes.error)
+    } else {
+      setMesas(tablesRes.data?.map(t => dbToMesa(t as DbTable)) ?? [])
     }
 
     if (!ordersRes.error && ordersRes.data) {

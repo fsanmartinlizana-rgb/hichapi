@@ -347,7 +347,10 @@ export default function ReportePage() {
           {/* Heatmap */}
           <div className="bg-[#161622] border border-white/5 rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
-              <p className="text-white font-semibold text-sm">Ocupación por día y hora</p>
+              <div>
+                <p className="text-white font-semibold text-sm">Ocupación por día y hora</p>
+                <p className="text-white/25 text-[10px] mt-0.5">Promedio de los últimos 7 días</p>
+              </div>
               <div className="flex items-center gap-2 text-[10px] text-white/30">
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#FF6B35]/10 inline-block" />0%</span>
                 <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#FF6B35]/60 inline-block" />60%</span>

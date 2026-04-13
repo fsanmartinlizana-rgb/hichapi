@@ -35,3 +35,15 @@ body {
 .animate-fade-in {
   animation: fade-in 0.6s ease-out both;
 }
+
+/* ── Dark-themed select dropdowns ─────────────────────────────────────────── */
+/* Fixes white option backgrounds in dark UI sections */
+select option,
+select optgroup {
+  background-color: #161622;
+  color: #ffffff;
+}
+
+/* Scrollbar styling for dark panels */
+.scrollbar-none::-webkit-scrollbar { display: none; }
+.scrollbar-none { -ms-overflow-style: none; scrollbar-width: none; }

@@ -227,19 +227,29 @@ export default function EquipoPage() {
         </div>
       )}
 
-      {/* Role guide */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {ROLES.map(({ value, label, desc, icon: Icon }) => (
-          <div key={value} className="bg-white/3 border border-white/8 rounded-xl p-3 flex gap-2.5">
-            <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ROLE_COLOR[value]?.split(' ').slice(0,1).join(' ')} border ${ROLE_COLOR[value]?.split(' ').slice(2).join(' ')}`}>
-              <Icon size={13} className={ROLE_COLOR[value]?.split(' ')[1]} />
+      {/* Roles disponibles */}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 px-1">
+          <ShieldCheck size={14} className="text-white/40" />
+          <span className="text-white text-sm font-medium">Roles disponibles</span>
+          <span className="text-white/20 text-[10px]">— Asigna estos roles a cada miembro del equipo</span>
+          <button onClick={() => { setShowForm(true); setFeedback(null) }} className="ml-auto flex items-center gap-1 px-3 py-1 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#FF6B35] text-[10px] font-semibold hover:bg-[#FF6B35]/20 transition-colors">
+            <Plus size={10} /> Agregar persona
+          </button>
+        </div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+          {ROLES.map(({ value, label, desc, icon: Icon }) => (
+            <div key={value} className="bg-white/3 border border-white/8 rounded-xl p-3 flex gap-2.5">
+              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ROLE_COLOR[value]?.split(' ').slice(0,1).join(' ')} border ${ROLE_COLOR[value]?.split(' ').slice(2).join(' ')}`}>
+                <Icon size={13} className={ROLE_COLOR[value]?.split(' ')[1]} />
+              </div>
+              <div>
+                <p className="text-white text-xs font-semibold">{label}</p>
+                <p className="text-white/35 text-[10px] leading-tight mt-0.5">{desc}</p>
+              </div>
             </div>
-            <div>
-              <p className="text-white text-xs font-semibold">{label}</p>
-              <p className="text-white/35 text-[10px] leading-tight mt-0.5">{desc}</p>
-            </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
 
       {/* Active members */}

@@ -115,6 +115,44 @@ function Sparkline({ values }: { values: number[] }) {
   )
 }
 
+// ── Upcoming events advisor ──────────────────────────────────────────────────
+
+const CHILE_EVENTS = [
+  { month: 1, day: 1,  name: 'Año Nuevo', tip: 'Brunch especial post-celebración', impact: 'medio' as const },
+  { month: 2, day: 14, name: 'San Valentín', tip: 'Menú para parejas, reservas llenas', impact: 'alto' as const },
+  { month: 3, day: 8,  name: 'Día de la Mujer', tip: 'Promociones especiales, alta demanda', impact: 'medio' as const },
+  { month: 5, day: 11, name: 'Día de la Madre', tip: 'Mayor demanda del año, refuerza personal', impact: 'alto' as const },
+  { month: 5, day: 21, name: 'Día de las Glorias Navales', tip: 'Feriado largo, turismo alto', impact: 'medio' as const },
+  { month: 6, day: 15, name: 'Día del Padre', tip: 'Almuerzos familiares, menú especial', impact: 'alto' as const },
+  { month: 7, day: 16, name: 'Día de la Virgen del Carmen', tip: 'Feriado religioso, flujo turístico', impact: 'bajo' as const },
+  { month: 9, day: 18, name: 'Fiestas Patrias', tip: 'Semana completa de alta demanda, menú criollo', impact: 'alto' as const },
+  { month: 10, day: 31, name: 'Halloween', tip: 'Eventos temáticos, cócteles especiales', impact: 'medio' as const },
+  { month: 12, day: 24, name: 'Nochebuena', tip: 'Cenas familiares, reservas con anticipación', impact: 'alto' as const },
+  { month: 12, day: 31, name: 'Año Nuevo', tip: 'Cena de fin de año, precios premium', impact: 'alto' as const },
+]
+
+function getUpcomingEvents() {
+  const now = new Date()
+  const upcoming: { date: string; name: string; tip: string; impact: string; daysUntil: number }[] = []
+
+  for (const evt of CHILE_EVENTS) {
+    let evtDate = new Date(now.getFullYear(), evt.month - 1, evt.day)
+    if (evtDate < now) evtDate = new Date(now.getFullYear() + 1, evt.month - 1, evt.day)
+    const daysUntil = Math.ceil((evtDate.getTime() - now.getTime()) / 86400000)
+    if (daysUntil <= 60) {
+      upcoming.push({
+        date: `En ${daysUntil} días · ${evtDate.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}`,
+        name: evt.name,
+        tip: evt.tip,
+        impact: evt.impact,
+        daysUntil,
+      })
+    }
+  }
+
+  return upcoming.sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 3)
+}
+
 // ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function AnalyticsPage() {
@@ -276,6 +314,29 @@ export default function AnalyticsPage() {
               21h es tu hora pico · Mediodía (13h) es el segundo peak · 16h es el valle del día
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* ── Advisor: Fechas importantes ── */}
+      <div className="bg-gradient-to-r from-purple-500/10 to-[#FF6B35]/10 border border-purple-500/20 rounded-2xl p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <Zap size={14} className="text-purple-400" />
+          <p className="text-white font-semibold text-sm">Fechas importantes para tu negocio</p>
+        </div>
+        <p className="text-white/40 text-xs">Prepárate con anticipación para estos eventos que impactan la demanda</p>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {getUpcomingEvents().map(evt => (
+            <div key={evt.name} className="bg-white/5 border border-white/8 rounded-xl p-3 space-y-1">
+              <p className="text-white/60 text-[10px] font-mono">{evt.date}</p>
+              <p className="text-white font-semibold text-xs">{evt.name}</p>
+              <p className="text-white/30 text-[10px]">{evt.tip}</p>
+              <div className="flex items-center gap-1 mt-1">
+                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${evt.impact === 'alto' ? 'bg-red-500/15 text-red-400' : evt.impact === 'medio' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-white/5 text-white/30'}`}>
+                  Impacto {evt.impact}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 

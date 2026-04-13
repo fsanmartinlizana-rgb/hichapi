@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { CalendarDays, Clock, Users, CheckCircle2, X, Loader2, UserCheck, Ban, Phone, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Timer } from 'lucide-react'
+import { CalendarDays, Clock, Users, CheckCircle2, X, Loader2, UserCheck, Ban, Phone, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Timer, Search } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { EmptyState } from '@/components/ui/EmptyState'
 
@@ -148,6 +148,7 @@ export default function ReservasPage() {
   const [loading, setLoading] = useState(true)
   const [date, setDate] = useState(() => new Date().toISOString().split('T')[0])
   const [filter, setFilter] = useState<'all' | 'active' | 'past'>('active')
+  const [search, setSearch] = useState('')
   const [acting, setActing] = useState<string | null>(null)
 
   const timeoutMin = 15 // Default, will be read from restaurant config
@@ -189,8 +190,12 @@ export default function ReservasPage() {
 
   // Filter reservations
   const filtered = reservations.filter(r => {
-    if (filter === 'active') return ['pending', 'confirmed', 'seated'].includes(r.status)
-    if (filter === 'past') return ['completed', 'no_show', 'cancelled'].includes(r.status)
+    if (filter === 'active' && !['pending', 'confirmed', 'seated'].includes(r.status)) return false
+    if (filter === 'past' && !['completed', 'no_show', 'cancelled'].includes(r.status)) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return r.name.toLowerCase().includes(q) || r.phone.toLowerCase().includes(q)
+    }
     return true
   })
 
@@ -237,7 +242,7 @@ export default function ReservasPage() {
         </button>
       </div>
 
-      {/* Date nav */}
+      {/* Date nav + Search */}
       <div className="flex items-center gap-3">
         <button onClick={() => changeDate(-1)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 transition-colors">
           <ChevronLeft size={16} />
@@ -254,6 +259,18 @@ export default function ReservasPage() {
             Hoy
           </button>
         )}
+      </div>
+
+      {/* Search */}
+      <div className="relative">
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+        <input
+          type="text"
+          value={search}
+          onChange={e => setSearch(e.target.value)}
+          placeholder="Buscar por nombre o teléfono..."
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/[0.05] transition-colors"
+        />
       </div>
 
       {/* Stats */}

@@ -30,6 +30,7 @@ import {
   FileText,
   Printer,
 } from 'lucide-react'
+import HeroToggle from '@/components/landing/HeroToggle'
 
 export const metadata: Metadata = {
   title: 'HiChapi — Discovery con IA + Restaurante inteligente',
@@ -935,7 +936,7 @@ export default function LandingPage() {
       `}</style>
 
       <Navbar />
-      <Hero />
+      <HeroToggle />
       <StatsBar />
       <DinerSection />
       <RestaurantSection />

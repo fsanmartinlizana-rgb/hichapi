@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Check, MapPin, Clock, Globe, Phone, Camera, Loader2, AtSign,
   ExternalLink, Sparkles, AlertCircle, CalendarDays,
@@ -8,6 +8,7 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { MODULE_LABELS, MODULE_PLAN_REQUIRED, type ModulesConfig } from '@/lib/defaults/moduleDefaults'
+import { canAccessModule, PLANS } from '@/lib/plans'
 import { TagPicker } from '@/components/ui/TagPicker'
 import { RESTAURANT_TAG_GROUPS } from '@/lib/tags/catalog'
 
@@ -116,6 +117,10 @@ export default function RestaurantePage() {
   const [tags, setTags]               = useState<string[]>([])
   const [photoUrl, setPhotoUrl]       = useState<string | null>(null)
   const [schedule, setSchedule]       = useState<Record<string, Schedule>>(DEFAULT_HOURS)
+
+  // Photo upload
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Reservation settings
   const [reservationsEnabled, setReservationsEnabled] = useState(false)
@@ -292,7 +297,7 @@ export default function RestaurantePage() {
         {/* Photo */}
         <Section title="Foto principal">
           <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed flex items-center justify-center overflow-hidden">
+            <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#FF6B35]/40 transition-colors" onClick={() => fileInputRef.current?.click()}>
               {photoUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
@@ -301,15 +306,27 @@ export default function RestaurantePage() {
               )}
             </div>
             <div className="flex-1">
-              <p className="text-white/50 text-sm">JPG o PNG · Mínimo 800×600px</p>
+              <p className="text-white/50 text-sm">JPG, PNG o WebP · Máx 5 MB</p>
               <p className="text-white/25 text-xs mt-0.5">Esta foto aparece en las cards de búsqueda</p>
-              <input
-                type="url"
-                value={photoUrl ?? ''}
-                onChange={e => setPhotoUrl(e.target.value || null)}
-                placeholder="https://…"
-                className="w-full mt-2 px-3 py-2 rounded-lg bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
-              />
+              <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={async (e) => {
+                const file = e.target.files?.[0]
+                if (!file || !restaurant) return
+                setUploading(true)
+                try {
+                  const fd = new FormData()
+                  fd.append('file', file)
+                  fd.append('folder', `restaurants/${restaurant.id}`)
+                  const res = await fetch('/api/upload', { method: 'POST', body: fd })
+                  const data = await res.json()
+                  if (res.ok && data.url) setPhotoUrl(data.url)
+                  else setError(data.error || 'Error al subir foto')
+                } catch { setError('Error al subir foto') }
+                finally { setUploading(false) }
+              }} />
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-medium hover:bg-[#FF6B35]/20 disabled:opacity-40 transition-colors">
+                {uploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
+                {uploading ? 'Subiendo...' : 'Subir foto'}
+              </button>
             </div>
           </div>
         </Section>
@@ -467,21 +484,27 @@ export default function RestaurantePage() {
               {(Object.keys(MODULE_LABELS) as Array<keyof ModulesConfig>).map(key => {
                 const isActive = modules[key]
                 const planReq  = MODULE_PLAN_REQUIRED[key]
+                const currentPlan = restaurant?.plan || 'free'
+                const hasAccess = canAccessModule(currentPlan, planReq)
+                const planInfo = PLANS[planReq]
                 return (
                   <div key={key} className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${isActive ? 'text-white/80' : 'text-white/30'}`}>{MODULE_LABELS[key]}</p>
-                      <p className="text-white/20 text-[10px]">Plan requerido: {planReq}</p>
+                      <p className={`text-sm ${!hasAccess ? 'text-white/20' : isActive ? 'text-white/80' : 'text-white/30'}`}>{MODULE_LABELS[key]}</p>
+                      <p className="text-white/20 text-[10px]">{hasAccess ? `Plan: ${planInfo?.name || planReq}` : `Requiere plan ${planInfo?.name || planReq}`}</p>
                     </div>
-                    <button
-                      onClick={() => toggleModule(key)}
-                      className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all
-                        ${isActive
-                          ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]'
-                          : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}
-                    >
-                      {isActive ? 'Activo' : 'Inactivo'}
-                    </button>
+                    {hasAccess ? (
+                      <button
+                        onClick={() => toggleModule(key)}
+                        className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${isActive ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}
+                      >
+                        {isActive ? 'Activo' : 'Inactivo'}
+                      </button>
+                    ) : (
+                      <a href="/modulos" className="shrink-0 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-semibold hover:bg-purple-500/20 transition-colors">
+                        Upgrade
+                      </a>
+                    )}
                   </div>
                 )
               })}

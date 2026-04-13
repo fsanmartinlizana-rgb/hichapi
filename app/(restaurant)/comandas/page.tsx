@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine } from 'lucide-react'
+import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 
@@ -208,7 +208,7 @@ const COLUMNS: {
     icon: <Bell size={13} />,
     color: '#60A5FA',
     next: 'preparando',
-    nextLabel: 'Enviar a cocina',
+    nextLabel: 'Tomar pedido',
   },
   {
     status: 'preparando',
@@ -216,7 +216,7 @@ const COLUMNS: {
     icon: <ChefHat size={13} />,
     color: '#FBBF24',
     next: 'lista',
-    nextLabel: 'Marcar lista',
+    nextLabel: 'Cocina lista',
   },
   {
     status: 'lista',
@@ -224,7 +224,7 @@ const COLUMNS: {
     icon: <CheckCircle2 size={13} />,
     color: '#34D399',
     next: 'entregada',
-    nextLabel: 'Confirmar entrega',
+    nextLabel: 'Entregar pedido',
   },
   {
     status: 'entregada',
@@ -438,6 +438,63 @@ function StockQtyPopover({
   )
 }
 
+// ── Devolución reasons ───────────────────────────────────────────────────────
+
+const DEVOLUCION_REASONS: string[] = [
+  'Mal preparado',
+  'Ingrediente equivocado',
+  'Frío/tibio',
+  'Cliente insatisfecho',
+  'Otro',
+]
+
+function DevolucionPopover({
+  itemName,
+  onConfirm,
+  onClose,
+}: {
+  itemName: string
+  onConfirm: (reason: string) => void
+  onClose: () => void
+}) {
+  const [reason, setReason] = useState(DEVOLUCION_REASONS[0])
+
+  return (
+    <div
+      className="absolute right-0 top-6 z-20 bg-[#12121E] border border-white/12 rounded-xl shadow-2xl p-3 w-52 flex flex-col gap-2"
+      onClick={e => e.stopPropagation()}
+    >
+      <p className="text-white/60 text-[10px] leading-tight">
+        Devolución de{' '}
+        <span className="text-white/90 font-semibold">{itemName}</span>
+      </p>
+      <select
+        value={reason}
+        onChange={e => setReason(e.target.value)}
+        className="w-full px-2 py-1.5 rounded-lg bg-white/8 border border-white/12 text-white text-[11px] focus:outline-none focus:border-orange-400/50 appearance-none"
+      >
+        {DEVOLUCION_REASONS.map(r => (
+          <option key={r} value={r} className="bg-[#12121E]">{r}</option>
+        ))}
+      </select>
+      <div className="flex gap-1.5">
+        <button
+          onClick={() => onConfirm(reason)}
+          className="flex-1 py-1 rounded-lg text-[11px] font-semibold bg-orange-500/20 text-orange-300 hover:bg-orange-500/30 transition-colors"
+        >
+          Confirmar
+        </button>
+        <button
+          onClick={onClose}
+          className="px-2 py-1 rounded-lg text-[11px] text-white/30 hover:text-white/60 transition-colors"
+        >
+          Cancelar
+        </button>
+      </div>
+    </div>
+  )
+}
+
 // ── OrderCard ─────────────────────────────────────────────────────────────────
 
 function OrderCard({
@@ -446,25 +503,30 @@ function OrderCard({
   role,
   station,
   brokenItems,
+  devueltoItems,
   stockMap,
   onAdvance,
   onMarkStationReady,
   onBreak,
   onMarkLow,
+  onDevolucion,
 }: {
   order: Order
   col: typeof COLUMNS[0]
   role: UserRole
   station: StationFilter
   brokenItems: Set<string>
+  devueltoItems: Set<string>
   stockMap: Record<string, StockEntry>
   onAdvance: (id: string, next: OrderStatus) => void
   onMarkStationReady: (orderId: string, destination: 'cocina' | 'barra') => void
   onBreak: (orderId: string, itemIndex: number, itemName: string) => void
   onMarkLow: (itemName: string, qty: number) => void
+  onDevolucion: (orderId: string, itemIndex: number, itemName: string, reason: string) => void
 }) {
   const [hoveredItem, setHoveredItem] = useState<number | null>(null)
   const [popoverItem, setPopoverItem] = useState<number | null>(null)
+  const [devolucionItem, setDevolucionItem] = useState<number | null>(null)
 
   const urgent = order.status === 'preparando' && order.mins > 20
     || order.status === 'recibida' && order.mins > 8
@@ -502,14 +564,14 @@ function OrderCard({
           <div>
             <p className="text-white text-xs font-semibold">{order.tableLabel}</p>
             <div className="flex items-center gap-1 mt-0.5">
-              <Clock size={9} className={urgent ? 'text-red-400' : 'text-white/25'} />
-              <span className={`text-[10px] ${urgent ? 'text-red-400 font-medium' : 'text-white/30'}`}>
-                {order.mins} min
-              </span>
+              {/* SLA Timer */}
+              <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${order.status === 'entregada' ? 'bg-emerald-500/10 text-emerald-400' : order.mins > 20 ? 'bg-red-500/15 text-red-400 animate-pulse' : order.mins > 10 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-white/5 text-white/30'}`}>
+                <Clock size={9} />
+                {order.mins < 60 ? `${order.mins}m` : `${Math.floor(order.mins / 60)}h${String(order.mins % 60).padStart(2, '0')}m`}
+                {order.status === 'entregada' && <CheckCircle2 size={8} />}
+              </div>
               {order.viaChapi && (
-                <span className="text-[9px] text-[#FF6B35]/70 px-1.5 py-0.5 rounded bg-[#FF6B35]/10 ml-1">
-                  vía Chapi
-                </span>
+                <span className="text-[9px] text-[#FF6B35]/70 px-1.5 py-0.5 rounded bg-[#FF6B35]/10 ml-1">vía Chapi</span>
               )}
             </div>
           </div>
@@ -528,6 +590,7 @@ function OrderCard({
         {visibleItems.map(({ it: item, i }) => {
           const key     = `${order.id}:${i}`
           const broken  = brokenItems.has(key)
+          const devuelto = devueltoItems.has(key)
           const stock   = getStock(stockMap, item.name)
           // broken overrides stock display (already marked 86)
           const display = broken ? '86' : stock.status
@@ -547,16 +610,26 @@ function OrderCard({
                 <div className="flex items-center gap-1.5 flex-wrap">
                   {/* Item name with conditional decoration */}
                   <span className={`text-xs transition-all ${
-                    display === '86'
-                      ? 'line-through text-white/25'
-                      : display === 'out'
+                    devuelto
+                      ? 'line-through text-orange-400/50'
+                      : display === '86'
                         ? 'line-through text-white/25'
-                        : itemReady
-                          ? 'line-through text-emerald-400/70'
-                          : 'text-white/70'
+                        : display === 'out'
+                          ? 'line-through text-white/25'
+                          : itemReady
+                            ? 'line-through text-emerald-400/70'
+                            : 'text-white/70'
                   }`}>
                     {item.name}
                   </span>
+
+                  {/* devuelto badge */}
+                  {devuelto && (
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-orange-500/20 text-orange-400 border border-orange-500/30 shrink-0 flex items-center gap-0.5">
+                      <RotateCcw size={7} />
+                      devuelto
+                    </span>
+                  )}
 
                   {/* Destination badge — only when in 'todo' (in station view it's redundant) */}
                   {station === 'todo' && dest !== 'cocina' && (
@@ -642,6 +715,30 @@ function OrderCard({
                         />
                       )}
                     </div>
+                  )}
+                </div>
+              )}
+
+              {/* Devolución button — only in entregada column, not already devuelto */}
+              {order.status === 'entregada' && !devuelto && (
+                <div className="relative shrink-0">
+                  <button
+                    onClick={() => setDevolucionItem(devolucionItem === i ? null : i)}
+                    className="w-5 h-5 rounded flex items-center justify-center text-orange-400/60 hover:text-orange-400 hover:bg-orange-500/15 transition-all"
+                    title="Devolución"
+                  >
+                    <RotateCcw size={10} />
+                  </button>
+
+                  {devolucionItem === i && (
+                    <DevolucionPopover
+                      itemName={item.name}
+                      onConfirm={reason => {
+                        onDevolucion(order.id, i, item.name, reason)
+                        setDevolucionItem(null)
+                      }}
+                      onClose={() => setDevolucionItem(null)}
+                    />
                   )}
                 </div>
               )}
@@ -934,6 +1031,7 @@ function ComandasPageInner() {
   const [role, setRole]               = useState<UserRole>('admin')
   const [station, setStation]         = useState<StationFilter>('todo')
   const [brokenItems, setBrokenItems] = useState<Set<string>>(new Set())
+  const [devueltoItems, setDevueltoItems] = useState<Set<string>>(new Set())
   const [stockMap, setStockMap]       = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
   const [toasts, setToasts]           = useState<ToastMsg[]>([])
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
@@ -1108,6 +1206,50 @@ function ComandasPageInner() {
     }
   }
 
+  async function handleDevolucion(orderId: string, itemIndex: number, itemName: string, reason: string) {
+    const key = `${orderId}:${itemIndex}`
+    // Optimistic: mark as devuelto immediately
+    setDevueltoItems(prev => {
+      const next = new Set(prev)
+      next.add(key)
+      return next
+    })
+
+    try {
+      const res = await fetch('/api/mermas/from-devolucion', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restId,
+          item_name: itemName,
+          reason,
+          order_id: orderId,
+        }),
+      })
+      if (!res.ok) {
+        // Revert on error
+        setDevueltoItems(prev => {
+          const next = new Set(prev)
+          next.delete(key)
+          return next
+        })
+        pushToast('Error al registrar devolución. Intenta nuevamente.', 'break')
+        return
+      }
+    } catch {
+      // Revert on network error
+      setDevueltoItems(prev => {
+        const next = new Set(prev)
+        next.delete(key)
+        return next
+      })
+      pushToast('Sin conexión. No se pudo registrar la devolución.', 'break')
+      return
+    }
+
+    pushToast('Devolución registrada · Merma creada automáticamente', 'info')
+  }
+
   function handleNuevaComanda(order: Order) {
     setOrders(prev => [order, ...prev])
     setShowNueva(false)
@@ -1263,11 +1405,13 @@ function ComandasPageInner() {
                         role={role}
                         station={station}
                         brokenItems={brokenItems}
+                        devueltoItems={devueltoItems}
                         stockMap={stockMap}
                         onAdvance={advance}
                         onMarkStationReady={markStationReady}
                         onBreak={markBreak}
                         onMarkLow={markLow}
+                        onDevolucion={handleDevolucion}
                       />
                     ))
                   )}

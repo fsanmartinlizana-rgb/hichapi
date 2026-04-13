@@ -39,6 +39,7 @@ const REASONS: { value: string; label: string }[] = [
   { value: 'rotura',       label: 'Rotura / derrame' },
   { value: 'error_prep',   label: 'Error de preparación' },
   { value: 'sobras',       label: 'Sobras del día' },
+  { value: 'devolucion',   label: 'Devolución comanda' },
   { value: 'otro',         label: 'Otro' },
 ]
 
@@ -106,12 +107,16 @@ export default function MermasPage() {
     const item = stockItems.find(i => i.id === selectedItem)
     if (!item) { setSubmitting(false); return }
 
+    const qtyLost = parseFloat(qty)
+    const costLost = Math.round(qtyLost * item.cost_per_unit)
+
     const { error } = await supabase.from('waste_log').insert({
       stock_item_id: selectedItem,
-      qty_lost: parseFloat(qty),
+      qty_lost: qtyLost,
       reason,
       notes: notes || null,
-      restaurant_id: (await supabase.from('stock_items').select('restaurant_id').eq('id', selectedItem).single()).data?.restaurant_id,
+      cost_lost: costLost,
+      restaurant_id: restId,
     })
 
     if (!error) {

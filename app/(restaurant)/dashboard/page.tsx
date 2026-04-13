@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
   ChevronRight, Plus, RefreshCw,
-  DollarSign, Receipt, ClipboardList, Grid3X3,
+  DollarSign, Receipt, Grid3X3, Star, TrendingUp, Users,
 } from 'lucide-react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -26,6 +26,9 @@ interface DashboardData {
   tables: { id: string; label: string; status: string }[]
   topDishes: { name: string; count: number }[]
   statusBreakdown: { pending: number; preparing: number; ready: number; paying: number }
+  avgRating: number
+  reviewCount: number
+  recentReviews: { id: string; rating: number; comment: string | null; created_at: string }[]
 }
 
 // ── Data hook ────────────────────────────────────────────────────────────────
@@ -42,7 +45,7 @@ function useDashboardData(restaurantId: string | undefined) {
     today.setHours(0, 0, 0, 0)
     const todayISO = today.toISOString()
 
-    const [ordersRes, tablesRes, paidRes, itemsRes] = await Promise.all([
+    const [ordersRes, tablesRes, paidRes, itemsRes, reviewsRes] = await Promise.all([
       // Active orders with items
       supabase
         .from('orders')
@@ -69,12 +72,21 @@ function useDashboardData(restaurantId: string | undefined) {
         .select('name, quantity, order_id, orders!inner(restaurant_id, created_at)')
         .eq('orders.restaurant_id', restaurantId)
         .gte('orders.created_at', todayISO),
+      // Reviews
+      supabase
+        .from('reviews')
+        .select('id, rating, comment, created_at')
+        .eq('restaurant_id', restaurantId)
+        .order('created_at', { ascending: false })
+        .limit(10),
     ])
 
     const activeOrders = ordersRes.data ?? []
     const tables = tablesRes.data ?? []
     const paidOrders = paidRes.data ?? []
     const allItems = itemsRes.data ?? []
+    const reviews = (reviewsRes.data ?? []) as { id: string; rating: number; comment: string | null; created_at: string }[]
+    const avgRating = reviews.length > 0 ? reviews.reduce((s, r) => s + r.rating, 0) / reviews.length : 0
 
     // Calculate sales
     const salesToday = paidOrders.reduce((s, o) => s + (o.total || 0), 0)
@@ -123,6 +135,9 @@ function useDashboardData(restaurantId: string | undefined) {
       tables,
       topDishes,
       statusBreakdown,
+      avgRating,
+      reviewCount: reviews.length,
+      recentReviews: reviews.slice(0, 5),
     })
     setLoading(false)
   }, [restaurantId, supabase])
@@ -355,92 +370,33 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Circular KPIs — hero row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <CircularKPI
-          label="Ventas hoy"
-          icon={DollarSign}
-          color="#FF6B35"
-          accent="#FF6B35"
-          value={clp(data.salesToday)}
-          percent={salesProgressPct}
-          sublabel={
-            <p className="text-white/35 text-[11px]">
-              {data.ordersToday} pedidos · {salesProgressPct}% del día
-            </p>
-          }
-        />
-        <CircularKPI
-          label="Ticket promedio"
-          icon={Receipt}
-          color="#60A5FA"
-          accent="#60A5FA"
-          value={clp(ticketPromedio)}
-          percent={ticketRingPct}
-          sublabel={<p className="text-white/35 text-[11px]">por pedido</p>}
-        />
-        <CircularKPI
-          label="Pedidos activos"
-          icon={ClipboardList}
-          color="#FBBF24"
-          accent="#FBBF24"
-          value={String(totalActive)}
-          percent={activeRingPct}
-          sublabel={
-            <div className="flex items-center justify-center gap-2 text-[10px]">
-              {data.statusBreakdown.preparing > 0 && (
-                <span className="text-yellow-300">{data.statusBreakdown.preparing} cocina</span>
-              )}
-              {data.statusBreakdown.ready > 0 && (
-                <span className="text-emerald-300">{data.statusBreakdown.ready} listos</span>
-              )}
-              {totalActive === 0 && <span className="text-white/30">sin pedidos</span>}
+      {/* KPI Cards — flat values */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        {[
+          { label: 'Ventas hoy', value: clp(data.salesToday), sub: `${data.ordersToday} pedidos`, icon: DollarSign, color: '#FF6B35' },
+          { label: 'Ticket promedio', value: clp(ticketPromedio), sub: 'por pedido', icon: Receipt, color: '#60A5FA' },
+          { label: 'Ocupación', value: `${occupationPct}%`, sub: `${mesaStats.ocupadas}/${data.tables.length} mesas`, icon: Grid3X3, color: '#34D399' },
+          { label: 'NPS / Rating', value: data.avgRating > 0 ? data.avgRating.toFixed(1) : '—', sub: `${data.reviewCount} opiniones`, icon: Star, color: '#FBBF24' },
+          { label: 'En cocina', value: String(data.statusBreakdown.preparing), sub: `${data.statusBreakdown.ready} listos`, icon: TrendingUp, color: '#A78BFA' },
+        ].map(kpi => (
+          <div key={kpi.label} className="bg-[#161622] rounded-2xl border border-white/5 p-4 space-y-2">
+            <div className="flex items-center gap-1.5">
+              <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: kpi.color + '25' }}>
+                <kpi.icon size={11} strokeWidth={2.4} style={{ color: kpi.color }} />
+              </div>
+              <p className="text-white/45 text-[10px] font-medium uppercase tracking-wide">{kpi.label}</p>
             </div>
-          }
-        />
-        <CircularKPI
-          label="Ocupación"
-          icon={Grid3X3}
-          color="#34D399"
-          accent="#34D399"
-          value={`${occupationPct}%`}
-          percent={occupationPct}
-          sublabel={
-            <p className="text-white/35 text-[11px]">
-              {mesaStats.ocupadas}/{data.tables.length} mesas ocupadas
-            </p>
-          }
-        />
+            <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>{kpi.value}</p>
+            <p className="text-white/30 text-[11px]">{kpi.sub}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Middle row — orders + mesa grid */}
-      <div className="grid grid-cols-3 gap-4">
+      {/* Middle row — mesa grid + NPS/reviews */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
-        {/* Orders — 2 cols */}
-        <div className="col-span-2 bg-[#161622] rounded-2xl border border-white/5 overflow-hidden">
-          <div className="flex items-center justify-between px-4 pt-4 pb-2">
-            <p className="text-white text-sm font-semibold">
-              Pedidos activos ({data.activeOrders.length})
-            </p>
-            <Link href="/garzon" className="text-white/35 text-xs hover:text-white/60 flex items-center gap-0.5">
-              Ver todos <ChevronRight size={11} />
-            </Link>
-          </div>
-
-          {data.activeOrders.length === 0 ? (
-            <div className="px-4 py-8 text-center">
-              <p className="text-white/25 text-sm">Sin pedidos activos</p>
-              <p className="text-white/15 text-xs mt-1">Los nuevos pedidos apareceran aqui</p>
-            </div>
-          ) : (
-            <div className="p-2 space-y-0.5">
-              {data.activeOrders.slice(0, 8).map(o => <OrderRow key={o.id} order={o} />)}
-            </div>
-          )}
-        </div>
-
-        {/* Right column — mesa grid */}
-        <div className="flex flex-col gap-4">
+        {/* Mesa grid + top dishes */}
+        <div className="lg:col-span-2 flex flex-col gap-4">
           <div className="bg-[#161622] rounded-2xl border border-white/5 p-4">
             <div className="flex items-center justify-between mb-3">
               <p className="text-white text-sm font-semibold">Estado de mesas</p>
@@ -498,6 +454,52 @@ export default function DashboardPage() {
                     </div>
                   )
                 })}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Right column — NPS & Reviews */}
+        <div className="flex flex-col gap-4">
+          {/* NPS Card */}
+          <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 space-y-4">
+            <div className="flex items-center gap-2">
+              <Star size={14} className="text-[#FBBF24]" />
+              <p className="text-white text-sm font-semibold">NPS del restaurante</p>
+            </div>
+            <div className="text-center py-3">
+              <p className="text-4xl font-bold text-white" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                {data.avgRating > 0 ? data.avgRating.toFixed(1) : '—'}
+              </p>
+              <div className="flex items-center justify-center gap-0.5 mt-2">
+                {[1, 2, 3, 4, 5].map(s => (
+                  <Star key={s} size={14} className={s <= Math.round(data.avgRating) ? 'text-[#FBBF24] fill-[#FBBF24]' : 'text-white/15'} />
+                ))}
+              </div>
+              <p className="text-white/30 text-xs mt-1">{data.reviewCount} opiniones</p>
+            </div>
+          </div>
+
+          {/* Recent reviews */}
+          <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 space-y-3">
+            <p className="text-white text-sm font-semibold">Opiniones recientes</p>
+            {data.recentReviews.length === 0 ? (
+              <p className="text-white/25 text-xs text-center py-3">Sin opiniones aún</p>
+            ) : (
+              <div className="space-y-2.5">
+                {data.recentReviews.map(r => (
+                  <div key={r.id} className="bg-white/3 rounded-xl p-3 space-y-1">
+                    <div className="flex items-center gap-1">
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star key={s} size={10} className={s <= r.rating ? 'text-[#FBBF24] fill-[#FBBF24]' : 'text-white/10'} />
+                      ))}
+                      <span className="text-white/20 text-[9px] ml-auto">
+                        {new Date(r.created_at).toLocaleDateString('es-CL')}
+                      </span>
+                    </div>
+                    {r.comment && <p className="text-white/50 text-xs leading-relaxed">{r.comment}</p>}
+                  </div>
+                ))}
               </div>
             )}
           </div>

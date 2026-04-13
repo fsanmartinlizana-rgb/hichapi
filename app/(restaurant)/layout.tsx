@@ -9,8 +9,9 @@ import {
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
   ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
-  Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit,
+  Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit, Lock,
 } from 'lucide-react'
+import { canAccessModule } from '@/lib/plans'
 import SupportModal from '@/components/SupportModal'
 import NpsModal from '@/components/NpsModal'
 import { ChapiAssistant } from '@/components/restaurant/ChapiAssistant'
@@ -73,10 +74,10 @@ const ALL_NAV: NavSection[] = [
       { label: 'Equipo',         href: '/equipo',        icon: Users,             roles: ['admin','owner','super_admin'] },
       { label: 'Mi restaurante', href: '/restaurante',   icon: Store,             roles: ['admin','owner','super_admin'] },
       { label: 'Módulos y Plan', href: '/modulos',       icon: Boxes,             roles: ['admin','owner','super_admin'] },
-      { label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] },
       { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },
       { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },
       { label: 'Tono de Chapi',  href: '/tono',          icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
+      { label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] },
     ],
   },
   {
@@ -88,6 +89,25 @@ const ALL_NAV: NavSection[] = [
     ],
   },
 ]
+
+// ── Plan-based route gating ──────────────────────────────────────────────────
+// Routes not listed here default to 'free' (always accessible).
+
+const NAV_PLAN_REQUIRED: Record<string, string> = {
+  '/stock':     'starter',
+  '/mermas':    'starter',
+  '/turnos':    'starter',
+  '/reporte':   'pro',
+  '/analytics': 'pro',
+  '/insights':  'pro',
+}
+
+const PLAN_LABEL: Record<string, string> = {
+  free: 'Gratis',
+  starter: 'Starter',
+  pro: 'Pro',
+  enterprise: 'Enterprise',
+}
 
 function getNav(role: string): NavSection[] {
   return ALL_NAV
@@ -132,9 +152,10 @@ function SidebarContent() {
   const [supportOpen, setSupportOpen] = useState(false)
   const [npsOpen, setNpsOpen] = useState(false)
 
-  const role     = profile?.role ?? 'admin'
-  const initials = profile?.initials ?? '??'
-  const nav      = useMemo(() => getNav(role), [role])
+  const role        = profile?.role ?? 'admin'
+  const initials    = profile?.initials ?? '??'
+  const currentPlan = (restaurant?.plan as string) ?? 'free'
+  const nav         = useMemo(() => getNav(role), [role])
 
   // Collapsible groups: open the group that matches the current route by default.
   // User toggles are remembered in sessionStorage per browser tab.
@@ -289,6 +310,24 @@ function SidebarContent() {
                   <div className="space-y-0.5 pt-1 pb-1.5 pl-1">
                     {items.map(({ label, href, icon: Icon }) => {
                       const active = pathname === href || pathname.startsWith(href + '/')
+                      const requiredPlan = NAV_PLAN_REQUIRED[href] ?? 'free'
+                      const locked = !canAccessModule(currentPlan, requiredPlan)
+
+                      if (locked) {
+                        return (
+                          <Link
+                            key={href}
+                            href="/modulos"
+                            title={`Requiere plan ${PLAN_LABEL[requiredPlan] ?? requiredPlan}`}
+                            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all opacity-40 text-white/55 hover:opacity-60 hover:bg-white/5"
+                          >
+                            <Lock size={14} strokeWidth={1.8} className="shrink-0" />
+                            <span className="flex-1 truncate">{label}</span>
+                            <span className="text-[9px] text-white/40 shrink-0">{PLAN_LABEL[requiredPlan] ?? requiredPlan}</span>
+                          </Link>
+                        )
+                      }
+
                       return (
                         <Link
                           key={href}

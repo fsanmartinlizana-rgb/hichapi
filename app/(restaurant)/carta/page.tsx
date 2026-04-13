@@ -34,6 +34,24 @@ interface MenuItem {
 
 const CATEGORIES = ['entrada', 'principal', 'postre', 'bebida', 'para compartir']
 
+type ProductType = 'plato' | 'postre' | 'bebestible' | 'entrada' | 'otro'
+
+const PRODUCT_TYPES: { value: ProductType; label: string }[] = [
+  { value: 'plato',       label: 'Plato' },
+  { value: 'postre',      label: 'Postre' },
+  { value: 'bebestible',  label: 'Bebestible' },
+  { value: 'entrada',     label: 'Entrada' },
+  { value: 'otro',        label: 'Otro' },
+]
+
+const CATEGORIES_BY_PRODUCT_TYPE: Record<ProductType, string[]> = {
+  plato:       ['principal', 'para compartir'],
+  postre:      ['postre'],
+  bebestible:  ['bebida'],
+  entrada:     ['entrada'],
+  otro:        CATEGORIES,
+}
+
 const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; hint: string }[] = [
   { value: 'cocina',  label: 'Cocina',  icon: ChefHat, hint: 'Va a la pantalla de cocina' },
   { value: 'barra',   label: 'Barra',   icon: Wine,    hint: 'Va a la pantalla de barra' },
@@ -51,16 +69,36 @@ function ItemForm({
   onSave: (item: Omit<MenuItem, 'id'>) => Promise<void>
   onCancel: () => void
 }) {
+  // Infer initial product type from category
+  function inferProductType(cat: string): ProductType {
+    if (['principal', 'para compartir'].includes(cat)) return 'plato'
+    if (cat === 'postre') return 'postre'
+    if (cat === 'bebida') return 'bebestible'
+    if (cat === 'entrada') return 'entrada'
+    return 'otro'
+  }
+
   const [name, setName]               = useState(initial?.name ?? '')
   const [desc, setDesc]               = useState(initial?.description ?? '')
   const [price, setPrice]             = useState(initial?.price?.toString() ?? '')
   const [cost, setCost]               = useState(initial?.cost_price?.toString() ?? '')
+  const [productType, setProductType] = useState<ProductType>(inferProductType(initial?.category ?? 'principal'))
   const [category, setCategory]       = useState(initial?.category ?? 'principal')
   const [tags, setTags]               = useState<string[]>(initial?.tags ?? [])
   const [available, setAvailable]     = useState(initial?.available ?? true)
   const [destination, setDestination] = useState<Destination>(initial?.destination ?? 'cocina')
   const [saving, setSaving]           = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null)
+
+  const availableCategories = CATEGORIES_BY_PRODUCT_TYPE[productType]
+
+  function handleProductTypeChange(pt: ProductType) {
+    setProductType(pt)
+    const cats = CATEGORIES_BY_PRODUCT_TYPE[pt]
+    if (!cats.includes(category)) {
+      setCategory(cats[0])
+    }
+  }
 
   const fileRef = useRef<HTMLInputElement>(null)
 
@@ -139,7 +177,7 @@ function ItemForm({
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 space-y-1.5">
-          <label className="text-white/50 text-xs">Nombre del plato</label>
+          <label className="text-white/50 text-xs">Nombre del producto</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Lomo vetado"
             className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
         </div>
@@ -165,12 +203,30 @@ function ItemForm({
           <input value={cost} onChange={e => setCost(e.target.value.replace(/\D/g, ''))} placeholder="6200"
             className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
         </div>
+        <div className="col-span-2 space-y-1.5">
+          <label className="text-white/50 text-xs">Tipo de producto</label>
+          <div className="flex gap-2 flex-wrap">
+            {PRODUCT_TYPES.map(pt => (
+              <button
+                key={pt.value}
+                type="button"
+                onClick={() => handleProductTypeChange(pt.value)}
+                className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all
+                  ${productType === pt.value
+                    ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35]'
+                    : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20 hover:text-white/60'}`}
+              >
+                {pt.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="space-y-1.5">
           <label className="text-white/50 text-xs">Categoría</label>
           <div className="relative">
             <select value={category} onChange={e => setCategory(e.target.value)}
               className="w-full appearance-none px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors">
-              {CATEGORIES.map(c => <option key={c} value={c} className="bg-[#1C1C2E]">{c}</option>)}
+              {availableCategories.map(c => <option key={c} value={c} className="bg-[#1C1C2E]">{c}</option>)}
             </select>
             <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
           </div>
@@ -186,7 +242,7 @@ function ItemForm({
         </div>
       </div>
       <div className="space-y-1.5">
-        <label className="text-white/50 text-xs">Tags · ayuda a que Chapi y los buscadores de IA recomienden este plato</label>
+        <label className="text-white/50 text-xs">Tags · ayuda a que Chapi y los buscadores de IA recomienden este producto</label>
         <TagPicker
           groups={MENU_ITEM_TAG_GROUPS}
           selected={tags}
@@ -229,7 +285,7 @@ function ItemForm({
         <button onClick={handleSave} disabled={!name || !price || saving}
           className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors">
           {saving ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
-          {saving ? 'Guardando...' : 'Guardar plato'}
+          {saving ? 'Guardando...' : 'Guardar producto'}
         </button>
       </div>
     </div>
@@ -442,7 +498,7 @@ export default function CartaPage() {
         <div>
           <h1 className="text-white text-xl font-bold">Carta digital</h1>
           <div className="flex items-center gap-3 mt-1 text-xs text-white/35">
-            <span>{stats.total} platos</span>
+            <span>{stats.total} productos</span>
             <span>·</span>
             <span className="text-emerald-400/80">{stats.available} disponibles</span>
             {stats.avgMargin !== null && <><span>·</span><span className="text-[#FF6B35]/70">{stats.avgMargin}% margen promedio</span></>}
@@ -460,7 +516,7 @@ export default function CartaPage() {
           </button>
           <button onClick={() => setAdding(true)} disabled={adding}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-50 transition-colors">
-            <Plus size={14} /> Agregar plato
+            <Plus size={14} /> Agregar producto
           </button>
         </div>
       </div>
@@ -472,7 +528,7 @@ export default function CartaPage() {
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
           <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar plato..."
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto..."
             className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 w-44 transition-colors" />
         </div>
         <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
@@ -491,8 +547,8 @@ export default function CartaPage() {
         <EmptyState
           icon={BookOpen}
           title="Tu carta está vacía"
-          description="Agrega tu primer plato y se publicará automáticamente en tu perfil de HiChapi"
-          action={{ label: 'Agregar primer plato', onClick: () => setAdding(true) }}
+          description="Agrega tu primer producto y se publicará automáticamente en tu perfil de HiChapi"
+          action={{ label: 'Agregar primer producto', onClick: () => setAdding(true) }}
         />
       )}
 
@@ -522,7 +578,7 @@ export default function CartaPage() {
         {filtered.length === 0 && items.length > 0 && (
           <EmptyState
             icon={Search}
-            title="No hay platos que coincidan"
+            title="No hay productos que coincidan"
             description="Prueba con otra búsqueda o limpia los filtros"
           />
         )}
@@ -554,7 +610,7 @@ export default function CartaPage() {
             <div className="flex items-start gap-3">
               <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
               <div>
-                <p className="text-white font-semibold">¿Eliminar plato?</p>
+                <p className="text-white font-semibold">¿Eliminar producto?</p>
                 <p className="text-white/40 text-sm mt-1">
                   &quot;{items.find(i => i.id === deleting)?.name}&quot; se eliminará permanentemente de la carta.
                 </p>
