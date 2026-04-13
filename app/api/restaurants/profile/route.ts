@@ -34,6 +34,12 @@ const ProfilePatchSchema = z.object({
   tags:          z.array(z.string().max(40)).max(20).optional(),
   hours:         HoursSchema.optional(),
   photo_url:     z.string().url().nullable().optional(),
+  // Reservation settings
+  reservations_enabled:      z.boolean().optional(),
+  reservation_timeout_min:   z.number().int().min(1).max(120).optional(),
+  reservation_slot_duration: z.number().int().min(15).max(360).optional(),
+  reservation_max_party:     z.number().int().min(1).max(50).optional(),
+  reservation_advance_days:  z.number().int().min(1).max(90).optional(),
 })
 
 // ── Profile completion score ─────────────────────────────────────────────────
@@ -88,7 +94,9 @@ export async function GET(req: NextRequest) {
     .select(`
       id, name, slug, description, address, neighborhood, phone, website, instagram,
       cuisine_type, price_range, capacity, tags, hours, photo_url, gallery_urls,
-      profile_score, profile_updated_at, claimed
+      profile_score, profile_updated_at, claimed,
+      reservations_enabled, reservation_timeout_min, reservation_slot_duration,
+      reservation_max_party, reservation_advance_days
     `)
     .eq('id', restaurantId)
     .single()
@@ -144,7 +152,9 @@ export async function PATCH(req: NextRequest) {
     .select(`
       id, name, slug, description, address, neighborhood, phone, website, instagram,
       cuisine_type, price_range, capacity, tags, hours, photo_url, gallery_urls,
-      profile_score, profile_updated_at, claimed
+      profile_score, profile_updated_at, claimed,
+      reservations_enabled, reservation_timeout_min, reservation_slot_duration,
+      reservation_max_party, reservation_advance_days
     `)
     .single()
 

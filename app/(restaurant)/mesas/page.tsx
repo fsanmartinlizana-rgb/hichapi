@@ -1464,18 +1464,11 @@ export default function MesasPage() {
                   {stats.enEspera}
                 </span>
               )}
-              <a
-                href="/espera/el-rincon-de-don-jose"
-                target="_blank"
-                className="flex items-center gap-1 text-white/30 hover:text-white/60 transition-colors"
-                title="Abrir QR público"
-              >
-                <QrCode size={13} />
-              </a>
+              <span className="text-white/20 text-[10px] italic">Gestión interna</span>
             </div>
           </div>
           <p className="text-white/25 text-[10px]">
-            Los clientes se unen escaneando el QR de la entrada
+            El anfitrión agrega clientes según la ocupación del local
           </p>
         </div>
 

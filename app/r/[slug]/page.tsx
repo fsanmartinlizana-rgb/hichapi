@@ -352,12 +352,10 @@ function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
       <h3 className="font-bold text-[#1A1A2E] text-base">Listo para ir?</h3>
 
       <Link
-        href={`/espera/${restaurant.slug}`}
-        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
-                   bg-[#FF6B35] text-white font-semibold text-sm
-                   hover:bg-[#e55a2b] transition-colors"
+        href={`/reservar/${restaurant.slug}`}
+        className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e55a2b] transition-colors"
       >
-        Unirme a lista de espera
+        Reservar mesa
       </Link>
 
       <div className="bg-[#FAFAF8] rounded-xl p-4 space-y-2">

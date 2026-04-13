@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import {
   Check, MapPin, Clock, Globe, Phone, Camera, Loader2, AtSign,
-  ExternalLink, Sparkles, AlertCircle,
+  ExternalLink, Sparkles, AlertCircle, CalendarDays,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
@@ -117,6 +117,13 @@ export default function RestaurantePage() {
   const [photoUrl, setPhotoUrl]       = useState<string | null>(null)
   const [schedule, setSchedule]       = useState<Record<string, Schedule>>(DEFAULT_HOURS)
 
+  // Reservation settings
+  const [reservationsEnabled, setReservationsEnabled] = useState(false)
+  const [reservationTimeout, setReservationTimeout]   = useState('15')
+  const [reservationSlotDuration, setReservationSlotDuration] = useState('90')
+  const [reservationMaxParty, setReservationMaxParty] = useState('10')
+  const [reservationAdvanceDays, setReservationAdvanceDays] = useState('30')
+
   // Score (from API)
   const [score, setScore] = useState<ProfileScore | null>(null)
 
@@ -155,6 +162,15 @@ export default function RestaurantePage() {
               : DEFAULT_HOURS
           )
           setScore(profileJson.score)
+
+          // Reservation settings (from extended profile)
+          if (profileJson.restaurant.reservations_enabled !== undefined) {
+            setReservationsEnabled(profileJson.restaurant.reservations_enabled ?? false)
+            setReservationTimeout(String(profileJson.restaurant.reservation_timeout_min ?? 15))
+            setReservationSlotDuration(String(profileJson.restaurant.reservation_slot_duration ?? 90))
+            setReservationMaxParty(String(profileJson.restaurant.reservation_max_party ?? 10))
+            setReservationAdvanceDays(String(profileJson.restaurant.reservation_advance_days ?? 30))
+          }
         }
 
         if (modsRes.data?.modules_config) {
@@ -206,6 +222,11 @@ export default function RestaurantePage() {
           capacity:    capacity ? parseInt(capacity, 10) : null,
           tags,
           hours:       schedule,
+          reservations_enabled:     reservationsEnabled,
+          reservation_timeout_min:  parseInt(reservationTimeout, 10) || 15,
+          reservation_slot_duration: parseInt(reservationSlotDuration, 10) || 90,
+          reservation_max_party:    parseInt(reservationMaxParty, 10) || 10,
+          reservation_advance_days: parseInt(reservationAdvanceDays, 10) || 30,
         }),
       })
       const data = await res.json()
@@ -403,6 +424,39 @@ export default function RestaurantePage() {
                 </div>
               )
             })}
+          </div>
+        </Section>
+
+        {/* Reservations config */}
+        <Section title="Reservas online" icon={<CalendarDays size={14} className="text-[#FF6B35]" />}>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="text-white/80 text-sm">Activar reservas online</p>
+                <p className="text-white/20 text-[10px]">Los clientes podrán reservar mesa desde HiChapi</p>
+              </div>
+              <button onClick={() => setReservationsEnabled(!reservationsEnabled)} className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${reservationsEnabled ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}>
+                {reservationsEnabled ? 'Activo' : 'Inactivo'}
+              </button>
+            </div>
+            {reservationsEnabled && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <Field label="Tiempo de gracia (min)" hint="Si llegan tarde, la mesa se libera">
+                    <TextInput value={reservationTimeout} onChange={setReservationTimeout} type="number" placeholder="15" />
+                  </Field>
+                  <Field label="Duración reserva (min)" hint="Tiempo estimado por mesa">
+                    <TextInput value={reservationSlotDuration} onChange={setReservationSlotDuration} type="number" placeholder="90" />
+                  </Field>
+                  <Field label="Máx. personas online" hint="Grupos más grandes llaman por teléfono">
+                    <TextInput value={reservationMaxParty} onChange={setReservationMaxParty} type="number" placeholder="10" />
+                  </Field>
+                  <Field label="Días de anticipación" hint="Cuántos días hacia adelante se puede reservar">
+                    <TextInput value={reservationAdvanceDays} onChange={setReservationAdvanceDays} type="number" placeholder="30" />
+                  </Field>
+                </div>
+              </>
+            )}
           </div>
         </Section>
 

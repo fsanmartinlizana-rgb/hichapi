@@ -47,6 +47,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Garzón',        href: '/garzon',    icon: Users,           roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
       { label: 'Comandas',      href: '/comandas',  icon: ClipboardList,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
       { label: 'Mesas',         href: '/mesas',     icon: Grid3X3,         roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Reservas',      href: '/reservas',  icon: CalendarDays,    roles: ['admin','owner','supervisor','anfitrion','super_admin'] },
       { label: 'Carta digital', href: '/carta',     icon: BookOpen,        roles: ['admin','owner','supervisor','garzon','waiter','super_admin'] },
       { label: 'Stock',         href: '/stock',     icon: Package,         roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Mermas',        href: '/mermas',    icon: Trash2,          roles: ['admin','owner','supervisor','super_admin'] },
