@@ -500,7 +500,19 @@ export default function CartaPage() {
           photo_url:   (i.photo_url as string) || undefined,
           cost_price:  (i.cost_price as number) || undefined,
           destination: ((i.destination as Destination) || 'cocina'),
-          ingredients: Array.isArray(i.ingredients) ? (i.ingredients as Ingredient[]) : [],
+          // Defensive filter: data legacy puede venir como string[] (nombres
+          // sueltos) en vez de {stock_item_id, qty}[]. Si accedemos a .qty o
+          // .stock_item_id sobre un string, la página entera se cae al
+          // renderizar. Filtramos para dejar solo objetos válidos.
+          ingredients: Array.isArray(i.ingredients)
+            ? (i.ingredients as unknown[]).filter(
+                (ing): ing is Ingredient =>
+                  typeof ing === 'object' &&
+                  ing !== null &&
+                  'stock_item_id' in ing &&
+                  'qty' in ing,
+              )
+            : [],
         })))
       }
     } catch (err) {
