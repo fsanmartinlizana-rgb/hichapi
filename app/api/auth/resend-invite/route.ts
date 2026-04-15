@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { teamInviteEmail } from '@/lib/email/templates'
 import { resolveAppUrl } from '@/lib/app-url'
+import { createInviteToken } from '@/lib/invite-token'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/resend-invite
@@ -52,94 +53,42 @@ export async function POST(req: NextRequest) {
       .maybeSingle()
 
     const origin = resolveAppUrl(req)
-    const useBranded = !!process.env.RESEND_API_KEY
 
-    // Generar un link nuevo (siempre vía generateLink para evitar el SMTP de Supabase)
-    let actionLink: string | null = null
-    let inviteErr: { message?: string } | null = null
-
-    {
-      const { data, error } = await supabase.auth.admin.generateLink({
-        type:  'invite',
-        email,
-        options: {
-          redirectTo: `${origin}/invite-callback`,
-          data: {
-            restaurant_id: member.restaurant_id,
-            role:          member.role,
-          },
-        },
-      })
-      inviteErr = error
-      actionLink = data?.properties?.action_link ?? null
-    }
-
-    // Si generateLink falló porque el user ya existe sin link pendiente
-    // (p.ej. ya aceptó), igual mandamos un magic-link como fallback.
-    if (!actionLink || inviteErr) {
-      const { data: ml, error: mlErr } = await supabase.auth.admin.generateLink({
-        type:  'magiclink',
-        email,
-        options: {
-          redirectTo: `${origin}/invite-callback`,
-        },
-      })
-      if (!mlErr && ml?.properties?.action_link) {
-        actionLink = ml.properties.action_link
-      } else {
-        return NextResponse.json(
-          {
-            error: 'No pudimos generar un nuevo link. Pídele al administrador que te re-invite desde /equipo.',
-            detail: mlErr?.message ?? inviteErr?.message ?? 'unknown',
-          },
-          { status: 500 },
-        )
-      }
-    }
-
-    // Mandar email branded vía Resend
-    if (useBranded && actionLink) {
-      const { subject, html, text } = teamInviteEmail({
-        restaurantName: rest?.name ?? 'tu restaurante',
-        role:           member.role,
-        actionUrl:      actionLink,
-      })
-      const mail = await sendBrandedEmail({ to: email, subject, html, text })
-      return NextResponse.json({
-        ok:         mail.ok,
-        sent:       mail.ok,
-        provider:   'resend',
-        skipped:    mail.skipped ?? false,
-        message:    mail.ok
-          ? 'Te enviamos un nuevo link a tu correo. Revisá tu bandeja en 1-2 minutos.'
-          : 'No pudimos enviar el email. Pídele al admin que te re-invite manualmente desde /equipo.',
-      })
-    }
-
-    // Sin Resend: usar el flujo de Supabase (puede caer en spam o tardar)
-    const { error: smtpErr } = await supabase.auth.admin.inviteUserByEmail(email, {
-      redirectTo: `${origin}/invite-callback`,
-      data: {
-        restaurant_id: member.restaurant_id,
-        role:          member.role,
-      },
+    // Generar un nuevo token firmado por NOSOTROS (bypass Supabase Site URL)
+    const inviteToken = createInviteToken({
+      email,
+      restaurant_id: member.restaurant_id,
+      role:          member.role,
     })
+    const actionLink = `${origin}/aceptar-invitacion?t=${encodeURIComponent(inviteToken)}`
 
-    if (smtpErr) {
-      return NextResponse.json(
-        {
-          error: 'No pudimos reenviar la invitación. Pídele al admin que te re-invite desde /equipo.',
-          detail: smtpErr.message,
-        },
-        { status: 500 },
-      )
+    // Mandar email branded
+    const { subject, html, text } = teamInviteEmail({
+      restaurantName: rest?.name ?? 'tu restaurante',
+      role:           member.role,
+      actionUrl:      actionLink,
+    })
+    const mail = await sendBrandedEmail({ to: email, subject, html, text })
+
+    if (mail.ok) {
+      return NextResponse.json({
+        ok:        true,
+        sent:      true,
+        provider:  'resend',
+        message:   'Te enviamos un nuevo link a tu correo. Revisá tu bandeja en 1-2 minutos.',
+      })
     }
 
+    // Si Resend no está / falló, devolvemos el link directo para que el admin
+    // pueda compartirlo manualmente (no falla el flujo)
     return NextResponse.json({
-      ok:       true,
-      sent:     true,
-      provider: 'supabase',
-      message:  'Te enviamos un nuevo link a tu correo. Si no lo recibes en 5 min, revisá tu carpeta de spam.',
+      ok:        true,
+      sent:      false,
+      skipped:   mail.skipped ?? false,
+      action_link: actionLink,
+      message:   mail.skipped
+        ? 'El envío de emails no está configurado. Pedile al admin que te comparta el link directamente.'
+        : 'No pudimos enviar el email. Probá pedirle al admin que te comparta el link.',
     })
   } catch (err) {
     if (err instanceof z.ZodError) {

@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { teamInviteEmail } from '@/lib/email/templates'
 import { resolveAppUrl } from '@/lib/app-url'
+import { createInviteToken } from '@/lib/invite-token'
 
 const RoleEnum = z.enum(['admin','supervisor','garzon','waiter','cocina','anfitrion'])
 
@@ -126,98 +127,81 @@ export async function POST(req: NextRequest) {
       return { error: null }
     }
 
-    // 2. Invite user via Supabase Auth
-    //    Si Resend está configurado: usamos generateLink (no envía correo) y mandamos
-    //    nuestro template branded. Si no, usamos inviteUserByEmail (Supabase manda
-    //    su template default — el admin debería personalizarlo en el dashboard).
-    const origin       = resolveAppUrl(req)
-    const useBranded   = !!process.env.RESEND_API_KEY
-    const redirectTo   = `${origin}/invite-callback`
+    // 2. Pre-create team_members con status pending (sin user_id por ahora)
+    //    El user_id real se setea cuando el invitado acepta el link.
+    const origin     = resolveAppUrl(req)
+    const useBranded = !!process.env.RESEND_API_KEY
 
-    let inviteData: { user?: { id?: string } } | null = null
-    let inviteError: { message?: string } | null = null
-    let actionLink: string | null = null
+    // ¿Ya existe un user con ese email? (para activarlo directo si es así)
+    let existingUserId: string | null = null
+    try {
+      const { data: list } = await supabase.auth.admin.listUsers({ perPage: 200 })
+      const found = list?.users?.find(
+        (u: { email?: string | null; id: string }) => u.email?.toLowerCase() === email.toLowerCase()
+      )
+      if (found) existingUserId = found.id
+    } catch { /* non-fatal */ }
 
-    if (useBranded) {
-      const { data, error } = await supabase.auth.admin.generateLink({
-        type:  'invite',
-        email,
-        options: {
-          redirectTo,
-          data: { restaurant_id, role },
-        },
-      })
-      inviteData  = data ? { user: data.user ?? undefined } : null
-      inviteError = error
-      actionLink  = data?.properties?.action_link ?? null
-    } else {
-      const { data, error } = await supabase.auth.admin.inviteUserByEmail(email, {
-        redirectTo,
-        data: { restaurant_id, role },
-      })
-      inviteData  = data ? { user: data.user ?? undefined } : null
-      inviteError = error
-    }
-
-    if (inviteError) {
-      // If user already exists, find them and add to team directly
-      if (inviteError.message?.includes('already been registered')) {
-        const { data: existingUsers } = await supabase.auth.admin.listUsers()
-        const existingUser = existingUsers?.users?.find(
-          (u: { email?: string; id: string }) => u.email === email
-        )
-
-        if (existingUser) {
-          const { error: teamErr } = await upsertTeamMember({
-            user_id: existingUser.id,
-            status:  'active',
-          })
-          if (teamErr) return NextResponse.json({ error: teamErr.message }, { status: 400 })
-          return NextResponse.json({ ok: true, existing_user: true })
-        }
-      }
-      return NextResponse.json({ error: inviteError.message }, { status: 400 })
-    }
-
-    // 3. Pre-create team_members with pending status
-    const userId = inviteData?.user?.id ?? null
     const { error: teamErr } = await upsertTeamMember({
-      user_id: userId,
-      status:  userId ? 'active' : 'pending',
+      user_id: existingUserId,
+      status:  existingUserId ? 'active' : 'pending',
     })
-
     if (teamErr) return NextResponse.json({ error: teamErr.message }, { status: 400 })
 
-    // 4. Si tenemos action_link y Resend, mandamos el correo branded
-    let emailStatus: { sent: boolean; skipped?: boolean; error?: string } = { sent: false }
-    if (useBranded && actionLink) {
-      const { data: rest } = await supabase
-        .from('restaurants')
-        .select('name')
-        .eq('id', restaurant_id)
-        .maybeSingle()
+    // 3. Generar nuestro token firmado (bypass del Site URL de Supabase)
+    //    Vigencia 7 días; el link siempre apunta a NUESTRO dominio funcional.
+    const inviteToken = createInviteToken({
+      email,
+      restaurant_id,
+      role,
+      full_name,
+      phone,
+    })
+    const actionLink = `${origin}/aceptar-invitacion?t=${encodeURIComponent(inviteToken)}`
 
-      const { subject, html, text } = teamInviteEmail({
-        restaurantName: rest?.name ?? 'tu restaurante',
-        role,
-        actionUrl:      actionLink,
-        invitedByName:  full_name ? undefined : undefined, // not exposing inviter identity yet
-      })
+    // 4. Mandar email branded vía Resend (preferido) o vía Supabase como fallback
+    let emailStatus: { sent: boolean; skipped?: boolean; error?: string; carrier?: string } = { sent: false }
+    const { data: rest } = await supabase
+      .from('restaurants')
+      .select('name')
+      .eq('id', restaurant_id)
+      .maybeSingle()
 
-      const res = await sendBrandedEmail({ to: email, subject, html, text })
+    const { subject, html, text } = teamInviteEmail({
+      restaurantName: rest?.name ?? 'tu restaurante',
+      role,
+      actionUrl:      actionLink,
+    })
+
+    if (useBranded) {
+      const mail = await sendBrandedEmail({ to: email, subject, html, text })
       emailStatus = {
-        sent:    res.ok,
-        skipped: res.skipped,
-        error:   res.error,
+        sent:    mail.ok,
+        skipped: mail.skipped,
+        error:   mail.error,
+        carrier: 'resend',
       }
-    } else if (!useBranded) {
-      // Supabase default flow — confiamos en que su SMTP esté configurado
-      emailStatus = { sent: true }
+    }
+
+    // Fallback: si Resend no está configurado o falló, igual usamos
+    // auth.admin.inviteUserByEmail SOLO como carrier de email — el link en el
+    // email default de Supabase puede caer mal, pero al menos llega "algo".
+    // El usuario puede pedir un nuevo invite desde /invite-callback.
+    if (!emailStatus.sent && !existingUserId) {
+      try {
+        await supabase.auth.admin.inviteUserByEmail(email, {
+          redirectTo: `${origin}/invite-callback`,
+          data: { restaurant_id, role },
+        })
+        emailStatus = { sent: true, carrier: 'supabase_fallback' }
+      } catch { /* non-fatal */ }
     }
 
     return NextResponse.json({
       ok: true,
+      existing_user: !!existingUserId,
       redirect_hint: ROLE_HOME[role] ?? '/dashboard',
+      action_link:   actionLink,  // el admin puede copiarlo y compartir manualmente si el email no llega
       email: emailStatus,
     })
   } catch (err) {

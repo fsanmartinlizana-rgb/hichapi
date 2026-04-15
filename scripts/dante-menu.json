@@ -1,0 +1,2052 @@
+{
+  "restaurant_name": "CLASICO EL DANTE 1949 Irarrazaval",
+  "address": "Av. Irarrázaval 3482, Santiago, Región Metropolitana",
+  "phone": null,
+  "categories": [
+    {
+      "name": "CAFETERIA HAUSBRANT",
+      "items": [
+        {
+          "name": "PROMOCIÓN CAFÉ (CORTADO O AMERICANO SIMPLE) + TARTALETA",
+          "description": "Café + Tartaleta con combinación perfecta",
+          "price": 6990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Chocolate Caliente",
+          "description": null,
+          "price": 4990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Mocaccino",
+          "description": null,
+          "price": 4990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Infusiones",
+          "description": "Jengibre, Menta y Limón con propiedades antiinflamatorias",
+          "price": 2500,
+          "ingredients": ["jengibre", "menta", "limón"],
+          "tags": []
+        },
+        {
+          "name": "Ristretto",
+          "description": "Café espresso corto extraído con mitad de agua",
+          "price": 3000,
+          "ingredients": ["café"],
+          "tags": []
+        },
+        {
+          "name": "Espresso",
+          "description": null,
+          "price": 2990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Espresso italiano doble",
+          "description": null,
+          "price": 3890,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Espresso Macchiatto",
+          "description": null,
+          "price": 3390,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Espresso Corretto",
+          "description": "Espresso con bebida alcohólica: Amaretto, Frangelico, Pisco Peruano",
+          "price": 6900,
+          "ingredients": ["espresso", "licor"],
+          "tags": []
+        },
+        {
+          "name": "Café Irlandés",
+          "description": null,
+          "price": 6900,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Americano",
+          "description": null,
+          "price": 3990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Capuccino",
+          "description": null,
+          "price": 3990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Cappuccino sabores",
+          "description": "Vainilla o Amaretto",
+          "price": 4900,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Latte",
+          "description": null,
+          "price": 4490,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Capuccino Vienés",
+          "description": null,
+          "price": 4690,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Café Helado",
+          "description": "Helado de vainilla con shot de café y crema",
+          "price": 6900,
+          "ingredients": ["café", "helado", "crema"],
+          "tags": []
+        },
+        {
+          "name": "Cortado Doble",
+          "description": null,
+          "price": 3990,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Afogatto",
+          "description": null,
+          "price": 4900,
+          "ingredients": [],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "BRUNCH",
+      "items": [
+        {
+          "name": "Benedictinos Croissant",
+          "description": "Croissant con huevos pochados, salsa holandesa, queso crema y jamón",
+          "price": 13900,
+          "ingredients": ["huevo", "jamón", "queso crema", "croissant"],
+          "tags": []
+        },
+        {
+          "name": "Focaccia Benedictina",
+          "description": "Focaccia con palta, proteína a elección, huevos pochados y salsa holandesa",
+          "price": 13900,
+          "ingredients": ["focaccia", "palta", "huevo", "jamón o prosciutto"],
+          "tags": []
+        },
+        {
+          "name": "Huevos Americanos",
+          "description": "Huevos revueltos o fritos con tocino crocante y focaccia",
+          "price": 13900,
+          "ingredients": ["huevo", "tocino", "focaccia"],
+          "tags": []
+        },
+        {
+          "name": "Huevos Pochados",
+          "description": "Tostadas en pan Baguette con palta y huevos pochados",
+          "price": 13900,
+          "ingredients": ["huevo", "pan baguette", "palta"],
+          "tags": []
+        },
+        {
+          "name": "Huevos revueltos o fritos",
+          "description": "Con focaccia",
+          "price": 13900,
+          "ingredients": ["huevo", "focaccia"],
+          "tags": []
+        },
+        {
+          "name": "Huevos revueltos o fritos con jamón cocido",
+          "description": "Con focaccia",
+          "price": 14900,
+          "ingredients": ["huevo", "jamón", "focaccia"],
+          "tags": []
+        },
+        {
+          "name": "Huevos revueltos o fritos con queso Fior di Latte",
+          "description": "Con focaccia",
+          "price": 14900,
+          "ingredients": ["huevo", "queso fior di latte", "focaccia"],
+          "tags": []
+        },
+        {
+          "name": "Huevos revueltos o fritos con jamón y queso Fior di Latte",
+          "description": "Con focaccia",
+          "price": 15900,
+          "ingredients": ["huevo", "jamón", "queso fior di latte", "focaccia"],
+          "tags": []
+        },
+        {
+          "name": "Omelette",
+          "description": "Con queso, tomate cherry, champiñones, zapallo italiano y pan baguette",
+          "price": 14900,
+          "ingredients": ["huevo", "queso", "tomate", "champiñones", "zapallo"],
+          "tags": []
+        },
+        {
+          "name": "Croissant jamón y queso",
+          "description": "Con jamón pierna cocido y queso Fior di latte",
+          "price": 13900,
+          "ingredients": ["croissant", "jamón", "queso fior di latte"],
+          "tags": []
+        },
+        {
+          "name": "Croissant Funghi",
+          "description": "Con champiñones salteados y queso Fior di Latte",
+          "price": 15900,
+          "ingredients": ["croissant", "champiñones", "queso fior di latte"],
+          "tags": []
+        },
+        {
+          "name": "Tostadas Francesas",
+          "description": "Pan tostado con leche, azúcar, huevo, jarabe de Maple y frutas",
+          "price": 13900,
+          "ingredients": ["pan", "huevo", "leche", "maple", "frutas"],
+          "tags": []
+        },
+        {
+          "name": "Crêpes Suzette",
+          "description": "Panqueques bañados en zumo de naranja, flambeados en licor",
+          "price": 15900,
+          "ingredients": ["harina", "naranja", "licor", "helado"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Soberbia",
+          "description": "Benedictino Croissant con tartaleta o mix de fruta",
+          "price": 16900,
+          "ingredients": ["croissant", "huevo", "jamón", "tartaleta"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Avaricia",
+          "description": "Focaccia Benedictina con tartaleta o mix de fruta",
+          "price": 16900,
+          "ingredients": ["focaccia", "palta", "huevo", "tartaleta"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Lujuria",
+          "description": "Huevos Americanos con tartaleta y maple",
+          "price": 16900,
+          "ingredients": ["huevo", "tocino", "tartaleta", "maple"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Ira",
+          "description": "Croissant jamón y queso con tartaleta",
+          "price": 16900,
+          "ingredients": ["croissant", "jamón", "queso", "tartaleta"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Gula",
+          "description": "Huevos revueltos con crêpes Suzette",
+          "price": 19900,
+          "ingredients": ["huevo", "crêpe", "naranja", "helado"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Envidia",
+          "description": "Croissant champiñones salteados con tartaleta",
+          "price": 16900,
+          "ingredients": ["croissant", "champiñones", "queso", "tartaleta"],
+          "tags": []
+        },
+        {
+          "name": "Brunch Pereza",
+          "description": "Omelette con tartaleta",
+          "price": 16900,
+          "ingredients": ["huevo", "queso", "tomate", "champiñones", "tartaleta"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "ENTRADAS",
+      "items": [
+        {
+          "name": "CEVICHE DEL DIA",
+          "description": "Reineta adobada con leche de tigre, canchita, camote y choclo peruano",
+          "price": 12900,
+          "ingredients": ["reineta", "limón", "canchita", "camote", "choclo"],
+          "tags": ["pescado", "mariscos"]
+        },
+        {
+          "name": "CEVICHE MIXTO",
+          "description": "Reineta, pulpo, calamares con leche de tigre y camote frito",
+          "price": 15990,
+          "ingredients": ["reineta", "pulpo", "calamares", "limón", "camote"],
+          "tags": ["pescado", "mariscos"]
+        },
+        {
+          "name": "TRILOGIA DE CEVICHE",
+          "description": "Salmón, reineta y camarones con leche de tigre y camote frito",
+          "price": 28900,
+          "ingredients": ["salmón", "reineta", "camarones", "limón", "camote"],
+          "tags": ["pescado", "mariscos"]
+        },
+        {
+          "name": "TIRADITO DE SALMON",
+          "description": "Salmón encurtido con salsa de maracuyá picante y camote frito",
+          "price": 12900,
+          "ingredients": ["salmón", "limón", "maracuyá", "ají amarillo", "camote"],
+          "tags": ["pescado", "mariscos"]
+        },
+        {
+          "name": "TOPPING DE SOPAIPILLAS",
+          "description": "Sopaipillas caseras con carne mechada, ají amarillo, pebre y cilantro",
+          "price": 8900,
+          "ingredients": ["sopaipilla", "carne mechada", "ají", "cilantro"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "PROVOLETA AL GRILL",
+          "description": "Queso argentino derretido con relish de manzana, tomate y romero",
+          "price": 12900,
+          "ingredients": ["provoleta", "manzana", "tomate", "romero"],
+          "tags": ["queso", "vegetariano"]
+        },
+        {
+          "name": "CAMARONES AL GRILL",
+          "description": "10 camarones ecuatorianos con ajo, pasta gochujang y sésamo",
+          "price": 12900,
+          "ingredients": ["camarones", "ajo", "sésamo"],
+          "tags": ["mariscos"]
+        },
+        {
+          "name": "TÁRTARO DE RES",
+          "description": "Carne de asiento cortada finamente con yema, mostaza y alcaparras",
+          "price": 12900,
+          "ingredients": ["carne de res", "huevo", "alcaparras", "mostaza"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "MIX DE EMPANADAS",
+          "description": "6 empanaditas de pino, camarón queso frita y queso frita",
+          "price": 12000,
+          "ingredients": ["masa", "carne", "queso", "camarones"],
+          "tags": []
+        },
+        {
+          "name": "TATAKI DE ATÚN",
+          "description": "Atún marcado con salsa Ponzu, sésamo y brotes de estación",
+          "price": 12900,
+          "ingredients": ["atún", "salsa ponzu", "sésamo"],
+          "tags": ["pescado", "mariscos"]
+        }
+      ]
+    },
+    {
+      "name": "PLATOS DE LA CASA",
+      "items": [
+        {
+          "name": "PLATEADA SALSA GLACE & POLENTA",
+          "description": "Plateada sous vide con glase de tuétano y polenta",
+          "price": 15900,
+          "ingredients": ["plateada", "tuétano", "polenta"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "OSOBUCO EN SALSA DE TUÉTANO & RISOTTO A LA MILANESA",
+          "description": "Osobuco sous vide con salsa de tuétano y risotto con azafrán",
+          "price": 15900,
+          "ingredients": ["osobuco", "tuétano", "risotto", "azafrán"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "SALMÓN EN SALSA MENIERE & ÑOQUIS CON SALSA PESTO",
+          "description": "Salmón en salsa Menier con ñoquis de pesto caseros",
+          "price": 15900,
+          "ingredients": ["salmón", "ñoquis", "pesto"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "CAZUELA DE VACUNO",
+          "description": "Carne sous vide con papas, choclo, zapallo y porotos verdes",
+          "price": 11900,
+          "ingredients": ["carne", "papa", "choclo", "zapallo", "porotos"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "ÑOQUIS CON SALSA ZAPALLO",
+          "description": "Ñoquis con salsa de zapallo y jengibre con champiñones",
+          "price": 11900,
+          "ingredients": ["ñoquis", "zapallo", "jengibre", "champiñones"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "ATÚN MIX DE SESAMO AL GRIL",
+          "description": "Lomo de atún de aleta amarilla con puré de zapallo camote",
+          "price": 12900,
+          "ingredients": ["atún", "zapallo", "sésamo"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "PASTEL DE CHOCLO",
+          "description": "Carne de asiento, cebolla, huevo duro, aceitunas y choclo con albahaca",
+          "price": 12900,
+          "ingredients": ["carne", "cebolla", "huevo", "aceitunas", "choclo"],
+          "tags": ["carne"]
+        }
+      ]
+    },
+    {
+      "name": "CARNES",
+      "items": [
+        {
+          "name": "PLATEADA CON SU JUGO",
+          "description": "Con pastelera de choclo y pebre",
+          "price": 15900,
+          "ingredients": ["plateada", "choclo", "pebre"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "LOMO VETADO A LO POBRE",
+          "description": "Corte de 350 grs",
+          "price": 22000,
+          "ingredients": ["lomo vetado"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "ENTRAÑA ARGENTINA AL GRILL",
+          "description": "300 grs con opciones de cocción",
+          "price": 18990,
+          "ingredients": ["entraña"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "LOMO VETADO ARGENTINO AL GRILL",
+          "description": "350grs con opciones de cocción",
+          "price": 18990,
+          "ingredients": ["lomo vetado"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "LOMO LISO AL GRILL",
+          "description": "350grs con opciones de cocción",
+          "price": 16990,
+          "ingredients": ["lomo liso"],
+          "tags": ["carne"]
+        }
+      ]
+    },
+    {
+      "name": "PESCADOS",
+      "items": [
+        {
+          "name": "SALMÓN AL GRILL",
+          "description": "300GRS de Salmón",
+          "price": 15900,
+          "ingredients": ["salmón"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "ATÚN AL GRILL",
+          "description": "7 oz de pescado con sabor fuerte y rico",
+          "price": 15900,
+          "ingredients": ["atún"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "Congrio Frito a lo Pobre",
+          "description": "Con papas fritas, cebolla caramelizada y huevos fritos",
+          "price": 15900,
+          "ingredients": ["congrio", "papa", "cebolla", "huevo"],
+          "tags": ["pescado"]
+        }
+      ]
+    },
+    {
+      "name": "RISOTOS",
+      "items": [
+        {
+          "name": "RISOTTO DE PESTO CON SALMÓN",
+          "description": "Risotto con pesto de albahaca y salmón a la plancha",
+          "price": 15900,
+          "ingredients": ["arroz arbóreo", "pesto", "salmón", "queso parmesano"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "RISOTTO DE CAMARONES",
+          "description": "Risotto con 5 camarones ecuatorianos",
+          "price": 15900,
+          "ingredients": ["arroz arbóreo", "camarones", "queso parmesano"],
+          "tags": ["mariscos"]
+        }
+      ]
+    },
+    {
+      "name": "ENSALADAS",
+      "items": [
+        {
+          "name": "ENSALADA DANTE",
+          "description": "Mix de hojas, apio, tomate cherry confitado, palmito y desmechada",
+          "price": 13900,
+          "ingredients": ["hojas verdes", "apio", "tomate", "palmito", "carne"],
+          "tags": []
+        },
+        {
+          "name": "ENSALADA DE SALMON",
+          "description": "Salmón con hojas verdes, betarraga, melón, zanahoria y nueces",
+          "price": 13900,
+          "ingredients": ["salmón", "hojas verdes", "betarraga", "melón", "nueces"],
+          "tags": ["pescado"]
+        },
+        {
+          "name": "ENSALADA DE CAMARONES",
+          "description": "10 camarones, hojas verdes, tomate cherry, pepino y queso de cabra",
+          "price": 13900,
+          "ingredients": ["camarones", "hojas verdes", "tomate", "queso de cabra"],
+          "tags": ["mariscos"]
+        },
+        {
+          "name": "ENSALADA DE POLLO",
+          "description": "Pollo al grill, hojas verdes, tomate, palta, huevo, parmesano",
+          "price": 12900,
+          "ingredients": ["pollo", "hojas verdes", "tomate", "palta", "huevo"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "PARA COMPARTIR",
+      "items": [
+        {
+          "name": "TABLA DANTE",
+          "description": "Empanadas, sopaipillas, aros de cebolla, papas fritas con desmechada",
+          "price": 25900,
+          "ingredients": ["empanadas", "sopaipillas", "cebolla", "papa", "carne"],
+          "tags": []
+        },
+        {
+          "name": "6 empanadas de horno de pino tipo cocktail",
+          "description": "Con salsa pebre",
+          "price": 12000,
+          "ingredients": ["masa", "carne"],
+          "tags": []
+        },
+        {
+          "name": "6 Empanadas mixtas tipo cocktail",
+          "description": "Pino, queso y camarón queso con salsas",
+          "price": 12000,
+          "ingredients": ["masa", "carne", "queso", "camarones"],
+          "tags": []
+        },
+        {
+          "name": "Tabla Mar y tierra",
+          "description": "Empanadas, ceviche, chicharrones, brochetas y salsas",
+          "price": 25900,
+          "ingredients": ["empanadas", "pescado", "carne", "camarones"],
+          "tags": []
+        },
+        {
+          "name": "Trilogía de ceviches",
+          "description": "Salmón, reineta y camarones con canchita y choclo",
+          "price": 28900,
+          "ingredients": ["salmón", "reineta", "camarones", "choclo"],
+          "tags": ["pescado", "mariscos"]
+        },
+        {
+          "name": "TABLA TRILOGIA DE CARNE",
+          "description": "Pechuga pollo, lomo liso y longaniza con papas rústicas",
+          "price": 19900,
+          "ingredients": ["pollo", "lomo", "longaniza", "papa"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "TABLA VEGETARIANA",
+          "description": "Mix de vegetales salteados con salsa de la casa",
+          "price": 18900,
+          "ingredients": ["vegetales"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "PAPAS FRITAS SPICY INFERNO",
+          "description": "Salsa chili picante con queso cheddar y ají deshidratado con carne",
+          "price": 9900,
+          "ingredients": ["papa", "queso cheddar", "ají", "carne"],
+          "tags": []
+        },
+        {
+          "name": "PAPAS FRITAS ALIGHIERI",
+          "description": "Cebolla caramelizada y salsa de queso azul",
+          "price": 9900,
+          "ingredients": ["papa", "cebolla", "queso azul"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "PAPAS FRITAS VEGGIE",
+          "description": "Salteado de vegetales con queso cheddar y cebolla caramelizada",
+          "price": 9900,
+          "ingredients": ["papa", "vegetales", "queso cheddar"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "CHORRILLANA ESPECIAL",
+          "description": "Papas fritas con longaniza, mechada, cebolla caramelizada y huevos",
+          "price": 24900,
+          "ingredients": ["papa", "longaniza", "carne", "cebolla", "huevo"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "CHORRILLANA VEGETARIANA",
+          "description": "Salteado de vegetales con queso cheddar y cebolla caramelizada",
+          "price": 19900,
+          "ingredients": ["papa", "vegetales", "queso cheddar"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "TABLA DE QUESOS",
+          "description": "Cabra, Fior de latte, crema, azul con brusquetas",
+          "price": 14900,
+          "ingredients": ["queso cabra", "queso fior di latte", "queso azul", "pan"],
+          "tags": ["vegetariano"]
+        }
+      ]
+    },
+    {
+      "name": "SANDWICHS CLASICOS DANTE",
+      "items": [
+        {
+          "name": "Churrasco / Mechada Italiano",
+          "description": "Palta, tomate, mayonesa en pan frica",
+          "price": 11900,
+          "ingredients": ["carne", "palta", "tomate", "mayonesa"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Churrasco / Mechada Luco",
+          "description": "Queso chanco fundido en pan brioche con sésamo",
+          "price": 11500,
+          "ingredients": ["carne", "queso chanco"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Churrasco / Mechada Chemilico",
+          "description": "Huevos, cebolla caramelizada, merquén en pan frica",
+          "price": 11500,
+          "ingredients": ["carne", "huevo", "cebolla", "merquén"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Hamburguesa Brasileño",
+          "description": "Queso, palta, ají verde y mayonesa en pan frica",
+          "price": 13900,
+          "ingredients": ["carne", "queso", "palta", "ají"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Hamburguesa Germano",
+          "description": "Chucrut, tomate y mayonesa en pan frica",
+          "price": 12900,
+          "ingredients": ["carne", "chucrut", "tomate"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Hamburguesa Chacarero",
+          "description": "Poroto verde, tomate y ají verde en pan frica",
+          "price": 12900,
+          "ingredients": ["carne", "poroto verde", "tomate", "ají"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Hamburguesa Chemilico",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Hamburguesa Luco",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        }
+      ]
+    },
+    {
+      "name": "SANDWICH´S HAMBURGUESAS",
+      "items": [
+        {
+          "name": "Hamburguesa DANTE",
+          "description": "Tocino, relish, lechuga, lactonesa, queso cheddar y salsa bbq",
+          "price": 13900,
+          "ingredients": ["carne", "tocino", "queso cheddar", "lechuga"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Burger Classic",
+          "description": "Lechuga, pepinillo, cebolla caramelizada y cheddar en pan frica",
+          "price": 13900,
+          "ingredients": ["carne", "queso cheddar", "lechuga", "cebolla"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "LA BLUE",
+          "description": "200g en brioche con queso azul, cebolla y rúcula",
+          "price": 13900,
+          "ingredients": ["carne", "queso azul", "cebolla", "rúcula"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "INFERNO BURGER",
+          "description": "Hamburguesa casera con queso cheddar, aros de cebolla y bbq",
+          "price": 13900,
+          "ingredients": ["carne", "queso cheddar", "cebolla"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "DOBLE INFERNO",
+          "description": "Doble hamburguesa con doble queso cheddar y aros de cebolla",
+          "price": 18900,
+          "ingredients": ["carne", "queso cheddar", "cebolla"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "BURGER ORIGINAL",
+          "description": "Hamburguesa, queso cheddar, cebolla morada, lechuga, tomate",
+          "price": 14900,
+          "ingredients": ["carne", "queso cheddar", "cebolla", "lechuga", "tomate"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "HAMBURGUESA BRASILEÑA",
+          "description": null,
+          "price": 13900,
+          "ingredients": [],
+          "tags": ["carne"]
+        },
+        {
+          "name": "HAMBURGUESA CHACARERA",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        },
+        {
+          "name": "HAMBUEGUESA CHEMILICO",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        },
+        {
+          "name": "HAMBURGUESA GERMANA",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        },
+        {
+          "name": "HAMBURGUESA ITALIANA",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        },
+        {
+          "name": "HAMBURGUESA LUCO",
+          "description": null,
+          "price": 12900,
+          "ingredients": [],
+          "tags": ["carne"]
+        }
+      ]
+    },
+    {
+      "name": "PIZZAS",
+      "items": [
+        {
+          "name": "Prosciutto",
+          "description": "Salsa de tomate, queso fior di latte, prosciutto, tomate y rúcula",
+          "price": 15900,
+          "ingredients": ["masa pizza", "tomate", "queso fior di latte", "prosciutto"],
+          "tags": []
+        },
+        {
+          "name": "Quattro stagioni",
+          "description": "Salsa de tomate, queso, alcachofa, aceitunas y champiñones",
+          "price": 16500,
+          "ingredients": ["masa pizza", "tomate", "queso", "alcachofa", "aceitunas"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Pepperoni",
+          "description": "Salsa de tomate, queso fior di latte y pepperoni",
+          "price": 14200,
+          "ingredients": ["masa pizza", "tomate", "queso", "pepperoni"],
+          "tags": []
+        },
+        {
+          "name": "Gamberetti",
+          "description": "Salsa de tomate, queso, camarón y albahaca",
+          "price": 16900,
+          "ingredients": ["masa pizza", "tomate", "queso", "camarones", "ajo"],
+          "tags": ["mariscos"]
+        },
+        {
+          "name": "Margherita",
+          "description": "Salsa de tomate, queso fior di latte y albahaca",
+          "price": 11900,
+          "ingredients": ["masa pizza", "tomate", "queso fior di latte"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Pizza Dante",
+          "description": "Salsa de tomate, mechada, queso, champiñones, aceitunas y rúcula",
+          "price": 18900,
+          "ingredients": ["masa pizza", "tomate", "carne mechada", "queso", "champiñones"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Quattro Formaggi",
+          "description": "Salsa de tomates, queso fior di latte, cabra, azul y parmesano",
+          "price": 16500,
+          "ingredients": ["masa pizza", "tomate", "queso fior di latte", "queso cabra"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Mechada",
+          "description": "Salsa de tomate, queso, mechada, cebolla morada y tomate cherry",
+          "price": 17900,
+          "ingredients": ["masa pizza", "tomate", "queso", "carne mechada"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "Vegetariana",
+          "description": "Salsa de tomate, queso, champiñones, tomate, choclo y pimiento",
+          "price": 15500,
+          "ingredients": ["masa pizza", "tomate", "queso", "champiñones", "choclo"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Caprese",
+          "description": "Salsa de tomate, queso, pesto de albahaca y tomate cherry",
+          "price": 15900,
+          "ingredients": ["masa pizza", "tomate", "queso", "pesto"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Trio de Carne",
+          "description": "Salsa de tomate, queso, mechada, tocino, pepperoni y ají verde",
+          "price": 19900,
+          "ingredients": ["masa pizza", "tomate", "carne", "tocino", "pepperoni"],
+          "tags": ["carne"]
+        },
+        {
+          "name": "PIZZA ESPAÑOLA",
+          "description": "Salsa de tomate, queso, tomate cherry, jamón, longaniza y aceitunas",
+          "price": 16900,
+          "ingredients": ["masa pizza", "tomate", "queso", "jamón", "longaniza"],
+          "tags": ["carne"]
+        }
+      ]
+    },
+    {
+      "name": "MENU DE NIÑOS",
+      "items": [
+        {
+          "name": "Hamburguesa con queso cheddar, kétchup y papas fritas",
+          "description": "Promoción válida solo para menores de edad",
+          "price": 13000,
+          "ingredients": ["carne", "queso cheddar", "papa"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "PAPAS FRITAS",
+      "items": [
+        {
+          "name": "PAPAS CHICAS",
+          "description": null,
+          "price": 5900,
+          "ingredients": ["papa"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "PAPAS GRANDE",
+          "description": null,
+          "price": 8500,
+          "ingredients": ["papa"],
+          "tags": ["vegetariano"]
+        }
+      ]
+    },
+    {
+      "name": "GUARNICION EXTRA",
+      "items": [
+        {
+          "name": "Vegetales salteados",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["vegetales"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Ensalada mixta",
+          "description": null,
+          "price": 7900,
+          "ingredients": ["hojas verdes", "vegetales"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Ensalada a la chilena",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["tomate", "cebolla"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "Papas fritas",
+          "description": null,
+          "price": 5500,
+          "ingredients": ["papa"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "A lo pobre",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["papa", "cebolla", "huevo"],
+          "tags": []
+        },
+        {
+          "name": "Arroz",
+          "description": null,
+          "price": 4500,
+          "ingredients": ["arroz"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "PURE",
+          "description": null,
+          "price": 4500,
+          "ingredients": ["papa"],
+          "tags": ["vegetariano"]
+        }
+      ]
+    },
+    {
+      "name": "POSTRES",
+      "items": [
+        {
+          "name": "PANQUEQUE RELLENO CON HELADO",
+          "description": "2 unidades relleno de manjar o nutella con helado",
+          "price": 7990,
+          "ingredients": ["panqueque", "helado", "manjar"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "BROWNIE CON HELADO",
+          "description": "Brownie más una bolita de helado",
+          "price": 8900,
+          "ingredients": ["chocolate", "helado"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "COPA DE HELADO 3 SABORES",
+          "description": "Opciones: dulce de leche, chocolate, vainilla, frutos rojos",
+          "price": 7500,
+          "ingredients": ["helado"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "CAFÉ HELADO",
+          "description": null,
+          "price": 7900,
+          "ingredients": ["café", "helado"],
+          "tags": ["vegetariano"]
+        }
+      ]
+    },
+    {
+      "name": "MICHELADAS",
+      "items": [
+        {
+          "name": "CHELADA",
+          "description": "Jugo de limón y enlantado de vaso con sal",
+          "price": 1000,
+          "ingredients": ["cerveza", "limón"],
+          "tags": []
+        },
+        {
+          "name": "MICHELADA",
+          "description": "Limón, salsa inglesa, tabasco, salt rim y tajín",
+          "price": 1000,
+          "ingredients": ["cerveza", "limón", "especias"],
+          "tags": []
+        },
+        {
+          "name": "MICHELADA CHINGONA",
+          "description": "Limón, salsa inglesa, tabasco, clamato, sal y merkén",
+          "price": null,
+          "ingredients": ["cerveza", "limón", "clamato"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "SCHOP CERVEZAS DE BARRIL",
+      "items": [
+        {
+          "name": "KROSS PILS 500 CC PROMO TODO EL DIA",
+          "description": null,
+          "price": 4500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "KROSS BERRIES",
+          "description": "Notas frutales de frutos rojos con acidez refrescante",
+          "price": 5000,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "KROSS STOUT 500 CC",
+          "description": null,
+          "price": 5200,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "KROSS GOLDEN 500 CC",
+          "description": null,
+          "price": 5200,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "KROSS HAZY IPA 500 CC",
+          "description": null,
+          "price": 5900,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "KROSS 5",
+          "description": null,
+          "price": 5900,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "LOA ENTRE NUBES",
+          "description": null,
+          "price": 5500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "LOA OTRA RONDA",
+          "description": null,
+          "price": 5500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "LOA FLOR DE TRUCO",
+          "description": null,
+          "price": 5500,
+          "ingredients": [],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "CERVEZAS DE BOTELLA",
+      "items": [
+        {
+          "name": "Kunstmann Gran Torobayo 500 cc",
+          "description": "Old Ale con notas a frutos secos y caramelo toffee",
+          "price": 7500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "KUSTMAN MIEL 4.8 ° G.L.",
+          "description": "Ale con notas de miel y maltas tostadas",
+          "price": 4200,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "CORONA 4.5° G.L.",
+          "description": "Cerveza premium de importación",
+          "price": 3500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "HEINEKEN SIN ALCOHOL",
+          "description": null,
+          "price": 3500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "AUTRAL CALAFATE 330 cc",
+          "description": null,
+          "price": 4000,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "AUSTRAL LAGER 330 CC",
+          "description": null,
+          "price": 4000,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "DELIRIUM TREMENS 330 CC",
+          "description": null,
+          "price": 6500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "DELIRIUM RED 330 CC",
+          "description": null,
+          "price": 6500,
+          "ingredients": [],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "COCTELERÍA DE AUTOR",
+      "items": [
+        {
+          "name": "INFERNO",
+          "description": "Tequila, infusión de hibisco, almíbar de merkén y pomelo ahumado",
+          "price": 9000,
+          "ingredients": ["tequila", "hibisco", "merkén", "pomelo"],
+          "tags": []
+        },
+        {
+          "name": "PARADISO",
+          "description": "Vodka de mandarina, Malibú y leche de coco",
+          "price": 9000,
+          "ingredients": ["vodka", "malibú", "leche de coco"],
+          "tags": []
+        },
+        {
+          "name": "DANTE SOUR",
+          "description": "Pisco, limón, maracuyá y jarabe de jengibre",
+          "price": 9000,
+          "ingredients": ["pisco", "limón", "maracuyá", "jengibre"],
+          "tags": []
+        },
+        {
+          "name": "CAIPIDANTE",
+          "description": "Cachaza, té negro de mango, naranja, canela y limón",
+          "price": 9000,
+          "ingredients": ["cachaza", "mango", "naranja", "canela", "limón"],
+          "tags": []
+        },
+        {
+          "name": "SUCCO LAWEN",
+          "description": "Ginebra, limón, agua gasificada y maracuyá o frambuesa",
+          "price": 9000,
+          "ingredients": ["ginebra", "limón", "maracuyá"],
+          "tags": []
+        },
+        {
+          "name": "Coffee Passion",
+          "description": "Ron Pampero, café espresso, Licor 43, maracuyá y tónica",
+          "price": 9000,
+          "ingredients": ["ron", "café", "licor 43", "maracuyá"],
+          "tags": []
+        },
+        {
+          "name": "Negroni Mezcal",
+          "description": "Tequila macerada, Campari y vermú rosso",
+          "price": 9000,
+          "ingredients": ["tequila", "campari", "vermú"],
+          "tags": []
+        },
+        {
+          "name": "Rum Fashioned",
+          "description": "Ron Diplomático con pasta de azúcar de naranja",
+          "price": 9000,
+          "ingredients": ["ron", "naranja"],
+          "tags": []
+        },
+        {
+          "name": "Soberana Araucanía",
+          "description": "Pisco, cordial de mate, manzana, limón y espumante",
+          "price": 9000,
+          "ingredients": ["pisco", "mate", "manzana", "limón"],
+          "tags": []
+        },
+        {
+          "name": "Paloma",
+          "description": null,
+          "price": 9000,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "Berries Velvet",
+          "description": "Gin, frutos rojos y tónica con berries",
+          "price": 9000,
+          "ingredients": ["ginebra", "frambuesa", "arándanos"],
+          "tags": []
+        },
+        {
+          "name": "Osadía",
+          "description": "Gin Lawen, vino carmenere, Ramazzotti Violetto y maqui",
+          "price": 9000,
+          "ingredients": ["ginebra", "vino", "licor", "maqui"],
+          "tags": []
+        },
+        {
+          "name": "Ambrosía",
+          "description": "Whiskey Jameson, syrup huesillo, naranja y cerveza Kross",
+          "price": 9000,
+          "ingredients": ["whiskey", "huesillo", "naranja"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "BEBIDAS",
+      "items": [
+        {
+          "name": "LIMONADAS",
+          "description": "Clásica, menta, jengibre o albahaca",
+          "price": 4200,
+          "ingredients": ["limón"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "JUGOS DE FRUTAS",
+          "description": "Mango, maracuyá, piña o frambuesa",
+          "price": 4200,
+          "ingredients": ["frutas"],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "BEBIDAS",
+          "description": null,
+          "price": 2500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "ENERGÉTICA RED BULL",
+          "description": null,
+          "price": 3500,
+          "ingredients": [],
+          "tags": []
+        },
+        {
+          "name": "AGUA MINERAL C/ Y S/ GAS 330CC",
+          "description": null,
+          "price": 2500,
+          "ingredients": [],
+          "tags": ["vegetariano"]
+        },
+        {
+          "name": "GINGER BEER",
+          "description": "Bebida refrescante con jengibre fresco y toque picante",
+          "price": 4000,
+          "ingredients": ["jengibre"],
+          "tags": ["vegetariano"]
+        }
+      ]
+    },
+    {
+      "name": "COCKTAILS CLASICOS",
+      "items": [
+        {
+          "name": "TEQUILA MARGARITA",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["tequila", "limón"],
+          "tags": []
+        },
+        {
+          "name": "Ramazzotti / Ramazzotti Violetto Spritz",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["licor", "vino espumoso"],
+          "tags": []
+        },
+        {
+          "name": "St-Germain Spritz",
+          "description": "Licor de flor de saúco con vino espumoso y agua con gas",
+          "price": 7500,
+          "ingredients": ["st-germain", "vino espumoso"],
+          "tags": []
+        },
+        {
+          "name": "PISCO SOUR",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["pisco", "limón"],
+          "tags": []
+        },
+        {
+          "name": "PISCO SOUR PERUANO",
+          "description": "Pisco, limón fresco y jarabe simple",
+          "price": 8500,
+          "ingredients": ["pisco", "limón"],
+          "tags": []
+        },
+        {
+          "name": "AMARETTO SOUR",
+          "description": "Amaretto, limón y jarabe simple",
+          "price": 6500,
+          "ingredients": ["amaretto", "limón"],
+          "tags": []
+        },
+        {
+          "name": "CHARDONAY SOUR",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["vino chardonnay", "limón"],
+          "tags": []
+        },
+        {
+          "name": "Aperol Spritz",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["aperol", "vino espumoso"],
+          "tags": []
+        },
+        {
+          "name": "PIÑA COLADA",
+          "description": null,
+          "price": 8500,
+          "ingredients": ["ron", "piña", "leche de coco"],
+          "tags": []
+        },
+        {
+          "name": "COPA SANGRIA",
+          "description": null,
+          "price": 6200,
+          "ingredients": ["vino", "frutas"],
+          "tags": []
+        },
+        {
+          "name": "DAIKIRI",
+          "description": "Mango, maracuyá, frambuesa, piña o tradicional",
+          "price": 6400,
+          "ingredients": ["ron", "limón"],
+          "tags": []
+        },
+        {
+          "name": "MOJITO BACARDI FRUTAS",
+          "description": "Mango, frambuesa, piña o maracuyá",
+          "price": 7200,
+          "ingredients": ["ron", "menta", "lima"],
+          "tags": []
+        },
+        {
+          "name": "MOJITO BACARDI TRADICIONAL",
+          "description": null,
+          "price": 7200,
+          "ingredients": ["ron", "menta", "lima"],
+          "tags": []
+        },
+        {
+          "name": "MOJITO BACARDI ALBAHACA",
+          "description": null,
+          "price": 7200,
+          "ingredients": ["ron", "albahaca", "lima"],
+          "tags": []
+        },
+        {
+          "name": "MOJITO JAGER",
+          "description": "Menta, lima y Jägermeister",
+          "price": 7800,
+          "ingredients": ["jägermeister", "menta", "lima"],
+          "tags": []
+        },
+        {
+          "name": "TOM COLLINS",
+          "description": null,
+          "price": 6800,
+          "ingredients": ["ginebra", "limón"],
+          "tags": []
+        },
+        {
+          "name": "JOHN COLLINS",
+          "description": null,
+          "price": 8500,
+          "ingredients": ["whiskey", "limón"],
+          "tags": []
+        },
+        {
+          "name": "MOSCOW MULE / LONDON MULE",
+          "description": "Moscow Mule con vodka, London Mule con ginebra",
+          "price": 7600,
+          "ingredients": ["vodka", "ginebra", "ginger beer"],
+          "tags": []
+        },
+        {
+          "name": "CAIPIRIÑA / CAIPIROSKA / CAIPIRISSIMA",
+          "description": "Cachaza, vodka o ron con lima",
+          "price": 5900,
+          "ingredients": ["cachaza", "lima"],
+          "tags": []
+        },
+        {
+          "name": "NEGRONI",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["ginebra", "campari", "vermú"],
+          "tags": []
+        },
+        {
+          "name": "CLAVO OXIDADO",
+          "description": "Whisky Jameson con limón",
+          "price": 7500,
+          "ingredients": ["whiskey", "limón"],
+          "tags": []
+        },
+        {
+          "name": "EL PADRINO",
+          "description": "Whisky con Amaretto",
+          "price": 7500,
+          "ingredients": ["whiskey", "amaretto"],
+          "tags": []
+        },
+        {
+          "name": "Ruso Blanco",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["vodka", "licor"],
+          "tags": []
+        },
+        {
+          "name": "Ruso Negro",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["vodka", "licor"],
+          "tags": []
+        },
+        {
+          "name": "BLOODY MARY CLÁSICO",
+          "description": "Vodka, Clamato, apio, salsa inglesa y limón",
+          "price": 8900,
+          "ingredients": ["vodka", "clamato", "apio"],
+          "tags": []
+        },
+        {
+          "name": "BLOODY MARY DANTE",
+          "description": "Vodka, Mezcal, Clamato, apio y salsa inglesa",
+          "price": 9900,
+          "ingredients": ["vodka", "mezcal", "clamato"],
+          "tags": []
+        },
+        {
+          "name": "JARRA DE SANGRÍA",
+          "description": null,
+          "price": 18000,
+          "ingredients": ["vino", "frutas"],
+          "tags": []
+        },
+        {
+          "name": "Tropical Gin",
+          "description": "Gin Bombay Sapphire con Yellow Red Bull",
+          "price": 9900,
+          "ingredients": ["ginebra", "red bull"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "PISCOS",
+      "items": [
+        {
+          "name": "MISTRAL 35° + BEBIDA",
+          "description": null,
+          "price": 5500,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "MISTRAL 40° + BEBIDA",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Mistral Nobel 40° + BEBIDA",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Mistral Nobel Cristalino + Bebida",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "ALTO DEL CARMEN 35° + BEBIDA",
+          "description": null,
+          "price": 5500,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Alto Del Carmen 40° + BEBIDA",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "ALTO TRANSPARENTE + BEBIDA",
+          "description": null,
+          "price": 6600,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Los Nichos 35° + BEBIBA",
+          "description": null,
+          "price": 5900,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Gobernador 40° + BEBIDA",
+          "description": null,
+          "price": 6400,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Horcón quemado 35° + BEBIDA",
+          "description": null,
+          "price": 6400,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "HORCON QUEMADO DE 40 + BEBIDA",
+          "description": null,
+          "price": 6800,
+          "ingredients": ["pisco"],
+          "tags": []
+        },
+        {
+          "name": "Horcón quemado 46° + BEBIDA",
+          "description": null,
+          "price": 7500,
+          "ingredients": ["pisco"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "SOUR´S DE LA CASA",
+      "items": [
+        {
+          "name": "DANTE SOUR",
+          "description": null,
+          "price": 8900,
+          "ingredients": ["pisco", "limón", "maracuyá"],
+          "tags": []
+        },
+        {
+          "name": "DANTE SOUR CATEDRAL",
+          "description": null,
+          "price": 11000,
+          "ingredients": ["pisco", "limón", "maracuyá"],
+          "tags": []
+        },
+        {
+          "name": "CHARDONNAY SOUR",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["vino chardonnay", "limón"],
+          "tags": []
+        },
+        {
+          "name": "CHARDONNAY SOUR CATEDRAL",
+          "description": null,
+          "price": 11000,
+          "ingredients": ["vino chardonnay", "limón"],
+          "tags": []
+        },
+        {
+          "name": "MANGO SOUR",
+          "description": null,
+          "price": 7500,
+          "ingredients": ["pisco", "mango", "limón"],
+          "tags": []
+        },
+        {
+          "name": "MANGO SOUR CATEDRAL",
+          "description": null,
+          "price": 11000,
+          "ingredients": ["pisco", "mango", "limón"],
+          "tags": []
+        },
+        {
+          "name": "WHISKY SOUR",
+          "description": null,
+          "price": 8500,
+          "ingredients": ["whiskey", "limón"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "SCOTCH & TENNESSEE",
+      "items": [
+        {
+          "name": "Johnnie Walker red label",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["whisky"],
+          "tags": []
+        },
+        {
+          "name": "Johnnie Walker black label",
+          "description": null,
+          "price": 7900,
+          "ingredients": ["whisky"],
+          "tags": []
+        },
+        {
+          "name": "Chivas Regal 12 años",
+          "description": null,
+          "price": 8400,
+          "ingredients": ["whisky"],
+          "tags": []
+        },
+        {
+          "name": "Ballantines 6 años",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["whisky"],
+          "tags": []
+        },
+        {
+          "name": "Jack Daniel's honey",
+          "description": null,
+          "price": 7500,
+          "ingredients": ["whiskey", "miel"],
+          "tags": []
+        },
+        {
+          "name": "Jack Daniel's N°7",
+          "description": null,
+          "price": 7500,
+          "ingredients": ["whiskey"],
+          "tags": []
+        },
+        {
+          "name": "Jack Daniel's Apple",
+          "description": null,
+          "price": 7500,
+          "ingredients": ["whiskey"],
+          "tags": []
+        },
+        {
+          "name": "Gentleman jack",
+          "description": null,
+          "price": 10800,
+          "ingredients": ["whiskey"],
+          "tags": []
+        },
+        {
+          "name": "JAMESON",
+          "description": null,
+          "price": 7400,
+          "ingredients": ["whiskey"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "RON",
+      "items": [
+        {
+          "name": "Pampero Especial + BEBIDA",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ron"],
+          "tags": []
+        },
+        {
+          "name": "Pampero Aniversario + BEBIDA",
+          "description": null,
+          "price": 8900,
+          "ingredients": ["ron"],
+          "tags": []
+        },
+        {
+          "name": "Havana Reserva",
+          "description": null,
+          "price": 7000,
+          "ingredients": ["ron"],
+          "tags": []
+        },
+        {
+          "name": "HAVANA ESPECIAL",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ron"],
+          "tags": []
+        },
+        {
+          "name": "Havanna 7 años + BEBIDA",
+          "description": null,
+          "price": 7900,
+          "ingredients": ["ron"],
+          "tags": []
+        },
+        {
+          "name": "Diplomatico Mantuano +BEBIDA",
+          "description": null,
+          "price": 8900,
+          "ingredients": ["ron"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "GIN",
+      "items": [
+        {
+          "name": "BOMBAY SAPHIRE + BEBIDA",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ginebra"],
+          "tags": []
+        },
+        {
+          "name": "BEEFEATER + BEBIDA",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ginebra"],
+          "tags": []
+        },
+        {
+          "name": "TANQUERAY TEN + BEBIDA",
+          "description": null,
+          "price": 8500,
+          "ingredients": ["ginebra"],
+          "tags": []
+        },
+        {
+          "name": "TANQUERAY LONDON",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ginebra"],
+          "tags": []
+        },
+        {
+          "name": "Tanqueray sevilla",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ginebra"],
+          "tags": []
+        },
+        {
+          "name": "LAWEN",
+          "description": null,
+          "price": 6900,
+          "ingredients": ["ginebra"],
+          "tags": []
+        },
+        {
+          "name": "HEDRICKS",
+          "description": null,
+          "price": 9200,
+          "ingredients": ["ginebra"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "VODKA",
+      "items": [
+        {
+          "name": "Absolut",
+          "description": "Blue, Rapsberry, Mango o Mandrin",
+          "price": 6200,
+          "ingredients": ["vodka"],
+          "tags": []
+        },
+        {
+          "name": "Stolichnaya",
+          "description": null,
+          "price": 5500,
+          "ingredients": ["vodka"],
+          "tags": []
+        },
+        {
+          "name": "Absolut Sabores",
+          "description": null,
+          "price": 6500,
+          "ingredients": ["vodka"],
+          "tags": []
+        }
+      ]
+    },
+    {
+      "name": "VINOS CABERNET SAUVIGNON",
+      "items": [
+        {
+          "name": "CASA DONOSO GRAN RESERVA ESPECIAL DIA DEL PADRE",
+          "description": null,
+          "price": 15000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "Doña Dominga Reserva Black",
+          "description": "Intenso con taninos maduros, frutos negros y vainilla",
+          "price": 15000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "Toro de Piedra BOT GRAN RESERVA",
+          "description": "Robusto con taninos suaves, frutos oscuros y cedro",
+          "price": 24000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "SANTA EMA GRAN RESERVA",
+          "description": null,
+          "price": 24000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "LAS MULAS",
+          "description": null,
+          "price": 24000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "MARQUES DE CASA CONCHA",
+          "description": null,
+          "price": 30000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "DIABLO",
+          "description": null,
+          "price": 24000,
+          "ingredients": ["cabernet sauvignon"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS CARMENERE",
+      "items": [
+        {
+          "name": "MARQUES DE CASA CONCHA",
+          "description": null,
+          "price": 30000,
+          "ingredients": ["carmenere"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "Frida Kalho, Viña Carmen BOT",
+          "description": "Complejo con frutos oscuros, especias y chocolate",
+          "price": 18000,
+          "ingredients": ["carmenere"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "Doña Dominga Black Reserva Bot",
+          "description": "Taninos suaves, frutos oscuros con toques herbáceos",
+          "price": 15000,
+          "ingredients": ["carmenere"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "Castillo Molina, Reserva",
+          "description": "Taninos suaves con sabores de frutas y matices terrosos",
+          "price": 24000,
+          "ingredients": ["carmenere"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "DIABLO",
+          "description": null,
+          "price": 24000,
+          "ingredients": ["carmenere"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "LAS MULAS",
+          "description": null,
+          "price": 24000,
+          "ingredients": ["carmenere"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS MERLOT",
+      "items": [
+        {
+          "name": "Castillo de Molina, San Pedro",
+          "description": "Suave con frutos rojos maduros, vainilla y chocolate",
+          "price": 24000,
+          "ingredients": ["merlot"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "DOÑA DOMINGA BLACK",
+          "description": null,
+          "price": 15000,
+          "ingredients": ["merlot"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS PINOT NOIR",
+      "items": [
+        {
+          "name": "Cool Coast Casa Silva",
+          "description": "Blanco refrescante con notas de limón, pomelo y hierbas",
+          "price": 24000,
+          "ingredients": ["pinot noir"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS ENSEMBLAJE",
+      "items": [
+        {
+          "name": "ICONO D",
+          "description": "40% Cabernet Sauvignon, 30% Carmenere, 20% Malbec, 10% Cabernet Franc",
+          "price": 70000,
+          "ingredients": ["cabernet sauvignon", "carmenere", "malbec"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "PERLA NEGRA",
+          "description": "50% Cabernet Sauvignon, 20% Carmenere, 20% Malbec, 10% Cabernet Franc",
+          "price": 70000,
+          "ingredients": ["cabernet sauvignon", "carmenere", "malbec"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "Sideral, San Pedro CS/ SY/PV/CF/ CA",
+          "description": "Mezcla de 5 variedades con amplia gama de sabores",
+          "price": 40000,
+          "ingredients": ["cabernet sauvignon", "syrah", "carmenere"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS SAUVIGNON BLANC",
+      "items": [
+        {
+          "name": "CASA DONOSO GRAN RESERVA",
+          "description": "Fresco con notas cítricas y herbáceas",
+          "price": 15000,
+          "ingredients": ["sauvignon blanc"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "DOÑA DOMINGA VARIETAL",
+          "description": null,
+          "price": 15000,
+          "ingredients": ["sauvignon blanc"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "SAUVIGNON GRIS",
+      "items": [
+        {
+          "name": "Cool Coast",
+          "description": null,
+          "price": 24000,
+          "ingredients": ["sauvignon gris"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS CHARDONAY",
+      "items": [
+        {
+          "name": "CASA DONOSO GRAN RESERVA",
+          "description": null,
+          "price": 15000,
+          "ingredients": ["chardonnay"],
+          "tags": ["vino"]
+        },
+        {
+          "name": "DOÑA DOMINGA CHARDONNAY VARIETAL",
+          "description": null,
+          "price": 15000,
+          "ingredients": ["chardonnay"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "ESPUMANTE",
+      "items": [
+        {
+          "name": "VIÑA MAR BRUT",
+          "description": "Rosé Brut con notas de frutas rojas y acidez refrescante",
+          "price": 15000,
+          "ingredients": ["espumante"],
+          "tags": ["vino"]
+        }
+      ]
+    },
+    {
+      "name": "VINOS POR COPA",
+      "items": [
+        {
+          "name": "CABERNET SAUVIGNON, CARMENERE Y SAUVIGNON BLANC",
+          "description": "Vino de la casa varía por temporada, actualmente Doña Dominga",
+          "price": 3000,
+          "ingredients": [],
+          "tags": ["vino"]
+        }
+      ]
+    }
+  ]
+}

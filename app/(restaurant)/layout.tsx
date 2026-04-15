@@ -232,57 +232,88 @@ function SidebarContent() {
         <NotificationsBell />
       </div>
 
-      {/* Restaurant card / picker */}
-      <div className="mx-3 mb-3 relative">
-        <button
-          onClick={() => isSuperAdmin && setPickerOpen(o => !o)}
-          className={`w-full p-3 rounded-xl bg-white/5 border border-white/8 text-left transition-colors
-            ${isSuperAdmin ? 'hover:bg-white/8 cursor-pointer' : 'cursor-default'}`}
-        >
-          {loading ? (
-            <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
-          ) : (
-            <>
-              <div className="flex items-center justify-between">
-                <p className="text-white text-sm font-semibold leading-tight truncate flex-1 mr-1">
-                  {restaurant?.name ?? 'Sin restaurante'}
-                </p>
-                {isSuperAdmin && <ChevronDown size={12} className={`text-white/30 shrink-0 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />}
-              </div>
-              {restaurant?.neighborhood && (
-                <p className="text-white/40 text-[10px] mt-0.5">{restaurant.neighborhood}</p>
-              )}
-              {isSuperAdmin && (
-                <div className="flex items-center gap-1 mt-1.5">
-                  <ShieldCheck size={9} className="text-[#FF6B35]" />
-                  <span className="text-[#FF6B35] text-[9px] font-medium">Super Admin</span>
+      {/* Restaurant card / picker
+          Mostramos picker si: super_admin OR usuario tiene >1 restaurante
+          (multi-sucursal). Si tiene 1 solo, igual mostramos el botón "Agregar
+          sucursal" para que pueda crear más. */}
+      {(() => {
+        const canPick      = isSuperAdmin || restaurants.length > 1
+        const canAddSuc    = !isSuperAdmin && (role === 'owner' || role === 'admin')
+        const showDropdown = canPick || canAddSuc
+        return (
+        <div className="mx-3 mb-3 relative">
+          <button
+            onClick={() => showDropdown && setPickerOpen(o => !o)}
+            className={`w-full p-3 rounded-xl bg-white/5 border border-white/8 text-left transition-colors
+              ${showDropdown ? 'hover:bg-white/8 cursor-pointer' : 'cursor-default'}`}
+          >
+            {loading ? (
+              <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+            ) : (
+              <>
+                <div className="flex items-center justify-between">
+                  <p className="text-white text-sm font-semibold leading-tight truncate flex-1 mr-1">
+                    {restaurant?.name ?? 'Sin restaurante'}
+                  </p>
+                  {showDropdown && <ChevronDown size={12} className={`text-white/30 shrink-0 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />}
                 </div>
-              )}
-            </>
-          )}
-        </button>
+                {restaurant?.neighborhood && (
+                  <p className="text-white/40 text-[10px] mt-0.5">{restaurant.neighborhood}</p>
+                )}
+                <div className="flex items-center gap-2 mt-1.5">
+                  {isSuperAdmin && (
+                    <span className="flex items-center gap-1">
+                      <ShieldCheck size={9} className="text-[#FF6B35]" />
+                      <span className="text-[#FF6B35] text-[9px] font-medium">Super Admin</span>
+                    </span>
+                  )}
+                  {!isSuperAdmin && restaurants.length > 1 && (
+                    <span className="text-white/35 text-[9px]">
+                      {restaurants.length} sucursales
+                    </span>
+                  )}
+                </div>
+              </>
+            )}
+          </button>
 
-        {/* Restaurant picker dropdown */}
-        {pickerOpen && restaurants.length > 0 && (
-          <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A2E] border border-white/12 rounded-xl shadow-2xl z-50 max-h-64 overflow-y-auto sidebar-scroll">
-            {restaurants.map(r => (
-              <button
-                key={r.id}
-                onClick={() => { switchTo(r.id); setPickerOpen(false) }}
-                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
-              >
-                {restaurant?.id === r.id
-                  ? <Check size={10} className="text-[#FF6B35] shrink-0" />
-                  : <span className="w-2.5 shrink-0" />}
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-[12px] font-medium truncate">{r.name}</p>
-                  {r.neighborhood && <p className="text-white/30 text-[10px]">{r.neighborhood}</p>}
+          {/* Restaurant picker dropdown + add sucursal */}
+          {pickerOpen && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A2E] border border-white/12 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto sidebar-scroll">
+              {restaurants.length > 0 && (
+                <div className="py-1">
+                  {restaurants.map(r => (
+                    <button
+                      key={r.id}
+                      onClick={() => { switchTo(r.id); setPickerOpen(false) }}
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
+                    >
+                      {restaurant?.id === r.id
+                        ? <Check size={10} className="text-[#FF6B35] shrink-0" />
+                        : <span className="w-2.5 shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-white text-[12px] font-medium truncate">{r.name}</p>
+                        {r.neighborhood && <p className="text-white/30 text-[10px]">{r.neighborhood}</p>}
+                      </div>
+                    </button>
+                  ))}
                 </div>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+              )}
+              {canAddSuc && (
+                <Link
+                  href="/agregar-sucursal"
+                  onClick={() => setPickerOpen(false)}
+                  className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-[#FF6B35] hover:bg-white/5 transition-colors flex items-center gap-2"
+                >
+                  <span className="w-4 h-4 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold">+</span>
+                  Agregar sucursal
+                </Link>
+              )}
+            </div>
+          )}
+        </div>
+        )
+      })()}
 
       {/* Nav — collapsible groups */}
       <nav className="flex-1 overflow-y-auto px-2 pb-2 sidebar-scroll">

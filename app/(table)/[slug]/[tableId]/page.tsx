@@ -507,14 +507,35 @@ function BillModal({
   useEffect(() => {
     let cancelled = false
     setLoadingOrders(true)
-    fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
-      .then(r => r.json())
-      .then(j => {
-        if (cancelled) return
-        setServerOrders((j.orders ?? []) as ServerOrder[])
-      })
-      .catch(() => { /* silent fail — fallback to cart */ })
-      .finally(() => { if (!cancelled) setLoadingOrders(false) })
+
+    // Reintenta hasta 3 veces con backoff de 600ms — cubre la race condition
+    // donde el modal se abre justo cuando el order recién se creó server-side
+    // y aún no es visible a la query (commit lag, replicación, etc).
+    async function fetchWithRetry() {
+      for (let attempt = 0; attempt < 3; attempt++) {
+        try {
+          const res = await fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
+          const j = await res.json()
+          const orders = (j.orders ?? []) as ServerOrder[]
+          if (cancelled) return
+          if (orders.length > 0 || attempt === 2) {
+            setServerOrders(orders)
+            setLoadingOrders(false)
+            return
+          }
+          // Vacío y no es el último intento → esperar antes de reintentar
+          await new Promise(r => setTimeout(r, 600))
+        } catch {
+          if (cancelled) return
+          if (attempt === 2) {
+            setServerOrders([])
+            setLoadingOrders(false)
+          }
+        }
+      }
+    }
+    fetchWithRetry()
+
     return () => { cancelled = true }
   }, [tableId])
 
@@ -853,13 +874,15 @@ export default function TablePage() {
               }
               if (data.action === 'request_bill') {
                 // Si hay items en el cart sin confirmar Y no hay orderId todavía,
-                // auto-confirmamos el pedido antes de abrir la cuenta.
-                // Así el garzón recibe la notificación con el detalle real.
-                if (!orderId && cart.length > 0) {
-                  await confirmOrder()
+                // auto-confirmamos el pedido y capturamos el ID retornado para
+                // pasárselo a requestBill (evita race condition de React state).
+                let pendingOrderId: string | undefined = orderId ?? undefined
+                if (!pendingOrderId && cart.length > 0) {
+                  const confirmed = await confirmOrder()
+                  pendingOrderId = confirmed ?? undefined
                 }
                 // Disparar el PATCH status=paying para notificar al garzón
-                await requestBill()
+                await requestBill(pendingOrderId)
                 setBillOpen(true)
               }
               if (data.action === 'request_split') {
@@ -890,13 +913,22 @@ export default function TablePage() {
     }
   }
 
-  async function confirmOrder() {
+  /**
+   * Crea el pedido en el servidor con el cart actual.
+   * Retorna el orderId (string) en éxito, null en error.
+   * NOTA: retorna el ID en vez de depender solo del setOrderId() porque
+   * los callers a menudo necesitan el ID inmediatamente (race condition
+   * con React state updates).
+   */
+  async function confirmOrder(): Promise<string | null> {
+    if (cart.length === 0) return null
+    const cartSnapshot = cart // capturar para evitar race con setCart([])
     setOrderStatus('confirming')
     try {
       const res = await fetch('/api/orders', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant_slug: slug, table_id: tableId, cart }),
+        body: JSON.stringify({ restaurant_slug: slug, table_id: tableId, cart: cartSnapshot }),
       })
 
       if (!res.ok) {
@@ -905,9 +937,12 @@ export default function TablePage() {
       }
 
       const data = await res.json()
-      setOrderId(data.orderId)
+      const newOrderId = data.orderId as string | undefined
+      if (!newOrderId) throw new Error('El servidor no devolvió orderId')
+
+      setOrderId(newOrderId)
       setOrderStatus('sent')
-      const orderSummary = cart.map(c => `${c.quantity}× ${c.name}`).join(', ')
+      const orderSummary = cartSnapshot.map(c => `${c.quantity}× ${c.name}`).join(', ')
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'chapi',
@@ -919,48 +954,60 @@ export default function TablePage() {
         setCartOpen(false)
         setOrderStatus('idle')
       }, 2000)
-    } catch {
+      return newOrderId
+    } catch (err) {
+      console.error('[table] confirmOrder failed:', err)
       setOrderStatus('idle')
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'chapi',
         text: 'Ups, hubo un problema al enviar tu pedido. ¿Lo intentamos de nuevo?',
       }])
+      return null
     }
   }
 
-  async function requestBill() {
-    let activeOrderId = orderId
+  /**
+   * Pide la cuenta al garzón (PATCH status=paying → push notification).
+   * Si no hay orderId previo Y hay items en el cart, auto-confirma primero.
+   * Acepta `existingOrderId` opcional para evitar la race condition de React
+   * state cuando el caller acaba de ejecutar confirmOrder().
+   */
+  async function requestBill(existingOrderId?: string): Promise<void> {
+    let activeOrderId = existingOrderId ?? orderId
 
-    // Si no hay orderId pero el cart tiene items: auto-confirmar primero
-    // para que el garzón reciba la notificación con el detalle real.
+    // Si no hay orderId pero el cart tiene items, auto-confirmamos
     if (!activeOrderId && cart.length > 0) {
+      activeOrderId = await confirmOrder() ?? null
+    }
+
+    // Verificar contra el server qué pedidos hay realmente en esta mesa
+    // (cubre el caso edge donde otro flujo creó el order)
+    if (!activeOrderId) {
       try {
-        const res = await fetch('/api/orders', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ restaurant_slug: slug, table_id: tableId, cart }),
-        })
+        const res = await fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
         if (res.ok) {
-          const data = await res.json()
-          if (data.orderId) {
-            activeOrderId = data.orderId
-            setOrderId(data.orderId)
-            setCart([])
+          const j = await res.json() as { orders?: Array<{ id: string; status: string }> }
+          const open = j.orders?.find(o => !['paid', 'cancelled'].includes(o.status))
+          if (open) {
+            activeOrderId = open.id
+            setOrderId(open.id)
           }
         }
       } catch (err) {
-        console.error('[table] auto-confirm before bill failed:', err)
+        console.error('[table] order lookup failed:', err)
       }
     }
 
-    // Si tenemos orderId (existente o recién creado), avisar al garzón
+    // Si tenemos orderId, avisar al garzón
     if (activeOrderId) {
       await fetch('/api/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ order_id: activeOrderId, status: 'paying' }),
       }).catch(() => null)
+    } else {
+      console.warn('[table] requestBill called but no order to bill')
     }
   }
 
