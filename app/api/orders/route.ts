@@ -270,6 +270,36 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
+    // Auto-liberar mesa cuando la orden se cierra (paid o cancelled) y no hay
+    // otros pedidos activos en esa misma mesa. Server-side con admin client
+    // para evitar problemas de RLS cuando el garzón no es dueño del restaurant.
+    if (status === 'paid' || status === 'cancelled') {
+      try {
+        const { data: ord } = await supabase
+          .from('orders')
+          .select('table_id')
+          .eq('id', order_id)
+          .single()
+        const tableId = (ord as { table_id?: string } | null)?.table_id
+        if (tableId) {
+          const { data: activeOthers } = await supabase
+            .from('orders')
+            .select('id')
+            .eq('table_id', tableId)
+            .not('status', 'in', '("paid","cancelled")')
+            .neq('id', order_id)
+          if (!activeOthers || activeOthers.length === 0) {
+            await supabase
+              .from('tables')
+              .update({ status: 'libre' })
+              .eq('id', tableId)
+          }
+        }
+      } catch (tableErr) {
+        console.error('Auto-release table failed (non-blocking):', tableErr)
+      }
+    }
+
     return NextResponse.json({ ok: true, order_id, status })
   } catch (err) {
     if (err instanceof z.ZodError) {
