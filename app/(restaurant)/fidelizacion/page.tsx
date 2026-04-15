@@ -506,20 +506,44 @@ function RewardCreate({ disabled, restId, onCreated }: { disabled: boolean; rest
 // ── Sub: manual coupon issue ────────────────────────────────────────────────
 
 function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] }) {
-  const [userId, setUserId] = useState('')
+  const [email, setEmail] = useState('')
+  const [name, setName] = useState('')
   const [rewardId, setRewardId] = useState('')
   const [busy, setBusy] = useState(false)
-  const [result, setResult] = useState<{ code?: string; error?: string } | null>(null)
+  const [result, setResult] = useState<
+    { code?: string; error?: string; emailSent?: boolean; emailSkipped?: boolean; existingUser?: boolean } | null
+  >(null)
+
+  const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
 
   async function submit() {
     setBusy(true)
     setResult(null)
     try {
-      const res = await jsonFetch<{ coupon?: { code: string } }>('/api/loyalty/redeem', {
+      const res = await jsonFetch<{
+        coupon?: { code: string }
+        email_sent?: boolean
+        email_skipped?: boolean
+        recipient?: { existing_user?: boolean }
+      }>('/api/loyalty/redeem', {
         method: 'POST',
-        body: JSON.stringify({ restaurant_id: restId, reward_id: rewardId, on_behalf_of: userId }),
+        body: JSON.stringify({
+          restaurant_id:      restId,
+          reward_id:          rewardId,
+          on_behalf_of_email: email.trim().toLowerCase(),
+          on_behalf_of_name:  name.trim() || undefined,
+        }),
       })
-      setResult({ code: res.coupon?.code })
+      setResult({
+        code:         res.coupon?.code,
+        emailSent:    res.email_sent,
+        emailSkipped: res.email_skipped,
+        existingUser: res.recipient?.existing_user,
+      })
+      if (res.coupon?.code) {
+        setEmail('')
+        setName('')
+      }
     } catch (e) {
       setResult({ error: e instanceof Error ? e.message : 'Error al emitir' })
     } finally {
@@ -533,13 +557,22 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
 
   return (
     <div className="space-y-2">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-        <Field label="User ID (UUID del cliente)">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+        <Field label="Correo del cliente">
           <input
-            value={userId}
-            onChange={e => setUserId(e.target.value)}
-            placeholder="uuid…"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm font-mono focus:border-[#FF6B35]/40 focus:outline-none"
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
+            placeholder="cliente@correo.cl"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+          />
+        </Field>
+        <Field label="Nombre (opcional)">
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Para personalizar el email"
+            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
           />
         </Field>
         <Field label="Recompensa">
@@ -556,16 +589,27 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
 
       <button
         onClick={submit}
-        disabled={busy || !userId || !rewardId}
+        disabled={busy || !emailOk || !rewardId}
         className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40"
       >
         {busy ? <Loader2 size={13} className="animate-spin" /> : <Ticket size={13} />}
-        Emitir cupón
+        Enviar cupón por email
       </button>
 
       {result?.code && (
-        <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs">
-          Cupón emitido: <span className="font-mono font-bold">{result.code}</span>
+        <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs space-y-1">
+          <div>
+            Cupón emitido: <span className="font-mono font-bold">{result.code}</span>
+          </div>
+          <div className="text-emerald-300/80 text-[11px]">
+            {result.emailSent
+              ? result.existingUser
+                ? '✉ Email enviado. El cupón ya está disponible en su wallet.'
+                : '✉ Email enviado con CTA para crear cuenta y guardar el cupón en el wallet virtual.'
+              : result.emailSkipped
+                ? '⚠ Cupón creado, pero el envío de email está deshabilitado (falta RESEND_API_KEY). Comparte el código manualmente.'
+                : '⚠ Cupón creado, pero el email no pudo enviarse. Comparte el código manualmente.'}
+          </div>
         </div>
       )}
       {result?.error && (
@@ -575,7 +619,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
       )}
 
       <p className="text-white/30 text-[10px]">
-        La emisión manual descuenta puntos/sellos del cliente (si los tiene) y genera un código único. Si quieres regalar sin costo, deja la recompensa sin costo configurado.
+        Se envía un email al cliente con el código. Si aún no tiene cuenta HiChapi, el correo lo invita a registrarse y el cupón queda reclamado en su wallet virtual al registrarse.
       </p>
       <p className="text-white/20 text-[10px]">
         Formato moneda: {clp(1000)}

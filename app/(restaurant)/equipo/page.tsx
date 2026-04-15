@@ -5,10 +5,21 @@ import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
   Users, Plus, Mail, RefreshCw, X, Check, Trash2,
-  ShieldCheck, ChefHat, UtensilsCrossed, UserCheck, Crown
+  ShieldCheck, ChefHat, UtensilsCrossed, UserCheck, Crown, Shield
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { RolesManagerModal } from '@/components/restaurant/RolesManagerModal'
+import { RolesManagerModal, type CustomRole } from '@/components/restaurant/RolesManagerModal'
+
+// ── Merged role type used by all three render points ────────────────────────
+interface UnifiedRole {
+  value:       string                          // slug / id usado en team_members.role
+  label:       string
+  desc:        string
+  icon:        React.ComponentType<{ size?: number; className?: string }>
+  colorClass:  string                          // Tailwind classes "bg-X/15 text-Y border-Z/30"
+  isCustom:    boolean
+  customColor?: string                         // hex (para custom)
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -26,13 +37,26 @@ interface TeamMember {
 
 // ── Role config ───────────────────────────────────────────────────────────────
 
-const ROLES = [
-  { value: 'admin',      label: 'Admin',      desc: 'Acceso completo al panel',                        icon: Crown         },
-  { value: 'supervisor', label: 'Supervisor',  desc: 'Panel completo excepto configuración',            icon: ShieldCheck   },
-  { value: 'garzon',     label: 'Garzón',      desc: 'Pedidos, mesas y comandas',                      icon: UserCheck     },
-  { value: 'cocina',     label: 'Cocina',       desc: 'Solo panel de comandas (kitchen display)',        icon: ChefHat       },
-  { value: 'anfitrion',  label: 'Anfitrión',    desc: 'Mesas, pedidos y tiempos de espera',             icon: UtensilsCrossed },
+const BASE_ROLES: UnifiedRole[] = [
+  { value: 'admin',      label: 'Admin',      desc: 'Acceso completo al panel',                        icon: Crown,         colorClass: 'bg-purple-500/15 text-purple-300 border-purple-500/30',   isCustom: false },
+  { value: 'supervisor', label: 'Supervisor', desc: 'Panel completo excepto configuración',            icon: ShieldCheck,   colorClass: 'bg-blue-500/15 text-blue-300 border-blue-500/30',         isCustom: false },
+  { value: 'garzon',     label: 'Garzón',     desc: 'Pedidos, mesas y comandas',                       icon: UserCheck,     colorClass: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30', isCustom: false },
+  { value: 'cocina',     label: 'Cocina',     desc: 'Solo panel de comandas (kitchen display)',        icon: ChefHat,       colorClass: 'bg-amber-500/15 text-amber-300 border-amber-500/30',      isCustom: false },
+  { value: 'anfitrion',  label: 'Anfitrión',  desc: 'Mesas, pedidos y tiempos de espera',              icon: UtensilsCrossed, colorClass: 'bg-sky-500/15 text-sky-300 border-sky-500/30',          isCustom: false },
 ]
+
+// Build a UnifiedRole from a CustomRole fetched from /api/restaurants/custom-roles
+function customToUnified(c: CustomRole): UnifiedRole {
+  return {
+    value:       c.id,
+    label:       c.name,
+    desc:        c.description ?? `${c.permissions.length} permisos · basado en ${c.base_role ?? 'rol libre'}`,
+    icon:        Shield,
+    colorClass:  'bg-white/8 text-white/80 border-white/20',
+    isCustom:    true,
+    customColor: c.color,
+  }
+}
 
 const ROLE_LABEL: Record<string, string> = {
   owner: 'Propietario', admin: 'Admin', supervisor: 'Supervisor',
@@ -74,6 +98,7 @@ export default function EquipoPage() {
   const { restaurant, profile } = useRestaurant()
 
   const [members,    setMembers]    = useState<TeamMember[]>([])
+  const [customRoles, setCustomRoles] = useState<CustomRole[]>([])
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
   const [sending,    setSending]    = useState(false)
@@ -81,6 +106,10 @@ export default function EquipoPage() {
   const [editingRoles, setEditingRoles] = useState<string | null>(null)
   const [editRolesValue, setEditRolesValue] = useState<string[]>([])
   const [showRolesModal, setShowRolesModal] = useState(false)
+
+  // Merged base + custom roles, used by all 3 render points (grid, editor, invite)
+  const ALL_ROLES: UnifiedRole[] = [...BASE_ROLES, ...customRoles.map(customToUnified)]
+  const ROLE_MAP = new Map(ALL_ROLES.map(r => [r.value, r]))
 
   // Form state
   const [email,    setEmail]    = useState('')
@@ -111,6 +140,19 @@ export default function EquipoPage() {
         .neq('status', 'revoked')
         .order('joined_at', { ascending: false })
       data = (fallback.data ?? []) as TeamMember[]
+    }
+
+    // Fetch custom roles in parallel (silent if endpoint missing / DB doesn't have table yet)
+    try {
+      const r = await fetch(`/api/restaurants/custom-roles?restaurant_id=${restaurant.id}`)
+      if (r.ok) {
+        const j = await r.json()
+        setCustomRoles(j.roles ?? [])
+      } else {
+        setCustomRoles([])
+      }
+    } catch {
+      setCustomRoles([])
     }
 
     setMembers(data ?? [])
@@ -247,17 +289,28 @@ export default function EquipoPage() {
           </button>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-          {ROLES.map(({ value, label, desc, icon: Icon }) => (
-            <div key={value} className="bg-white/3 border border-white/8 rounded-xl p-3 flex gap-2.5">
-              <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ROLE_COLOR[value]?.split(' ').slice(0,1).join(' ')} border ${ROLE_COLOR[value]?.split(' ').slice(2).join(' ')}`}>
-                <Icon size={13} className={ROLE_COLOR[value]?.split(' ')[1]} />
+          {ALL_ROLES.map(({ value, label, desc, icon: Icon, colorClass, isCustom, customColor }) => {
+            const bg   = colorClass.split(' ')[0]   // bg-*/15
+            const text = colorClass.split(' ')[1]   // text-*
+            const brdr = colorClass.split(' ')[2]   // border-*/30
+            return (
+              <div key={value} className="bg-white/3 border border-white/8 rounded-xl p-3 flex gap-2.5 relative">
+                {isCustom && (
+                  <span className="absolute top-1.5 right-2 text-[8px] uppercase tracking-wide text-white/30">custom</span>
+                )}
+                <div
+                  className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isCustom ? '' : `${bg} border ${brdr}`}`}
+                  style={isCustom && customColor ? { backgroundColor: `${customColor}26`, border: `1px solid ${customColor}66` } : undefined}
+                >
+                  <Icon size={13} className={isCustom ? '' : text} />
+                </div>
+                <div className="min-w-0">
+                  <p className="text-white text-xs font-semibold truncate">{label}</p>
+                  <p className="text-white/35 text-[10px] leading-tight mt-0.5">{desc}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-white text-xs font-semibold">{label}</p>
-                <p className="text-white/35 text-[10px] leading-tight mt-0.5">{desc}</p>
-              </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -320,16 +373,20 @@ export default function EquipoPage() {
                       <div className="space-y-2">
                         <p className="text-white/50 text-[10px] font-semibold uppercase tracking-wide">Editar roles</p>
                         <div className="flex flex-wrap gap-1.5">
-                          {ROLES.map(r => {
+                          {ALL_ROLES.map(r => {
                             const on = editRolesValue.includes(r.value)
+                            const style = on && r.isCustom && r.customColor
+                              ? { backgroundColor: `${r.customColor}26`, borderColor: `${r.customColor}80`, color: r.customColor }
+                              : undefined
                             return (
                               <button
                                 key={r.value}
                                 onClick={() => toggleEditRole(r.value)}
+                                style={style}
                                 className={`text-[10px] px-2 py-1 rounded-full border transition-colors
-                                  ${on ? ROLE_COLOR[r.value] : 'bg-white/3 border-white/10 text-white/40 hover:border-white/25'}`}
+                                  ${on && !r.isCustom ? r.colorClass : 'bg-white/3 border-white/10 text-white/40 hover:border-white/25'}`}
                               >
-                                {r.label}
+                                {r.label}{r.isCustom ? ' ✦' : ''}
                               </button>
                             )
                           })}
@@ -352,14 +409,25 @@ export default function EquipoPage() {
                       </div>
                     ) : (
                       <div className="flex items-center gap-2 flex-wrap">
-                        {memberRoles.map(r => (
-                          <span
-                            key={r}
-                            className={`text-[10px] px-2 py-0.5 rounded-full border ${ROLE_COLOR[r] ?? 'bg-white/10 text-white/50 border-white/10'}`}
-                          >
-                            {ROLE_LABEL[r] ?? r}
-                          </span>
-                        ))}
+                        {memberRoles.map(r => {
+                          const u = ROLE_MAP.get(r)
+                          const style = u?.isCustom && u.customColor
+                            ? { backgroundColor: `${u.customColor}26`, borderColor: `${u.customColor}80`, color: u.customColor }
+                            : undefined
+                          return (
+                            <span
+                              key={r}
+                              style={style}
+                              className={`text-[10px] px-2 py-0.5 rounded-full border ${
+                                u?.isCustom
+                                  ? ''
+                                  : (ROLE_COLOR[r] ?? 'bg-white/10 text-white/50 border-white/10')
+                              }`}
+                            >
+                              {u?.label ?? ROLE_LABEL[r] ?? r}
+                            </span>
+                          )
+                        })}
                         {!isSelf && (
                           <button
                             onClick={() => {
@@ -414,14 +482,25 @@ export default function EquipoPage() {
                     <p className="text-amber-400/60 text-[11px]">Esperando que acepte la invitación</p>
                   </div>
                   <div className="flex gap-1">
-                    {memberRoles.map(r => (
-                      <span
-                        key={r}
-                        className={`text-[11px] px-2 py-0.5 rounded-full border ${ROLE_COLOR[r] ?? 'bg-white/10 text-white/50 border-white/10'}`}
-                      >
-                        {ROLE_LABEL[r] ?? r}
-                      </span>
-                    ))}
+                    {memberRoles.map(r => {
+                      const u = ROLE_MAP.get(r)
+                      const style = u?.isCustom && u.customColor
+                        ? { backgroundColor: `${u.customColor}26`, borderColor: `${u.customColor}80`, color: u.customColor }
+                        : undefined
+                      return (
+                        <span
+                          key={r}
+                          style={style}
+                          className={`text-[11px] px-2 py-0.5 rounded-full border ${
+                            u?.isCustom
+                              ? ''
+                              : (ROLE_COLOR[r] ?? 'bg-white/10 text-white/50 border-white/10')
+                          }`}
+                        >
+                          {u?.label ?? ROLE_LABEL[r] ?? r}
+                        </span>
+                      )
+                    })}
                   </div>
                   <button
                     onClick={() => handleRevoke(m.id)}
@@ -465,8 +544,11 @@ export default function EquipoPage() {
                   <span className="text-white/30 text-[10px]">{formRoles.length} seleccionado{formRoles.length === 1 ? '' : 's'}</span>
                 </div>
                 <div className="space-y-2">
-                  {ROLES.map(({ value, label, desc, icon: Icon }) => {
+                  {ALL_ROLES.map(({ value, label, desc, icon: Icon, colorClass, isCustom, customColor }) => {
                     const checked = formRoles.includes(value)
+                    const bg   = colorClass.split(' ')[0]
+                    const text = colorClass.split(' ')[1]
+                    const brdr = colorClass.split(' ')[2]
                     return (
                       <label key={value}
                         className={`flex items-center gap-3 p-3 rounded-xl border cursor-pointer transition-colors ${
@@ -479,11 +561,16 @@ export default function EquipoPage() {
                           onChange={() => toggleFormRole(value)}
                           className="hidden"
                         />
-                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${ROLE_COLOR[value]?.split(' ')[0]} border ${ROLE_COLOR[value]?.split(' ')[2]}`}>
-                          <Icon size={13} className={ROLE_COLOR[value]?.split(' ')[1]} />
+                        <div
+                          className={`w-7 h-7 rounded-lg flex items-center justify-center shrink-0 ${isCustom ? '' : `${bg} border ${brdr}`}`}
+                          style={isCustom && customColor ? { backgroundColor: `${customColor}26`, border: `1px solid ${customColor}66` } : undefined}
+                        >
+                          <Icon size={13} className={isCustom ? '' : text} />
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-xs font-medium">{label}</p>
+                          <p className="text-white text-xs font-medium">
+                            {label}{isCustom ? ' ✦' : ''}
+                          </p>
                           <p className="text-white/35 text-[10px]">{desc}</p>
                         </div>
                         <div className={`w-4 h-4 rounded border flex items-center justify-center shrink-0
@@ -519,7 +606,11 @@ export default function EquipoPage() {
       {showRolesModal && restaurant?.id && (
         <RolesManagerModal
           restaurantId={restaurant.id}
-          onClose={() => setShowRolesModal(false)}
+          onClose={() => {
+            setShowRolesModal(false)
+            // Refresh custom roles so they appear in all 3 places immediately
+            void load()
+          }}
         />
       )}
     </div>

@@ -391,6 +391,69 @@ CREATE POLICY customer_wallet_all_admin ON customer_wallet FOR ALL
   WITH CHECK (public.is_admin_for(restaurant_id));
 
 -- ════════════════════════════════════════════════════════════════════════════
+-- 045 — Loyalty: cupones emitidos por email (pre-registro)
+-- ════════════════════════════════════════════════════════════════════════════
+ALTER TABLE customer_coupons
+  ALTER COLUMN user_id DROP NOT NULL;
+
+ALTER TABLE customer_coupons
+  ADD COLUMN IF NOT EXISTS customer_email TEXT,
+  ADD COLUMN IF NOT EXISTS customer_name  TEXT,
+  ADD COLUMN IF NOT EXISTS claimed_at     TIMESTAMPTZ;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'customer_coupons_user_or_email_chk'
+  ) THEN
+    ALTER TABLE customer_coupons
+      ADD CONSTRAINT customer_coupons_user_or_email_chk
+      CHECK (user_id IS NOT NULL OR customer_email IS NOT NULL);
+  END IF;
+END $$;
+
+CREATE INDEX IF NOT EXISTS customer_coupons_email_idx
+  ON customer_coupons (restaurant_id, lower(customer_email), status)
+  WHERE customer_email IS NOT NULL AND status = 'active';
+
+DROP POLICY IF EXISTS customer_coupons_select_self ON customer_coupons;
+CREATE POLICY customer_coupons_select_self ON customer_coupons FOR SELECT
+  USING (
+    user_id = auth.uid()
+    OR (
+      customer_email IS NOT NULL
+      AND lower(customer_email) = lower((SELECT email FROM auth.users WHERE id = auth.uid()))
+    )
+    OR public.is_team_member(restaurant_id)
+  );
+
+CREATE OR REPLACE FUNCTION public.get_user_id_by_email(p_email TEXT)
+RETURNS UUID LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT id FROM auth.users WHERE lower(email) = lower(p_email) LIMIT 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.claim_email_coupons(p_user_id UUID)
+RETURNS INTEGER LANGUAGE plpgsql SECURITY DEFINER AS $$
+DECLARE
+  v_email  TEXT;
+  v_count  INTEGER;
+BEGIN
+  SELECT email INTO v_email FROM auth.users WHERE id = p_user_id;
+  IF v_email IS NULL THEN RETURN 0; END IF;
+
+  UPDATE customer_coupons
+     SET user_id    = p_user_id,
+         claimed_at = now()
+   WHERE user_id IS NULL
+     AND status = 'active'
+     AND lower(customer_email) = lower(v_email);
+
+  GET DIAGNOSTICS v_count = ROW_COUNT;
+  RETURN v_count;
+END $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
 -- ✅ DONE. Tablas / columnas creadas:
 --    • is_team_member(restaurant_id) helper
 --    • tables.pos_x, tables.pos_y
@@ -401,4 +464,6 @@ CREATE POLICY customer_wallet_all_admin ON customer_wallet FOR ALL
 --    • loyalty_programs, loyalty_tiers, stamp_cards, customer_loyalty,
 --      points_ledger, multiplier_rules, trigger_rules, reward_catalog,
 --      customer_coupons, customer_wallet (todas con RLS)
+--    • customer_coupons: user_id nullable + customer_email/name/claimed_at
+--      + get_user_id_by_email() + claim_email_coupons() RPCs
 -- ════════════════════════════════════════════════════════════════════════════

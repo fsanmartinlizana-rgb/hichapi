@@ -422,3 +422,105 @@ export function dailyReportEmail(opts: DailyReportOpts): { subject: string; html
     text,
   }
 }
+
+// ── Cupón de fidelidad (wallet virtual) ──────────────────────────────────────
+
+interface LoyaltyCouponOpts {
+  restaurantName: string
+  customerName?:  string
+  rewardName:     string
+  rewardDetail?:  string
+  code:           string
+  expiresAt?:     string | null
+  claimUrl:       string    // ej: /register?coupon=CH-XXXX&email=foo@bar.cl
+  alreadyUser:    boolean   // si true, el CTA es "Ver mi wallet", no "Crear cuenta"
+}
+
+export function loyaltyCouponEmail(opts: LoyaltyCouponOpts): { subject: string; html: string; text: string } {
+  const subject = `🎁 Tienes un cupón de ${opts.restaurantName}`
+  const greeting = opts.customerName ? `Hola ${escapeHtml(opts.customerName)},` : 'Hola,'
+  const expiryLine = opts.expiresAt
+    ? `<tr>
+        <td style="padding:8px 12px;font-size:14px;color:rgba(255,255,255,0.5);">Válido hasta</td>
+        <td style="padding:8px 12px;font-size:14px;color:#fff;">${escapeHtml(opts.expiresAt)}</td>
+       </tr>`
+    : ''
+
+  const ctaLabel = opts.alreadyUser ? 'Ver en mi wallet' : 'Crear cuenta y guardar cupón'
+  const bottomCopy = opts.alreadyUser
+    ? 'Tu cupón ya está disponible en tu wallet. Podés mostrarlo en el local cuando lo quieras canjear.'
+    : 'Creá tu cuenta gratis en HiChapi con este correo y tu cupón quedará guardado en tu wallet virtual para cuando visites el local.'
+
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Tienes un regalo! 🎁</h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      ${greeting} <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>
+      te regaló un cupón canjeable en tu próxima visita.
+    </p>
+
+    <div style="background:rgba(255,107,53,0.08);border:1px dashed rgba(255,107,53,0.4);border-radius:14px;padding:20px;margin-bottom:24px;text-align:center;">
+      <div style="font-size:12px;color:rgba(255,255,255,0.5);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;">
+        ${escapeHtml(opts.rewardName)}
+      </div>
+      ${opts.rewardDetail ? `<div style="font-size:13px;color:rgba(255,255,255,0.6);margin-bottom:12px;">${escapeHtml(opts.rewardDetail)}</div>` : ''}
+      <div style="display:inline-block;font-family:'Courier New',monospace;font-size:26px;font-weight:800;letter-spacing:4px;color:#fff;background:rgba(0,0,0,0.35);border-radius:10px;padding:12px 20px;">
+        ${escapeHtml(opts.code)}
+      </div>
+    </div>
+
+    ${opts.expiresAt ? `
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:24px;">
+      ${expiryLine}
+    </table>` : ''}
+
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      ${bottomCopy}
+    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:8px 0 24px;">
+        <a href="${opts.claimUrl}"
+           style="display:inline-block;background:${BRAND_ORANGE};color:#fff;font-weight:700;
+                  font-size:15px;padding:14px 32px;border-radius:14px;text-decoration:none;">
+          ${ctaLabel}
+        </a>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,0.4);">
+      Si el botón no funciona, copia y pega este enlace en tu navegador:
+    </p>
+    <p style="margin:0;font-size:11px;word-break:break-all;color:${BRAND_ORANGE};">
+      ${opts.claimUrl}
+    </p>
+
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:28px 0 20px;" />
+    <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.4);">
+      Presenta el código al garzón cuando quieras canjearlo. Si no reconoces este correo, podés ignorarlo.
+    </p>
+  `
+
+  const text = [
+    `¡Tienes un regalo!`,
+    ``,
+    `${opts.customerName ? 'Hola ' + opts.customerName + ', ' : ''}${opts.restaurantName} te regaló un cupón.`,
+    ``,
+    `Recompensa: ${opts.rewardName}`,
+    ...(opts.rewardDetail ? [`Detalle: ${opts.rewardDetail}`] : []),
+    `Código: ${opts.code}`,
+    ...(opts.expiresAt ? [`Válido hasta: ${opts.expiresAt}`] : []),
+    ``,
+    bottomCopy,
+    ``,
+    `${ctaLabel}: ${opts.claimUrl}`,
+    ``,
+    `— Equipo HiChapi`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview: `${opts.rewardName} — código ${opts.code}`, bodyHtml }),
+    text,
+  }
+}

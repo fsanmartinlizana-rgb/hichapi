@@ -306,7 +306,7 @@ export default function MermasPage() {
                     const unit = isPlate ? 'platos' : (w.stock_items?.unit ?? '')
                     return (
                       <tr key={w.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 align-top">
                           <div className="flex items-center gap-2">
                             <span className="text-white font-medium">{name}</span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
@@ -317,6 +317,11 @@ export default function MermasPage() {
                               {isPlate ? 'plato' : 'stock'}
                             </span>
                           </div>
+                          {w.notes && (
+                            <p className="text-white/40 text-xs mt-1 italic leading-snug max-w-[260px]" title={w.notes}>
+                              &ldquo;{w.notes}&rdquo;
+                            </p>
+                          )}
                         </td>
                         <td className="px-4 py-3 text-white/60">{w.qty_lost} {unit}</td>
                         <td className="px-4 py-3">

@@ -2,29 +2,37 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireUser, requireRestaurantRole } from '@/lib/supabase/auth-guard'
 import { z } from 'zod'
+import { loyaltyCouponEmail } from '@/lib/email/templates'
+import { sendBrandedEmail } from '@/lib/email/sender'
 
 /**
  * POST /api/loyalty/redeem
  * Verifies and burns either:
  *   (a) a reward from the catalog by reward_id (deducts points or stamps)
  *   (b) a coupon by code   (owned by this user, active, not expired)
+ *   (c) admin "gift" — emite un cupón a un correo (sin deducir puntos/sellos)
  *
  * Server-side verification is mandatory — the client never confirms redemption.
  * Idempotent: coupon.status flips to 'redeemed' before any other side-effect,
  * guarded by a WHERE clause on status='active' so a double-click is a no-op.
  *
  * Body (one of):
- *   { restaurant_id, reward_id, order_id? }       // by catalog reward
- *   { restaurant_id, code, order_id? }            // by coupon code
+ *   { restaurant_id, reward_id, order_id? }                          // catalog reward (deducts)
+ *   { restaurant_id, code, order_id? }                               // coupon code
+ *   { restaurant_id, reward_id, on_behalf_of: uuid }                 // garzón canjea por cliente
+ *   { restaurant_id, reward_id, on_behalf_of_email, on_behalf_of_name? }  // admin GIFT por email
  */
 
 const Schema = z.object({
-  restaurant_id: z.string().uuid(),
-  reward_id:     z.string().uuid().optional(),
-  code:          z.string().min(4).max(32).optional(),
-  order_id:      z.string().uuid().optional(),
+  restaurant_id:       z.string().uuid(),
+  reward_id:           z.string().uuid().optional(),
+  code:                z.string().min(4).max(32).optional(),
+  order_id:            z.string().uuid().optional(),
   /** When validated by garzón/admin on behalf of a guest, pass the user_id. */
-  on_behalf_of:  z.string().uuid().optional(),
+  on_behalf_of:        z.string().uuid().optional(),
+  /** Admin gift flow: issue a coupon by email (sin deducir saldo). */
+  on_behalf_of_email:  z.string().email().optional(),
+  on_behalf_of_name:   z.string().min(1).max(120).optional(),
 }).refine(d => !!d.reward_id || !!d.code, {
   message: 'Se requiere reward_id o code',
 })
@@ -33,6 +41,109 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const data = Schema.parse(body)
+    const supabase = createAdminClient()
+
+    // ── Path C: admin GIFT by email (no deduction) ──────────────────────────
+    if (data.on_behalf_of_email && data.reward_id) {
+      const { user: adminUser, error: authErr } = await requireRestaurantRole(
+        data.restaurant_id,
+        ['owner', 'admin', 'supervisor', 'super_admin'],
+      )
+      if (authErr || !adminUser) {
+        return authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 403 })
+      }
+
+      const normalizedEmail = data.on_behalf_of_email.trim().toLowerCase()
+
+      // Verify the reward exists & belongs to this restaurant's program
+      const { data: program } = await supabase
+        .from('loyalty_programs')
+        .select('id')
+        .eq('restaurant_id', data.restaurant_id)
+        .eq('active', true)
+        .maybeSingle()
+      if (!program) return NextResponse.json({ error: 'Programa no activo' }, { status: 400 })
+
+      const { data: reward } = await supabase
+        .from('reward_catalog')
+        .select('id, program_id, type, name, description, value, points_cost, stamps_cost, active')
+        .eq('id', data.reward_id)
+        .eq('program_id', program.id)
+        .eq('active', true)
+        .maybeSingle()
+      if (!reward) return NextResponse.json({ error: 'Recompensa no disponible' }, { status: 400 })
+
+      // Look up existing user_id for that email (via helper RPC on auth.users)
+      let existingUserId: string | null = null
+      const { data: lookup } = await supabase
+        .rpc('get_user_id_by_email', { p_email: normalizedEmail })
+      if (lookup && typeof lookup === 'string') existingUserId = lookup
+
+      // Create the coupon (no deduction — this is a gift)
+      const code = generateCouponCode()
+      const { data: coupon, error: cpErr } = await supabase
+        .from('customer_coupons')
+        .insert({
+          user_id:        existingUserId,
+          restaurant_id:  data.restaurant_id,
+          reward_id:      reward.id,
+          code,
+          status:         'active',
+          issued_by:      'admin',
+          customer_email: normalizedEmail,
+          customer_name:  data.on_behalf_of_name ?? null,
+          expires_at:     new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString(), // 60 días
+        })
+        .select('id, code, expires_at')
+        .single()
+      if (cpErr) return NextResponse.json({ error: cpErr.message }, { status: 500 })
+
+      // Restaurant name for the email
+      const { data: rest } = await supabase
+        .from('restaurants')
+        .select('name')
+        .eq('id', data.restaurant_id)
+        .maybeSingle()
+
+      const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
+        ?? req.nextUrl.origin
+      // Both paths land on /login with the coupon pre-filled. The login page
+      // can redirect to a wallet view post-auth; pre-registration users are
+      // prompted to create their account (customer flow TBD).
+      const claimUrl = `${origin}/login?coupon=${encodeURIComponent(coupon.code)}&email=${encodeURIComponent(normalizedEmail)}`
+
+      const expiresAtFmt = coupon.expires_at
+        ? new Date(coupon.expires_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+        : null
+
+      const rewardDetail = reward.description
+        ?? (reward.type === 'discount_percent' && typeof reward.value === 'object' && reward.value && 'percent' in reward.value
+              ? `Descuento ${(reward.value as { percent: number }).percent}%`
+              : undefined)
+
+      const { subject, html, text } = loyaltyCouponEmail({
+        restaurantName: rest?.name ?? 'Tu restaurante favorito',
+        customerName:   data.on_behalf_of_name,
+        rewardName:     reward.name,
+        rewardDetail,
+        code:           coupon.code,
+        expiresAt:      expiresAtFmt,
+        claimUrl,
+        alreadyUser:    !!existingUserId,
+      })
+
+      const mailRes = await sendBrandedEmail({ to: normalizedEmail, subject, html, text })
+
+      return NextResponse.json({
+        ok: true,
+        via: 'gift_email',
+        coupon,
+        reward: { id: reward.id, name: reward.name, type: reward.type },
+        email_sent: mailRes.ok,
+        email_skipped: mailRes.skipped ?? false,
+        recipient: { email: normalizedEmail, name: data.on_behalf_of_name ?? null, existing_user: !!existingUserId },
+      })
+    }
 
     // Auth: the acting user is either the customer redeeming for themselves,
     // or an admin/garzón redeeming on behalf of a specific user_id.
@@ -49,8 +160,6 @@ export async function POST(req: NextRequest) {
       if (error || !user) return error ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
       actingUserId = user.id
     }
-
-    const supabase = createAdminClient()
 
     // ── Path A: coupon code ─────────────────────────────────────────────────
     if (data.code) {
