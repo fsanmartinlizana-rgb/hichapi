@@ -1104,13 +1104,34 @@ export default function TablePage() {
         body: JSON.stringify({ restaurant_slug: slug, table_id: tableId, cart: cartSnapshot }),
       })
 
+      const data = await res.json().catch(() => ({}))
+
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error(err.error ?? 'Error al enviar pedido')
+        // Surfacear error específico del backend en vez de mensaje genérico
+        const reason  = data.reason as string | undefined
+        const errMsg  = data.error  as string | undefined
+        const hint    = data.hint   as string | undefined
+
+        let chatMsg: string
+        if (reason === 'cash_register_closed') {
+          chatMsg = '🔒 El restaurante todavía no abrió la caja del día. Avisá al garzón para que la abran y reintentá en unos minutos.'
+        } else if (errMsg) {
+          chatMsg = `❌ ${errMsg}${hint ? `\n${hint}` : ''}`
+        } else {
+          chatMsg = '❌ Hubo un problema al enviar tu pedido. ¿Lo intentamos de nuevo?'
+        }
+
+        console.error('[table] confirmOrder rejected:', { status: res.status, data })
+        setOrderStatus('idle')
+        setMessages(prev => [...prev, {
+          id: Date.now().toString(),
+          role: 'chapi',
+          text: chatMsg,
+        }])
+        return null
       }
 
-      const data = await res.json()
-      const newOrderId = data.orderId as string | undefined
+      const newOrderId = (data as { orderId?: string }).orderId
       if (!newOrderId) throw new Error('El servidor no devolvió orderId')
 
       setOrderId(newOrderId)
@@ -1129,12 +1150,13 @@ export default function TablePage() {
       }, 2000)
       return newOrderId
     } catch (err) {
-      console.error('[table] confirmOrder failed:', err)
+      console.error('[table] confirmOrder exception:', err)
       setOrderStatus('idle')
+      const msg = err instanceof Error ? err.message : 'Error desconocido'
       setMessages(prev => [...prev, {
         id: Date.now().toString(),
         role: 'chapi',
-        text: 'Ups, hubo un problema al enviar tu pedido. ¿Lo intentamos de nuevo?',
+        text: `❌ No pudimos enviar tu pedido (${msg}). Intentá de nuevo o avisá al garzón.`,
       }])
       return null
     }
