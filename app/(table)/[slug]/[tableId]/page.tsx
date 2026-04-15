@@ -129,72 +129,201 @@ function TypingDots() {
 
 // ── Inline menu preview (shown in chat when user asks for the card) ──────────
 
+/**
+ * Carta colapsable por secciones con cart acumulativo.
+ * - Cada sección es un acordeón (primera abierta por defecto).
+ * - Cada plato muestra qty actual + botones +/- para sumar/restar.
+ * - Footer sticky con total + botón "Pedir N items".
+ */
 function MenuPreview({
   items,
+  cart,
   onAdd,
+  onRemove,
+  onConfirm,
+  confirming,
 }: {
-  items: MenuItem[]
-  onAdd: (item: MenuItem) => void
+  items:      MenuItem[]
+  cart:       CartItem[]
+  onAdd:      (item: MenuItem) => void
+  onRemove:   (menuItemId: string) => void
+  onConfirm:  () => void
+  confirming: boolean
 }) {
-  // Group by category so it feels like a real carta
-  const groups = items.reduce<Record<string, MenuItem[]>>((acc, it) => {
-    const cat = it.category?.trim() || 'Platos'
-    acc[cat] = acc[cat] || []
-    acc[cat].push(it)
-    return acc
-  }, {})
+  // Group by category, preservando orden original
+  const groupOrder: string[] = []
+  const groups: Record<string, MenuItem[]> = {}
+  for (const it of items) {
+    const cat = (it.category?.trim() || 'Platos')
+    if (!groups[cat]) {
+      groups[cat] = []
+      groupOrder.push(cat)
+    }
+    groups[cat].push(it)
+  }
+
+  // Primera sección abierta por defecto
+  const [openSection, setOpenSection] = useState<string | null>(groupOrder[0] ?? null)
+
+  const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
+  const cartTotal = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
+
+  function getQty(itemId: string): number {
+    return cart.find(c => c.menu_item_id === itemId)?.quantity ?? 0
+  }
 
   return (
-    <div className="mt-2 space-y-3">
-      {Object.entries(groups).map(([cat, list]) => (
-        <div key={cat}>
-          <p className="text-[11px] font-bold text-[#FF6B35] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-            <span>{categoryEmoji(cat)}</span> {cat}
-          </p>
-          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
-            {list.map(it => (
-              <div
-                key={it.id}
-                className="shrink-0 w-36 bg-[#161622] border border-white/8 rounded-xl p-2 flex flex-col gap-1.5"
+    <div className="mt-2 bg-[#0F0F1A] border border-white/8 rounded-xl overflow-hidden">
+      <div className="max-h-[55vh] overflow-y-auto divide-y divide-white/5">
+        {groupOrder.map(cat => {
+          const list = groups[cat]
+          const isOpen = openSection === cat
+          // Cuántos items de esta sección están en el cart (badge)
+          const inSection = list.reduce((s, it) => s + getQty(it.id), 0)
+
+          return (
+            <div key={cat}>
+              <button
+                type="button"
+                onClick={() => setOpenSection(isOpen ? null : cat)}
+                aria-expanded={isOpen}
+                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/3 transition-colors text-left"
               >
-                {it.photo_url ? (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img
-                    src={it.photo_url}
-                    alt={it.name}
-                    className="w-full h-20 rounded-lg object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-20 rounded-lg bg-white/5 flex items-center justify-center text-2xl">
-                    {categoryEmoji(it.category)}
-                  </div>
-                )}
-                <p className="text-white text-xs font-semibold leading-tight line-clamp-2">
-                  {it.name}
-                </p>
-                {it.description && (
-                  <p className="text-white/35 text-[10px] leading-snug line-clamp-2">
-                    {it.description}
-                  </p>
-                )}
-                <div className="flex items-center justify-between gap-1 mt-auto">
-                  <span className="text-[#FF6B35] text-xs font-bold font-mono">
-                    {clp(it.price)}
+                <span className="text-base">{categoryEmoji(cat)}</span>
+                <span className="text-white text-[12px] font-semibold flex-1 truncate uppercase tracking-wide">
+                  {cat}
+                </span>
+                <span className="text-white/30 text-[10px] tabular-nums shrink-0">
+                  {list.length}
+                </span>
+                {inSection > 0 && (
+                  <span className="bg-[#FF6B35] text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center shrink-0">
+                    {inSection}
                   </span>
-                  <button
-                    onClick={() => onAdd(it)}
-                    className="w-7 h-7 rounded-full bg-[#FF6B35] text-white flex items-center justify-center hover:bg-[#e85d2a] transition-colors shrink-0"
-                    aria-label={`Agregar ${it.name}`}
-                  >
-                    <Plus size={13} />
-                  </button>
+                )}
+                <ChevronDownIcon open={isOpen} />
+              </button>
+
+              {isOpen && (
+                <div className="px-2 pb-2 space-y-1.5 bg-black/20">
+                  {list.map(it => {
+                    const qty = getQty(it.id)
+                    return (
+                      <div
+                        key={it.id}
+                        className={`flex items-start gap-2 p-2 rounded-lg transition-colors ${
+                          qty > 0 ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/25' : 'bg-white/3 border border-white/5'
+                        }`}
+                      >
+                        {it.photo_url ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={it.photo_url}
+                            alt={it.name}
+                            className="w-12 h-12 rounded-lg object-cover shrink-0"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-lg shrink-0">
+                            {categoryEmoji(cat)}
+                          </div>
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="text-white text-[12px] font-semibold leading-tight">
+                            {it.name}
+                          </p>
+                          {it.description && (
+                            <p className="text-white/40 text-[10px] leading-snug mt-0.5 line-clamp-2">
+                              {it.description}
+                            </p>
+                          )}
+                          <p className="text-[#FF6B35] text-[12px] font-bold font-mono mt-1">
+                            {clp(it.price)}
+                          </p>
+                        </div>
+                        <div className="shrink-0 flex flex-col items-end gap-1">
+                          {qty > 0 ? (
+                            <div className="flex items-center gap-1 bg-white/8 rounded-full p-0.5">
+                              <button
+                                onClick={() => onRemove(it.id)}
+                                className="w-6 h-6 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                                aria-label={`Quitar uno de ${it.name}`}
+                              >
+                                <span className="text-sm leading-none">−</span>
+                              </button>
+                              <span className="text-white font-bold text-xs w-5 text-center tabular-nums">
+                                {qty}
+                              </span>
+                              <button
+                                onClick={() => onAdd(it)}
+                                className="w-6 h-6 rounded-full bg-[#FF6B35] text-white hover:bg-[#e85d2a] transition-colors flex items-center justify-center"
+                                aria-label={`Agregar otro de ${it.name}`}
+                              >
+                                <Plus size={11} />
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={() => onAdd(it)}
+                              className="w-7 h-7 rounded-full bg-[#FF6B35] text-white flex items-center justify-center hover:bg-[#e85d2a] transition-colors shrink-0"
+                              aria-label={`Agregar ${it.name}`}
+                            >
+                              <Plus size={13} />
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )
+                  })}
                 </div>
-              </div>
-            ))}
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Footer sticky con total + botón Pedir */}
+      {cartCount > 0 ? (
+        <div className="bg-[#161622] border-t border-[#FF6B35]/30 p-3 flex items-center gap-3">
+          <div className="flex-1 min-w-0">
+            <p className="text-white/50 text-[10px] uppercase tracking-wide">
+              Tu pedido ({cartCount} {cartCount === 1 ? 'item' : 'items'})
+            </p>
+            <p className="text-white font-bold text-base font-mono">
+              {clp(cartTotal)}
+            </p>
           </div>
+          <button
+            onClick={onConfirm}
+            disabled={confirming}
+            className="px-5 py-3 rounded-xl bg-[#FF6B35] text-white font-bold text-sm hover:bg-[#e85d2a] disabled:opacity-50 transition-colors flex items-center gap-2"
+          >
+            {confirming ? (
+              <><Loader2 size={14} className="animate-spin" /> Enviando…</>
+            ) : (
+              <>Pedir →</>
+            )}
+          </button>
         </div>
-      ))}
+      ) : (
+        <div className="bg-[#161622]/50 border-t border-white/8 px-3 py-2.5">
+          <p className="text-white/35 text-[11px] text-center">
+            Toca <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#FF6B35] text-white text-[9px] font-bold align-middle">+</span> para agregar al pedido
+          </p>
+        </div>
+      )}
     </div>
+  )
+}
+
+function ChevronDownIcon({ open }: { open: boolean }) {
+  return (
+    <svg
+      width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+      className={`text-white/40 shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+    >
+      <polyline points="6 9 12 15 18 9" />
+    </svg>
   )
 }
 
@@ -659,6 +788,13 @@ export default function TablePage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLInputElement>(null)
 
+  // Refs siempre con el valor más reciente — para usar en handlers async
+  // (closures de fetch streaming) sin sufrir stale closures de React.
+  const cartRef    = useRef<CartItem[]>([])
+  const orderIdRef = useRef<string | null>(null)
+  useEffect(() => { cartRef.current    = cart    }, [cart])
+  useEffect(() => { orderIdRef.current = orderId }, [orderId])
+
   const router = useRouter()
 
   useEffect(() => {
@@ -801,10 +937,51 @@ export default function TablePage() {
 
     // Intercept "Ver carta" chip — render the menu inline instead of hitting the LLM
     const normalized = text.trim().toLowerCase().replace(/[📋⭐🌱🍽️➕🧾✂️🍰]/g, '').trim()
-    if (normalized === 'ver la carta' || normalized === 'ver carta') {
+    if (normalized === 'ver la carta' || normalized === 'ver carta' || normalized === 'menu' || normalized === 'menú') {
       setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: text.trim() }])
       setInput('')
       showMenu()
+      return
+    }
+
+    // Intercept billing intent — más confiable que esperar que Chapi devuelva
+    // action='request_bill'. Normalizamos quitando puntuación primero.
+    const cleaned = normalized.replace(/[,.!?¿¡]/g, '').replace(/\s+/g, ' ').trim()
+    const isBillingIntent =
+      /\b(la\s+)?cuenta(\s+por\s+favor)?\b/i.test(cleaned) && cleaned.length < 30 ||
+      /\b(quiero\s+)?(pagar|cobrar)\b/i.test(cleaned) && cleaned.length < 30 ||
+      /\bcu[áa]nto\s+(es|sale|me\s+sale)\b/i.test(cleaned) ||
+      /\b(la\s+)?nota\s+por\s+favor\b/i.test(cleaned) ||
+      /\bpedir\s+(la\s+)?cuenta\b/i.test(cleaned)
+
+    if (isBillingIntent) {
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: text.trim() }])
+      setInput('')
+      // Usamos refs para garantizar el valor más reciente
+      const currentCart = cartRef.current
+      const currentOrderId = orderIdRef.current
+
+      let pendingId: string | undefined = currentOrderId ?? undefined
+      if (!pendingId && currentCart.length > 0) {
+        // Confirmar primero — esto retorna el ID directamente
+        const confirmed = await confirmOrder()
+        pendingId = confirmed ?? undefined
+      }
+
+      // Notificar al garzón
+      await requestBill(pendingId)
+
+      // Mensaje empático en el chat
+      setMessages(prev => [...prev, {
+        id: Date.now().toString() + '-c',
+        role: 'chapi',
+        text: pendingId
+          ? '¡Listo! Le aviso al garzón que vas a pagar 🙌 Acá está tu cuenta.'
+          : currentCart.length === 0
+            ? 'Acá está tu cuenta. Si todavía no pediste nada, primero agregá platos del menú 🍽️'
+            : 'Acá está tu cuenta. Mostrásela al garzón cuando llegue 🙌',
+      }])
+      setBillOpen(true)
       return
     }
 
@@ -873,15 +1050,14 @@ export default function TablePage() {
                 setTimeout(() => setCartOpen(true), 600)
               }
               if (data.action === 'request_bill') {
-                // Si hay items en el cart sin confirmar Y no hay orderId todavía,
-                // auto-confirmamos el pedido y capturamos el ID retornado para
-                // pasárselo a requestBill (evita race condition de React state).
-                let pendingOrderId: string | undefined = orderId ?? undefined
-                if (!pendingOrderId && cart.length > 0) {
+                // Usamos refs para evitar stale closure (cart/orderId pueden
+                // haber cambiado en medio del stream).
+                let pendingOrderId: string | undefined = orderIdRef.current ?? undefined
+                const currentCart = cartRef.current
+                if (!pendingOrderId && currentCart.length > 0) {
                   const confirmed = await confirmOrder()
                   pendingOrderId = confirmed ?? undefined
                 }
-                // Disparar el PATCH status=paying para notificar al garzón
                 await requestBill(pendingOrderId)
                 setBillOpen(true)
               }
@@ -914,15 +1090,12 @@ export default function TablePage() {
   }
 
   /**
-   * Crea el pedido en el servidor con el cart actual.
-   * Retorna el orderId (string) en éxito, null en error.
-   * NOTA: retorna el ID en vez de depender solo del setOrderId() porque
-   * los callers a menudo necesitan el ID inmediatamente (race condition
-   * con React state updates).
+   * Crea el pedido en el servidor con el cart actual (vía ref para evitar
+   * stale closures). Retorna el orderId (string) en éxito, null en error.
    */
   async function confirmOrder(): Promise<string | null> {
-    if (cart.length === 0) return null
-    const cartSnapshot = cart // capturar para evitar race con setCart([])
+    const cartSnapshot = cartRef.current // SIEMPRE el cart actual, no el del closure
+    if (cartSnapshot.length === 0) return null
     setOrderStatus('confirming')
     try {
       const res = await fetch('/api/orders', {
@@ -974,10 +1147,10 @@ export default function TablePage() {
    * state cuando el caller acaba de ejecutar confirmOrder().
    */
   async function requestBill(existingOrderId?: string): Promise<void> {
-    let activeOrderId = existingOrderId ?? orderId
+    let activeOrderId = existingOrderId ?? orderIdRef.current
 
     // Si no hay orderId pero el cart tiene items, auto-confirmamos
-    if (!activeOrderId && cart.length > 0) {
+    if (!activeOrderId && cartRef.current.length > 0) {
       activeOrderId = await confirmOrder() ?? null
     }
 
@@ -1122,14 +1295,13 @@ export default function TablePage() {
               <div className="w-full pl-8 pr-2">
                 <MenuPreview
                   items={msg.menuItems}
+                  cart={cart}
                   onAdd={(it) => {
                     addToCart([{ menu_item_id: it.id, name: it.name, quantity: 1, unit_price: it.price }])
-                    setMessages(prev => [...prev, {
-                      id: Date.now().toString(),
-                      role: 'chapi',
-                      text: `Agregado: ${it.name} ✅ ¿Algo más?`,
-                    }])
                   }}
+                  onRemove={(id) => changeQty(id, -1)}
+                  onConfirm={() => { void confirmOrder() }}
+                  confirming={orderStatus === 'confirming'}
                 />
               </div>
             )}
