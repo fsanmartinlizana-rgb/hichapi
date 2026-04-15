@@ -18,6 +18,7 @@ import NpsModal from '@/components/NpsModal'
 import { ChapiAssistant } from '@/components/restaurant/ChapiAssistant'
 import { NotificationsProvider } from '@/lib/notifications-context'
 import { NotificationsBell } from '@/components/restaurant/NotificationsBell'
+import { BillRequestFloater } from '@/components/restaurant/BillRequestFloater'
 
 // ── Nav definition ────────────────────────────────────────────────────────────
 //
@@ -479,6 +480,8 @@ export default function RestaurantLayout({ children }: { children: React.ReactNo
           </main>
           {/* Chapi flotante — disponible en todas las páginas del panel */}
           <ChapiAssistant />
+          {/* Floating button "X mesas pidieron la cuenta" — visible en TODO el panel */}
+          <BillRequestFloater />
         </div>
       </NotificationsProvider>
     </RestaurantProvider>

@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { CalendarDays, Clock, Users, CheckCircle2, X, Loader2, UserCheck, Ban, Phone, ChevronLeft, ChevronRight, AlertTriangle, RefreshCw, Timer, Search } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -192,10 +193,30 @@ export default function ReservasPage() {
   useEffect(() => {
     setLoading(true)
     fetchReservations()
-    // Auto-refresh every 30s
-    const interval = setInterval(fetchReservations, 30_000)
+    // Auto-refresh cada 60s como red de seguridad si realtime falla
+    const interval = setInterval(fetchReservations, 60_000)
     return () => clearInterval(interval)
   }, [fetchReservations])
+
+  // Realtime: refresca al toque cuando cambia cualquier reserva del restaurant
+  useEffect(() => {
+    if (!restaurant?.id) return
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`reservas:${restaurant.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table:  'reservations',
+          filter: `restaurant_id=eq.${restaurant.id}`,
+        },
+        () => fetchReservations(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restaurant?.id, fetchReservations])
 
   async function handleAction(reservationId: string, action: string) {
     setActing(reservationId)
