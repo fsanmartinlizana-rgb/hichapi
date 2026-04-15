@@ -4,11 +4,12 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
-  RefreshCw, Wifi, WifiOff, AlertCircle, Plus, XCircle,
+  RefreshCw, Wifi, WifiOff, AlertCircle, Plus, XCircle, Ticket,
 } from 'lucide-react'
 import Link from 'next/link'
 import { PaymentMethodModal } from '@/components/PaymentMethodModal'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
+import { CouponRedeemModal } from '@/components/restaurant/CouponRedeemModal'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency } from '@/lib/i18n'
 import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
@@ -16,7 +17,7 @@ import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
 // ── Types ─────────────────────────────────────────────────────────────────────
 
 type TableStatus = 'libre' | 'ocupada' | 'reservada' | 'bloqueada'
-type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'paying' | 'paid' | 'cancelled'
+type OrderStatus = 'pending' | 'confirmed' | 'preparing' | 'ready' | 'delivered' | 'paying' | 'paid' | 'cancelled'
 
 interface Table {
   id: string
@@ -62,10 +63,21 @@ const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; b
   pending:   { label: 'Nuevo pedido',  color: '#60A5FA', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,        next: 'preparing', nextLabel: 'Enviar a cocina' },
   confirmed: { label: 'Confirmado',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar a cocina' },
   preparing: { label: 'En cocina',     color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,     next: 'ready',     nextLabel: 'Marcar listo'    },
-  ready:     { label: '¡Listo!',       color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',   nextLabel: 'Cobrar'          },
+  ready:     { label: '¡Listo!',       color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'delivered', nextLabel: 'Entregar'        },
+  delivered: { label: 'Entregado',     color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',    nextLabel: 'Cobrar'          },
   paying:    { label: 'Cobrando',      color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <Banknote size={13} />,    next: 'paid',      nextLabel: 'Pagado ✓'        },
   paid:      { label: 'Pagado',        color: '#6B7280', bg: 'bg-white/8',        icon: <CheckCircle2 size={13} />, next: null,       nextLabel: ''                },
   cancelled: { label: 'Cancelado',     color: '#6B7280', bg: 'bg-white/8',        icon: <AlertCircle size={13} />, next: null,        nextLabel: ''                },
+}
+
+// Defensive fallback for any unrecognized status (nunca debería dispararse, pero evita crash).
+const ORDER_STATUS_FALLBACK = {
+  label: 'Desconocido', color: '#6B7280', bg: 'bg-white/8',
+  icon: <AlertCircle size={13} />, next: null as OrderStatus | null, nextLabel: '',
+}
+
+function getOrderStatusCfg(status: string) {
+  return ORDER_STATUS_CONFIG[status as OrderStatus] ?? ORDER_STATUS_FALLBACK
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -121,14 +133,17 @@ function TableCell({
         {table.status}
       </span>
 
-      {order && (
-        <span
-          className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full"
-          style={{ backgroundColor: ORDER_STATUS_CONFIG[order.status].color + '25', color: ORDER_STATUS_CONFIG[order.status].color }}
-        >
-          {ORDER_STATUS_CONFIG[order.status].label}
-        </span>
-      )}
+      {order && (() => {
+        const oc = getOrderStatusCfg(order.status)
+        return (
+          <span
+            className="text-[8px] font-semibold px-1.5 py-0.5 rounded-full"
+            style={{ backgroundColor: oc.color + '25', color: oc.color }}
+          >
+            {oc.label}
+          </span>
+        )
+      })()}
     </button>
   )
 }
@@ -159,7 +174,7 @@ function OrderPanel({
     )
   }
 
-  const cfg = ORDER_STATUS_CONFIG[order.status]
+  const cfg = getOrderStatusCfg(order.status)
   const elapsed = elapsedMin(order.created_at)
 
   return (
@@ -268,6 +283,7 @@ export default function GarzonPage() {
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [payingOrder, setPayingOrder] = useState<{ id: string; total: number } | null>(null)
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel?: string } | null>(null)
+  const [showCoupon, setShowCoupon] = useState(false)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -432,6 +448,13 @@ export default function GarzonPage() {
           </div>
         </div>
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowCoupon(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-colors"
+            title="Canjear cupón de fidelidad"
+          >
+            <Ticket size={13} className="text-[#FF6B35]" /> Cupón
+          </button>
           <Link
             href="/comandas?nueva=1"
             className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#ff8255] transition-colors"
@@ -536,7 +559,7 @@ export default function GarzonPage() {
           </p>
           {orders.map(order => {
             const table = tables.find(t => t.id === order.table_id)
-            const cfg = ORDER_STATUS_CONFIG[order.status]
+            const cfg = getOrderStatusCfg(order.status)
             const elapsed = elapsedMin(order.created_at)
 
             return (
@@ -602,6 +625,14 @@ export default function GarzonPage() {
           tableLabel={cancellingOrder.tableLabel}
           onClose={() => setCancellingOrder(null)}
           onCancelled={async () => { setSelected(null); await loadData() }}
+        />
+      )}
+
+      {/* Coupon redeem modal */}
+      {showCoupon && restId && (
+        <CouponRedeemModal
+          restaurantId={restId}
+          onClose={() => setShowCoupon(false)}
         />
       )}
 

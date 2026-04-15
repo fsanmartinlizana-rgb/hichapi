@@ -48,12 +48,12 @@ export async function POST(req: NextRequest) {
 
     // 2. Resolve table — try qr_token first, then UUID
     const { data: table, error: tableErr } = await (async () => {
-      const base = supabase.from('tables').select('id').eq('restaurant_id', restaurant.id)
+      const base = supabase.from('tables').select('id, status, label').eq('restaurant_id', restaurant.id)
       // Always try qr_token first (URL param from QR scan)
       const { data: byToken } = await base.eq('qr_token', table_id).single()
       if (byToken) return { data: byToken, error: null }
       // Fallback: try by UUID id
-      const { data: byId, error } = await supabase.from('tables').select('id').eq('restaurant_id', restaurant.id).eq('id', table_id).single()
+      const { data: byId, error } = await supabase.from('tables').select('id, status, label').eq('restaurant_id', restaurant.id).eq('id', table_id).single()
       return { data: byId, error }
     })()
 
@@ -61,6 +61,14 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         { error: 'Mesa no encontrada' },
         { status: 404 }
+      )
+    }
+
+    // Reject orders on "bloqueada" parent tables (tables that have been split into sub-tables).
+    if ((table as { status?: string }).status === 'bloqueada') {
+      return NextResponse.json(
+        { error: `${(table as { label?: string }).label ?? 'Esta mesa'} está dividida. Selecciona una sub-mesa (ej: 2a, 2b).` },
+        { status: 409 }
       )
     }
 

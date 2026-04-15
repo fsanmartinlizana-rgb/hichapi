@@ -13,6 +13,8 @@ const BodySchema = z.object({
   role:          RoleEnum.optional(),
   roles:         z.array(RoleEnum).min(1).optional(),
   restaurant_id: z.string().uuid(),
+  full_name:     z.string().min(1).max(120).optional(),
+  phone:         z.string().max(40).optional(),
 }).refine(d => d.role || (d.roles && d.roles.length > 0), {
   message: 'Debes especificar al menos un rol',
 })
@@ -32,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Auth: require logged-in user with admin/owner role
     const { requireRestaurantRole } = await import('@/lib/supabase/auth-guard')
     const body = BodySchema.parse(await req.json())
-    const { email, restaurant_id } = body
+    const { email, restaurant_id, full_name, phone } = body
     const rolesArr = body.roles ?? (body.role ? [body.role] : [])
     const role = (body.role ?? rolesArr[0]) as z.infer<typeof RoleEnum>
 
@@ -57,27 +59,43 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
 
       if (existing) {
-        // Try to write roles[] — falls back to role-only if column doesn't exist
+        // Try to write roles[] + full_name + phone — falls back progressively
         const { error: err } = await supabase
           .from('team_members')
           .update({
-            user_id: args.user_id,
+            user_id:   args.user_id,
             role,
-            roles: rolesArr,
-            status:  args.status,
-            active:  true,
+            roles:     rolesArr,
+            full_name: full_name ?? undefined,
+            phone:     phone ?? undefined,
+            status:    args.status,
+            active:    true,
           })
           .eq('id', existing.id)
         if (err) {
-          return supabase
+          // Fallback 1: try without full_name/phone
+          const { error: err2 } = await supabase
             .from('team_members')
             .update({
               user_id: args.user_id,
               role,
+              roles:   rolesArr,
               status:  args.status,
               active:  true,
             })
             .eq('id', existing.id)
+          if (err2) {
+            // Fallback 2: without roles[] (oldest schemas)
+            return supabase
+              .from('team_members')
+              .update({
+                user_id: args.user_id,
+                role,
+                status:  args.status,
+                active:  true,
+              })
+              .eq('id', existing.id)
+          }
         }
         return { error: null }
       }
@@ -88,14 +106,21 @@ export async function POST(req: NextRequest) {
         invited_email: email,
         role,
         roles:         rolesArr,
+        full_name:     full_name ?? null,
+        phone:         phone ?? null,
         status:        args.status,
         active:        true,
       }
       const { error: err } = await supabase.from('team_members').insert(payload)
       if (err) {
-        // Fallback: retry without roles column
-        const { roles: _omit, ...withoutRoles } = payload
-        return supabase.from('team_members').insert(withoutRoles)
+        // Fallback 1: retry without full_name/phone
+        const { full_name: _fn, phone: _ph, ...withoutNamePhone } = payload
+        const { error: err2 } = await supabase.from('team_members').insert(withoutNamePhone)
+        if (err2) {
+          // Fallback 2: without roles[] column
+          const { roles: _omit, ...withoutRoles } = withoutNamePhone
+          return supabase.from('team_members').insert(withoutRoles)
+        }
       }
       return { error: null }
     }

@@ -33,6 +33,7 @@ interface TeamMember {
   active?: boolean | null
   joined_at: string
   full_name?: string | null
+  phone?: string | null
 }
 
 // ── Role config ───────────────────────────────────────────────────────────────
@@ -113,6 +114,8 @@ export default function EquipoPage() {
 
   // Form state
   const [email,    setEmail]    = useState('')
+  const [fullName, setFullName] = useState('')
+  const [phone,    setPhone]    = useState('')
   const [formRoles, setFormRoles] = useState<string[]>(['garzon'])
 
   // ── Load ──────────────────────────────────────────────────────────────────
@@ -121,11 +124,11 @@ export default function EquipoPage() {
     if (!restaurant?.id) return
     setLoading(true)
 
-    // Attempt to load with roles[] + full_name (may not exist in older schemas)
+    // Attempt to load with roles[] + full_name + phone (may not exist in older schemas)
     let data: TeamMember[] | null = null
     const withExtended = await supabase
       .from('team_members')
-      .select('id, user_id, invited_email, role, roles, status, active, joined_at')
+      .select('id, user_id, invited_email, role, roles, status, active, joined_at, full_name, phone')
       .eq('restaurant_id', restaurant.id)
       .neq('status', 'revoked')
       .order('joined_at', { ascending: false })
@@ -133,13 +136,23 @@ export default function EquipoPage() {
     if (!withExtended.error) {
       data = withExtended.data as TeamMember[]
     } else {
-      const fallback = await supabase
+      const midway = await supabase
         .from('team_members')
-        .select('id, user_id, invited_email, role, status, joined_at')
+        .select('id, user_id, invited_email, role, roles, status, active, joined_at')
         .eq('restaurant_id', restaurant.id)
         .neq('status', 'revoked')
         .order('joined_at', { ascending: false })
-      data = (fallback.data ?? []) as TeamMember[]
+      if (!midway.error) {
+        data = midway.data as TeamMember[]
+      } else {
+        const fallback = await supabase
+          .from('team_members')
+          .select('id, user_id, invited_email, role, status, joined_at')
+          .eq('restaurant_id', restaurant.id)
+          .neq('status', 'revoked')
+          .order('joined_at', { ascending: false })
+        data = (fallback.data ?? []) as TeamMember[]
+      }
     }
 
     // Fetch custom roles in parallel (silent if endpoint missing / DB doesn't have table yet)
@@ -175,6 +188,8 @@ export default function EquipoPage() {
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         email,
+        full_name:     fullName.trim() || undefined,
+        phone:         phone.trim() || undefined,
         role:          formRoles[0],
         roles:         formRoles,
         restaurant_id: restaurant.id,
@@ -192,6 +207,8 @@ export default function EquipoPage() {
           : `Invitación enviada a ${email}. Recibirá un correo para acceder.`,
       })
       setEmail('')
+      setFullName('')
+      setPhone('')
       setFormRoles(['garzon'])
       setShowForm(false)
       await load()
@@ -284,9 +301,6 @@ export default function EquipoPage() {
           <ShieldCheck size={14} className="text-white/40" />
           <span className="text-white text-sm font-medium">Roles disponibles</span>
           <span className="text-white/20 text-[10px]">— Asigna estos roles a cada miembro del equipo</span>
-          <button onClick={() => { setShowForm(true); setFeedback(null) }} className="ml-auto flex items-center gap-1 px-3 py-1 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#FF6B35] text-[10px] font-semibold hover:bg-[#FF6B35]/20 transition-colors">
-            <Plus size={10} /> Agregar persona
-          </button>
         </div>
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
           {ALL_ROLES.map(({ value, label, desc, icon: Icon, colorClass, isCustom, customColor }) => {
@@ -529,13 +543,36 @@ export default function EquipoPage() {
 
             <form onSubmit={handleInvite} className="space-y-4">
               <div>
-                <label className="text-white/50 text-xs mb-1.5 block">Email</label>
+                <label className="text-white/50 text-xs mb-1.5 block">Nombre y apellido</label>
                 <input
-                  type="email" required value={email}
-                  onChange={e => setEmail(e.target.value)}
-                  placeholder="nombre@email.com"
+                  type="text" value={fullName}
+                  onChange={e => setFullName(e.target.value)}
+                  placeholder="María González"
                   className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
                 />
+                <p className="text-white/25 text-[10px] mt-1">Se mostrará en turnos y equipo (recomendado)</p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-white/50 text-xs mb-1.5 block">Email</label>
+                  <input
+                    type="email" required value={email}
+                    onChange={e => setEmail(e.target.value)}
+                    placeholder="nombre@email.com"
+                    className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
+                  />
+                </div>
+
+                <div>
+                  <label className="text-white/50 text-xs mb-1.5 block">Teléfono (opcional)</label>
+                  <input
+                    type="tel" value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    placeholder="+569 1234 5678"
+                    className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
+                  />
+                </div>
               </div>
 
               <div>

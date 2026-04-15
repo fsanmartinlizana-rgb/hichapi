@@ -9,7 +9,7 @@ import {
   BarChart2, TrendingUp, Sparkles, Store, SlidersHorizontal,
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
   ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
-  Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit, Lock,
+  Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit,
   Gift,
 } from 'lucide-react'
 import { canAccessModule } from '@/lib/plans'
@@ -104,12 +104,8 @@ const NAV_PLAN_REQUIRED: Record<string, string> = {
   '/insights':  'pro',
 }
 
-const PLAN_LABEL: Record<string, string> = {
-  free: 'Gratis',
-  starter: 'Starter',
-  pro: 'Pro',
-  enterprise: 'Enterprise',
-}
+// PLAN_LABEL removido: los módulos bloqueados ya no se renderizan en el sidebar,
+// sólo en /modulos y /restaurante.
 
 function getNav(role: string): NavSection[] {
   return ALL_NAV
@@ -157,7 +153,19 @@ function SidebarContent() {
   const role        = profile?.role ?? 'admin'
   const initials    = profile?.initials ?? '??'
   const currentPlan = (restaurant?.plan as string) ?? 'free'
-  const nav         = useMemo(() => getNav(role), [role])
+  // Filtrar items por rol y por plan: los módulos inactivos en el plan no
+  // aparecen en el sidebar. Secciones vacías tampoco.
+  const nav = useMemo(() => {
+    return getNav(role)
+      .map(section => ({
+        ...section,
+        items: section.items.filter(item => {
+          const required = NAV_PLAN_REQUIRED[item.href] ?? 'free'
+          return canAccessModule(currentPlan, required)
+        }),
+      }))
+      .filter(section => section.items.length > 0)
+  }, [role, currentPlan])
 
   // Collapsible groups: open the group that matches the current route by default.
   // User toggles are remembered in sessionStorage per browser tab.
@@ -315,20 +323,10 @@ function SidebarContent() {
                       const requiredPlan = NAV_PLAN_REQUIRED[href] ?? 'free'
                       const locked = !canAccessModule(currentPlan, requiredPlan)
 
-                      if (locked) {
-                        return (
-                          <Link
-                            key={href}
-                            href="/modulos"
-                            title={`Requiere plan ${PLAN_LABEL[requiredPlan] ?? requiredPlan}`}
-                            className="flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all opacity-40 text-white/55 hover:opacity-60 hover:bg-white/5"
-                          >
-                            <Lock size={14} strokeWidth={1.8} className="shrink-0" />
-                            <span className="flex-1 truncate">{label}</span>
-                            <span className="text-[9px] text-white/40 shrink-0">{PLAN_LABEL[requiredPlan] ?? requiredPlan}</span>
-                          </Link>
-                        )
-                      }
+                      // Módulos inactivos no se muestran en el sidebar:
+                      // sólo aparecen en /modulos y /restaurante como parte
+                      // del listado de módulos del plan.
+                      if (locked) return null
 
                       return (
                         <Link

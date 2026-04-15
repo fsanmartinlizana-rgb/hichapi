@@ -73,30 +73,90 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
       if (!reward) return NextResponse.json({ error: 'Recompensa no disponible' }, { status: 400 })
 
-      // Look up existing user_id for that email (via helper RPC on auth.users)
+      // Look up existing user_id for that email (via helper RPC on auth.users).
+      // If the RPC doesn't exist (migration 045 not applied yet), we fall through
+      // with existingUserId = null and still try to issue the coupon.
       let existingUserId: string | null = null
-      const { data: lookup } = await supabase
-        .rpc('get_user_id_by_email', { p_email: normalizedEmail })
-      if (lookup && typeof lookup === 'string') existingUserId = lookup
+      try {
+        const { data: lookup, error: rpcErr } = await supabase
+          .rpc('get_user_id_by_email', { p_email: normalizedEmail })
+        if (!rpcErr && lookup && typeof lookup === 'string') existingUserId = lookup
+      } catch {
+        /* RPC missing: non-fatal, proceed */
+      }
 
-      // Create the coupon (no deduction — this is a gift)
+      // Create the coupon (no deduction — this is a gift).
+      // Two-step insert with fallback: new schema (with customer_email/name) first,
+      // then legacy schema (user_id-only) if the new columns don't exist yet.
       const code = generateCouponCode()
-      const { data: coupon, error: cpErr } = await supabase
-        .from('customer_coupons')
-        .insert({
-          user_id:        existingUserId,
-          restaurant_id:  data.restaurant_id,
-          reward_id:      reward.id,
-          code,
-          status:         'active',
-          issued_by:      'admin',
-          customer_email: normalizedEmail,
-          customer_name:  data.on_behalf_of_name ?? null,
-          expires_at:     new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString(), // 60 días
-        })
-        .select('id, code, expires_at')
-        .single()
-      if (cpErr) return NextResponse.json({ error: cpErr.message }, { status: 500 })
+      const expiresIso = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString()
+
+      let couponId: string | null = null
+      let couponCode = code
+      let couponExpires: string | null = expiresIso
+      let cpErr: { message?: string; code?: string } | null = null
+
+      {
+        const { data: couponRow, error } = await supabase
+          .from('customer_coupons')
+          .insert({
+            user_id:        existingUserId,
+            restaurant_id:  data.restaurant_id,
+            reward_id:      reward.id,
+            code,
+            status:         'active',
+            issued_by:      'admin',
+            customer_email: normalizedEmail,
+            customer_name:  data.on_behalf_of_name ?? null,
+            expires_at:     expiresIso,
+          })
+          .select('id, code, expires_at')
+          .single()
+        if (couponRow) {
+          couponId = couponRow.id
+          couponCode = couponRow.code
+          couponExpires = couponRow.expires_at
+        } else {
+          cpErr = error
+        }
+      }
+
+      // Fallback: legacy schema without customer_email/name (migration 045 no corrida)
+      if (!couponId && cpErr && existingUserId) {
+        const { data: legacyRow, error: legacyErr } = await supabase
+          .from('customer_coupons')
+          .insert({
+            user_id:       existingUserId,
+            restaurant_id: data.restaurant_id,
+            reward_id:     reward.id,
+            code,
+            status:        'active',
+            issued_by:     'admin',
+            expires_at:    expiresIso,
+          })
+          .select('id, code, expires_at')
+          .single()
+        if (legacyRow) {
+          couponId = legacyRow.id
+          couponCode = legacyRow.code
+          couponExpires = legacyRow.expires_at
+          cpErr = null
+        } else {
+          cpErr = legacyErr
+        }
+      }
+
+      if (!couponId) {
+        const hint = !existingUserId
+          ? 'Falta correr la migración 045 (customer_coupons + email). Si el cliente ya tiene cuenta HiChapi, puedes emitirle el cupón normalmente.'
+          : 'No se pudo crear el cupón.'
+        return NextResponse.json(
+          { error: cpErr?.message ?? hint, hint, detail: cpErr?.message ?? null },
+          { status: 500 },
+        )
+      }
+
+      const coupon = { id: couponId, code: couponCode, expires_at: couponExpires }
 
       // Restaurant name for the email
       const { data: rest } = await supabase
@@ -145,9 +205,12 @@ export async function POST(req: NextRequest) {
       })
     }
 
-    // Auth: the acting user is either the customer redeeming for themselves,
-    // or an admin/garzón redeeming on behalf of a specific user_id.
-    let actingUserId: string
+    // Auth: the acting user is:
+    //   - an admin/garzón validating someone else's coupon or reward
+    //   - an admin/garzón redeeming by user_id (on_behalf_of)
+    //   - a regular customer redeeming for themselves
+    let actingUserId: string | null = null
+    let isTeamMember = false
     if (data.on_behalf_of) {
       const { user, error } = await requireRestaurantRole(
         data.restaurant_id,
@@ -155,6 +218,22 @@ export async function POST(req: NextRequest) {
       )
       if (error || !user) return error ?? NextResponse.json({ error: 'No autorizado' }, { status: 403 })
       actingUserId = data.on_behalf_of
+      isTeamMember = true
+    } else if (data.code) {
+      // Para cupones por código: intentamos primero validar como team member.
+      // Si no es team member, tratamos al acting user como el dueño del cupón.
+      const teamCheck = await requireRestaurantRole(
+        data.restaurant_id,
+        ['owner', 'admin', 'supervisor', 'garzon', 'super_admin'],
+      )
+      if (!teamCheck.error && teamCheck.user) {
+        isTeamMember = true
+        actingUserId = teamCheck.user.id
+      } else {
+        const { user, error } = await requireUser()
+        if (error || !user) return error ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+        actingUserId = user.id
+      }
     } else {
       const { user, error } = await requireUser()
       if (error || !user) return error ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -163,19 +242,24 @@ export async function POST(req: NextRequest) {
 
     // ── Path A: coupon code ─────────────────────────────────────────────────
     if (data.code) {
-      // Lock via WHERE status='active' — the UPDATE flips only once.
-      const { data: coupons, error: cErr } = await supabase
+      // Team member puede canjear cualquier cupón activo del restaurant;
+      // el cliente sólo los suyos (user_id = auth.uid).
+      let query = supabase
         .from('customer_coupons')
         .update({
           status: 'redeemed',
           redeemed_at: new Date().toISOString(),
           redeemed_order_id: data.order_id ?? null,
         })
-        .eq('code', data.code)
+        .eq('code', data.code.toUpperCase())
         .eq('restaurant_id', data.restaurant_id)
-        .eq('user_id', actingUserId)
         .eq('status', 'active')
-        .select('id, reward_id, expires_at')
+
+      if (!isTeamMember && actingUserId) {
+        query = query.eq('user_id', actingUserId)
+      }
+
+      const { data: coupons, error: cErr } = await query.select('id, reward_id, expires_at')
 
       if (cErr) return NextResponse.json({ error: cErr.message }, { status: 500 })
       if (!coupons || coupons.length === 0) {
@@ -198,6 +282,9 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Path B: reward from catalog (deducts points/stamps) ─────────────────
+    if (!actingUserId) {
+      return NextResponse.json({ error: 'No se pudo determinar el usuario a canjear' }, { status: 400 })
+    }
     const { data: program } = await supabase
       .from('loyalty_programs')
       .select('id, mechanic, stamps_per_reward')

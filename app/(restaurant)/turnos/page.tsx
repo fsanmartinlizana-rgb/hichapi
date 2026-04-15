@@ -16,6 +16,7 @@ interface TeamMember {
   role: string
   user_id: string | null
   invited_email?: string | null
+  full_name?: string | null
 }
 
 interface Shift {
@@ -150,15 +151,27 @@ export default function TurnosPage() {
         .gte('shift_date', rangeStart)
         .lte('shift_date', rangeEnd)
         .order('start_time'),
+      // Try to pull full_name; falls back silently if column doesn't exist
       supabase
         .from('team_members')
-        .select('id, role, user_id, invited_email')
+        .select('id, role, user_id, invited_email, full_name')
         .eq('restaurant_id', restId)
         .eq('active', true),
     ])
 
     setShifts(shiftsRes.data ?? [])
-    setTeam(teamRes.data ?? [])
+
+    if (teamRes.error) {
+      // Fallback: columnas nuevas no existen aún
+      const { data: basic } = await supabase
+        .from('team_members')
+        .select('id, role, user_id, invited_email')
+        .eq('restaurant_id', restId)
+        .eq('active', true)
+      setTeam((basic ?? []) as TeamMember[])
+    } else {
+      setTeam(teamRes.data ?? [])
+    }
     setLoading(false)
   }, [restId, supabase, rangeStart, rangeEnd])
 
@@ -237,6 +250,7 @@ export default function TurnosPage() {
   }
 
   function memberName(m: TeamMember): string {
+    if (m.full_name && m.full_name.trim()) return m.full_name.trim()
     if (m.invited_email) {
       const local = m.invited_email.split('@')[0].replace(/[._-]/g, ' ')
       return local.charAt(0).toUpperCase() + local.slice(1)
@@ -277,9 +291,10 @@ export default function TurnosPage() {
   function exportCSV() {
     const header = 'fecha,empleado,turno,hora_inicio,hora_fin'
     const rows = shifts.map(s => {
-      const role = s.team_members?.role ?? 'Sin rol'
+      const member = team.find(t => t.id === s.staff_id)
+      const name = member ? memberName(member) : (s.team_members?.role ?? 'Sin rol')
       const status = STATUS_CONFIG[s.status]?.label ?? s.status
-      return `${s.shift_date},${role},${status},${s.start_time.slice(0, 5)},${s.end_time.slice(0, 5)}`
+      return `${s.shift_date},${name},${status},${s.start_time.slice(0, 5)},${s.end_time.slice(0, 5)}`
     })
     const csv = [header, ...rows].join('\n')
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })

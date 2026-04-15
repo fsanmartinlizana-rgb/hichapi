@@ -454,6 +454,13 @@ BEGIN
 END $$;
 
 -- ════════════════════════════════════════════════════════════════════════════
+-- 046 — team_members.full_name + phone (nombre visible en turnos/equipo)
+-- ════════════════════════════════════════════════════════════════════════════
+ALTER TABLE public.team_members
+  ADD COLUMN IF NOT EXISTS full_name TEXT,
+  ADD COLUMN IF NOT EXISTS phone     TEXT;
+
+-- ════════════════════════════════════════════════════════════════════════════
 -- ✅ DONE. Tablas / columnas creadas:
 --    • is_team_member(restaurant_id) helper
 --    • tables.pos_x, tables.pos_y

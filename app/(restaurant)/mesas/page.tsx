@@ -6,7 +6,7 @@ import {
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
   Download, Copy, Check, Banknote, Wifi, WifiOff, RefreshCw,
   Utensils, Trash2, Split, MoreVertical, Merge, AlertCircle,
-  Move, Lock, Settings, LayoutGrid,
+  Move, Lock, Settings, LayoutGrid, PanelRightClose, PanelRightOpen,
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
@@ -1241,6 +1241,16 @@ export default function MesasPage() {
   const [editingLayout, setEditingLayout] = useState(false)
   const [zones, setZones] = useState<ZoneDef[]>([])
   const [showZonesManager, setShowZonesManager] = useState(false)
+  // Persistimos preferencia de lista de espera oculta en localStorage
+  const [waitlistHidden, setWaitlistHidden] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false
+    return window.localStorage.getItem('hichapi_mesas_waitlist_hidden') === '1'
+  })
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    window.localStorage.setItem('hichapi_mesas_waitlist_hidden', waitlistHidden ? '1' : '0')
+  }, [waitlistHidden])
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -1550,6 +1560,16 @@ export default function MesasPage() {
             >
               <Plus size={12} /> Agregar mesa
             </button>
+            <button
+              onClick={() => setWaitlistHidden(v => !v)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-white/60 text-xs font-medium hover:text-white hover:border-white/25 transition-colors"
+              title={waitlistHidden ? 'Mostrar lista de espera' : 'Ocultar lista de espera'}
+            >
+              {waitlistHidden
+                ? <><PanelRightOpen size={12} /> Lista de espera</>
+                : <><PanelRightClose size={12} /> Ocultar espera</>
+              }
+            </button>
           </div>
         </div>
 
@@ -1677,7 +1697,8 @@ export default function MesasPage() {
         </div>
       </div>
 
-      {/* ── Right: waitlist sidebar ───────────────────────────────────────── */}
+      {/* ── Right: waitlist sidebar (collapsible) ───────────────────────── */}
+      {!waitlistHidden && (
       <div className="w-80 shrink-0 border-l border-white/5 flex flex-col bg-[#0D0D1A]">
 
         {/* Sidebar header */}
@@ -1742,6 +1763,7 @@ export default function MesasPage() {
           <QuickAddForm onAdd={addToWaitlist} />
         </div>
       </div>
+      )}
 
       {/* ── Assign modal ─────────────────────────────────────────────────── */}
       {assignModal && assignMesa && (

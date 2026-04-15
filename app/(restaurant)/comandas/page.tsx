@@ -1128,7 +1128,7 @@ function ComandasPageInner() {
   const loadData = useCallback(async () => {
     if (!restId) return
     const [tablesRes, ordersRes, menuRes] = await Promise.all([
-      supabase.from('tables').select('id, label').eq('restaurant_id', restId).order('label'),
+      supabase.from('tables').select('id, label, status').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
         .select('id, table_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status)')
@@ -1150,7 +1150,12 @@ function ComandasPageInner() {
     const dbOrders: DbOrder[] = ordersRes.data ?? []
 
     // Store real tables and menu for NuevaComandaModal
-    setRealTables(tables.map(t => ({ id: t.id, label: t.label })))
+    // Filtrar mesas con status='bloqueada' (madres divididas) — no se puede tomar pedido en ellas.
+    setRealTables(
+      tables
+        .filter((t: { id: string; label: string; status?: string }) => t.status !== 'bloqueada')
+        .map(t => ({ id: t.id, label: t.label }))
+    )
     setRealMenuItems((menuRes.data ?? []).map((m: { id: string; name: string; price: number | null; destination?: string | null }) => ({ id: m.id, name: m.name, price: m.price ?? 0, destination: m.destination ?? undefined })))
 
     const mapped = dbOrders
