@@ -1168,41 +1168,27 @@ export default function TablePage() {
    * Acepta `existingOrderId` opcional para evitar la race condition de React
    * state cuando el caller acaba de ejecutar confirmOrder().
    */
-  async function requestBill(existingOrderId?: string): Promise<void> {
-    let activeOrderId = existingOrderId ?? orderIdRef.current
-
-    // Si no hay orderId pero el cart tiene items, auto-confirmamos
-    if (!activeOrderId && cartRef.current.length > 0) {
-      activeOrderId = await confirmOrder() ?? null
+  async function requestBill(_existingOrderId?: string): Promise<void> {
+    void _existingOrderId
+    // Si hay items sin confirmar en el cart, los confirmamos primero
+    if (cartRef.current.length > 0) {
+      await confirmOrder()
     }
 
-    // Verificar contra el server qué pedidos hay realmente en esta mesa
-    // (cubre el caso edge donde otro flujo creó el order)
-    if (!activeOrderId) {
-      try {
-        const res = await fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
-        if (res.ok) {
-          const j = await res.json() as { orders?: Array<{ id: string; status: string }> }
-          const open = j.orders?.find(o => !['paid', 'cancelled'].includes(o.status))
-          if (open) {
-            activeOrderId = open.id
-            setOrderId(open.id)
-          }
-        }
-      } catch (err) {
-        console.error('[table] order lookup failed:', err)
-      }
-    }
-
-    // Si tenemos orderId, avisar al garzón
-    if (activeOrderId) {
-      await fetch('/api/orders', {
-        method: 'PATCH',
+    // Llamar al endpoint table-wide: marca TODAS las órdenes activas de la
+    // mesa como 'paying' y dispara UNA notificación consolidada al garzón.
+    try {
+      const res = await fetch('/api/orders/request-bill', {
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: activeOrderId, status: 'paying' }),
-      }).catch(() => null)
-    } else {
-      console.warn('[table] requestBill called but no order to bill')
+        body:    JSON.stringify({ table_id: tableId }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        console.warn('[table] request-bill failed:', err)
+      }
+    } catch (err) {
+      console.error('[table] request-bill exception:', err)
     }
   }
 

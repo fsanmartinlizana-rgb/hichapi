@@ -1234,7 +1234,28 @@ function ComandasPageInner() {
   }, [orders])
 
   async function advance(id: string, next: OrderStatus) {
-    const prevStatus = orders.find(o => o.id === id)?.status
+    const ord = orders.find(o => o.id === id)
+    const prevStatus = ord?.status
+
+    // Gating: si avanzando preparando → lista, todas las stations deben estar ready.
+    // Si avanzando lista → entregada, todas las stations también.
+    // (La barra puede entregarse independientemente con markStationReady; pero
+    //  el pedido completo no avanza hasta que esté toda la mesa.)
+    if (ord && (next === 'lista' || next === 'entregada')) {
+      const cocinaItems = ord.items.filter(it => (it.destination ?? 'cocina') === 'cocina')
+      const barraItems  = ord.items.filter(it => (it.destination ?? 'cocina') === 'barra')
+      const cocinaReady = cocinaItems.length === 0 || cocinaItems.every(it => it.stationStatus === 'ready')
+      const barraReady  = barraItems.length === 0  || barraItems.every(it  => it.stationStatus === 'ready')
+
+      if (!cocinaReady || !barraReady) {
+        const pending: string[] = []
+        if (!cocinaReady) pending.push(`cocina (${cocinaItems.filter(it => it.stationStatus !== 'ready').length}/${cocinaItems.length})`)
+        if (!barraReady)  pending.push(`barra (${barraItems.filter(it  => it.stationStatus !== 'ready').length}/${barraItems.length})`)
+        pushToast(`No se puede avanzar — aún falta ${pending.join(' y ')}. Marcalas listas primero.`, 'break')
+        return
+      }
+    }
+
     // Optimistic update
     setOrders(prev => prev.map(o => o.id === id ? { ...o, status: next } : o))
     // Local mock orders (NuevaComanda without DB) have ids starting with 'ord-'
@@ -1537,32 +1558,143 @@ function ComandasPageInner() {
                   </div>
                 </div>
 
-                {/* Cards */}
+                {/* Cards — agrupadas por mesa para consolidar comandas de la misma sesión */}
                 <div className="flex-1 overflow-y-auto space-y-3 pr-1">
                   {colOrders.length === 0 ? (
                     <div className="border border-dashed border-white/8 rounded-xl h-24 flex items-center justify-center">
                       <p className="text-white/15 text-xs">Sin comandas</p>
                     </div>
                   ) : (
-                    colOrders.map(o => (
-                      <OrderCard
-                        key={o.id}
-                        order={o}
-                        col={col}
-                        role={role}
-                        station={station}
-                        brokenItems={brokenItems}
-                        devueltoItems={devueltoItems}
-                        stockMap={stockMap}
-                        onAdvance={advance}
-                        onMarkStationReady={markStationReady}
-                        onBreak={markBreak}
-                        onMarkLow={markLow}
-                        onDevolucion={handleDevolucion}
-                        onCancel={(id, label) => setCancellingOrder({ id, tableLabel: label })}
-                        onCharge={(id, amount, label) => setChargingOrder({ id, amount, tableLabel: label })}
-                      />
-                    ))
+                    (() => {
+                      // Agrupar órdenes por tableLabel (sesión de mesa)
+                      const groupOrder: string[] = []
+                      const groups: Record<string, typeof colOrders> = {}
+                      for (const o of colOrders) {
+                        const key = o.tableLabel || 'Sin mesa'
+                        if (!groups[key]) {
+                          groups[key] = []
+                          groupOrder.push(key)
+                        }
+                        groups[key].push(o)
+                      }
+
+                      return groupOrder.map(label => {
+                        const group = groups[label]
+
+                        // Si solo hay 1 orden en este grupo: render normal sin wrapper
+                        if (group.length === 1) {
+                          const o = group[0]
+                          return (
+                            <OrderCard
+                              key={o.id}
+                              order={o}
+                              col={col}
+                              role={role}
+                              station={station}
+                              brokenItems={brokenItems}
+                              devueltoItems={devueltoItems}
+                              stockMap={stockMap}
+                              onAdvance={advance}
+                              onMarkStationReady={markStationReady}
+                              onBreak={markBreak}
+                              onMarkLow={markLow}
+                              onDevolucion={handleDevolucion}
+                              onCancel={(id, lbl) => setCancellingOrder({ id, tableLabel: lbl })}
+                              onCharge={(id, amount, lbl) => setChargingOrder({ id, amount, tableLabel: lbl })}
+                            />
+                          )
+                        }
+
+                        // Múltiples órdenes de la MISMA mesa: agrupadas con header de sesión
+                        const totalItems = group.reduce((s, o) => s + o.items.length, 0)
+                        const totalAmount = group.reduce((s, o) => s + o.amount, 0)
+                        const hasBillReq = group.some(o => o.billRequested)
+
+                        // Cocina/barra ratios (ready vs total) sumando todas las órdenes del grupo
+                        const allItems = group.flatMap(o => o.items)
+                        const cocinaItems = allItems.filter(it => (it.destination ?? 'cocina') === 'cocina')
+                        const barraItems  = allItems.filter(it => (it.destination ?? 'cocina') === 'barra')
+                        const cocinaReady = cocinaItems.filter(it => it.stationStatus === 'ready').length
+                        const barraReady  = barraItems.filter(it => it.stationStatus === 'ready').length
+
+                        return (
+                          <div
+                            key={`group-${label}`}
+                            className={`rounded-xl border-2 border-dashed p-2 space-y-2 ${
+                              hasBillReq
+                                ? 'border-amber-500/40 bg-amber-500/3'
+                                : 'border-[#FF6B35]/30 bg-[#FF6B35]/3'
+                            }`}
+                          >
+                            {/* Session header */}
+                            <div className="flex items-center justify-between gap-2 px-1">
+                              <div className="flex items-center gap-2 min-w-0">
+                                <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[10px] font-bold border shrink-0"
+                                     style={{ backgroundColor: col.color + '20', borderColor: col.color + '50', color: col.color }}>
+                                  {group[0].tableId}
+                                </div>
+                                <div className="min-w-0">
+                                  <p className="text-white text-xs font-bold truncate">
+                                    {label} · sesión activa
+                                  </p>
+                                  <p className="text-white/40 text-[10px]">
+                                    {group.length} comandas · {totalItems} ítems · ${totalAmount.toLocaleString('es-CL')}
+                                  </p>
+                                </div>
+                              </div>
+                              {hasBillReq && (
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 animate-pulse shrink-0">
+                                  PIDIÓ CUENTA
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Per-station progress (when in preparando) */}
+                            {col.status === 'preparando' && (cocinaItems.length > 0 || barraItems.length > 0) && (
+                              <div className="flex gap-1.5 px-1">
+                                {cocinaItems.length > 0 && (
+                                  <div className="flex-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-[10px]">
+                                    <span className="text-amber-300 font-semibold flex items-center gap-1">
+                                      <ChefHat size={9} /> Cocina
+                                    </span>
+                                    <span className="text-amber-200/80 tabular-nums">{cocinaReady}/{cocinaItems.length}</span>
+                                  </div>
+                                )}
+                                {barraItems.length > 0 && (
+                                  <div className="flex-1 px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/25 flex items-center justify-between text-[10px]">
+                                    <span className="text-purple-300 font-semibold flex items-center gap-1">
+                                      <Wine size={9} /> Barra
+                                    </span>
+                                    <span className="text-purple-200/80 tabular-nums">{barraReady}/{barraItems.length}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Las órdenes individuales del grupo */}
+                            {group.map(o => (
+                              <OrderCard
+                                key={o.id}
+                                order={o}
+                                col={col}
+                                role={role}
+                                station={station}
+                                brokenItems={brokenItems}
+                                devueltoItems={devueltoItems}
+                                stockMap={stockMap}
+                                onAdvance={advance}
+                                onMarkStationReady={markStationReady}
+                                onBreak={markBreak}
+                                onMarkLow={markLow}
+                                onDevolucion={handleDevolucion}
+                                onCancel={(id, lbl) => setCancellingOrder({ id, tableLabel: lbl })}
+                                onCharge={(id, amount, lbl) => setChargingOrder({ id, amount, tableLabel: lbl })}
+                              />
+                            ))}
+                          </div>
+                        )
+                      })
+                    })()
                   )}
                 </div>
               </div>
