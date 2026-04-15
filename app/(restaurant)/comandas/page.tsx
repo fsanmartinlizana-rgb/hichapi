@@ -825,7 +825,7 @@ function NuevaComandaModal({
   onClose: () => void
   onSave: () => void
   tables: { id: string; label: string }[]
-  menuItems: { name: string; destination?: string }[]
+  menuItems: { id: string; name: string; price: number; destination?: string }[]
   restaurantId: string
 }) {
   const [mesa, setMesa]   = useState('')
@@ -845,6 +845,13 @@ function NuevaComandaModal({
     const validLines = lines.filter(l => l.name)
     const selectedTable = tables.find(t => t.label === mesa)
 
+    // Resolve menu_item price + id by name for each line
+    const resolvedLines = validLines.map(l => {
+      const mi = menuItems.find(m => m.name === l.name)
+      return { ...l, menu_item_id: mi?.id ?? null, unit_price: mi?.price ?? 0 }
+    })
+    const total = resolvedLines.reduce((s, l) => s + l.unit_price * l.qty, 0)
+
     try {
       // Create real order in Supabase via the admin client
       const supabase = createClient()
@@ -856,7 +863,7 @@ function NuevaComandaModal({
           restaurant_id: restaurantId,
           table_id: selectedTable?.id ?? null,
           status: 'pending',
-          total: 0,
+          total,
         })
         .select('id')
         .single()
@@ -865,14 +872,15 @@ function NuevaComandaModal({
 
       // 2. Insert order items
       await supabase.from('order_items').insert(
-        validLines.map(l => ({
+        resolvedLines.map(l => ({
           order_id: order.id,
+          menu_item_id: l.menu_item_id,
           name: l.name,
           quantity: l.qty,
           notes: l.note || null,
           status: 'pending',
           destination: l.dest,
-          unit_price: 0,
+          unit_price: l.unit_price,
         }))
       )
 
@@ -1071,7 +1079,7 @@ function ComandasPageInner() {
   const [toasts, setToasts]           = useState<ToastMsg[]>([])
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
   const [realTables, setRealTables]   = useState<{ id: string; label: string }[]>([])
-  const [realMenuItems, setRealMenuItems] = useState<{ name: string; destination?: string }[]>([])
+  const [realMenuItems, setRealMenuItems] = useState<{ id: string; name: string; price: number; destination?: string }[]>([])
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -1089,7 +1097,7 @@ function ComandasPageInner() {
         .order('created_at', { ascending: false }),
       supabase
         .from('menu_items')
-        .select('name, destination')
+        .select('id, name, price, destination')
         .eq('restaurant_id', restId)
         .eq('available', true)
         .order('name'),
@@ -1103,7 +1111,7 @@ function ComandasPageInner() {
 
     // Store real tables and menu for NuevaComandaModal
     setRealTables(tables.map(t => ({ id: t.id, label: t.label })))
-    setRealMenuItems((menuRes.data ?? []).map((m: { name: string; destination?: string | null }) => ({ name: m.name, destination: m.destination ?? undefined })))
+    setRealMenuItems((menuRes.data ?? []).map((m: { id: string; name: string; price: number | null; destination?: string | null }) => ({ id: m.id, name: m.name, price: m.price ?? 0, destination: m.destination ?? undefined })))
 
     const mapped = dbOrders
       .map(o => mapDbOrder(o, tables))

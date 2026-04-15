@@ -181,10 +181,17 @@ export async function POST(req: NextRequest) {
         const parsed  = JSON.parse(cleaned)
 
         // ── Resolve menu_item prices for new items ────────────────────────────
+        // First try matching by id, then fall back to case-insensitive name match
+        // (Claude may hallucinate IDs — name match keeps prices correct).
         const resolvedItems = (parsed.items_to_add ?? []).map((item: { menu_item_id: string; name: string; quantity: number; note?: string }) => {
-          const menuItem = menu.find((m: { id: string }) => m.id === item.menu_item_id)
+          let menuItem = menu.find((m: { id: string }) => m.id === item.menu_item_id) as { id: string; name: string; price: number } | undefined
+          if (!menuItem && item.name) {
+            const lower = item.name.toLowerCase().trim()
+            menuItem = menu.find((m: { name: string }) => m.name.toLowerCase().trim() === lower) as { id: string; name: string; price: number } | undefined
+          }
           return {
             ...item,
+            menu_item_id: menuItem?.id ?? item.menu_item_id,
             unit_price: menuItem?.price ?? 0,
             name: menuItem?.name ?? item.name,
           }
