@@ -34,6 +34,7 @@ const ProfilePatchSchema = z.object({
   tags:          z.array(z.string().max(40)).max(20).optional(),
   hours:         HoursSchema.optional(),
   photo_url:     z.string().url().nullable().optional(),
+  gallery_urls:  z.array(z.string().url()).max(12).optional(),
   // Reservation settings
   reservations_enabled:      z.boolean().optional(),
   reservation_timeout_min:   z.number().int().min(1).max(120).optional(),

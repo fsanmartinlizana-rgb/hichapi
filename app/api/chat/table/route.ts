@@ -168,12 +168,24 @@ export async function POST(req: NextRequest) {
           messages,
         })
 
+        let lastEmitted = ''
         for await (const chunk of claudeStream) {
           if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
             fullText += chunk.delta.text
-            // Stream the message field as it builds
-            const msgMatch = fullText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)"/)
-            if (msgMatch) await send('token', { text: msgMatch[1] })
+            // Match the message field progressively (no closing quote required)
+            // so tokens stream as they arrive instead of appearing all at once.
+            const openMatch = fullText.match(/"message"\s*:\s*"((?:[^"\\]|\\.)*)/)
+            if (openMatch) {
+              // Unescape simple JSON escapes so the display looks natural
+              const current = openMatch[1]
+                .replace(/\\n/g, '\n')
+                .replace(/\\"/g, '"')
+                .replace(/\\\\/g, '\\')
+              if (current !== lastEmitted) {
+                lastEmitted = current
+                await send('token', { text: current })
+              }
+            }
           }
         }
 

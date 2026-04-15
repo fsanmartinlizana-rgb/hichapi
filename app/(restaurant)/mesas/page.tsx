@@ -1077,6 +1077,7 @@ export default function MesasPage() {
   const { restaurant } = useRestaurant()
   const [mesas, setMesas]         = useState<Mesa[]>(MESAS_INIT)
   const [orderAlerts, setOrderAlerts] = useState<Record<string, 'new_order' | 'bill'>>({})
+  const [activeOrdersByTable, setActiveOrdersByTable] = useState<Record<string, number>>({})
   const [online, setOnline]       = useState(true)
   const [waitlist, setWaitlist]   = useState<WaitlistEntry[]>(WAITLIST_INIT)
   const [assignModal, setAssignModal] = useState<{ mesaId: string } | null>(null)
@@ -1110,7 +1111,9 @@ export default function MesasPage() {
 
     if (!ordersRes.error && ordersRes.data) {
       const alerts: Record<string, 'new_order' | 'bill'> = {}
+      const active: Record<string, number> = {}
       for (const o of ordersRes.data as DbOrder[]) {
+        active[o.table_id] = (active[o.table_id] ?? 0) + 1
         if (o.status === 'paying') {
           alerts[o.table_id] = 'bill'
         } else if ((o.status === 'pending' || o.status === 'confirmed') && alerts[o.table_id] !== 'bill') {
@@ -1118,6 +1121,7 @@ export default function MesasPage() {
         }
       }
       setOrderAlerts(alerts)
+      setActiveOrdersByTable(active)
     }
 
     setOnline(true)
@@ -1140,6 +1144,12 @@ export default function MesasPage() {
   }
 
   function markClean(mesaId: string) {
+    const activeCount = activeOrdersByTable[mesaId] ?? 0
+    if (activeCount > 0) {
+      const mesa = mesas.find(m => m.id === mesaId)
+      showToast(`Mesa ${mesa?.label ?? ''} tiene ${activeCount} pedido${activeCount > 1 ? 's' : ''} activo${activeCount > 1 ? 's' : ''}. Ciérralo${activeCount > 1 ? 's' : ''} o cancélalo${activeCount > 1 ? 's' : ''} antes de limpiar.`)
+      return
+    }
     setMesas(prev => prev.map(m => m.id === mesaId ? { ...m, status: 'limpia', seatedAt: undefined, pax: undefined } : m))
   }
 

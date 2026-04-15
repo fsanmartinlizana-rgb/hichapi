@@ -4,9 +4,11 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
-  RefreshCw, Wifi, WifiOff, AlertCircle,
+  RefreshCw, Wifi, WifiOff, AlertCircle, Plus, XCircle,
 } from 'lucide-react'
+import Link from 'next/link'
 import { PaymentMethodModal } from '@/components/PaymentMethodModal'
+import { CancelOrderModal } from '@/components/CancelOrderModal'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency } from '@/lib/i18n'
 
@@ -132,12 +134,14 @@ function OrderPanel({
   table,
   order,
   onAdvance,
+  onCancel,
   onClose,
   advancing,
 }: {
   table: Table
   order: Order | null
   onAdvance: (orderId: string, next: OrderStatus) => void
+  onCancel: (orderId: string) => void
   onClose: () => void
   advancing: boolean
 }) {
@@ -220,7 +224,7 @@ function OrderPanel({
 
       {/* Action button */}
       {cfg.next && (
-        <div className="px-4 pb-4">
+        <div className="px-4 pb-4 space-y-2">
           <button
             onClick={() => onAdvance(order.id, cfg.next!)}
             disabled={advancing}
@@ -232,6 +236,13 @@ function OrderPanel({
             ) : (
               cfg.nextLabel
             )}
+          </button>
+          <button
+            onClick={() => onCancel(order.id)}
+            disabled={advancing}
+            className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/15 transition-colors flex items-center justify-center gap-2"
+          >
+            <XCircle size={12} /> Cancelar pedido
           </button>
         </div>
       )}
@@ -253,6 +264,7 @@ export default function GarzonPage() {
   const [online, setOnline]       = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [payingOrder, setPayingOrder] = useState<{ id: string; total: number } | null>(null)
+  const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel?: string } | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -404,12 +416,20 @@ export default function GarzonPage() {
             </span>
           </div>
         </div>
-        <button
-          onClick={loadData}
-          className="p-2 rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors"
-        >
-          <RefreshCw size={14} />
-        </button>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/comandas?nueva=1"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#ff8255] transition-colors"
+          >
+            <Plus size={13} /> Nueva comanda
+          </Link>
+          <button
+            onClick={loadData}
+            className="p-2 rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors"
+          >
+            <RefreshCw size={14} />
+          </button>
+        </div>
       </div>
 
       {/* KPI strip */}
@@ -483,6 +503,7 @@ export default function GarzonPage() {
           table={selectedTable}
           order={selectedOrder}
           onAdvance={advanceOrder}
+          onCancel={(orderId) => setCancellingOrder({ id: orderId, tableLabel: selectedTable.label })}
           onClose={() => setSelected(null)}
           advancing={advancing}
         />
@@ -552,6 +573,16 @@ export default function GarzonPage() {
           total={payingOrder.total}
           onConfirm={handlePaymentConfirm}
           onClose={() => setPayingOrder(null)}
+        />
+      )}
+
+      {/* Cancel order modal */}
+      {cancellingOrder && (
+        <CancelOrderModal
+          orderId={cancellingOrder.id}
+          tableLabel={cancellingOrder.tableLabel}
+          onClose={() => setCancellingOrder(null)}
+          onCancelled={async () => { setSelected(null); await loadData() }}
         />
       )}
 

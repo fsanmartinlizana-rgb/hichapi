@@ -9,14 +9,16 @@ const supabase = createClient(
 )
 
 const ItemSchema = z.object({
-  restaurant_id: z.string().uuid(),
-  name:          z.string().min(1).max(100),
-  unit:          z.enum(['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja']),
-  current_qty:   z.number().min(0),
-  min_qty:       z.number().min(0),
-  cost_per_unit: z.number().int().min(0),
-  supplier:      z.string().optional(),
-  category:      z.string().optional(),
+  restaurant_id:    z.string().uuid(),
+  name:             z.string().min(1).max(100),
+  unit:             z.enum(['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja']),
+  current_qty:      z.number().min(0),
+  min_qty:          z.number().min(0),
+  cost_per_unit:    z.number().int().min(0),
+  supplier:         z.string().optional(),
+  category:         z.string().optional(),
+  expiry_date:      z.string().nullish(),          // YYYY-MM-DD
+  shelf_life_days:  z.number().int().min(0).nullish(),
 })
 
 // GET /api/stock?restaurant_id=xxx — list all stock items

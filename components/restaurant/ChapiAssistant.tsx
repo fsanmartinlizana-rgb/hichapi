@@ -134,10 +134,35 @@ export function ChapiAssistant() {
         setError(data.error ?? 'Error al consultar a Chapi')
         return
       }
+      // Typewriter effect — reveal the reply progressively
+      const fullReply = data.reply as string
+      const toolsUsed = data.tools_used
       setMessages(prev => [
         ...prev,
-        { role: 'assistant', content: data.reply, tools_used: data.tools_used },
+        { role: 'assistant', content: '', tools_used: toolsUsed },
       ])
+      const CHUNK = 3
+      const DELAY = 18
+      for (let i = CHUNK; i <= fullReply.length; i += CHUNK) {
+        await new Promise(r => setTimeout(r, DELAY))
+        const slice = fullReply.slice(0, i)
+        setMessages(prev => {
+          const next = [...prev]
+          const lastIdx = next.length - 1
+          if (lastIdx >= 0 && next[lastIdx].role === 'assistant') {
+            next[lastIdx] = { ...next[lastIdx], content: slice }
+          }
+          return next
+        })
+      }
+      setMessages(prev => {
+        const next = [...prev]
+        const lastIdx = next.length - 1
+        if (lastIdx >= 0 && next[lastIdx].role === 'assistant') {
+          next[lastIdx] = { ...next[lastIdx], content: fullReply }
+        }
+        return next
+      })
     } catch {
       setError('Sin conexión')
     } finally {
@@ -177,7 +202,7 @@ export function ChapiAssistant() {
             <Sparkles size={14} className="text-white" />
           </span>
           <span className="text-white text-[13px] font-semibold pr-1">
-            Pregúntale a Chapi
+            Chapi
           </span>
         </span>
       </button>

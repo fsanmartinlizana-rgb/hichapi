@@ -88,6 +88,19 @@ const TOOLS: Anthropic.Messages.Tool[] = [
     },
   },
   {
+    name: 'get_expiring_stock',
+    description:
+      'Lista insumos por vencer (expiry_date) ordenados por proximidad. Usa cuando '
+      + 'preguntan qué cocinar hoy, qué usar primero, qué está por vencer, o cuando '
+      + 'sugieres priorizar platos para evitar mermas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        within_days: { type: 'number', description: 'Ventana en días (default 5).' },
+      },
+    },
+  },
+  {
     name: 'get_cash_reconciliation',
     description:
       'Resumen de caja para una fecha específica: apertura, efectivo recibido, gastos, '
@@ -256,6 +269,37 @@ async function runTool(
       }
     }
 
+    case 'get_expiring_stock': {
+      const days = Number(input.within_days ?? 5)
+      const cutoff = new Date(Date.now() + days * 86400000).toISOString().slice(0, 10)
+      const { data } = await supabase
+        .from('stock_items')
+        .select('name, current_qty, unit, category, expiry_date, cost_per_unit')
+        .eq('restaurant_id', restaurantId)
+        .eq('active', true)
+        .not('expiry_date', 'is', null)
+        .lte('expiry_date', cutoff)
+        .order('expiry_date', { ascending: true })
+
+      type E = { name: string; current_qty: number; unit: string | null; category: string | null; expiry_date: string; cost_per_unit: number | null }
+      const today = new Date(); today.setHours(0, 0, 0, 0)
+      const items = ((data ?? []) as E[]).map(s => {
+        const exp = new Date(s.expiry_date)
+        const daysLeft = Math.ceil((exp.getTime() - today.getTime()) / 86400000)
+        return {
+          name:         s.name,
+          current_qty:  s.current_qty,
+          unit:         s.unit,
+          category:     s.category,
+          expiry_date:  s.expiry_date,
+          days_left:    daysLeft,
+          status:       daysLeft < 0 ? 'vencido' : daysLeft === 0 ? 'vence_hoy' : daysLeft <= 3 ? 'crítico' : 'por_vencer',
+          value_risk:   Math.round(s.current_qty * (s.cost_per_unit ?? 0)),
+        }
+      })
+      return { within_days: days, total: items.length, items }
+    }
+
     case 'get_cash_reconciliation': {
       const date = String(input.date ?? ymd(new Date()))
       const { data: sessions } = await supabase
@@ -339,8 +383,9 @@ OPERACIÓN
 - Carta digital (/carta): platos con categoría, precio, tags, destino (cocina/barra/sin prep). Importación masiva por foto/PDF/Excel.
 
 INVENTARIO
-- Stock (/stock): insumos con stock actual, mínimo y costo. Alertas de bajo stock.
+- Stock (/stock): insumos con stock actual, mínimo, costo y fecha de vencimiento. Alertas de bajo stock e insumos por vencer.
 - Mermas (/mermas): registro de pérdidas.
+- Si tienes insumos próximos a vencer, sugiere proactivamente platos de la carta cuyos ingredientes prioricen esos insumos (usa get_expiring_stock + menu_items).
 - Turnos (/turnos): planificación de horarios.
 - Caja (/caja): apertura/cierre de sesión, total cash + digital, diferencia.
 - DTE Chile (/dte): boletas y facturas electrónicas SII.

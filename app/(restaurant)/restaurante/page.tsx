@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo, useRef } from 'react'
 import {
   Check, MapPin, Clock, Globe, Phone, Camera, Loader2, AtSign,
-  ExternalLink, Sparkles, AlertCircle, CalendarDays,
+  ExternalLink, Sparkles, AlertCircle, CalendarDays, X,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { uploadImage } from '@/lib/upload-image'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { MODULE_LABELS, MODULE_PLAN_REQUIRED, type ModulesConfig } from '@/lib/defaults/moduleDefaults'
 import { canAccessModule, PLANS } from '@/lib/plans'
@@ -54,6 +55,7 @@ interface RestaurantProfile {
   tags:          string[] | null
   hours:         Record<string, Schedule> | null
   photo_url:     string | null
+  gallery_urls:  string[] | null
   profile_score: number | null
 }
 
@@ -116,6 +118,8 @@ export default function RestaurantePage() {
   const [capacity, setCapacity]       = useState('')
   const [tags, setTags]               = useState<string[]>([])
   const [photoUrl, setPhotoUrl]       = useState<string | null>(null)
+  const [galleryUrls, setGalleryUrls] = useState<string[]>([])
+  const [galleryUploading, setGalleryUploading] = useState(false)
   const [schedule, setSchedule]       = useState<Record<string, Schedule>>(DEFAULT_HOURS)
 
   // Photo upload
@@ -161,6 +165,7 @@ export default function RestaurantePage() {
           setCapacity(r.capacity?.toString() ?? '')
           setTags(r.tags ?? [])
           setPhotoUrl(r.photo_url)
+          setGalleryUrls(r.gallery_urls ?? [])
           setSchedule(
             r.hours && Object.keys(r.hours).length > 0
               ? { ...DEFAULT_HOURS, ...r.hours }
@@ -227,6 +232,7 @@ export default function RestaurantePage() {
           capacity:    capacity ? parseInt(capacity, 10) : null,
           tags,
           hours:       schedule,
+          gallery_urls: galleryUrls,
           reservations_enabled:     reservationsEnabled,
           reservation_timeout_min:  parseInt(reservationTimeout, 10) || 15,
           reservation_slot_duration: parseInt(reservationSlotDuration, 10) || 90,
@@ -313,14 +319,14 @@ export default function RestaurantePage() {
                 if (!file || !restaurant) return
                 setUploading(true)
                 try {
-                  const fd = new FormData()
-                  fd.append('file', file)
-                  fd.append('folder', `restaurants/${restaurant.id}`)
-                  const res = await fetch('/api/upload', { method: 'POST', body: fd })
-                  const data = await res.json()
-                  if (res.ok && data.url) setPhotoUrl(data.url)
-                  else setError(data.error || 'Error al subir foto')
-                } catch { setError('Error al subir foto') }
+                  const url = await uploadImage({
+                    file,
+                    folder: `restaurants/${restaurant.id}`,
+                  })
+                  setPhotoUrl(url)
+                } catch (err) {
+                  setError(err instanceof Error ? err.message : 'Error al subir foto')
+                }
                 finally { setUploading(false) }
               }} />
               <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-medium hover:bg-[#FF6B35]/20 disabled:opacity-40 transition-colors">
@@ -328,6 +334,74 @@ export default function RestaurantePage() {
                 {uploading ? 'Subiendo...' : 'Subir foto'}
               </button>
             </div>
+          </div>
+        </Section>
+
+        {/* Gallery */}
+        <Section title="Galería de fotos">
+          <p className="text-white/40 text-xs mb-3">
+            Hasta 12 fotos de platos y del local para tu página pública. Arrastra para reordenar, clic en la X para quitar.
+          </p>
+          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
+            {galleryUrls.map((url, idx) => (
+              <div key={url + idx} className="relative aspect-square rounded-lg overflow-hidden border border-white/10 group">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={url} alt="" className="w-full h-full object-cover" />
+                <button
+                  type="button"
+                  onClick={() => setGalleryUrls(prev => prev.filter((_, i) => i !== idx))}
+                  className="absolute top-1 right-1 p-1 rounded-full bg-black/70 text-white opacity-0 group-hover:opacity-100 hover:bg-red-500/90 transition-all"
+                  title="Quitar foto"
+                >
+                  <X size={12} />
+                </button>
+                {idx === 0 && (
+                  <span className="absolute bottom-1 left-1 px-1.5 py-0.5 rounded bg-[#FF6B35] text-white text-[9px] font-semibold">
+                    Portada
+                  </span>
+                )}
+              </div>
+            ))}
+            {galleryUrls.length < 12 && (
+              <label
+                className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors
+                  ${galleryUploading ? 'border-white/20 text-white/30' : 'border-white/15 text-white/40 hover:border-[#FF6B35]/50 hover:text-[#FF6B35]'}`}
+              >
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  className="hidden"
+                  disabled={galleryUploading}
+                  onChange={async (e) => {
+                    const files = Array.from(e.target.files ?? [])
+                    if (files.length === 0 || !restaurant) return
+                    const remaining = 12 - galleryUrls.length
+                    const batch = files.slice(0, remaining)
+                    setGalleryUploading(true)
+                    try {
+                      const uploaded: string[] = []
+                      for (const f of batch) {
+                        const url = await uploadImage({
+                          file: f,
+                          folder: `restaurants/${restaurant.id}/gallery`,
+                        })
+                        uploaded.push(url)
+                      }
+                      setGalleryUrls(prev => [...prev, ...uploaded])
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : 'Error al subir galería')
+                    } finally {
+                      setGalleryUploading(false)
+                      e.target.value = ''
+                    }
+                  }}
+                />
+                {galleryUploading
+                  ? <Loader2 size={16} className="animate-spin" />
+                  : <><Camera size={16} /><span className="text-[10px]">Añadir</span></>}
+              </label>
+            )}
           </div>
         </Section>
 

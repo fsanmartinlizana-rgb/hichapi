@@ -57,6 +57,11 @@ export async function GET(req: NextRequest) {
   // Expenses (only for the currently open session — zero if none)
   let expenses: Array<{ id: string; amount: number; category: string; description: string; created_at: string }> = []
   let total_expenses = 0
+  let session_orders: Array<{
+    id: string; total: number; payment_method: string | null; cash_amount: number | null;
+    digital_amount: number | null; updated_at: string; client_name: string | null;
+    hichapi_commission: number | null; table_id: string | null; table_label?: string | null;
+  }> = []
   if (session) {
     const { data: expRows } = await supabase
       .from('cash_session_expenses')
@@ -65,9 +70,36 @@ export async function GET(req: NextRequest) {
       .order('created_at', { ascending: false })
     expenses = expRows ?? []
     total_expenses = expenses.reduce((s, e) => s + e.amount, 0)
+
+    // Orders paid during this session — expose as list for Caja screen
+    const { data: sessOrders } = await supabase
+      .from('orders')
+      .select('id, total, payment_method, cash_amount, digital_amount, updated_at, client_name, hichapi_commission, table_id, tables(label)')
+      .eq('restaurant_id', restaurant_id)
+      .eq('status', 'paid')
+      .gte('updated_at', session.opened_at)
+      .order('updated_at', { ascending: false })
+    session_orders = (sessOrders ?? []).map((o: {
+      id: string; total: number; payment_method: string | null;
+      cash_amount: number | null; digital_amount: number | null;
+      updated_at: string; client_name: string | null;
+      hichapi_commission: number | null; table_id: string | null;
+      tables?: { label: string } | { label: string }[] | null;
+    }) => ({
+      id: o.id,
+      total: o.total,
+      payment_method: o.payment_method,
+      cash_amount: o.cash_amount,
+      digital_amount: o.digital_amount,
+      updated_at: o.updated_at,
+      client_name: o.client_name,
+      hichapi_commission: o.hichapi_commission,
+      table_id: o.table_id,
+      table_label: Array.isArray(o.tables) ? o.tables[0]?.label ?? null : o.tables?.label ?? null,
+    }))
   }
 
-  return NextResponse.json({ session, summary, expenses, total_expenses })
+  return NextResponse.json({ session, summary, expenses, total_expenses, session_orders })
 }
 
 // POST /api/cash/register — open new session

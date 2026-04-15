@@ -38,6 +38,7 @@ interface RestaurantData {
   tags: string[] | null
   hours: Record<string, DaySchedule> | null
   photo_url: string | null
+  gallery_urls: string[]
   price_range: string
   active: boolean
   claimed: boolean
@@ -65,7 +66,7 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .from('restaurants')
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
-      address, photo_url, price_range, active, claimed,
+      address, photo_url, gallery_urls, price_range, active, claimed,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -75,13 +76,14 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
   if (error || !data) return null
   return {
     ...data,
-    phone:       null,
-    website:     null,
-    instagram:   null,
-    description: null,
-    capacity:    null,
-    tags:        null,
-    hours:       null,
+    phone:         null,
+    website:       null,
+    instagram:     null,
+    description:   null,
+    capacity:      null,
+    tags:          null,
+    hours:         null,
+    gallery_urls: (data as { gallery_urls?: string[] | null }).gallery_urls ?? [],
   } as RestaurantData
 }
 
@@ -522,6 +524,26 @@ export default async function RestaurantPage({
             </div>
           </div>
         </section>
+
+        {/* ── Gallery ── */}
+        {restaurant.gallery_urls && restaurant.gallery_urls.length > 0 && (
+          <section>
+            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">Galería</h2>
+            <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
+              {restaurant.gallery_urls.map((url, idx) => (
+                <div key={url + idx} className="relative w-56 sm:w-64 aspect-[4/3] shrink-0 snap-start rounded-xl overflow-hidden bg-neutral-200 shadow-sm">
+                  <Image
+                    src={url}
+                    alt={`${restaurant.name} — foto ${idx + 1}`}
+                    fill
+                    className="object-cover"
+                    sizes="(max-width: 640px) 224px, 256px"
+                  />
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Quick info bar ── */}
         <QuickInfoBar restaurant={restaurant} />

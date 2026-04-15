@@ -62,6 +62,11 @@ export default function CajaPage() {
   const [summary, setSummary]       = useState<DaySummary | null>(null)
   const [expenses, setExpenses]     = useState<Expense[]>([])
   const [totalExpenses, setTotalExpenses] = useState(0)
+  const [sessionOrders, setSessionOrders] = useState<Array<{
+    id: string; total: number; payment_method: string | null; cash_amount: number | null;
+    digital_amount: number | null; updated_at: string; client_name: string | null;
+    hichapi_commission: number | null; table_label: string | null;
+  }>>([])
   const [loading, setLoading]       = useState(true)
 
   const [openModal, setOpenModal]           = useState(false)
@@ -88,6 +93,7 @@ export default function CajaPage() {
       setSummary(data.summary ?? null)
       setExpenses(data.expenses ?? [])
       setTotalExpenses(data.total_expenses ?? 0)
+      setSessionOrders(data.session_orders ?? [])
     } finally {
       setLoading(false)
     }
@@ -249,6 +255,61 @@ export default function CajaPage() {
         <div className="bg-[#1a1a2e] rounded-xl p-4 border border-white/5 flex items-center justify-between">
           <p className="text-gray-400 text-sm">Pedidos pagados hoy</p>
           <span className="text-white font-bold text-lg">{summary.total_orders}</span>
+        </div>
+      )}
+
+      {/* Pedidos del turno */}
+      {session && (
+        <div className="bg-[#1a1a2e] rounded-xl border border-white/5">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-white/5">
+            <div className="flex items-center gap-2">
+              <Receipt size={14} className="text-green-400" />
+              <h3 className="text-white text-sm font-semibold">Pedidos del turno</h3>
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-400">
+                {sessionOrders.length}
+              </span>
+            </div>
+            <span className="text-green-400 text-sm font-bold">
+              {clp(sessionOrders.reduce((s, o) => s + o.total, 0))}
+            </span>
+          </div>
+          <div className="max-h-80 overflow-y-auto divide-y divide-white/5">
+            {sessionOrders.length === 0 ? (
+              <div className="p-6 text-center text-white/25 text-xs">
+                Todavía no hay pedidos pagados en este turno
+              </div>
+            ) : (
+              sessionOrders.map(o => {
+                const method = o.payment_method === 'cash' ? 'Efectivo'
+                  : o.payment_method === 'digital' ? 'Digital'
+                  : o.payment_method === 'mixed' ? 'Mixto'
+                  : '—'
+                const methodColor = o.payment_method === 'cash' ? 'text-green-400'
+                  : o.payment_method === 'digital' ? 'text-blue-400'
+                  : o.payment_method === 'mixed' ? 'text-purple-400'
+                  : 'text-white/40'
+                return (
+                  <div key={o.id} className="flex items-center gap-3 px-4 py-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-white/60 text-[10px] font-mono shrink-0">
+                      {o.table_label ?? '—'}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-xs font-medium truncate">
+                        {o.client_name ?? 'Pedido'} · #{o.id.slice(-4).toUpperCase()}
+                      </p>
+                      <p className="text-white/35 text-[10px]">
+                        <span className={methodColor}>{method}</span>
+                        {' · '}
+                        {new Date(o.updated_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                        {o.hichapi_commission ? ` · com. ${clp(o.hichapi_commission)}` : ''}
+                      </p>
+                    </div>
+                    <span className="text-white font-bold text-xs shrink-0">{clp(o.total)}</span>
+                  </div>
+                )
+              })
+            )}
+          </div>
         </div>
       )}
 

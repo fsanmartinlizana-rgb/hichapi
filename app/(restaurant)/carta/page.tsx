@@ -17,6 +17,11 @@ import { Sparkles } from 'lucide-react'
 
 type Destination = 'cocina' | 'barra' | 'ninguno'
 
+interface Ingredient {
+  stock_item_id: string
+  qty: number
+}
+
 interface MenuItem {
   id: string
   name: string
@@ -28,6 +33,7 @@ interface MenuItem {
   photo_url?: string
   cost_price?: number
   destination: Destination
+  ingredients?: Ingredient[]
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -62,10 +68,12 @@ const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; h
 
 function ItemForm({
   initial,
+  stockItems,
   onSave,
   onCancel,
 }: {
   initial?: Partial<MenuItem>
+  stockItems: { id: string; name: string; unit: string }[]
   onSave: (item: Omit<MenuItem, 'id'>) => Promise<void>
   onCancel: () => void
 }) {
@@ -87,8 +95,20 @@ function ItemForm({
   const [tags, setTags]               = useState<string[]>(initial?.tags ?? [])
   const [available, setAvailable]     = useState(initial?.available ?? true)
   const [destination, setDestination] = useState<Destination>(initial?.destination ?? 'cocina')
+  const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? [])
   const [saving, setSaving]           = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null)
+
+  function addIngredient() {
+    if (stockItems.length === 0) return
+    setIngredients(prev => [...prev, { stock_item_id: stockItems[0].id, qty: 0 }])
+  }
+  function removeIngredient(i: number) {
+    setIngredients(prev => prev.filter((_, idx) => idx !== i))
+  }
+  function updateIngredient(i: number, patch: Partial<Ingredient>) {
+    setIngredients(prev => prev.map((ing, idx) => idx === i ? { ...ing, ...patch } : ing))
+  }
 
   const availableCategories = CATEGORIES_BY_PRODUCT_TYPE[productType]
 
@@ -128,6 +148,7 @@ function ItemForm({
         destination,
         cost_price: cost ? parseInt(cost) : undefined,
         photo_url: photoPreview ?? undefined,
+        ingredients: ingredients.filter(i => i.qty > 0 && i.stock_item_id),
       })
     } finally {
       setSaving(false)
@@ -277,6 +298,73 @@ function ItemForm({
           })}
         </div>
       </div>
+      {/* Ingredientes / Gramaje */}
+      <div className="space-y-2 border-t border-white/5 pt-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <label className="text-white/70 text-xs font-semibold">Ingredientes y gramaje</label>
+            <p className="text-white/35 text-[10px] mt-0.5">
+              Se descuenta del stock automáticamente al confirmar pedido
+            </p>
+          </div>
+          {stockItems.length > 0 && (
+            <button
+              type="button"
+              onClick={addIngredient}
+              className="text-[#FF6B35] text-xs hover:text-[#ff8255] flex items-center gap-1 transition-colors"
+            >
+              <Plus size={11} /> Agregar
+            </button>
+          )}
+        </div>
+        {stockItems.length === 0 ? (
+          <p className="text-white/30 text-[11px] px-3 py-2 rounded-lg bg-white/3 border border-white/6">
+            Primero registra ingredientes en <span className="text-[#FF6B35]">Stock</span> para poder asociarlos.
+          </p>
+        ) : ingredients.length === 0 ? (
+          <p className="text-white/30 text-[11px] px-3 py-2 rounded-lg bg-white/3 border border-white/6">
+            Sin ingredientes. No se descontará stock al vender este producto.
+          </p>
+        ) : (
+          <div className="space-y-1.5">
+            {ingredients.map((ing, i) => {
+              const stockItem = stockItems.find(s => s.id === ing.stock_item_id)
+              return (
+                <div key={i} className="flex gap-1.5">
+                  <select
+                    value={ing.stock_item_id}
+                    onChange={e => updateIngredient(i, { stock_item_id: e.target.value })}
+                    className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
+                  >
+                    {stockItems.map(s => (
+                      <option key={s.id} value={s.id} className="bg-[#1C1C2E]">{s.name}</option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={ing.qty || ''}
+                    onChange={e => updateIngredient(i, { qty: parseFloat(e.target.value) || 0 })}
+                    step="0.01"
+                    placeholder="0"
+                    className="w-20 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 text-right font-mono"
+                  />
+                  <span className="px-2 py-2 rounded-xl bg-white/3 border border-white/6 text-white/40 text-xs min-w-[50px] text-center">
+                    {stockItem?.unit ?? '—'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => removeIngredient(i)}
+                    className="w-9 px-2 py-2 rounded-xl bg-white/3 hover:bg-red-500/15 text-white/30 hover:text-red-400 transition-colors"
+                  >
+                    <X size={12} />
+                  </button>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2 pt-1">
         <button onClick={onCancel}
           className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors">
@@ -367,6 +455,7 @@ export default function CartaPage() {
   const restId = restaurant?.id
 
   const [items, setItems]         = useState<MenuItem[]>([])
+  const [stockItems, setStockItems] = useState<{ id: string; name: string; unit: string }[]>([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState('todas')
@@ -374,6 +463,23 @@ export default function CartaPage() {
   const [editing, setEditing]     = useState<string | null>(null)
   const [deleting, setDeleting]   = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+
+  // ── Load stock items (for ingredient association) ────────────────────────
+  useEffect(() => {
+    if (!restId) return
+    fetch(`/api/stock?restaurant_id=${restId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.items)) {
+          setStockItems(d.items.map((s: Record<string, unknown>) => ({
+            id:   s.id as string,
+            name: s.name as string,
+            unit: (s.unit as string) || 'unidad',
+          })))
+        }
+      })
+      .catch(err => console.error('Error loading stock items:', err))
+  }, [restId])
 
   // ── Load items from API ──────────────────────────────────────────────────
   const loadItems = useCallback(async () => {
@@ -394,6 +500,7 @@ export default function CartaPage() {
           photo_url:   (i.photo_url as string) || undefined,
           cost_price:  (i.cost_price as number) || undefined,
           destination: ((i.destination as Destination) || 'cocina'),
+          ingredients: Array.isArray(i.ingredients) ? (i.ingredients as Ingredient[]) : [],
         })))
       }
     } catch (err) {
@@ -522,7 +629,7 @@ export default function CartaPage() {
       </div>
 
       {/* Add form */}
-      {adding && <ItemForm onSave={addItem} onCancel={() => setAdding(false)} />}
+      {adding && <ItemForm stockItems={stockItems} onSave={addItem} onCancel={() => setAdding(false)} />}
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -564,6 +671,7 @@ export default function CartaPage() {
                 {catItems.map(item => (
                   editing === item.id
                     ? <ItemForm key={item.id} initial={item}
+                        stockItems={stockItems}
                         onSave={(data) => updateItem(item.id, data)}
                         onCancel={() => setEditing(null)} />
                     : <ItemRow key={item.id} item={item}

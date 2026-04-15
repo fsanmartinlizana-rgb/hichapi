@@ -333,7 +333,7 @@ export default function TurnosPage() {
       </div>
 
       {/* Date navigation */}
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
           <ChevronLeft size={18} />
         </button>
@@ -342,6 +342,20 @@ export default function TurnosPage() {
         </div>
         <button onClick={() => navigate(1)} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
           <ChevronRight size={18} />
+        </button>
+        <div className="h-5 w-px bg-white/10 mx-1" />
+        <input
+          type="date"
+          value={toDateStr(anchor)}
+          onChange={e => { if (e.target.value) setAnchor(new Date(e.target.value + 'T00:00:00')) }}
+          title="Ir a fecha"
+          className="bg-white/5 border border-white/10 text-white/70 text-xs px-2 py-1.5 rounded-lg focus:outline-none focus:border-[#FF6B35]/50"
+        />
+        <button
+          onClick={() => setAnchor(new Date())}
+          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs font-medium hover:bg-white/10 hover:text-white transition-colors"
+        >
+          Hoy
         </button>
       </div>
 

@@ -21,6 +21,8 @@ interface StockItem {
   category: string
   supplier: string | null
   updated_at: string
+  expiry_date: string | null
+  shelf_life_days: number | null
 }
 
 interface ExtractedItem {
@@ -60,6 +62,7 @@ export default function StockPage() {
     name: '', unit: 'kg' as typeof UNITS[number],
     current_qty: '', min_qty: '', cost_per_unit: '',
     supplier: '', category: 'general',
+    expiry_date: '', shelf_life_days: '',
   })
 
   // ── Fetch ──────────────────────────────────────────────────────────────────
@@ -81,14 +84,16 @@ export default function StockPage() {
     e.preventDefault()
     if (!restId) return
     const payload = {
-      restaurant_id: restId,
-      name:          form.name,
-      unit:          form.unit,
-      current_qty:   parseFloat(form.current_qty),
-      min_qty:       parseFloat(form.min_qty),
-      cost_per_unit: parseInt(form.cost_per_unit),
-      supplier:      form.supplier || undefined,
-      category:      form.category || 'general',
+      restaurant_id:   restId,
+      name:            form.name,
+      unit:            form.unit,
+      current_qty:     parseFloat(form.current_qty),
+      min_qty:         parseFloat(form.min_qty),
+      cost_per_unit:   parseInt(form.cost_per_unit),
+      supplier:        form.supplier || undefined,
+      category:        form.category || 'general',
+      expiry_date:     form.expiry_date || null,
+      shelf_life_days: form.shelf_life_days ? parseInt(form.shelf_life_days) : null,
     }
 
     if (editItem) {
@@ -105,7 +110,7 @@ export default function StockPage() {
   }
 
   function resetForm() {
-    setForm({ name: '', unit: 'kg', current_qty: '', min_qty: '', cost_per_unit: '', supplier: '', category: 'general' })
+    setForm({ name: '', unit: 'kg', current_qty: '', min_qty: '', cost_per_unit: '', supplier: '', category: 'general', expiry_date: '', shelf_life_days: '' })
   }
 
   function startEdit(item: StockItem) {
@@ -114,6 +119,8 @@ export default function StockPage() {
       current_qty: String(item.current_qty), min_qty: String(item.min_qty),
       cost_per_unit: String(item.cost_per_unit),
       supplier: item.supplier ?? '', category: item.category,
+      expiry_date: item.expiry_date ?? '',
+      shelf_life_days: item.shelf_life_days ? String(item.shelf_life_days) : '',
     })
     setEditItem(item)
     setShowForm(true)
@@ -325,10 +332,24 @@ export default function StockPage() {
                     return (
                       <tr key={item.id} className={`border-b border-white/5 hover:bg-white/3 transition-colors ${isLow ? 'bg-red-500/5' : ''}`}>
                         <td className="px-4 py-3">
-                          <div className="flex items-center gap-2">
+                          <div className="flex items-center gap-2 flex-wrap">
                             {isLow && <AlertTriangle size={12} className="text-red-400 shrink-0" />}
                             <span className={`font-medium ${isLow ? 'text-red-300' : 'text-white'}`}>{item.name}</span>
                             {item.supplier && <span className="text-white/25 text-xs">· {item.supplier}</span>}
+                            {item.expiry_date && (() => {
+                              const diffDays = Math.floor((new Date(item.expiry_date).getTime() - Date.now()) / 86400000)
+                              const tone = diffDays < 0
+                                ? 'bg-red-500/15 border-red-500/30 text-red-300'
+                                : diffDays <= 3
+                                  ? 'bg-amber-500/15 border-amber-500/30 text-amber-300'
+                                  : 'bg-white/5 border-white/10 text-white/40'
+                              const label = diffDays < 0 ? 'VENCIDO' : diffDays === 0 ? 'vence hoy' : `${diffDays}d`
+                              return (
+                                <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${tone}`}>
+                                  {label}
+                                </span>
+                              )
+                            })()}
                           </div>
                         </td>
                         <td className="px-4 py-3 text-center">
@@ -490,6 +511,19 @@ export default function StockPage() {
                   <label className="text-white/50 text-xs mb-1.5 block">Proveedor (opcional)</label>
                   <input value={form.supplier} onChange={e => setForm(f => ({ ...f, supplier: e.target.value }))}
                     placeholder="Nombre del proveedor"
+                    className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                </div>
+                <div>
+                  <label className="text-white/50 text-xs mb-1.5 block">Fecha de vencimiento</label>
+                  <input type="date" value={form.expiry_date}
+                    onChange={e => setForm(f => ({ ...f, expiry_date: e.target.value }))}
+                    className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                </div>
+                <div>
+                  <label className="text-white/50 text-xs mb-1.5 block">Vida útil (días)</label>
+                  <input type="number" min="0" value={form.shelf_life_days}
+                    onChange={e => setForm(f => ({ ...f, shelf_life_days: e.target.value }))}
+                    placeholder="Ej: 7"
                     className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
                 </div>
               </div>

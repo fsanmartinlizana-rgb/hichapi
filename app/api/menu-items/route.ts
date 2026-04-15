@@ -7,6 +7,11 @@ import { z } from 'zod'
 
 const DestinationEnum = z.enum(['cocina', 'barra', 'ninguno'])
 
+const IngredientSchema = z.object({
+  stock_item_id: z.string().uuid(),
+  qty:           z.number().min(0),
+})
+
 const CreateItemSchema = z.object({
   restaurant_id: z.string().uuid(),
   name:          z.string().min(1).max(100),
@@ -19,6 +24,7 @@ const CreateItemSchema = z.object({
   photo_url:     z.string().url().optional(),
   display_order: z.number().int().optional(),
   destination:   DestinationEnum.default('cocina'),
+  ingredients:   z.array(IngredientSchema).optional(),
 })
 
 const UpdateItemSchema = z.object({
@@ -34,6 +40,7 @@ const UpdateItemSchema = z.object({
   photo_url:     z.string().url().nullish(),
   display_order: z.number().int().optional(),
   destination:   DestinationEnum.optional(),
+  ingredients:   z.array(IngredientSchema).optional(),
 })
 
 const DeleteItemSchema = z.object({
@@ -75,18 +82,21 @@ export async function POST(req: NextRequest) {
     const data = CreateItemSchema.parse(body)
 
     const supabase = createAdminClient()
+    const insertPayload: Record<string, unknown> = {
+      restaurant_id: data.restaurant_id,
+      name:          data.name,
+      description:   data.description || null,
+      price:         data.price,
+      category:      data.category,
+      tags:          data.tags,
+      available:     data.available,
+      photo_url:     data.photo_url || null,
+    }
+    if (data.ingredients) insertPayload.ingredients = data.ingredients
+
     const { data: item, error } = await supabase
       .from('menu_items')
-      .insert({
-        restaurant_id: data.restaurant_id,
-        name:          data.name,
-        description:   data.description || null,
-        price:         data.price,
-        category:      data.category,
-        tags:          data.tags,
-        available:     data.available,
-        photo_url:     data.photo_url || null,
-      })
+      .insert(insertPayload)
       .select()
       .single()
 
@@ -116,6 +126,7 @@ export async function PATCH(req: NextRequest) {
     const { id, restaurant_id, ...updates } = data
 
     // Clean undefined values + drop fields not present in current schema
+    // Note: 'ingredients' column exists (added in 20260408_015 migration)
     const SCHEMA_DROPPED = new Set(['cost_price', 'display_order', 'destination'])
     const payload: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(updates)) {

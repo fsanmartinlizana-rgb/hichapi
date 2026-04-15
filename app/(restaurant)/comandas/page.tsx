@@ -6,6 +6,7 @@ import { Suspense } from 'react'
 import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine, RotateCcw } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { CancelOrderModal } from '@/components/CancelOrderModal'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -510,6 +511,7 @@ function OrderCard({
   onBreak,
   onMarkLow,
   onDevolucion,
+  onCancel,
 }: {
   order: Order
   col: typeof COLUMNS[0]
@@ -523,6 +525,7 @@ function OrderCard({
   onBreak: (orderId: string, itemIndex: number, itemName: string) => void
   onMarkLow: (itemName: string, qty: number) => void
   onDevolucion: (orderId: string, itemIndex: number, itemName: string, reason: string) => void
+  onCancel: (orderId: string, tableLabel: string) => void
 }) {
   const [hoveredItem, setHoveredItem] = useState<number | null>(null)
   const [popoverItem, setPopoverItem] = useState<number | null>(null)
@@ -791,18 +794,27 @@ function OrderCard({
                   })}
                 </div>
               )}
-              <button
-                onClick={() => onAdvance(order.id, col.next!)}
-                className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
-                style={{
-                  backgroundColor: col.color + '18',
-                  color: col.color,
-                  border: `1px solid ${col.color}30`,
-                }}
-              >
-                {col.icon}
-                {col.nextLabel}
-              </button>
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => onAdvance(order.id, col.next!)}
+                  className="flex-1 py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
+                  style={{
+                    backgroundColor: col.color + '18',
+                    color: col.color,
+                    border: `1px solid ${col.color}30`,
+                  }}
+                >
+                  {col.icon}
+                  {col.nextLabel}
+                </button>
+                <button
+                  onClick={() => onCancel(order.id, order.tableLabel)}
+                  title="Cancelar pedido"
+                  className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-red-500/10 border border-red-500/25 text-red-300/80 hover:bg-red-500/15 transition-colors"
+                >
+                  <X size={12} />
+                </button>
+              </div>
             </div>
           )
         )
@@ -1079,6 +1091,7 @@ function ComandasPageInner() {
   const [toasts, setToasts]           = useState<ToastMsg[]>([])
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
   const [realTables, setRealTables]   = useState<{ id: string; label: string }[]>([])
+  const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel: string } | null>(null)
   const [realMenuItems, setRealMenuItems] = useState<{ id: string; name: string; price: number; destination?: string }[]>([])
 
   const supabase = useMemo(() => createClient(), [])
@@ -1514,6 +1527,7 @@ function ComandasPageInner() {
                         onBreak={markBreak}
                         onMarkLow={markLow}
                         onDevolucion={handleDevolucion}
+                        onCancel={(id, label) => setCancellingOrder({ id, tableLabel: label })}
                       />
                     ))
                   )}
@@ -1541,6 +1555,16 @@ function ComandasPageInner() {
           tables={realTables}
           menuItems={realMenuItems}
           restaurantId={restId!}
+        />
+      )}
+
+      {/* Cancel order modal */}
+      {cancellingOrder && (
+        <CancelOrderModal
+          orderId={cancellingOrder.id}
+          tableLabel={cancellingOrder.tableLabel}
+          onClose={() => setCancellingOrder(null)}
+          onCancelled={async () => { await loadData() }}
         />
       )}
     </div>
