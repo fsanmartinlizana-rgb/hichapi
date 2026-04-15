@@ -72,6 +72,42 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // 2.5. Reject orders if caja is closed (gating obligatorio)
+    // El admin puede deshabilitar este gate via restaurants.cash_required = false.
+    // Si la columna no existe (schema legacy), default es true (gating activo).
+    let cashRequired = true
+    try {
+      const { data: restConfig, error: rcErr } = await supabase
+        .from('restaurants')
+        .select('cash_required')
+        .eq('id', restaurant.id)
+        .maybeSingle()
+      if (!rcErr && restConfig && (restConfig as { cash_required?: boolean | null }).cash_required === false) {
+        cashRequired = false
+      }
+    } catch { /* columna no existe — gating ON por default */ }
+
+    if (cashRequired) {
+      const { data: openSession } = await supabase
+        .from('cash_register_sessions')
+        .select('id')
+        .eq('restaurant_id', restaurant.id)
+        .eq('status', 'open')
+        .limit(1)
+        .maybeSingle()
+
+      if (!openSession) {
+        return NextResponse.json(
+          {
+            error: 'La caja está cerrada. El restaurante no puede recibir pedidos en este momento.',
+            reason: 'cash_register_closed',
+            hint:   'Pedile al admin que abra la caja desde /caja para reanudar el servicio.',
+          },
+          { status: 409 }
+        )
+      }
+    }
+
     const realTableId = table.id
 
     // 3. Calculate total
@@ -310,21 +346,47 @@ export async function PATCH(req: NextRequest) {
 }
 
 // ── GET /api/orders?table_id=… ────────────────────────────────────────────────
+// `table_id` puede ser:
+//   - UUID de la tabla (uso interno del panel admin)
+//   - qr_token (uso del cliente desde la URL del QR /[slug]/[tableId])
+// Resolvemos a UUID antes de filtrar — sin esto, los pedidos del cliente
+// QR nunca se encontraban (orders.table_id es UUID, qr_token no matchea).
 
 export async function GET(req: NextRequest) {
   const { searchParams } = req.nextUrl
-  const tableId = searchParams.get('table_id')
+  const tableIdParam = searchParams.get('table_id')
 
-  if (!tableId) {
+  if (!tableIdParam) {
     return NextResponse.json({ error: 'table_id requerido' }, { status: 400 })
   }
 
   const supabase = createAdminClient()
 
+  // Resolver: si parece UUID, usarlo directo; si no, buscar por qr_token
+  const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tableIdParam)
+
+  let realTableId: string | null = null
+  if (isUUID) {
+    realTableId = tableIdParam
+  } else {
+    const { data: byToken } = await supabase
+      .from('tables')
+      .select('id')
+      .eq('qr_token', tableIdParam)
+      .maybeSingle()
+    if (byToken) realTableId = byToken.id
+  }
+
+  if (!realTableId) {
+    // Mesa no encontrada — devolvemos array vacío en vez de error 404
+    // para que la UI muestre "sin pedidos" en lugar de explotar
+    return NextResponse.json({ orders: [], table_resolved: false })
+  }
+
   const { data: orders, error } = await supabase
     .from('orders')
     .select('*, order_items(*)')
-    .eq('table_id', tableId)
+    .eq('table_id', realTableId)
     .not('status', 'in', '("paid","cancelled")')
     .order('created_at', { ascending: false })
     .limit(5)
@@ -333,5 +395,5 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error consultando pedidos' }, { status: 500 })
   }
 
-  return NextResponse.json({ orders: orders ?? [] })
+  return NextResponse.json({ orders: orders ?? [], table_resolved: true })
 }

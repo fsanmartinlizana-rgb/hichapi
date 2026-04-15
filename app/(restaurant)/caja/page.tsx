@@ -5,7 +5,7 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import {
   DollarSign, TrendingUp, CreditCard, Banknote, AlertTriangle, Plus,
   CheckCircle2, Receipt, Trash2, Clock, ArrowDownCircle, ArrowUpCircle,
-  Truck, Coffee, Wrench, HandCoins, MoreHorizontal,
+  Truck, Coffee, Wrench, HandCoins, MoreHorizontal, BarChart3, X,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/i18n'
@@ -73,6 +73,7 @@ export default function CajaPage() {
   const [openModal, setOpenModal]           = useState(false)
   const [closeModal, setCloseModal]         = useState(false)
   const [expenseModal, setExpenseModal]     = useState(false)
+  const [reportsOpen, setReportsOpen]       = useState(false)
 
   const [openingAmount, setOpeningAmount] = useState('')
   const [actualCash, setActualCash]       = useState('')
@@ -195,6 +196,13 @@ export default function CajaPage() {
               <Receipt size={16} /> Registrar gasto
             </button>
           )}
+          <button
+            onClick={() => setReportsOpen(true)}
+            className="flex items-center gap-2 px-4 py-2 border border-white/10 bg-white/5 hover:bg-white/10 text-white rounded-lg text-sm font-medium transition-colors"
+            title="Ver cuadratura por día / semana / mes"
+          >
+            <BarChart3 size={16} /> Reportes
+          </button>
           {!session ? (
             <button
               onClick={() => setOpenModal(true)}
@@ -577,6 +585,242 @@ export default function CajaPage() {
           </>
         )}
       </Modal>
+
+      {/* Reports modal — cuadratura día/semana/mes */}
+      {reportsOpen && restaurant?.id && (
+        <CashReportsModal
+          restaurantId={restaurant.id}
+          onClose={() => setReportsOpen(false)}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── Reports Modal ──────────────────────────────────────────────────────────
+type Period = 'day' | 'week' | 'month'
+
+interface ReportData {
+  period:    Period
+  range:     { start: string; end: string }
+  aggregate: {
+    revenue:        number
+    cash:           number
+    digital:        number
+    commission:     number
+    expenses:       number
+    orders_count:   number
+    sessions_count: number
+    cuadratura: {
+      total_diferencias:  number
+      sesiones_cuadradas: number
+      sesiones_con_dif:   number
+    }
+  }
+  sessions: Array<{
+    id: string; opened_at: string; closed_at: string | null
+    opening_amount: number; actual_cash: number | null
+    total_cash: number | null; total_digital: number | null
+    total_orders: number | null; total_expenses: number | null
+    difference: number | null; status: string; notes: string | null
+  }>
+  by_day: Array<{ date: string; revenue: number; cash: number; digital: number; orders: number }>
+}
+
+function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onClose: () => void }) {
+  const [period, setPeriod] = useState<Period>('day')
+  const [date, setDate]     = useState(() => new Date().toISOString().slice(0, 10))
+  const [data, setData]     = useState<ReportData | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [err, setErr]       = useState<string | null>(null)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true); setErr(null)
+    fetch(`/api/cash/reports?restaurant_id=${restaurantId}&period=${period}&date=${date}`)
+      .then(r => r.json())
+      .then(j => {
+        if (cancelled) return
+        if (j.error) setErr(j.error)
+        else setData(j as ReportData)
+      })
+      .catch(() => { if (!cancelled) setErr('Sin conexión') })
+      .finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+  }, [restaurantId, period, date])
+
+  const periodLabels: Record<Period, string> = { day: 'Día', week: 'Semana', month: 'Mes' }
+
+  return (
+    <div className="fixed inset-0 z-50 bg-black/70 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-[#1A1A2E] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[88vh] overflow-y-auto p-6 space-y-4" onClick={e => e.stopPropagation()}>
+
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h3 className="text-white font-bold text-lg flex items-center gap-2">
+              <BarChart3 size={18} className="text-orange-500" /> Reportes de caja
+            </h3>
+            <p className="text-white/40 text-xs mt-0.5">Cuadratura por período</p>
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white"><X size={18} /></button>
+        </div>
+
+        {/* Filters */}
+        <div className="flex gap-2 flex-wrap">
+          {(['day', 'week', 'month'] as Period[]).map(p => (
+            <button
+              key={p}
+              onClick={() => setPeriod(p)}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border ${
+                period === p
+                  ? 'bg-orange-500 border-orange-500 text-white'
+                  : 'border-white/10 text-white/60 hover:bg-white/5'
+              }`}
+            >
+              {periodLabels[p]}
+            </button>
+          ))}
+          <input
+            type="date"
+            value={date}
+            onChange={e => setDate(e.target.value)}
+            className="ml-auto px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-orange-500/50"
+          />
+        </div>
+
+        {loading && (
+          <div className="text-center py-12 text-white/40 text-sm">Cargando…</div>
+        )}
+        {err && (
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-300 text-sm">{err}</div>
+        )}
+
+        {data && !loading && (
+          <>
+            {/* KPIs */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <KpiCard label="Ventas"   value={clp(data.aggregate.revenue)} accent="white" />
+              <KpiCard label="Efectivo" value={clp(data.aggregate.cash)}    accent="emerald" />
+              <KpiCard label="Digital"  value={clp(data.aggregate.digital)} accent="blue" />
+              <KpiCard label="Gastos"   value={clp(data.aggregate.expenses)} accent="amber" />
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <KpiCard label="Pedidos"          value={data.aggregate.orders_count.toString()}  accent="white" small />
+              <KpiCard label="Sesiones"         value={data.aggregate.sessions_count.toString()} accent="white" small />
+              <KpiCard
+                label="Diferencia total"
+                value={`${data.aggregate.cuadratura.total_diferencias >= 0 ? '+' : ''}${clp(data.aggregate.cuadratura.total_diferencias)}`}
+                accent={data.aggregate.cuadratura.total_diferencias === 0 ? 'emerald' : (data.aggregate.cuadratura.total_diferencias > 0 ? 'blue' : 'amber')}
+                small
+              />
+            </div>
+
+            {/* Breakdown por día (week/month) */}
+            {data.by_day.length > 0 && (
+              <div>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">Por día</p>
+                <div className="bg-black/30 rounded-xl border border-white/8 overflow-hidden">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-white/8 text-white/40">
+                        <th className="text-left  px-3 py-2">Fecha</th>
+                        <th className="text-right px-3 py-2">Pedidos</th>
+                        <th className="text-right px-3 py-2">Efectivo</th>
+                        <th className="text-right px-3 py-2">Digital</th>
+                        <th className="text-right px-3 py-2">Total</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {data.by_day.map(d => (
+                        <tr key={d.date} className="border-b border-white/5 hover:bg-white/3">
+                          <td className="px-3 py-2 text-white/80">{new Date(d.date).toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: 'short' })}</td>
+                          <td className="px-3 py-2 text-right text-white/60 tabular-nums">{d.orders}</td>
+                          <td className="px-3 py-2 text-right text-emerald-400 tabular-nums">{clp(d.cash)}</td>
+                          <td className="px-3 py-2 text-right text-blue-400 tabular-nums">{clp(d.digital)}</td>
+                          <td className="px-3 py-2 text-right text-white font-semibold tabular-nums">{clp(d.revenue)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+
+            {/* Sesiones del período */}
+            {data.sessions.length > 0 && (
+              <div>
+                <p className="text-white/60 text-xs font-semibold uppercase tracking-wide mb-2">
+                  Sesiones ({data.sessions.length})
+                </p>
+                <div className="space-y-2">
+                  {data.sessions.map(s => {
+                    const dif = s.difference ?? 0
+                    return (
+                      <div key={s.id} className="bg-black/30 rounded-xl p-3 border border-white/8 text-xs">
+                        <div className="flex items-center justify-between mb-1.5">
+                          <p className="text-white font-medium">
+                            {new Date(s.opened_at).toLocaleString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                            {s.closed_at && ' → ' + new Date(s.closed_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
+                            s.status === 'open'
+                              ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                              : 'bg-white/8 text-white/60 border border-white/10'
+                          }`}>
+                            {s.status === 'open' ? 'ABIERTA' : 'CERRADA'}
+                          </span>
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-white/60">
+                          <div><span className="text-white/35">Apertura:</span> {clp(s.opening_amount)}</div>
+                          <div><span className="text-white/35">Efectivo:</span> {clp(s.total_cash ?? 0)}</div>
+                          <div><span className="text-white/35">Digital:</span> {clp(s.total_digital ?? 0)}</div>
+                          <div><span className="text-white/35">Pedidos:</span> {s.total_orders ?? 0}</div>
+                        </div>
+                        {s.status === 'closed' && (
+                          <div className={`mt-2 pt-2 border-t border-white/5 flex items-center justify-between text-[11px]
+                            ${dif === 0 ? 'text-emerald-400' : dif > 0 ? 'text-blue-400' : 'text-amber-400'}`}>
+                            <span>
+                              Diferencia: <strong>{dif === 0 ? '$0 (cuadrada)' : `${dif > 0 ? '+' : ''}${clp(dif)}`}</strong>
+                            </span>
+                            {s.notes && <span className="text-white/40 italic truncate ml-2">{s.notes}</span>}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {data.aggregate.orders_count === 0 && data.sessions.length === 0 && (
+              <div className="text-center py-8 text-white/30 text-sm">
+                No hay actividad de caja en este período.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
+function KpiCard({
+  label, value, accent, small,
+}: {
+  label: string; value: string;
+  accent: 'white' | 'emerald' | 'blue' | 'amber'; small?: boolean
+}) {
+  const colors: Record<string, string> = {
+    white:   'text-white',
+    emerald: 'text-emerald-400',
+    blue:    'text-blue-400',
+    amber:   'text-amber-400',
+  }
+  return (
+    <div className="bg-black/30 rounded-xl border border-white/8 p-3">
+      <p className="text-white/35 text-[10px] uppercase tracking-wide font-semibold">{label}</p>
+      <p className={`${small ? 'text-base' : 'text-lg'} font-bold ${colors[accent]} tabular-nums mt-0.5`}>{value}</p>
     </div>
   )
 }
