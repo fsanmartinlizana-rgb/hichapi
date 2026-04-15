@@ -132,9 +132,16 @@ export function teamInviteEmail(opts: InviteEmailOpts): { subject: string; html:
     </ul>
 
     <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:24px 0 20px;" />
+    <p style="margin:0 0 8px;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.5);">
+      <strong style="color:rgba(255,255,255,0.7);">⚠ Importante:</strong>
+    </p>
+    <ul style="margin:0 0 12px;padding-left:18px;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.45);">
+      <li>El enlace es de <strong style="color:rgba(255,255,255,0.6);">un solo uso</strong> y expira en <strong style="color:rgba(255,255,255,0.6);">1 hora</strong>.</li>
+      <li>Hacé click vos directamente, sin compartirlo. Algunos clientes de email (Outlook, Gmail) hacen "preview" del link y lo consumen automáticamente.</li>
+      <li>Si ya expiró, podés pedir uno nuevo desde la pantalla de error.</li>
+    </ul>
     <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.4);">
-      <strong style="color:rgba(255,255,255,0.6);">⚠ El enlace expira en 24 horas.</strong><br/>
-      Si no fuiste tú o no esperabas esta invitación, ignorá este correo — tu cuenta seguirá segura.
+      Si no fuiste vos o no esperabas esta invitación, ignorá este correo — tu cuenta seguirá segura.
     </p>
   `
 

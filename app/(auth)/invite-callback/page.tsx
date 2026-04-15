@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Loader2, AlertCircle, CheckCircle2, Shield } from 'lucide-react'
+import { Loader2, AlertCircle, CheckCircle2, Shield, RefreshCw, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -13,10 +13,23 @@ import { createClient } from '@/lib/supabase/client'
 // por una sesión y mandamos al usuario a crear su contraseña.
 // ─────────────────────────────────────────────────────────────────────────────
 
+function isExpiredError(msg: string): boolean {
+  const m = msg.toLowerCase()
+  return (
+    m.includes('expired') ||
+    m.includes('invalid or has expired') ||
+    m.includes('invalid token') ||
+    m.includes('otp_expired')
+  )
+}
+
 export default function InviteCallbackPage() {
   const router = useRouter()
   const [error, setError]   = useState<string | null>(null)
   const [status, setStatus] = useState<'loading' | 'ok'>('loading')
+  const [resending, setResending] = useState(false)
+  const [resendMsg, setResendMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  const [resendEmail, setResendEmail] = useState('')
 
   useEffect(() => {
     const supabase = createClient()
@@ -53,7 +66,7 @@ export default function InviteCallbackPage() {
         })
 
         if (sessionError) {
-          setError('No pudimos validar tu invitación. Pídele a tu admin que la reenvíe.')
+          setError(sessionError.message ?? 'No pudimos validar tu invitación.')
           return
         }
 
@@ -83,6 +96,35 @@ export default function InviteCallbackPage() {
     run()
   }, [router])
 
+  async function handleResend(e?: React.FormEvent) {
+    e?.preventDefault()
+    if (!resendEmail || resending) return
+    setResending(true)
+    setResendMsg(null)
+    try {
+      const res = await fetch('/api/auth/resend-invite', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: resendEmail.trim().toLowerCase() }),
+      })
+      const j = await res.json()
+      if (!res.ok) {
+        setResendMsg({ ok: false, text: j.error ?? 'No pudimos reenviar la invitación.' })
+      } else {
+        setResendMsg({
+          ok:   true,
+          text: j.message ?? 'Te enviamos un nuevo link a tu correo. Revisá en 1-2 minutos.',
+        })
+      }
+    } catch {
+      setResendMsg({ ok: false, text: 'Sin conexión. Reintentá.' })
+    } finally {
+      setResending(false)
+    }
+  }
+
+  const expired = error ? isExpiredError(error) : false
+
   return (
     <div className="space-y-6">
 
@@ -92,7 +134,9 @@ export default function InviteCallbackPage() {
           hi
         </div>
         <h1 className="text-white font-bold text-2xl">Bienvenido a HiChapi</h1>
-        <p className="text-white/40 text-sm">Estamos validando tu invitación…</p>
+        <p className="text-white/40 text-sm">
+          {expired ? 'Tu invitación expiró o ya fue usada' : 'Estamos validando tu invitación…'}
+        </p>
       </div>
 
       <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
@@ -100,14 +144,67 @@ export default function InviteCallbackPage() {
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
               <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-              <p className="text-red-400 text-sm leading-relaxed">{error}</p>
+              <div className="text-red-400 text-sm leading-relaxed">
+                <p>{error}</p>
+                {expired && (
+                  <p className="text-red-300/70 text-xs mt-2 leading-relaxed">
+                    Esto puede pasar porque (1) el link expiró, (2) ya fue usado, o (3) tu cliente de email lo
+                    consumió en una vista previa antes que vos. Pedí uno nuevo abajo y entrá apenas te llegue.
+                  </p>
+                )}
+              </div>
             </div>
-            <Link
-              href="/login"
-              className="block w-full text-center py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
-            >
-              Ir al inicio de sesión
-            </Link>
+
+            {expired ? (
+              <form onSubmit={handleResend} className="space-y-3">
+                <label className="text-white/60 text-xs font-medium block">
+                  Tu email
+                </label>
+                <input
+                  type="email"
+                  required
+                  value={resendEmail}
+                  onChange={e => setResendEmail(e.target.value)}
+                  placeholder="tu@email.com"
+                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-[#FF6B35]/50"
+                />
+                <button
+                  type="submit"
+                  disabled={!resendEmail || resending}
+                  className="w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+                >
+                  {resending
+                    ? <><Loader2 size={14} className="animate-spin" /> Enviando…</>
+                    : <><RefreshCw size={14} /> Reenviar invitación</>
+                  }
+                </button>
+
+                {resendMsg && (
+                  <div className={`flex items-start gap-2 px-3 py-2.5 rounded-xl border text-xs ${
+                    resendMsg.ok
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
+                      : 'bg-red-500/10 border-red-500/20 text-red-300'
+                  }`}>
+                    <Mail size={12} className="shrink-0 mt-0.5" />
+                    <p>{resendMsg.text}</p>
+                  </div>
+                )}
+
+                <Link
+                  href="/login"
+                  className="block w-full text-center py-2.5 rounded-xl border border-white/10 text-white/50 text-xs hover:border-white/20 transition-colors"
+                >
+                  ¿Ya tienes cuenta? Iniciá sesión
+                </Link>
+              </form>
+            ) : (
+              <Link
+                href="/login"
+                className="block w-full text-center py-3.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
+              >
+                Ir al inicio de sesión
+              </Link>
+            )}
           </div>
         ) : status === 'ok' ? (
           <div className="text-center space-y-4 py-2">
