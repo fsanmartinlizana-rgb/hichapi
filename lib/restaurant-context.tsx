@@ -26,6 +26,7 @@ interface RestaurantContextValue {
   loading:       boolean
   switchTo:      (id: string) => void
   logout:        () => Promise<void>
+  refresh:       () => Promise<void>   // force re-load (e.g. tras cambiar plan)
 }
 
 const RestaurantContext = createContext<RestaurantContextValue>({
@@ -36,6 +37,7 @@ const RestaurantContext = createContext<RestaurantContextValue>({
   loading:      true,
   switchTo:     () => {},
   logout:       async () => {},
+  refresh:      async () => {},
 })
 
 export function useRestaurant() {
@@ -125,6 +127,29 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [load])
 
+  // Realtime: cuando cambia el plan u otros datos del restaurant (upgrade via
+  // /modulos, cambio desde super admin, etc.), refrescamos el contexto para
+  // que el sidebar desbloquee los módulos al toque sin necesidad de logout.
+  useEffect(() => {
+    const ids = restaurants.map(r => r.id)
+    if (ids.length === 0) return
+    const ch = supabase
+      .channel('restaurant-context-rt')
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'restaurants' },
+        (payload) => {
+          const updated = payload.new as Partial<Restaurant> & { id: string }
+          if (!ids.includes(updated.id)) return
+          // Reemplaza en la lista + en el current si aplica
+          setRestaurants(prev => prev.map(r => r.id === updated.id ? { ...r, ...updated } : r))
+          setRestaurant(prev => prev && prev.id === updated.id ? { ...prev, ...updated } : prev)
+        },
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restaurants, supabase])
+
   function switchTo(id: string) {
     const r = restaurants.find(r => r.id === id)
     if (!r) return
@@ -138,7 +163,7 @@ export function RestaurantProvider({ children }: { children: React.ReactNode }) 
   }
 
   return (
-    <RestaurantContext.Provider value={{ restaurant, restaurants, profile, isSuperAdmin, loading, switchTo, logout }}>
+    <RestaurantContext.Provider value={{ restaurant, restaurants, profile, isSuperAdmin, loading, switchTo, logout, refresh: load }}>
       {children}
     </RestaurantContext.Provider>
   )
