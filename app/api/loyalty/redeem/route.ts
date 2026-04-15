@@ -73,21 +73,77 @@ export async function POST(req: NextRequest) {
         .maybeSingle()
       if (!reward) return NextResponse.json({ error: 'Recompensa no disponible' }, { status: 400 })
 
-      // Look up existing user_id for that email (via helper RPC on auth.users).
-      // If the RPC doesn't exist (migration 045 not applied yet), we fall through
-      // with existingUserId = null and still try to issue the coupon.
+      // ── Step 1: asegurar que existe un user_id en auth.users ────────────────
+      // Si migration 045 corrió, podemos usar la RPC. Si no, usamos auth.admin
+      // para crear/encontrar el usuario. El resultado garantiza existingUserId
+      // para usar el schema legacy de customer_coupons (user_id NOT NULL).
       let existingUserId: string | null = null
+      let createdNewUser = false
+
+      // Intento 1: RPC get_user_id_by_email (requiere migration 045)
       try {
         const { data: lookup, error: rpcErr } = await supabase
           .rpc('get_user_id_by_email', { p_email: normalizedEmail })
         if (!rpcErr && lookup && typeof lookup === 'string') existingUserId = lookup
       } catch {
-        /* RPC missing: non-fatal, proceed */
+        /* RPC missing: fallthrough */
       }
 
-      // Create the coupon (no deduction — this is a gift).
-      // Two-step insert with fallback: new schema (with customer_email/name) first,
-      // then legacy schema (user_id-only) if the new columns don't exist yet.
+      // Intento 2: listUsers + filter (funciona sin migration)
+      if (!existingUserId) {
+        try {
+          const { data: list } = await supabase.auth.admin.listUsers({ perPage: 200 })
+          const found = list?.users?.find(
+            (u: { email?: string | null }) => u.email?.toLowerCase() === normalizedEmail,
+          )
+          if (found) existingUserId = found.id
+        } catch (err) {
+          console.error('[loyalty] listUsers failed:', err)
+        }
+      }
+
+      // Intento 3: crear usuario silenciosamente (sin email_confirm)
+      // Esto permite que el cupón tenga user_id válido sin necesitar migration.
+      if (!existingUserId) {
+        try {
+          const { data: created, error: createErr } = await supabase.auth.admin.createUser({
+            email:         normalizedEmail,
+            email_confirm: false, // quedan "unconfirmed" hasta que entren via email
+            user_metadata: {
+              created_via: 'loyalty_coupon_gift',
+              full_name:   data.on_behalf_of_name ?? null,
+            },
+          })
+          if (createErr) {
+            // Si el usuario ya existe con otro casing, reintentá listUsers
+            console.error('[loyalty] createUser error:', createErr.message)
+            const { data: list2 } = await supabase.auth.admin.listUsers({ perPage: 500 })
+            const found2 = list2?.users?.find(
+              (u: { email?: string | null }) => u.email?.toLowerCase() === normalizedEmail,
+            )
+            if (found2) existingUserId = found2.id
+          } else if (created?.user?.id) {
+            existingUserId = created.user.id
+            createdNewUser = true
+          }
+        } catch (err) {
+          console.error('[loyalty] createUser exception:', err)
+        }
+      }
+
+      if (!existingUserId) {
+        return NextResponse.json(
+          {
+            error: 'No pudimos crear o encontrar la cuenta del cliente para emitir el cupón.',
+            hint:  'Revisá que el email sea válido. Si persiste, correr migration 045 en Supabase Studio (SQL Editor).',
+          },
+          { status: 500 },
+        )
+      }
+
+      // ── Step 2: crear el cupón ─────────────────────────────────────────────
+      // Intentamos schema nuevo (con customer_email/name si migration 045 corrió);
+      // si falla por columna faltante, caemos a schema legacy (user_id-only).
       const code = generateCouponCode()
       const expiresIso = new Date(Date.now() + 1000 * 60 * 60 * 24 * 60).toISOString()
 
@@ -96,6 +152,7 @@ export async function POST(req: NextRequest) {
       let couponExpires: string | null = expiresIso
       let cpErr: { message?: string; code?: string } | null = null
 
+      // Intento 1: schema nuevo (con customer_email)
       {
         const { data: couponRow, error } = await supabase
           .from('customer_coupons')
@@ -121,8 +178,8 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      // Fallback: legacy schema without customer_email/name (migration 045 no corrida)
-      if (!couponId && cpErr && existingUserId) {
+      // Intento 2: schema legacy (sin customer_email/name)
+      if (!couponId) {
         const { data: legacyRow, error: legacyErr } = await supabase
           .from('customer_coupons')
           .insert({
@@ -147,11 +204,12 @@ export async function POST(req: NextRequest) {
       }
 
       if (!couponId) {
-        const hint = !existingUserId
-          ? 'Falta correr la migración 045 (customer_coupons + email). Si el cliente ya tiene cuenta HiChapi, puedes emitirle el cupón normalmente.'
-          : 'No se pudo crear el cupón.'
         return NextResponse.json(
-          { error: cpErr?.message ?? hint, hint, detail: cpErr?.message ?? null },
+          {
+            error:  'No se pudo crear el cupón.',
+            hint:   'Revisá que la recompensa esté activa. Si persiste, contactá soporte.',
+            detail: cpErr?.message ?? null,
+          },
           { status: 500 },
         )
       }
@@ -192,16 +250,50 @@ export async function POST(req: NextRequest) {
         alreadyUser:    !!existingUserId,
       })
 
+      // ── Step 3: enviar email ────────────────────────────────────────────────
+      // Intento 1: Resend (branded template). Si no está configurado, skipped=true.
       const mailRes = await sendBrandedEmail({ to: normalizedEmail, subject, html, text })
+
+      // Intento 2 (fallback): si Resend skippeado y creamos un user nuevo,
+      // usamos el email de invitación de Supabase como carrier mínimo.
+      // (Supabase envía su propio email con un link que lleva a /invite-callback,
+      // donde podemos incluir el código del cupón en el redirect.)
+      let carrierUsed: 'resend' | 'supabase_invite' | 'none' = mailRes.ok ? 'resend' : 'none'
+      if (!mailRes.ok && createdNewUser) {
+        try {
+          const redirectTo = `${origin}/invite-callback?coupon=${encodeURIComponent(coupon.code)}&next=/mi-wallet`
+          const { error: inviteErr } = await supabase.auth.admin.inviteUserByEmail(
+            normalizedEmail,
+            {
+              redirectTo,
+              data: {
+                coupon_code:    coupon.code,
+                restaurant_name: rest?.name ?? 'Tu restaurante',
+              },
+            },
+          )
+          if (!inviteErr) {
+            carrierUsed = 'supabase_invite'
+            console.info(`[loyalty] Supabase invite email sent as fallback to ${normalizedEmail}`)
+          } else {
+            console.error('[loyalty] Supabase invite fallback failed:', inviteErr.message)
+          }
+        } catch (err) {
+          console.error('[loyalty] Supabase invite fallback exception:', err)
+        }
+      }
 
       return NextResponse.json({
         ok: true,
         via: 'gift_email',
         coupon,
         reward: { id: reward.id, name: reward.name, type: reward.type },
-        email_sent: mailRes.ok,
-        email_skipped: mailRes.skipped ?? false,
-        recipient: { email: normalizedEmail, name: data.on_behalf_of_name ?? null, existing_user: !!existingUserId },
+        email_sent:       mailRes.ok || carrierUsed === 'supabase_invite',
+        email_skipped:    mailRes.skipped ?? false,
+        email_carrier:    carrierUsed,
+        email_provider:   mailRes.provider ?? null,
+        created_new_user: createdNewUser,
+        recipient: { email: normalizedEmail, name: data.on_behalf_of_name ?? null, existing_user: !!existingUserId && !createdNewUser },
       })
     }
 

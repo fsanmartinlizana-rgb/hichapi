@@ -511,7 +511,13 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
   const [rewardId, setRewardId] = useState('')
   const [busy, setBusy] = useState(false)
   const [result, setResult] = useState<
-    { code?: string; error?: string; emailSent?: boolean; emailSkipped?: boolean; existingUser?: boolean } | null
+    {
+      code?: string; error?: string
+      emailSent?: boolean; emailSkipped?: boolean
+      emailCarrier?: 'resend' | 'supabase_invite' | 'none'
+      createdNewUser?: boolean
+      existingUser?: boolean
+    } | null
   >(null)
 
   const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
@@ -524,6 +530,8 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
         coupon?: { code: string }
         email_sent?: boolean
         email_skipped?: boolean
+        email_carrier?: 'resend' | 'supabase_invite' | 'none'
+        created_new_user?: boolean
         recipient?: { existing_user?: boolean }
       }>('/api/loyalty/redeem', {
         method: 'POST',
@@ -535,10 +543,12 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
         }),
       })
       setResult({
-        code:         res.coupon?.code,
-        emailSent:    res.email_sent,
-        emailSkipped: res.email_skipped,
-        existingUser: res.recipient?.existing_user,
+        code:           res.coupon?.code,
+        emailSent:      res.email_sent,
+        emailSkipped:   res.email_skipped,
+        emailCarrier:   res.email_carrier,
+        createdNewUser: res.created_new_user,
+        existingUser:   res.recipient?.existing_user,
       })
       if (res.coupon?.code) {
         setEmail('')
@@ -596,22 +606,79 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
         Enviar cupón por email
       </button>
 
-      {result?.code && (
-        <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs space-y-1">
-          <div>
-            Cupón emitido: <span className="font-mono font-bold">{result.code}</span>
+      {result?.code && (() => {
+        // Armar mensaje para compartir por WhatsApp como backup al email
+        const rewardName = rewards.find(r => r.id === rewardId)?.name ?? 'recompensa'
+        const baseUrl = typeof window !== 'undefined' ? window.location.origin : ''
+        const waMessage =
+          `¡Hola! Te regalamos un cupón de ${rewardName} 🎁\n\n` +
+          `Código: ${result.code}\n\n` +
+          `Reclamalo en tu wallet HiChapi: ${baseUrl}/mi-wallet\n` +
+          `(Tu email: ${email || 'el que nos compartiste'})`
+        const waUrl = `https://wa.me/?text=${encodeURIComponent(waMessage)}`
+
+        return (
+        <div className="px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30 text-emerald-200 text-xs space-y-2">
+          <div className="flex items-center gap-2">
+            <span>Cupón emitido:</span>
+            <span className="font-mono font-bold select-all">{result.code}</span>
+            <button
+              onClick={() => { if (result.code) navigator.clipboard?.writeText(result.code) }}
+              className="ml-auto text-emerald-300/70 hover:text-emerald-300 text-[10px] underline underline-offset-2"
+            >
+              copiar
+            </button>
+          </div>
+
+          <div className="flex gap-2">
+            <a
+              href={waUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-200 text-[10px] font-semibold hover:bg-emerald-500/30 transition-colors"
+              title="Compartir código por WhatsApp"
+            >
+              📱 Compartir por WhatsApp
+            </a>
+            <button
+              onClick={() => navigator.clipboard?.writeText(
+                `Cupón ${rewardName}: ${result.code} (reclamalo en ${baseUrl}/mi-wallet)`
+              )}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/8 border border-white/15 text-white/70 text-[10px] font-medium hover:bg-white/15 transition-colors"
+            >
+              📋 Copiar mensaje completo
+            </button>
           </div>
           <div className="text-emerald-300/80 text-[11px]">
-            {result.emailSent
-              ? result.existingUser
-                ? '✉ Email enviado. El cupón ya está disponible en su wallet.'
-                : '✉ Email enviado con CTA para crear cuenta y guardar el cupón en el wallet virtual.'
-              : result.emailSkipped
-                ? '⚠ Cupón creado, pero el envío de email está deshabilitado (falta RESEND_API_KEY). Comparte el código manualmente.'
-                : '⚠ Cupón creado, pero el email no pudo enviarse. Comparte el código manualmente.'}
+            {result.emailCarrier === 'resend' && (
+              result.existingUser
+                ? '✉ Email branded enviado (Resend). Ya está en el wallet del cliente.'
+                : '✉ Email branded enviado (Resend) con CTA para crear cuenta y guardar el cupón.'
+            )}
+            {result.emailCarrier === 'supabase_invite' && (
+              '✉ Email de invitación enviado por Supabase (fallback — sin template branded). El cliente recibe un link para crear cuenta; el código del cupón queda vinculado. Para emails branded, configurá RESEND_API_KEY.'
+            )}
+            {result.emailCarrier === 'none' && !result.existingUser && (
+              '⚠ Cupón creado pero no se envió email (RESEND_API_KEY no configurada y cliente recién creado sin invite). Compartí el código manualmente: ' + result.code
+            )}
+            {result.emailCarrier === 'none' && result.existingUser && (
+              '⚠ Cupón creado pero no se envió email. El cliente ya tiene cuenta HiChapi — avisale que revise su wallet virtual (/mi-wallet).'
+            )}
+            {!result.emailCarrier && result.emailSkipped && (
+              '⚠ Cupón creado, pero el envío de email está deshabilitado (falta RESEND_API_KEY). Comparte el código manualmente.'
+            )}
+            {!result.emailCarrier && !result.emailSkipped && !result.emailSent && (
+              '⚠ Cupón creado, pero el email no pudo enviarse. Comparte el código manualmente.'
+            )}
           </div>
+          {result.createdNewUser && (
+            <div className="text-emerald-300/50 text-[10px] pt-1 border-t border-emerald-500/15">
+              🆕 Se creó una cuenta nueva para este cliente.
+            </div>
+          )}
         </div>
-      )}
+        )
+      })()}
       {result?.error && (
         <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
           {result.error}

@@ -31,6 +31,12 @@ export default function InviteCallbackPage() {
         const refresh_token = params.get('refresh_token')
         const errParam      = params.get('error_description') ?? params.get('error')
 
+        // Query params (?coupon=..., ?next=...) vienen en search, no hash
+        const searchParams = typeof window !== 'undefined'
+          ? new URLSearchParams(window.location.search) : new URLSearchParams()
+        const couponCode = searchParams.get('coupon')
+        const nextPath   = searchParams.get('next')
+
         if (errParam) {
           setError(decodeURIComponent(errParam))
           return
@@ -51,13 +57,24 @@ export default function InviteCallbackPage() {
           return
         }
 
+        // Post-login: si hay cupón pendiente, lo reclamamos para que quede
+        // vinculado a la cuenta recién creada (wallet virtual).
+        try {
+          await fetch('/api/loyalty/claim-coupons', { method: 'POST' })
+        } catch { /* best-effort — no bloquea */ }
+
         // Limpiar el hash de la URL por seguridad
         window.history.replaceState(null, '', window.location.pathname)
 
         setStatus('ok')
 
-        // Mandar a crear contraseña — al terminar irá al panel
-        setTimeout(() => router.replace('/update-password'), 800)
+        // Si vino con ?next=/mi-wallet (flujo cupón), vamos directo al wallet
+        // Si no, flujo tradicional: crear contraseña y al panel
+        const redirectPath = nextPath && nextPath.startsWith('/')
+          ? `/update-password?next=${encodeURIComponent(nextPath)}${couponCode ? `&coupon=${encodeURIComponent(couponCode)}` : ''}`
+          : '/update-password'
+
+        setTimeout(() => router.replace(redirectPath), 800)
       } catch {
         setError('Ocurrió un error procesando tu invitación.')
       }
