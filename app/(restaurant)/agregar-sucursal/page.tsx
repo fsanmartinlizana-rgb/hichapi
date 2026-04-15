@@ -28,11 +28,12 @@ export default function AgregarSucursalPage() {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({
-          name:              name.trim(),
-          address:           address.trim(),
-          neighborhood:      neighborhood.trim(),
-          cuisine_type:      cuisine.trim() || undefined,
-          copy_menu_from_id: copyFromId || undefined,
+          name:                 name.trim(),
+          address:              address.trim(),
+          neighborhood:         neighborhood.trim(),
+          cuisine_type:         cuisine.trim() || undefined,
+          copy_menu_from_id:    copyFromId || undefined,
+          parent_restaurant_id: restaurant?.id, // hereda brand del restaurant activo
         }),
       })
       const j = await res.json()
@@ -71,6 +72,22 @@ export default function AgregarSucursalPage() {
           </p>
         </div>
       </div>
+
+      {/* Info: flujo recomendado */}
+      {restaurant?.id && (
+        <div className="bg-[#FF6B35]/8 border border-[#FF6B35]/25 rounded-xl p-3 flex items-start gap-2">
+          <span className="text-[#FF6B35] text-base leading-none mt-0.5">ℹ️</span>
+          <div className="text-[11px] leading-relaxed">
+            <p className="text-white/80">
+              Si solo querés agregar un <strong>local</strong> bajo la misma marca (menú/reportes compartidos),
+              usá <Link href="/configuracion/locations" className="text-[#FF6B35] underline hover:no-underline">Configuración → Locales</Link>.
+            </p>
+            <p className="text-white/50 mt-1">
+              Este flujo crea una sucursal con su propio equipo y módulos independientes.
+            </p>
+          </div>
+        </div>
+      )}
 
       {done ? (
         <div className="bg-emerald-500/8 border border-emerald-500/30 rounded-2xl p-6 space-y-4">
