@@ -71,17 +71,29 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Fetch role + restaurant from team_members
+  // Fetch role + restaurant from team_members.
+  // IMPORTANTE: un usuario puede ser miembro de varios restaurantes (super
+  // admin, owner con multi-local, etc.). Nunca usar .single() aquí: falla con
+  // >1 fila y deja membership=null, lo que redirige a todos como si fueran
+  // garzones. Traemos todas las memberships activas y elegimos el rol más
+  // privilegiado como rol efectivo para gating de rutas.
   if (user && isProtected) {
-    const { data: membership } = await supabase
+    const { data: memberships } = await supabase
       .from('team_members')
       .select('role, restaurant_id')
       .eq('user_id', user.id)
       .eq('active', true)
-      .single()
 
-    const role         = membership?.role ?? null
-    const restaurantId = membership?.restaurant_id ?? null
+    const list = memberships ?? []
+    const ROLE_PRIORITY = ['super_admin', 'owner', 'admin', 'supervisor', 'cocina', 'anfitrion', 'garzon', 'waiter']
+    const pickBest = (arr: { role: string | null }[]) =>
+      arr
+        .map(m => m.role)
+        .filter((r): r is string => !!r)
+        .sort((a, b) => ROLE_PRIORITY.indexOf(a) - ROLE_PRIORITY.indexOf(b))[0] ?? null
+
+    const role         = pickBest(list)
+    const restaurantId = list[0]?.restaurant_id ?? null
     const isSuperAdmin = role === 'super_admin'
     const isAdminLevel = role ? ADMIN_ROLES.has(role) : false
 
