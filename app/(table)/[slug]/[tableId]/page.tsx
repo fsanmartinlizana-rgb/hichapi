@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   Send, ShoppingCart, X, Plus, Minus, CheckCircle2,
   Loader2, Utensils, SplitSquareHorizontal, Receipt,
-  Trash2, Bell, BookOpen,
+  Trash2, Bell, BookOpen, Star,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/i18n'
@@ -38,6 +38,10 @@ interface Message {
   loading?: boolean
   /** When present, render an inline menu grid after the bubble */
   menuItems?: MenuItem[]
+  /** Cuando se pagó la mesa: render encuesta de feedback inline */
+  npsSurvey?: { orderId: string; restaurantSlug: string }
+  /** Estado del survey post-submit (para mostrar "gracias" en lugar del form) */
+  npsSubmitted?: boolean
 }
 
 type OrderStatus = 'idle' | 'confirming' | 'sent' | 'splitting'
@@ -324,6 +328,148 @@ function ChevronDownIcon({ open }: { open: boolean }) {
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
+  )
+}
+
+// ── NPS Survey card (inline en el chat) ─────────────────────────────────────
+function NpsSurveyCard({
+  orderId,
+  restaurantSlug,
+  submitted,
+  onSubmitted,
+}: {
+  orderId:        string
+  restaurantSlug: string
+  submitted?:     boolean
+  onSubmitted:    () => void
+}) {
+  const [rating,      setRating]      = useState(0)
+  const [hover,       setHover]       = useState(0)
+  const [comment,     setComment]     = useState('')
+  const [saving,      setSaving]      = useState(false)
+  const [error,       setError]       = useState<string | null>(null)
+  const [doneInline,  setDoneInline]  = useState(false)
+
+  const isDone = submitted || doneInline
+
+  async function handleSubmit() {
+    if (rating === 0 || saving) return
+    setSaving(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/reviews/post-order', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          order_id:        orderId,
+          restaurant_slug: restaurantSlug,
+          rating,
+          comment,
+        }),
+      })
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}))
+        setError(j.error ?? 'No pudimos enviar tu opinión.')
+        return
+      }
+      setDoneInline(true)
+      onSubmitted()
+    } catch {
+      setError('Sin conexión. Intentá de nuevo.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (isDone) {
+    return (
+      <div className="mt-2 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3">
+        <div className="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
+          <CheckCircle2 size={18} className="text-emerald-400" />
+        </div>
+        <div>
+          <p className="text-emerald-300 font-bold text-sm">¡Gracias por tu opinión! 💚</p>
+          <p className="text-emerald-200/70 text-xs mt-1">
+            Tu feedback ayuda al restaurante a mejorar y a otros comensales a descubrirlo.
+          </p>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="mt-2 bg-[#161622] border border-[#FF6B35]/25 rounded-2xl p-4 space-y-3">
+      <div>
+        <p className="text-white font-bold text-sm">¿Cómo estuvo todo?</p>
+        <p className="text-white/40 text-xs mt-0.5">
+          Tu opinión ayuda al restaurante a mejorar.
+        </p>
+      </div>
+
+      {/* Rating */}
+      <div className="flex items-center justify-center gap-1.5 py-2">
+        {[1, 2, 3, 4, 5].map(n => {
+          const filled = (hover || rating) >= n
+          return (
+            <button
+              key={n}
+              type="button"
+              onClick={() => setRating(n)}
+              onMouseEnter={() => setHover(n)}
+              onMouseLeave={() => setHover(0)}
+              className="p-1 transition-transform active:scale-90"
+              aria-label={`Calificar con ${n} estrella${n === 1 ? '' : 's'}`}
+            >
+              <Star
+                size={32}
+                className={filled ? 'text-amber-400' : 'text-white/15'}
+                fill={filled ? '#FBBF24' : 'transparent'}
+                strokeWidth={1.5}
+              />
+            </button>
+          )
+        })}
+      </div>
+
+      {rating > 0 && (
+        <p className="text-center text-xs font-semibold" style={{
+          color: rating >= 4 ? '#34D399' : rating === 3 ? '#FBBF24' : '#F87171',
+        }}>
+          {rating === 5 && '¡Excelente! Lo amamos'}
+          {rating === 4 && 'Muy bueno'}
+          {rating === 3 && 'Estuvo bien'}
+          {rating === 2 && 'Podría mejorar'}
+          {rating === 1 && 'No nos gustó'}
+        </p>
+      )}
+
+      {/* Comment (opcional) */}
+      <textarea
+        value={comment}
+        onChange={e => setComment(e.target.value)}
+        placeholder="¿Qué tal la comida, el servicio, el ambiente? (opcional)"
+        rows={3}
+        maxLength={1000}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/50 resize-none"
+      />
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2 text-red-300 text-xs">
+          {error}
+        </div>
+      )}
+
+      <button
+        onClick={handleSubmit}
+        disabled={rating === 0 || saving}
+        className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+      >
+        {saving
+          ? <><Loader2 size={14} className="animate-spin" /> Enviando…</>
+          : 'Enviar opinión'
+        }
+      </button>
+    </div>
   )
 }
 
@@ -877,7 +1023,8 @@ export default function TablePage() {
     }])
   }, [menu])
 
-  // Subscribe to order status changes — when admin marks 'paid', send user to review
+  // Subscribe to order status changes — cuando admin marca 'paid', mostrar
+  // la encuesta NPS inline en el chat (no navegamos a /review).
   useEffect(() => {
     if (!orderId) return
     const supabase = createClient()
@@ -889,13 +1036,32 @@ export default function TablePage() {
         payload => {
           const next = (payload.new as { status?: string } | null)?.status
           if (next === 'paid') {
-            router.push(`/${slug}/review?order=${orderId}`)
+            // Verificar que no hayamos mostrado ya la encuesta (evitar duplicados
+            // si llegan varios eventos UPDATE)
+            setMessages(prev => {
+              if (prev.some(m => m.npsSurvey?.orderId === orderId)) return prev
+              return [
+                ...prev,
+                {
+                  id: `paid-${orderId}-${Date.now()}`,
+                  role: 'chapi',
+                  text: '¡Gracias por tu visita! 🎉 Antes de irte, ¿nos ayudás con un feedback rápido? Tu opinión hace la diferencia.',
+                },
+                {
+                  id: `survey-${orderId}-${Date.now()}`,
+                  role: 'chapi',
+                  text: '',
+                  npsSurvey: { orderId, restaurantSlug: slug },
+                },
+              ]
+            })
           }
         }
       )
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [orderId, router, slug])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [orderId, slug])
 
   const cartTotal = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
@@ -1310,6 +1476,18 @@ export default function TablePage() {
                   onRemove={(id) => changeQty(id, -1)}
                   onConfirm={() => { void confirmOrder() }}
                   confirming={orderStatus === 'confirming'}
+                />
+              </div>
+            )}
+            {msg.npsSurvey && (
+              <div className="w-full pl-8 pr-2">
+                <NpsSurveyCard
+                  orderId={msg.npsSurvey.orderId}
+                  restaurantSlug={msg.npsSurvey.restaurantSlug}
+                  submitted={msg.npsSubmitted}
+                  onSubmitted={() => {
+                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, npsSubmitted: true } : m))
+                  }}
                 />
               </div>
             )}

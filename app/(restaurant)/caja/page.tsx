@@ -5,7 +5,7 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import {
   DollarSign, TrendingUp, CreditCard, Banknote, AlertTriangle, Plus,
   CheckCircle2, Receipt, Trash2, Clock, ArrowDownCircle, ArrowUpCircle,
-  Truck, Coffee, Wrench, HandCoins, MoreHorizontal, BarChart3, X,
+  Truck, Coffee, Wrench, HandCoins, MoreHorizontal, BarChart3, X, Download,
 } from 'lucide-react'
 import { Modal } from '@/components/ui/Modal'
 import { formatCurrency } from '@/lib/i18n'
@@ -667,7 +667,7 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
         </div>
 
         {/* Filters */}
-        <div className="flex gap-2 flex-wrap">
+        <div className="flex gap-2 flex-wrap items-center">
           {(['day', 'week', 'month'] as Period[]).map(p => (
             <button
               key={p}
@@ -687,6 +687,16 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
             onChange={e => setDate(e.target.value)}
             className="ml-auto px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white text-xs focus:outline-none focus:border-orange-500/50"
           />
+          {data && (
+            <button
+              onClick={() => downloadCashReportCSV(data, periodLabels[period], date)}
+              disabled={data.aggregate.orders_count === 0 && data.sessions.length === 0}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-300 text-xs font-medium hover:bg-emerald-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              title="Descargar reporte como CSV (Excel-compatible)"
+            >
+              <Download size={12} /> CSV
+            </button>
+          )}
         </div>
 
         {loading && (
@@ -823,4 +833,99 @@ function KpiCard({
       <p className={`${small ? 'text-base' : 'text-lg'} font-bold ${colors[accent]} tabular-nums mt-0.5`}>{value}</p>
     </div>
   )
+}
+
+// ── CSV / Excel export ─────────────────────────────────────────────────────
+// Genera un CSV con BOM UTF-8 (Excel-compatible) con 3 secciones:
+//   1. Resumen agregado del período
+//   2. Detalle por día (week/month)
+//   3. Listado de sesiones con cuadratura
+function downloadCashReportCSV(data: ReportData, periodLabel: string, anchorDate: string) {
+  // CSV cells helper — escapa comillas, comas y saltos de línea
+  const cell = (v: string | number | null | undefined): string => {
+    if (v === null || v === undefined) return ''
+    const s = String(v)
+    if (/[",\n;]/.test(s)) return `"${s.replace(/"/g, '""')}"`
+    return s
+  }
+  const row = (...cells: (string | number | null | undefined)[]) => cells.map(cell).join(';')
+
+  const lines: string[] = []
+  const a = data.aggregate
+
+  // ─ Encabezado ─────────────────────────────────────────────────────────────
+  lines.push(`Reporte de caja — ${periodLabel}`)
+  lines.push(`Fecha ancla;${anchorDate}`)
+  lines.push(`Rango;${data.range.start.slice(0, 10)};${data.range.end.slice(0, 10)}`)
+  lines.push('')
+
+  // ─ Resumen agregado ────────────────────────────────────────────────────────
+  lines.push('RESUMEN DEL PERÍODO')
+  lines.push(row('Indicador', 'Valor (CLP)'))
+  lines.push(row('Ventas totales',         a.revenue))
+  lines.push(row('Efectivo',               a.cash))
+  lines.push(row('Digital',                a.digital))
+  lines.push(row('Comisión HiChapi',       a.commission))
+  lines.push(row('Gastos',                 a.expenses))
+  lines.push(row('Pedidos cobrados',       a.orders_count))
+  lines.push(row('Sesiones de caja',       a.sessions_count))
+  lines.push(row('Diferencia total',       a.cuadratura.total_diferencias))
+  lines.push(row('Sesiones cuadradas',     a.cuadratura.sesiones_cuadradas))
+  lines.push(row('Sesiones con diferencia', a.cuadratura.sesiones_con_dif))
+  lines.push('')
+
+  // ─ Detalle por día ────────────────────────────────────────────────────────
+  if (data.by_day.length > 0) {
+    lines.push('DETALLE POR DÍA')
+    lines.push(row('Fecha', 'Pedidos', 'Efectivo (CLP)', 'Digital (CLP)', 'Total (CLP)'))
+    for (const d of data.by_day) {
+      lines.push(row(d.date, d.orders, d.cash, d.digital, d.revenue))
+    }
+    lines.push('')
+  }
+
+  // ─ Sesiones ───────────────────────────────────────────────────────────────
+  if (data.sessions.length > 0) {
+    lines.push('SESIONES DE CAJA')
+    lines.push(row(
+      'Sesión', 'Apertura', 'Cierre', 'Estado',
+      'Apertura (CLP)', 'Efectivo (CLP)', 'Digital (CLP)',
+      'Pedidos', 'Gastos (CLP)', 'Cierre real (CLP)', 'Diferencia (CLP)', 'Notas',
+    ))
+    for (const s of data.sessions) {
+      lines.push(row(
+        s.id.slice(0, 8),
+        new Date(s.opened_at).toLocaleString('es-CL'),
+        s.closed_at ? new Date(s.closed_at).toLocaleString('es-CL') : '',
+        s.status,
+        s.opening_amount,
+        s.total_cash    ?? 0,
+        s.total_digital ?? 0,
+        s.total_orders  ?? 0,
+        s.total_expenses ?? 0,
+        s.actual_cash    ?? 0,
+        s.difference     ?? 0,
+        s.notes ?? '',
+      ))
+    }
+    lines.push('')
+  }
+
+  // ─ Footer ─────────────────────────────────────────────────────────────────
+  lines.push('')
+  lines.push(`Generado por HiChapi · ${new Date().toLocaleString('es-CL')}`)
+
+  // BOM UTF-8 + CRLF para que Excel detecte el encoding y separe correctamente
+  const csv  = '\uFEFF' + lines.join('\r\n')
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
+  const url  = URL.createObjectURL(blob)
+  const a2   = document.createElement('a')
+  a2.href     = url
+  a2.download = `caja-${periodLabel.toLowerCase()}-${anchorDate}.csv`
+  document.body.appendChild(a2)
+  a2.click()
+  setTimeout(() => {
+    document.body.removeChild(a2)
+    URL.revokeObjectURL(url)
+  }, 100)
 }
