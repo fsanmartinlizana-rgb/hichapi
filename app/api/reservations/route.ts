@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/auth-guard'
 import { z } from 'zod'
+import { sendBrandedEmail } from '@/lib/email/sender'
+import { reservationConfirmEmail } from '@/lib/email/templates'
 
 // ── POST /api/reservations — Create a reservation (public) ──────────────────
 
@@ -102,10 +104,42 @@ export async function POST(req: NextRequest) {
       throw insertErr
     }
 
+    // ── Enviar email de confirmación (best-effort) ──────────────────────────
+    let emailSent = false
+    if (data.email) {
+      try {
+        const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin
+        const statusUrl = reservation.token
+          ? `${origin}/reservar/${rest.id}?token=${reservation.token}`
+          : `${origin}/reservar/${rest.id}`
+        const displayDate = new Date(`${data.reservation_date}T${data.reservation_time}:00`)
+          .toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+        const { subject, html, text } = reservationConfirmEmail({
+          restaurantName: rest.name,
+          guestName:      data.name,
+          date:           displayDate,
+          time:           data.reservation_time,
+          partySize:      data.party_size,
+          statusUrl,
+        })
+        const res = await sendBrandedEmail({
+          to:      data.email,
+          subject,
+          html,
+          text,
+        })
+        emailSent = res.ok === true
+      } catch (mailErr) {
+        console.error('[email] reservation confirm send failed (non-blocking):', mailErr)
+      }
+    }
+
     return NextResponse.json({
       reservation,
       restaurant_name: rest.name,
       message: 'Reserva confirmada',
+      email_sent: emailSent,
     })
   } catch (err) {
     if (err instanceof z.ZodError) {

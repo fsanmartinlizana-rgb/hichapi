@@ -188,6 +188,7 @@ export async function POST(req: NextRequest) {
     if (teamErr) return NextResponse.json({ error: teamErr.message }, { status: 400 })
 
     // 4. Si tenemos action_link y Resend, mandamos el correo branded
+    let emailStatus: { sent: boolean; skipped?: boolean; error?: string } = { sent: false }
     if (useBranded && actionLink) {
       const { data: rest } = await supabase
         .from('restaurants')
@@ -199,12 +200,25 @@ export async function POST(req: NextRequest) {
         restaurantName: rest?.name ?? 'tu restaurante',
         role,
         actionUrl:      actionLink,
+        invitedByName:  full_name ? undefined : undefined, // not exposing inviter identity yet
       })
 
-      await sendBrandedEmail({ to: email, subject, html, text })
+      const res = await sendBrandedEmail({ to: email, subject, html, text })
+      emailStatus = {
+        sent:    res.ok,
+        skipped: res.skipped,
+        error:   res.error,
+      }
+    } else if (!useBranded) {
+      // Supabase default flow — confiamos en que su SMTP esté configurado
+      emailStatus = { sent: true }
     }
 
-    return NextResponse.json({ ok: true, redirect_hint: ROLE_HOME[role] ?? '/dashboard' })
+    return NextResponse.json({
+      ok: true,
+      redirect_hint: ROLE_HOME[role] ?? '/dashboard',
+      email: emailStatus,
+    })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Datos inválidos', details: err.issues }, { status: 400 })

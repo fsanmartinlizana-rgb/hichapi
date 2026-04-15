@@ -131,11 +131,16 @@ export function ChapiAssistant() {
       })
       const data = await res.json()
       if (!res.ok) {
-        setError(data.error ?? 'Error al consultar a Chapi')
+        const hint = data.hint ? ` ${data.hint}` : ''
+        setError(`${data.error ?? (res.status === 503 ? 'Chapi no está disponible temporalmente.' : 'Error al consultar a Chapi.')}${hint}`)
         return
       }
       // Typewriter effect — reveal the reply progressively
-      const fullReply = data.reply as string
+      // Si viene en modo fallback, anteponemos una línea sutil para que el usuario sepa
+      const baseReply = data.reply as string
+      const fullReply = data.ai_fallback
+        ? `⚠️ Modo degradado (IA principal temporalmente no disponible):\n\n${baseReply}`
+        : baseReply
       const toolsUsed = data.tools_used
       setMessages(prev => [
         ...prev,

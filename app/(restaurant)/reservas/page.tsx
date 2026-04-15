@@ -103,10 +103,33 @@ function ReservationCard({
         <p className="text-yellow-400/60 text-xs italic bg-yellow-500/5 rounded-lg px-3 py-1.5">{reservation.notes}</p>
       )}
 
-      {/* Phone */}
-      <div className="flex items-center gap-2 text-white/25 text-xs">
-        <Phone size={10} />
-        <span>{reservation.phone}</span>
+      {/* Phone + CTA llamar */}
+      <div className="flex items-center gap-2">
+        <a
+          href={`tel:${reservation.phone.replace(/[^+\d]/g, '')}`}
+          className="flex items-center gap-1.5 text-xs text-white/60 hover:text-[#FF6B35] transition-colors"
+          title={`Llamar a ${reservation.name}`}
+        >
+          <Phone size={11} />
+          <span className="font-mono tracking-wide">{reservation.phone}</span>
+        </a>
+        <a
+          href={`tel:${reservation.phone.replace(/[^+\d]/g, '')}`}
+          className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/25 text-[#FF6B35] text-[10px] font-semibold hover:bg-[#FF6B35]/20 transition-colors"
+        >
+          <Phone size={10} /> Llamar
+        </a>
+        {reservation.phone && /^\+?\d+$/.test(reservation.phone.replace(/\s/g, '')) && (
+          <a
+            href={`https://wa.me/${reservation.phone.replace(/[^\d]/g, '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[10px] font-semibold hover:bg-emerald-500/20 transition-colors"
+            title="Enviar WhatsApp"
+          >
+            WhatsApp
+          </a>
+        )}
       </div>
 
       {/* Actions */}

@@ -96,10 +96,15 @@ export function teamInviteEmail(opts: InviteEmailOpts): { subject: string; html:
       <strong style="color:#fff;">${escapeHtml(opts.restaurantName)}</strong> con el rol de
       <strong style="color:${BRAND_ORANGE};">${escapeHtml(roleLabel)}</strong>.
     </p>
-    <p style="margin:0 0 24px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
-      Para activar tu cuenta y elegir tu contraseña, hace click en el botón.
-      Solo te tomará un minuto.
-    </p>
+
+    <div style="background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:12px;padding:16px 18px;margin-bottom:22px;">
+      <p style="margin:0 0 8px;font-size:13px;color:#fff;font-weight:600;">Cómo empezar en 2 pasos:</p>
+      <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.7);">
+        <li>Hacé click en <strong style="color:#fff;">Aceptar invitación</strong> abajo.</li>
+        <li>Elegí tu contraseña (mínimo 12 caracteres) y ¡ya estás adentro!</li>
+      </ol>
+    </div>
+
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr><td align="center" style="padding:8px 0 24px;">
         <a href="${opts.actionUrl}"
@@ -109,15 +114,27 @@ export function teamInviteEmail(opts: InviteEmailOpts): { subject: string; html:
         </a>
       </td></tr>
     </table>
+
     <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,0.4);">
-      Si el botón no funciona, copia y pega este enlace en tu navegador:
+      ¿El botón no funciona? Copia y pega este enlace en tu navegador:
     </p>
-    <p style="margin:0;font-size:11px;word-break:break-all;color:${BRAND_ORANGE};">
+    <p style="margin:0 0 20px;font-size:11px;word-break:break-all;color:${BRAND_ORANGE};">
       ${opts.actionUrl}
     </p>
-    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:28px 0 20px;" />
+
+    <p style="margin:0 0 12px;font-size:13px;color:rgba(255,255,255,0.6);">
+      <strong style="color:#fff;">Con este acceso vas a poder:</strong>
+    </p>
+    <ul style="margin:0 0 20px;padding-left:20px;font-size:13px;line-height:1.8;color:rgba(255,255,255,0.6);">
+      <li>Entrar al panel de <strong style="color:#fff;">${escapeHtml(opts.restaurantName)}</strong> con tu rol de ${escapeHtml(roleLabel)}</li>
+      <li>Ver y gestionar las funciones habilitadas para tu rol (mesas, comandas, cocina, etc.)</li>
+      <li>Recibir notificaciones de pedidos, turnos y cambios operativos</li>
+    </ul>
+
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:24px 0 20px;" />
     <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.4);">
-      Este enlace expira en 24 horas. Si no fuiste tú o no esperabas esta invitación, podés ignorar este correo.
+      <strong style="color:rgba(255,255,255,0.6);">⚠ El enlace expira en 24 horas.</strong><br/>
+      Si no fuiste tú o no esperabas esta invitación, ignorá este correo — tu cuenta seguirá segura.
     </p>
   `
 
@@ -149,36 +166,46 @@ interface WelcomeEmailOpts {
 }
 
 export function welcomeEmail(opts: WelcomeEmailOpts): { subject: string; html: string; text: string } {
-  const subject = '¡Bienvenido a HiChapi! 🎉'
+  const subject = `¡Bienvenido a HiChapi! ${opts.restaurantName} ya está activo`
 
   const bodyHtml = `
-    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Bienvenido a HiChapi!</h1>
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Tu restaurante está en línea! 🎉</h1>
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
-      <strong style="color:#fff;">${escapeHtml(opts.restaurantName)}</strong> ya tiene su cuenta lista.
-      Estamos felices de tenerte acá.
+      <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>
+      ya tiene su cuenta HiChapi activa. Estamos felices de tenerte acá.
     </p>
-    <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
-      Desde tu panel podrás:
-    </p>
-    <ul style="margin:0 0 24px;padding-left:20px;font-size:15px;line-height:1.8;color:rgba(255,255,255,0.7);">
-      <li><strong style="color:#fff;">Carta digital</strong> — Publica tu menú y actualízalo en tiempo real</li>
-      <li><strong style="color:#fff;">Mesas</strong> — Gestiona la ocupación y reservas de tu local</li>
-      <li><strong style="color:#fff;">Comandas</strong> — Envía pedidos a cocina al instante</li>
-    </ul>
+
+    <div style="background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:12px;padding:16px 18px;margin-bottom:22px;">
+      <p style="margin:0 0 10px;font-size:13px;color:#fff;font-weight:600;">🚀 Checklist para los primeros 15 minutos:</p>
+      <ol style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.75);">
+        <li><strong style="color:#fff;">Carta digital</strong> — Subí tus platos (foto, PDF o Excel también sirven).</li>
+        <li><strong style="color:#fff;">Mesas</strong> — Creá las mesas y descargá los QR para imprimir.</li>
+        <li><strong style="color:#fff;">Equipo</strong> — Invitá a tu garzón, cocina y anfitrión.</li>
+      </ol>
+    </div>
+
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
       <tr><td align="center" style="padding:8px 0 24px;">
         <a href="${opts.dashboardUrl}"
            style="display:inline-block;background:${BRAND_ORANGE};color:#fff;font-weight:700;
                   font-size:15px;padding:14px 32px;border-radius:14px;text-decoration:none;">
-          Ir al panel
+          Entrar al panel
         </a>
       </td></tr>
     </table>
+
     <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,0.4);">
-      Si el botón no funciona, copia y pega este enlace en tu navegador:
+      ¿El botón no funciona? Copia este enlace en tu navegador:
     </p>
-    <p style="margin:0;font-size:11px;word-break:break-all;color:${BRAND_ORANGE};">
+    <p style="margin:0 0 18px;font-size:11px;word-break:break-all;color:${BRAND_ORANGE};">
       ${opts.dashboardUrl}
+    </p>
+
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:22px 0 18px;" />
+    <p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.45);">
+      <strong style="color:rgba(255,255,255,0.7);">💡 Tip:</strong>
+      Si necesitás ayuda, chateá con <strong>Chapi</strong> (el botón flotante en el panel)
+      o escribinos a <a href="mailto:soporte@hichapi.com" style="color:${BRAND_ORANGE};text-decoration:none;">soporte@hichapi.com</a>.
     </p>
   `
 
@@ -227,10 +254,14 @@ export function reservationConfirmEmail(opts: ReservationConfirmOpts): { subject
     : ''
 
   const bodyHtml = `
-    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Reserva confirmada!</h1>
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Reserva confirmada! ✅</h1>
     <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
       Hola <strong style="color:#fff;">${escapeHtml(opts.guestName)}</strong>, tu mesa en
-      <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong> está lista.
+      <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong> está reservada.
+    </p>
+
+    <p style="margin:0 0 14px;font-size:13px;color:rgba(255,255,255,0.6);">
+      Guardá este correo — desde acá podés ver el detalle, modificar o cancelar tu reserva.
     </p>
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
            style="background:rgba(255,255,255,0.04);border-radius:12px;margin-bottom:24px;">

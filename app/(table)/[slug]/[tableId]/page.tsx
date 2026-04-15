@@ -477,17 +477,70 @@ function CartDrawer({
 
 // ── Bill modal ────────────────────────────────────────────────────────────────
 
+interface ServerOrder {
+  id: string
+  status: string
+  total: number
+  order_items: Array<{
+    id: string
+    name: string
+    quantity: number
+    unit_price: number
+  }>
+}
+
 function BillModal({
+  tableId,
   cart,
   onClose,
   onRequestBill,
 }: {
+  tableId: string
   cart: CartItem[]
   onClose: () => void
   onRequestBill: () => void
 }) {
-  const total = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
+  const [serverOrders, setServerOrders] = useState<ServerOrder[]>([])
+  const [loadingOrders, setLoadingOrders] = useState(true)
   const [requested, setRequested] = useState(false)
+
+  useEffect(() => {
+    let cancelled = false
+    setLoadingOrders(true)
+    fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
+      .then(r => r.json())
+      .then(j => {
+        if (cancelled) return
+        setServerOrders((j.orders ?? []) as ServerOrder[])
+      })
+      .catch(() => { /* silent fail — fallback to cart */ })
+      .finally(() => { if (!cancelled) setLoadingOrders(false) })
+    return () => { cancelled = true }
+  }, [tableId])
+
+  // Compute line items from SERVER data (source of truth); fallback to local cart
+  // only if server returns nothing (e.g., very first order, not yet saved).
+  const serverLines = serverOrders.flatMap(o =>
+    (o.order_items ?? []).map(it => ({
+      id:         it.id,
+      name:       it.name,
+      quantity:   it.quantity,
+      unit_price: it.unit_price,
+    })),
+  )
+  const items = serverLines.length > 0
+    ? serverLines
+    : cart.map(c => ({
+        id:         c.menu_item_id,
+        name:       c.name,
+        quantity:   c.quantity,
+        unit_price: c.unit_price,
+      }))
+
+  const serverTotal = serverOrders.reduce((s, o) => s + (o.total ?? 0), 0)
+  const total = serverTotal > 0
+    ? serverTotal
+    : items.reduce((s, c) => s + c.unit_price * c.quantity, 0)
 
   function handleRequest() {
     onRequestBill()
@@ -497,25 +550,42 @@ function BillModal({
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-[#161622] border border-white/10 rounded-2xl p-6 w-full max-w-sm space-y-4">
+      <div className="relative bg-[#161622] border border-white/10 rounded-2xl p-6 w-full max-w-sm space-y-4 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between">
           <h3 className="text-white font-bold flex items-center gap-2">
             <Receipt size={16} className="text-[#FF6B35]" /> Tu cuenta
           </h3>
           <button onClick={onClose} className="text-white/30 hover:text-white"><X size={16} /></button>
         </div>
-        <div className="space-y-2">
-          {cart.map(item => (
-            <div key={item.menu_item_id} className="flex justify-between text-sm">
-              <span className="text-white/60">{item.quantity}× {item.name}</span>
-              <span className="text-white font-mono">{clp(item.unit_price * item.quantity)}</span>
-            </div>
-          ))}
-          <div className="border-t border-white/10 pt-2 flex justify-between">
-            <span className="text-white font-semibold">Total</span>
-            <span className="text-white font-bold text-lg font-mono">{clp(total)}</span>
+
+        {loadingOrders ? (
+          <div className="flex items-center justify-center py-8 text-white/40 text-sm">
+            Cargando tu cuenta…
           </div>
-        </div>
+        ) : items.length === 0 ? (
+          <div className="py-6 text-center space-y-2">
+            <p className="text-white/60 text-sm">Todavía no hay pedidos registrados en esta mesa.</p>
+            <p className="text-white/30 text-xs">Cuando el garzón confirme tu comanda, aparecerá el detalle acá.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {items.map(item => (
+              <div key={item.id} className="flex justify-between text-sm">
+                <span className="text-white/60">{item.quantity}× {item.name}</span>
+                <span className="text-white font-mono">{clp(item.unit_price * item.quantity)}</span>
+              </div>
+            ))}
+            <div className="border-t border-white/10 pt-2 flex justify-between">
+              <span className="text-white font-semibold">Total</span>
+              <span className="text-white font-bold text-lg font-mono">{clp(total)}</span>
+            </div>
+            {serverOrders.length > 1 && (
+              <p className="text-white/30 text-[11px] text-center">
+                Incluye {serverOrders.length} comandas activas en la mesa
+              </p>
+            )}
+          </div>
+        )}
 
         {requested ? (
           <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
@@ -525,9 +595,10 @@ function BillModal({
         ) : (
           <button
             onClick={handleRequest}
-            className="w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] transition-colors"
+            disabled={loadingOrders || items.length === 0}
+            className="w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
           >
-            El garzón viene en un momento
+            Pedir la cuenta al garzón
           </button>
         )}
         <p className="text-white/20 text-xs text-center">
@@ -1028,6 +1099,7 @@ export default function TablePage() {
       {/* ── Bill modal ──────────────────────────────────────────────────────── */}
       {billOpen && (
         <BillModal
+          tableId={tableId}
           cart={cart}
           onClose={() => setBillOpen(false)}
           onRequestBill={requestBill}

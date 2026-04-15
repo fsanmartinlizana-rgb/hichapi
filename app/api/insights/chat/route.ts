@@ -3,6 +3,7 @@ import { requireUser } from '@/lib/supabase/auth-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 import { z } from 'zod'
+import { chatCompletion, AiUnavailableError, aiProviderStatus } from '@/lib/ai/chat'
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  Chapi Insights — Claude Sonnet chat with tool use over Supabase
@@ -330,9 +331,17 @@ export async function POST(req: NextRequest) {
   try {
     const body = ChatRequestSchema.parse(await req.json())
     const apiKey = process.env.ANTHROPIC_API_KEY
-    if (!apiKey) {
+
+    // Si ningún provider está configurado, devolvé error claro
+    const providers = aiProviderStatus()
+    const anyConfigured = providers.some(p => p.configured)
+    if (!anyConfigured) {
       return NextResponse.json(
-        { error: 'Chapi Insights no está configurado (falta ANTHROPIC_API_KEY)' },
+        {
+          error: 'Chapi no está disponible temporalmente.',
+          hint:  'Configurá ANTHROPIC_API_KEY, OPENAI_API_KEY o GOOGLE_AI_API_KEY en Vercel.',
+          providers,
+        },
         { status: 503 }
       )
     }
@@ -351,7 +360,7 @@ export async function POST(req: NextRequest) {
     }
 
     const today = ymd(new Date())
-    const client = new Anthropic({ apiKey })
+    const client = apiKey ? new Anthropic({ apiKey }) : null
 
     // Seed the Anthropic message list from the client conversation
     const messages: Anthropic.Messages.MessageParam[] = body.messages.map(m => ({
@@ -413,15 +422,93 @@ Hoy es ${today}.`
 
     const toolLog: Array<{ tool: string; input: unknown }> = []
 
+    // ── Fallback path: si Claude no está configurado, degradamos a plain chat ──
+    // (sin acceso a tools, pero el usuario igual puede conversar)
+    if (!client) {
+      try {
+        const result = await chatCompletion({
+          system:
+            systemPrompt +
+            '\n\nNOTA: estás corriendo en modo fallback sin acceso a datos en vivo. ' +
+            'Cuando el usuario pida métricas (ventas, stock, caja, reseñas), avisá ' +
+            'amablemente que el servicio principal de IA está temporalmente no disponible ' +
+            'y sugerí reintentar en unos minutos, o revisar los datos directamente en el panel.',
+          messages: body.messages.map(m => ({ role: m.role, content: m.content })),
+          maxTokens: 800,
+        })
+        return NextResponse.json({
+          reply:      result.text,
+          tools_used: [],
+          ai_provider: result.provider,
+          ai_fallback: result.fallback,
+        })
+      } catch (fallbackErr) {
+        if (fallbackErr instanceof AiUnavailableError) {
+          return NextResponse.json(
+            {
+              error: 'Todos los proveedores de IA están temporalmente no disponibles.',
+              hint:  'Reintentá en unos minutos. Si persiste, contactá soporte@hichapi.com',
+              attempts: fallbackErr.attempts,
+            },
+            { status: 503 }
+          )
+        }
+        throw fallbackErr
+      }
+    }
+
     // Tool-use loop
     for (let round = 0; round < MAX_ROUNDS; round++) {
-      const response = await client.messages.create({
-        model:       MODEL,
-        max_tokens:  2048,
-        system:      systemPrompt,
-        tools:       TOOLS,
-        messages,
-      })
+      let response: Anthropic.Messages.Message
+      try {
+        response = await client.messages.create({
+          model:       MODEL,
+          max_tokens:  2048,
+          system:      systemPrompt,
+          tools:       TOOLS,
+          messages,
+        })
+      } catch (claudeErr) {
+        // Claude falló mitad de loop — si es el primer round, caemos a fallback
+        console.error(`[ai] Claude tool-use call failed on round ${round}:`, claudeErr)
+        if (round === 0) {
+          try {
+            const result = await chatCompletion({
+              system:
+                systemPrompt +
+                '\n\nNOTA: el servicio principal falló; respondés sin acceso a tools. ' +
+                'Si el usuario pide métricas, invítalo a revisarlas en el panel y reintentar en minutos.',
+              messages: body.messages.map(m => ({ role: m.role, content: m.content })),
+              maxTokens: 800,
+            })
+            return NextResponse.json({
+              reply:       result.text,
+              tools_used:  [],
+              ai_provider: result.provider,
+              ai_fallback: true,
+              warning:     'Modo degradado: el proveedor principal falló, respuesta sin acceso a datos en vivo.',
+            })
+          } catch (fbErr) {
+            if (fbErr instanceof AiUnavailableError) {
+              return NextResponse.json(
+                {
+                  error: 'No podemos responder ahora. Todos los proveedores de IA fallaron.',
+                  hint:  'Reintentá en 1-2 minutos.',
+                  attempts: fbErr.attempts,
+                },
+                { status: 503 }
+              )
+            }
+            throw fbErr
+          }
+        }
+        // En rounds intermedios con tools ya ejecutadas: devolvemos lo que hay
+        return NextResponse.json({
+          reply:   'Tuvimos un problema procesando tu pregunta. Por favor reintentá.',
+          tools_used: toolLog,
+          warning: 'Interrupción mid-loop',
+        })
+      }
 
       // If the model stopped with text, we're done
       if (response.stop_reason === 'end_turn' || response.stop_reason === 'stop_sequence') {
@@ -484,6 +571,13 @@ Hoy es ${today}.`
       return NextResponse.json({ error: 'Datos inválidos', details: err.issues }, { status: 400 })
     }
     console.error('insights/chat error:', err)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Error desconocido'
+    return NextResponse.json(
+      {
+        error: 'Chapi tuvo un problema respondiendo. Reintentá en un momento.',
+        detail: msg,
+      },
+      { status: 500 }
+    )
   }
 }

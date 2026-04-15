@@ -1,6 +1,8 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { sendBrandedEmail } from '@/lib/email/sender'
+import { welcomeEmail } from '@/lib/email/templates'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/register-restaurant
@@ -104,6 +106,23 @@ export async function POST(req: NextRequest) {
         { error: 'Cuenta creada pero no pudimos asignar tu rol. Contacta soporte.' },
         { status: 500 }
       )
+    }
+
+    // 4. Enviar email de bienvenida (best-effort — no bloqueante)
+    try {
+      const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin
+      const { subject, html, text } = welcomeEmail({
+        restaurantName: body.restName.trim(),
+        dashboardUrl:   `${origin}/dashboard`,
+      })
+      await sendBrandedEmail({
+        to:      body.email.toLowerCase().trim(),
+        subject,
+        html,
+        text,
+      })
+    } catch (mailErr) {
+      console.error('[email] welcome send failed (non-blocking):', mailErr)
     }
 
     return NextResponse.json({
