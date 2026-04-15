@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { createClient } from '@/lib/supabase/client'
 import {
   DollarSign, TrendingUp, CreditCard, Banknote, AlertTriangle, Plus,
   CheckCircle2, Receipt, Trash2, Clock, ArrowDownCircle, ArrowUpCircle,
@@ -102,6 +103,33 @@ export default function CajaPage() {
   }, [restaurant])
 
   useEffect(() => { load() }, [load])
+
+  // Realtime: refrescar al toque cuando cambia un order (cobro, cancelación),
+  // cash_register_session (apertura/cierre) o cash_expenses (gasto nuevo).
+  // No toca la lógica de negocio — solo invalida y vuelve a consultar el summary.
+  useEffect(() => {
+    if (!restaurant?.id) return
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`caja:${restaurant.id}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'orders', filter: `restaurant_id=eq.${restaurant.id}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cash_register_sessions', filter: `restaurant_id=eq.${restaurant.id}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'cash_expenses', filter: `restaurant_id=eq.${restaurant.id}` },
+        () => load(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restaurant?.id, load])
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 

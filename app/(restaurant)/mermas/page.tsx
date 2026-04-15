@@ -130,6 +130,26 @@ export default function MermasPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Realtime: cuando cualquier miembro del equipo registra una merma o el stock
+  // cambia, reflejamos acá sin tener que recargar.
+  useEffect(() => {
+    if (!restId) return
+    const ch = supabase
+      .channel(`mermas:${restId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'waste_log', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'stock_items', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restId, supabase, load])
+
   // ── Submit waste entry ─────────────────────────────────────────────────────
 
   async function handleSubmit(e: React.FormEvent) {

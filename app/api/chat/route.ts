@@ -91,12 +91,41 @@ function stripAccents(s: string): string {
   return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase()
 }
 
-async function fetchAndFilter(intent: Intent, withZone: boolean) {
+// Mapa de cuisine_type canónico → keywords que podemos encontrar en nombres
+// de items o categorías. Esto permite que un restaurant con cuisine="Italiana"
+// aparezca en búsquedas de "hamburguesas" si tiene hamburguesas en su menú.
+const CUISINE_MENU_KEYWORDS: Record<string, string[]> = {
+  hamburgueseria: ['hambur', 'burger', 'cheeseburger', 'big mac'],
+  japonesa:       ['sushi', 'ramen', 'japon', 'maki', 'nigiri', 'udon'],
+  italiana:       ['pizza', 'pasta', 'lasagna', 'ñoqui', 'noqui', 'risotto', 'italian'],
+  peruana:        ['ceviche', 'lomo saltado', 'aji de gallina', 'peruan'],
+  mexicana:       ['taco', 'burrito', 'quesadilla', 'nacho', 'mexican'],
+  chilena:        ['cazuela', 'empanada', 'pastel de choclo', 'chorrillana', 'completo'],
+  vegana:         ['vegan', 'plant-based'],
+  vegetariana:    ['vegetarian', 'verdura'],
+  tailandesa:     ['thai', 'pad thai', 'curry tailand'],
+  parrilla:       ['parrilla', 'parrillad', 'asado', 'churrasco', 'bife', 'chorizo'],
+  mariscos:       ['marisco', 'pescado', 'salmon', 'congrio', 'locos', 'camaron'],
+  cafeteria:      ['cafe', 'desayuno', 'brunch', 'sandwich', 'tostad', 'croissant'],
+  panaderia:      ['pan ', 'empanada', 'dulce', 'kuchen'],
+  heladeria:      ['helado', 'gelato'],
+}
+
+function cuisineMatchesMenu(c: string, menuItems: { name?: string | null; description?: string | null; category?: string | null }[]): boolean {
+  const keywords = CUISINE_MENU_KEYWORDS[c] ?? [c.replace(/eria$/, '').replace(/sa$/, 'z')]
+  if (keywords.length === 0) return false
+  return menuItems.some(item => {
+    const hay = stripAccents(`${item.name ?? ''} ${item.description ?? ''} ${item.category ?? ''}`)
+    return keywords.some(k => hay.includes(k))
+  })
+}
+
+async function fetchAndFilter(intent: Intent, withZone: boolean, withCuisine: boolean = true) {
   // Fetch broadly: filter accent-insensitive in JS to avoid Postgres collation issues
   // (e.g. "Nunoa" vs "Ñuñoa", "Patagonica" vs "Patagónica").
   const { data: restaurants, error } = await supabase
     .from('restaurants')
-    .select(`*, menu_items (id, name, description, price, tags, photo_url, available)`)
+    .select(`*, menu_items (id, name, description, price, tags, photo_url, available, category)`)
     .eq('active', true)
     .limit(300)
 
@@ -107,9 +136,18 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
     const z = stripAccents(intent.zone)
     filtered = filtered.filter(r => r.neighborhood && stripAccents(r.neighborhood).includes(z))
   }
-  if (intent.cuisine_type) {
+  if (withCuisine && intent.cuisine_type) {
     const c = stripAccents(intent.cuisine_type)
-    filtered = filtered.filter(r => r.cuisine_type && stripAccents(r.cuisine_type).includes(c))
+    filtered = filtered.filter(r => {
+      // Match directo en cuisine_type del restaurant
+      if (r.cuisine_type && stripAccents(r.cuisine_type).includes(c)) return true
+      // Fallback: el restaurant tiene ítems en el menú que sí matchean la cuisine pedida
+      // Esto permite que una "Cafetería / Italiana" aparezca al buscar "hamburguesas"
+      // si efectivamente vende hamburguesas.
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const items = (r.menu_items as any[]) ?? []
+      return cuisineMatchesMenu(c, items)
+    })
   }
 
   const sorted = [...filtered].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
@@ -136,6 +174,18 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
       const bestDish  = sorted[0]
       const menuItems = sorted.slice(0, 3) // up to 3 dishes for the card
 
+      // Match reason: si el cuisine_type del restaurant no matchea lo pedido pero
+      // un item del menú sí, lo decimos explícitamente ("tienen hamburguesas aunque
+      // el restaurante sea italiano").
+      let matchReason = `Cocina ${restaurant.cuisine_type} en ${restaurant.neighborhood}`
+      if (intent.cuisine_type && restaurant.cuisine_type) {
+        const c = stripAccents(intent.cuisine_type)
+        const cuisineDirect = stripAccents(restaurant.cuisine_type).includes(c)
+        if (!cuisineDirect && bestDish) {
+          matchReason = `Tienen ${bestDish.name} en ${restaurant.neighborhood}`
+        }
+      }
+
       return {
         restaurant: {
           id: restaurant.id, name: restaurant.name, slug: restaurant.slug,
@@ -146,7 +196,7 @@ async function fetchAndFilter(intent: Intent, withZone: boolean) {
         },
         suggested_dish: bestDish,
         menu_items: menuItems,
-        match_reason: `Cocina ${restaurant.cuisine_type} en ${restaurant.neighborhood}`,
+        match_reason: matchReason,
       }
     })
     .filter(Boolean)
@@ -166,9 +216,20 @@ async function searchRestaurants(intent: Intent) {
   if (cached) return cached
 
   // ── Query Supabase ────────────────────────────────────────────────────────
-  let results = await fetchAndFilter(resolvedIntent, true)
+  // 3 niveles de fallback para maximizar recall:
+  //   1. zone + cuisine (estricto)
+  //   2. sin zone, con cuisine (quizás no hay nada cerca pero sí de esa cuisine)
+  //   3. con zone, sin cuisine (hay cosas cerca pero no justo de esa cuisine)
+  //   4. sin zone ni cuisine (último recurso: muestro top rated)
+  let results = await fetchAndFilter(resolvedIntent, true, true)
   if (results.length === 0 && resolvedIntent.zone) {
-    results = await fetchAndFilter(resolvedIntent, false)
+    results = await fetchAndFilter(resolvedIntent, false, true)
+  }
+  if (results.length === 0 && resolvedIntent.cuisine_type && resolvedIntent.zone) {
+    results = await fetchAndFilter(resolvedIntent, true, false)
+  }
+  if (results.length === 0 && resolvedIntent.cuisine_type) {
+    results = await fetchAndFilter(resolvedIntent, false, false)
   }
 
   queryCache.set(cacheKey, results)

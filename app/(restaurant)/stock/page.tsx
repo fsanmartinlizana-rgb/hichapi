@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createClient } from '@/lib/supabase/client'
 import {
   Package, Plus, AlertTriangle, RefreshCw,
   Pencil, Trash2, ChevronDown, X, Check, Minus, Upload, FileSpreadsheet, Camera, Loader2
@@ -77,6 +78,28 @@ export default function StockPage() {
   }, [restId])
 
   useEffect(() => { load() }, [load])
+
+  // Realtime: el stock cambia cuando: (a) el admin lo modifica, (b) un pedido se
+  // confirma y descuenta, (c) se registra una merma, (d) entra una compra.
+  // Suscribimos stock_items y stock_movements para que el panel refleje al toque.
+  useEffect(() => {
+    if (!restId) return
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`stock:${restId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'stock_items', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'stock_movements', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restId, load])
 
   // ── Create / Update ────────────────────────────────────────────────────────
 

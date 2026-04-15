@@ -177,6 +177,26 @@ export default function TurnosPage() {
 
   useEffect(() => { load() }, [load])
 
+  // Realtime: cuando alguien crea/edita/borra un turno o entra/sale un team member,
+  // la vista se refresca sola. Reusamos el cliente supabase ya instanciado.
+  useEffect(() => {
+    if (!restId) return
+    const ch = supabase
+      .channel(`turnos:${restId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'shifts', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'team_members', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restId, supabase, load])
+
   // ── Create shift ───────────────────────────────────────────────────────────
 
   async function handleCreate(e: React.FormEvent) {

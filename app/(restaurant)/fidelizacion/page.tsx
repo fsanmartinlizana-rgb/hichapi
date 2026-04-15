@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Gift, Sparkles, Trophy, Ticket, Plus, Trash2, Loader2, Save, CheckCircle2 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/i18n'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -96,6 +97,32 @@ export default function FidelizacionPage() {
   }, [restId])
 
   useEffect(() => { load() }, [load])
+
+  // Realtime: reflejar al toque cuando se canjea un cupón, se emite uno nuevo,
+  // o el admin agrega/modifica rewards en otra pestaña.
+  useEffect(() => {
+    if (!restId) return
+    const supabase = createClient()
+    const ch = supabase
+      .channel(`loyalty:${restId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'loyalty_programs', filter: `restaurant_id=eq.${restId}` },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'reward_catalog' },
+        () => load(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'customer_coupons' },
+        () => load(),
+      )
+      .subscribe()
+    return () => { supabase.removeChannel(ch) }
+  }, [restId, load])
 
   const saveProgram = useCallback(async () => {
     if (!restId) return

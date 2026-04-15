@@ -1025,43 +1025,78 @@ export default function TablePage() {
 
   // Subscribe to order status changes — cuando admin marca 'paid', mostrar
   // la encuesta NPS inline en el chat (no navegamos a /review).
+  //
+  // IMPORTANTE: nos suscribimos POR MESA, no por orderId. Motivos:
+  //   1. Puede haber múltiples orders en la misma mesa (agregás después)
+  //   2. Si el garzón cobra desde /caja, el orderId local puede estar stale
+  //   3. Si el cliente recargó la tab, el state arranca vacío
+  // Resolvemos el qr_token → UUID real de la mesa, y escuchamos cualquier
+  // UPDATE en orders con table_id = esa UUID. Filtramos status='paid' a mano.
   useEffect(() => {
-    if (!orderId) return
+    if (!tableId) return
+    let cancelled = false
     const supabase = createClient()
-    const ch = supabase
-      .channel(`order-${orderId}`)
-      .on(
-        'postgres_changes',
-        { event: 'UPDATE', schema: 'public', table: 'orders', filter: `id=eq.${orderId}` },
-        payload => {
-          const next = (payload.new as { status?: string } | null)?.status
-          if (next === 'paid') {
-            // Verificar que no hayamos mostrado ya la encuesta (evitar duplicados
-            // si llegan varios eventos UPDATE)
+
+    // Set para no mostrar la encuesta dos veces por el mismo order
+    const shownForOrders = new Set<string>()
+
+    async function run() {
+      // Resolver el qr_token (puede ser UUID ya, o token legible)
+      let realTableUuid = tableId
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tableId)
+      if (!isUUID) {
+        const { data } = await supabase
+          .from('tables')
+          .select('id')
+          .eq('qr_token', tableId)
+          .maybeSingle()
+        if (data?.id) realTableUuid = data.id
+      }
+      if (cancelled) return
+
+      const ch = supabase
+        .channel(`table-orders-${realTableUuid}`)
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `table_id=eq.${realTableUuid}` },
+          payload => {
+            const row = (payload.new as { id?: string; status?: string } | null)
+            if (!row?.id || row.status !== 'paid') return
+            const oid = row.id
+            if (shownForOrders.has(oid)) return
+            shownForOrders.add(oid)
+
             setMessages(prev => {
-              if (prev.some(m => m.npsSurvey?.orderId === orderId)) return prev
+              if (prev.some(m => m.npsSurvey?.orderId === oid)) return prev
               return [
                 ...prev,
                 {
-                  id: `paid-${orderId}-${Date.now()}`,
+                  id: `paid-${oid}-${Date.now()}`,
                   role: 'chapi',
                   text: '¡Gracias por tu visita! 🎉 Antes de irte, ¿nos ayudás con un feedback rápido? Tu opinión hace la diferencia.',
                 },
                 {
-                  id: `survey-${orderId}-${Date.now()}`,
+                  id: `survey-${oid}-${Date.now()}`,
                   role: 'chapi',
                   text: '',
-                  npsSurvey: { orderId, restaurantSlug: slug },
+                  npsSurvey: { orderId: oid, restaurantSlug: slug },
                 },
               ]
             })
           }
-        }
-      )
-      .subscribe()
-    return () => { supabase.removeChannel(ch) }
+        )
+        .subscribe()
+
+      return () => { supabase.removeChannel(ch) }
+    }
+
+    const cleanup = run()
+    return () => {
+      cancelled = true
+      cleanup.then(fn => fn && fn())
+    }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [orderId, slug])
+  }, [tableId, slug])
 
   const cartTotal = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
   const cartCount = cart.reduce((s, c) => s + c.quantity, 0)
