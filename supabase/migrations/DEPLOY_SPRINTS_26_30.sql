@@ -34,9 +34,27 @@ CREATE INDEX IF NOT EXISTS orders_delivered_idx
 
 -- ── 041: waste_log soporta platos ──────────────────────────────────────────
 ALTER TABLE waste_log
-  ADD COLUMN IF NOT EXISTS menu_item_id UUID REFERENCES menu_items(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS item_type    TEXT NOT NULL DEFAULT 'stock'
-    CHECK (item_type IN ('stock','plato'));
+  ADD COLUMN IF NOT EXISTS menu_item_id UUID;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'waste_log_menu_item_fk'
+  ) THEN
+    ALTER TABLE waste_log
+      ADD CONSTRAINT waste_log_menu_item_fk
+      FOREIGN KEY (menu_item_id)
+      REFERENCES menu_items(id)
+      ON DELETE SET NULL;
+  END IF;
+END $$;
+
+ALTER TABLE waste_log
+  ADD COLUMN IF NOT EXISTS item_type TEXT NOT NULL DEFAULT 'stock';
+
+ALTER TABLE waste_log DROP CONSTRAINT IF EXISTS waste_log_item_type_check;
+ALTER TABLE waste_log ADD CONSTRAINT waste_log_item_type_check
+  CHECK (item_type IN ('stock','plato'));
 
 ALTER TABLE waste_log DROP CONSTRAINT IF EXISTS waste_log_reason_check;
 ALTER TABLE waste_log ADD CONSTRAINT waste_log_reason_check
@@ -117,8 +135,24 @@ CREATE POLICY custom_roles_all
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- Dos pasos: agregar columna primero, luego FK (evita problemas de parseo
+-- con ADD COLUMN IF NOT EXISTS … REFERENCES … ON DELETE … en algunas versiones).
 ALTER TABLE team_members
-  ADD COLUMN IF NOT EXISTS custom_role_id UUID REFERENCES custom_roles(id) ON DELETE SET NULL;
+  ADD COLUMN IF NOT EXISTS custom_role_id UUID;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'team_members_custom_role_fk'
+  ) THEN
+    ALTER TABLE team_members
+      ADD CONSTRAINT team_members_custom_role_fk
+      FOREIGN KEY (custom_role_id)
+      REFERENCES custom_roles(id)
+      ON DELETE SET NULL;
+  END IF;
+END $$;
 
 CREATE INDEX IF NOT EXISTS team_members_custom_role_idx
   ON team_members (custom_role_id) WHERE custom_role_id IS NOT NULL;
