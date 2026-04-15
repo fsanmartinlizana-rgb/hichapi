@@ -1407,22 +1407,47 @@ export default function MesasPage() {
     showToast(`Mesa ${mesa.label} creada — QR generado`)
   }
 
-  async function confirmDeleteMesa() {
+  const [deleteError, setDeleteError] = useState<{ msg: string; canForce: boolean; historicalCount?: number } | null>(null)
+  const [deleting, setDeleting] = useState(false)
+
+  async function confirmDeleteMesa(force = false) {
     if (!deleteMesa || !restaurant?.id) return
-    const res = await fetch('/api/tables', {
+    setDeleting(true)
+    setDeleteError(null)
+
+    const url = force ? '/api/tables?force=1' : '/api/tables'
+    const res = await fetch(url, {
       method:  'DELETE',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({ id: deleteMesa.id, restaurant_id: restaurant.id }),
     })
-    const data = await res.json()
+    const data = await res.json() as {
+      ok?: boolean
+      error?: string
+      reason?: string
+      can_force?: boolean
+      historical_orders?: number
+      active_orders?: number
+    }
+
+    setDeleting(false)
+
     if (!res.ok || data.error) {
-      showToast(data.error ?? 'No se pudo eliminar la mesa')
-      setDeleteMesa(null)
+      setDeleteError({
+        msg:             data.error ?? 'No se pudo eliminar la mesa',
+        canForce:        data.can_force === true && !force,
+        historicalCount: data.historical_orders,
+      })
       return
     }
+
     setMesas(prev => prev.filter(m => m.id !== deleteMesa.id))
-    showToast(`Mesa ${deleteMesa.label} eliminada`)
+    const extra = data.historical_orders && data.historical_orders > 0
+      ? ` (${data.historical_orders} pedido${data.historical_orders === 1 ? '' : 's'} histórico${data.historical_orders === 1 ? '' : 's'} desvinculado${data.historical_orders === 1 ? '' : 's'})`
+      : ''
+    showToast(`Mesa ${deleteMesa.label} eliminada${extra}`)
     setDeleteMesa(null)
+    setDeleteError(null)
   }
 
   function onSplitSaved(parent: Mesa, children: Mesa[]) {
@@ -1808,7 +1833,7 @@ export default function MesasPage() {
       {/* ── Delete mesa confirm ──────────────────────────────────────────── */}
       {deleteMesa && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
-             onClick={() => setDeleteMesa(null)}>
+             onClick={() => { if (!deleting) { setDeleteMesa(null); setDeleteError(null) } }}>
           <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-5 w-full max-w-sm space-y-4"
                onClick={e => e.stopPropagation()}>
             <div className="flex items-start gap-3">
@@ -1822,19 +1847,53 @@ export default function MesasPage() {
                 </p>
               </div>
             </div>
+
+            {deleteError && (
+              <div className={`rounded-xl p-3 border text-xs space-y-2 ${
+                deleteError.canForce
+                  ? 'bg-amber-500/10 border-amber-500/30'
+                  : 'bg-red-500/10 border-red-500/30'
+              }`}>
+                <div className="flex items-start gap-2">
+                  <AlertCircle size={13} className={`shrink-0 mt-0.5 ${deleteError.canForce ? 'text-amber-300' : 'text-red-300'}`} />
+                  <p className={`leading-relaxed ${deleteError.canForce ? 'text-amber-200' : 'text-red-200'}`}>
+                    {deleteError.msg}
+                  </p>
+                </div>
+                {deleteError.canForce && (
+                  <p className="text-white/40 text-[10px] leading-relaxed pl-5">
+                    <strong>Forzar eliminación:</strong> los pedidos históricos se conservan en la base de datos para reportes,
+                    pero pierden el vínculo con esta mesa.
+                  </p>
+                )}
+              </div>
+            )}
+
             <div className="flex gap-2">
               <button
-                onClick={() => setDeleteMesa(null)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 transition-colors"
+                onClick={() => { setDeleteMesa(null); setDeleteError(null) }}
+                disabled={deleting}
+                className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 disabled:opacity-40 transition-colors"
               >
                 Cancelar
               </button>
-              <button
-                onClick={confirmDeleteMesa}
-                className="flex-1 py-2.5 rounded-xl bg-red-500/90 text-white text-sm font-semibold hover:bg-red-500 transition-colors"
-              >
-                Eliminar mesa
-              </button>
+              {deleteError?.canForce ? (
+                <button
+                  onClick={() => confirmDeleteMesa(true)}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl bg-amber-500/90 text-white text-sm font-semibold hover:bg-amber-500 disabled:opacity-40 transition-colors"
+                >
+                  {deleting ? 'Eliminando…' : 'Forzar eliminación'}
+                </button>
+              ) : (
+                <button
+                  onClick={() => confirmDeleteMesa(false)}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-xl bg-red-500/90 text-white text-sm font-semibold hover:bg-red-500 disabled:opacity-40 transition-colors"
+                >
+                  {deleting ? 'Eliminando…' : 'Eliminar mesa'}
+                </button>
+              )}
             </div>
           </div>
         </div>

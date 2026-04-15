@@ -461,6 +461,59 @@ ALTER TABLE public.team_members
   ADD COLUMN IF NOT EXISTS phone     TEXT;
 
 -- ════════════════════════════════════════════════════════════════════════════
+-- 047 — FK orders.table_id ON DELETE SET NULL (permitir borrar mesas)
+-- ════════════════════════════════════════════════════════════════════════════
+DO $$
+DECLARE
+  fk_name TEXT;
+BEGIN
+  SELECT conname INTO fk_name
+  FROM pg_constraint
+  WHERE conrelid = 'public.orders'::regclass
+    AND contype  = 'f'
+    AND conkey   = (SELECT ARRAY[attnum]
+                    FROM pg_attribute
+                    WHERE attrelid = 'public.orders'::regclass
+                      AND attname  = 'table_id')
+  LIMIT 1;
+
+  IF fk_name IS NOT NULL THEN
+    EXECUTE format('ALTER TABLE public.orders DROP CONSTRAINT %I', fk_name);
+  END IF;
+END $$;
+
+ALTER TABLE public.orders
+  ADD CONSTRAINT orders_table_id_fkey
+  FOREIGN KEY (table_id)
+  REFERENCES public.tables(id)
+  ON DELETE SET NULL;
+
+DO $$
+DECLARE
+  fk_name TEXT;
+BEGIN
+  IF EXISTS (SELECT 1 FROM information_schema.tables
+             WHERE table_schema = 'public' AND table_name = 'waitlist_entries') THEN
+    SELECT conname INTO fk_name
+    FROM pg_constraint c
+    JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY(c.conkey)
+    WHERE c.conrelid = 'public.waitlist_entries'::regclass
+      AND c.contype  = 'f'
+      AND a.attname  = 'seated_table_id'
+    LIMIT 1;
+
+    IF fk_name IS NOT NULL THEN
+      EXECUTE format('ALTER TABLE public.waitlist_entries DROP CONSTRAINT %I', fk_name);
+      ALTER TABLE public.waitlist_entries
+        ADD CONSTRAINT waitlist_entries_seated_table_id_fkey
+        FOREIGN KEY (seated_table_id)
+        REFERENCES public.tables(id)
+        ON DELETE SET NULL;
+    END IF;
+  END IF;
+END $$;
+
+-- ════════════════════════════════════════════════════════════════════════════
 -- ✅ DONE. Tablas / columnas creadas:
 --    • is_team_member(restaurant_id) helper
 --    • tables.pos_x, tables.pos_y

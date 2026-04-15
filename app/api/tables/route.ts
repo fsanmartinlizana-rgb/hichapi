@@ -145,40 +145,143 @@ export async function DELETE(req: NextRequest) {
   try {
     const body = await req.json()
     const { id, restaurant_id } = DeleteSchema.parse(body)
+    const force = req.nextUrl.searchParams.get('force') === '1'
 
     const supabase = createAdminClient()
 
-    // Prevent deleting a table that has active (unpaid) orders
-    const { data: activeOrders, error: ordersErr } = await supabase
+    // 1. Load the table for context (label, status)
+    const { data: table } = await supabase
+      .from('tables')
+      .select('id, label, status, split_into_ids')
+      .eq('id', id)
+      .eq('restaurant_id', restaurant_id)
+      .maybeSingle()
+
+    if (!table) {
+      return NextResponse.json(
+        { error: 'La mesa ya no existe o no pertenece a este restaurante.' },
+        { status: 404 }
+      )
+    }
+
+    const tableLabel = (table as { label?: string }).label ?? 'Esta mesa'
+
+    // 2. Block active (unpaid) orders — siempre bloqueante
+    const { data: activeOrders } = await supabase
       .from('orders')
       .select('id')
       .eq('table_id', id)
       .not('status', 'in', '("paid","cancelled")')
-      .limit(1)
 
-    if (ordersErr) {
-      console.error('check orders error:', ordersErr)
-    }
     if (activeOrders && activeOrders.length > 0) {
       return NextResponse.json(
-        { error: 'La mesa tiene pedidos activos. Ciérralos o cancélalos primero.' },
+        {
+          error: `${tableLabel} tiene ${activeOrders.length} pedido${activeOrders.length === 1 ? '' : 's'} activo${activeOrders.length === 1 ? '' : 's'} sin cerrar. Ciérralos o cancélalos antes de eliminar la mesa.`,
+          reason: 'active_orders',
+          active_orders: activeOrders.length,
+        },
         { status: 409 }
       )
     }
 
-    const { error } = await supabase
+    // 3. Block if it's a parent table that was split (must merge first)
+    const splitInto = (table as { split_into_ids?: string[] | null }).split_into_ids
+    if (Array.isArray(splitInto) && splitInto.length > 0) {
+      return NextResponse.json(
+        {
+          error: `${tableLabel} está dividida en ${splitInto.length} sub-mesas. Usá "Volver a unir" antes de eliminarla.`,
+          reason: 'is_split_parent',
+        },
+        { status: 409 }
+      )
+    }
+
+    // 4. Count historical orders (paid/cancelled) — these block deletion
+    //    via the FK `orders.table_id` → `tables.id` unless the FK has
+    //    ON DELETE SET NULL. Migration 047 lo arregla a nivel de schema.
+    //    Mientras no se aplique, ofrecemos `?force=1` para nullear los
+    //    orders.table_id manualmente y preservar la historia de ventas.
+    const { data: historicalOrders, count: historicalCount } = await supabase
+      .from('orders')
+      .select('id', { count: 'exact' })
+      .eq('table_id', id)
+
+    const historic = historicalCount ?? historicalOrders?.length ?? 0
+
+    if (historic > 0 && !force) {
+      // Try the delete first — if migration 047 corrió, debería funcionar
+      // (FK tiene ON DELETE SET NULL). Si falla por FK, devolvemos mensaje
+      // descriptivo con opción de forzar.
+      const { error: delErr } = await supabase
+        .from('tables')
+        .delete()
+        .eq('id', id)
+        .eq('restaurant_id', restaurant_id)
+
+      if (!delErr) return NextResponse.json({ ok: true, historical_orders: historic })
+
+      const isFkViolation =
+        delErr.code === '23503' ||
+        /foreign key/i.test(delErr.message ?? '')
+
+      if (isFkViolation) {
+        return NextResponse.json(
+          {
+            error:
+              `${tableLabel} tiene ${historic} pedido${historic === 1 ? '' : 's'} histórico${historic === 1 ? '' : 's'} ` +
+              `(pagados o cancelados). Eliminar la mesa mantendría la historia de ventas pero desvincularía los pedidos antiguos. ` +
+              `Confirmá en el modal para forzar la eliminación.`,
+            reason: 'has_historical_orders',
+            historical_orders: historic,
+            can_force: true,
+          },
+          { status: 409 }
+        )
+      }
+
+      return NextResponse.json({ error: `No se pudo eliminar: ${delErr.message}` }, { status: 500 })
+    }
+
+    // 5. Force path: null out table_id on historical orders first
+    if (force && historic > 0) {
+      const { error: nullErr } = await supabase
+        .from('orders')
+        .update({ table_id: null })
+        .eq('table_id', id)
+      if (nullErr) {
+        return NextResponse.json(
+          { error: `No se pudieron desvincular los pedidos históricos: ${nullErr.message}` },
+          { status: 500 }
+        )
+      }
+    }
+
+    // 6. Delete the table
+    const { error: finalDelErr } = await supabase
       .from('tables')
       .delete()
       .eq('id', id)
       .eq('restaurant_id', restaurant_id)
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 400 })
-    return NextResponse.json({ ok: true })
+    if (finalDelErr) {
+      return NextResponse.json(
+        {
+          error: `No se pudo eliminar ${tableLabel}: ${finalDelErr.message}`,
+          detail: finalDelErr.message,
+        },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json({ ok: true, historical_orders: historic, forced: force })
   } catch (err) {
     if (err instanceof z.ZodError) {
-      return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
+      return NextResponse.json(
+        { error: 'Datos inválidos. Verificá que el ID de la mesa sea correcto.', issues: err.issues },
+        { status: 400 }
+      )
     }
     console.error('DELETE /api/tables error:', err)
-    return NextResponse.json({ error: 'Error interno' }, { status: 500 })
+    const msg = err instanceof Error ? err.message : 'Error desconocido'
+    return NextResponse.json({ error: `Error interno: ${msg}` }, { status: 500 })
   }
 }
