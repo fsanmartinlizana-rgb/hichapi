@@ -10,6 +10,7 @@ import {
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
   ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
   Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit, Lock,
+  Gift,
 } from 'lucide-react'
 import { canAccessModule } from '@/lib/plans'
 import SupportModal from '@/components/SupportModal'
@@ -78,6 +79,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },
       { label: 'Tono de Chapi',  href: '/tono',          icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
       { label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] },
+      { label: 'Fidelización',   href: '/fidelizacion',  icon: Gift,              roles: ['admin','owner','super_admin'] },
     ],
   },
   {

@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   Send, ShoppingCart, X, Plus, Minus, CheckCircle2,
   Loader2, Utensils, SplitSquareHorizontal, Receipt,
-  Trash2, Bell,
+  Trash2, Bell, BookOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/i18n'
@@ -20,12 +20,24 @@ interface CartItem {
   note?: string
 }
 
+interface MenuItem {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  category: string | null
+  photo_url: string | null
+  tags: string[] | null
+}
+
 interface Message {
   id: string
   role: 'user' | 'chapi'
   text: string
   action?: string
   loading?: boolean
+  /** When present, render an inline menu grid after the bubble */
+  menuItems?: MenuItem[]
 }
 
 type OrderStatus = 'idle' | 'confirming' | 'sent' | 'splitting'
@@ -38,18 +50,60 @@ const clp = (amount: number) => formatCurrency(amount)
 // ── Quick chips ───────────────────────────────────────────────────────────────
 
 const INITIAL_CHIPS = [
-  '¿Qué recomiendas?',
-  'Ver la carta',
-  '¿Tienen algo sin gluten?',
-  'Algo para compartir',
+  '⭐ ¿Qué recomiendas?',
+  '📋 Ver la carta',
+  '🌱 ¿Tienen algo sin gluten?',
+  '🍽️ Algo para compartir',
 ]
 
 const ORDERING_CHIPS = [
-  'Agregar algo más',
-  'La cuenta, por favor',
-  'Dividir la cuenta',
-  '¿Qué tienen de postre?',
+  '➕ Agregar algo más',
+  '🧾 La cuenta, por favor',
+  '✂️ Dividir la cuenta',
+  '🍰 ¿Qué tienen de postre?',
 ]
+
+// Map category → emoji for prettier inline menu cards
+const CATEGORY_EMOJI: Record<string, string> = {
+  entrada:   '🥗',
+  entradas:  '🥗',
+  principal: '🍽️',
+  principales: '🍽️',
+  postre:    '🍰',
+  postres:   '🍰',
+  bebida:    '🥤',
+  bebidas:   '🥤',
+  trago:     '🍹',
+  tragos:    '🍹',
+  vino:      '🍷',
+  vinos:     '🍷',
+  cerveza:   '🍺',
+  cervezas:  '🍺',
+  cafe:      '☕',
+  café:      '☕',
+  cafés:     '☕',
+  pizza:     '🍕',
+  pizzas:    '🍕',
+  hamburguesa: '🍔',
+  hamburguesas: '🍔',
+  sandwich:  '🥪',
+  sandwiches:'🥪',
+  pasta:     '🍝',
+  pastas:    '🍝',
+  sushi:     '🍣',
+  carne:     '🥩',
+  carnes:    '🥩',
+  pescado:   '🐟',
+  pescados:  '🐟',
+  ensalada:  '🥗',
+  ensaladas: '🥗',
+  sopa:      '🍲',
+  sopas:     '🍲',
+}
+function categoryEmoji(cat?: string | null) {
+  if (!cat) return '🍴'
+  return CATEGORY_EMOJI[cat.trim().toLowerCase()] ?? '🍴'
+}
 
 // ── TypingDots ────────────────────────────────────────────────────────────────
 
@@ -70,6 +124,77 @@ function TypingDots() {
         }
       `}</style>
     </span>
+  )
+}
+
+// ── Inline menu preview (shown in chat when user asks for the card) ──────────
+
+function MenuPreview({
+  items,
+  onAdd,
+}: {
+  items: MenuItem[]
+  onAdd: (item: MenuItem) => void
+}) {
+  // Group by category so it feels like a real carta
+  const groups = items.reduce<Record<string, MenuItem[]>>((acc, it) => {
+    const cat = it.category?.trim() || 'Platos'
+    acc[cat] = acc[cat] || []
+    acc[cat].push(it)
+    return acc
+  }, {})
+
+  return (
+    <div className="mt-2 space-y-3">
+      {Object.entries(groups).map(([cat, list]) => (
+        <div key={cat}>
+          <p className="text-[11px] font-bold text-[#FF6B35] uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+            <span>{categoryEmoji(cat)}</span> {cat}
+          </p>
+          <div className="flex gap-2 overflow-x-auto scrollbar-hide -mx-1 px-1 pb-1">
+            {list.map(it => (
+              <div
+                key={it.id}
+                className="shrink-0 w-36 bg-[#161622] border border-white/8 rounded-xl p-2 flex flex-col gap-1.5"
+              >
+                {it.photo_url ? (
+                  /* eslint-disable-next-line @next/next/no-img-element */
+                  <img
+                    src={it.photo_url}
+                    alt={it.name}
+                    className="w-full h-20 rounded-lg object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-20 rounded-lg bg-white/5 flex items-center justify-center text-2xl">
+                    {categoryEmoji(it.category)}
+                  </div>
+                )}
+                <p className="text-white text-xs font-semibold leading-tight line-clamp-2">
+                  {it.name}
+                </p>
+                {it.description && (
+                  <p className="text-white/35 text-[10px] leading-snug line-clamp-2">
+                    {it.description}
+                  </p>
+                )}
+                <div className="flex items-center justify-between gap-1 mt-auto">
+                  <span className="text-[#FF6B35] text-xs font-bold font-mono">
+                    {clp(it.price)}
+                  </span>
+                  <button
+                    onClick={() => onAdd(it)}
+                    className="w-7 h-7 rounded-full bg-[#FF6B35] text-white flex items-center justify-center hover:bg-[#e85d2a] transition-colors shrink-0"
+                    aria-label={`Agregar ${it.name}`}
+                  >
+                    <Plus size={13} />
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
   )
 }
 
@@ -426,7 +551,7 @@ export default function TablePage() {
   const [messages, setMessages]       = useState<Message[]>([{
     id: 'welcome',
     role: 'chapi',
-    text: '¡Hola! Soy Chapi 🍽️ ¿Qué te apetece hoy? Puedo recomendarte algo, contarte sobre los platos o tomar tu pedido.',
+    text: '¡Hola! Soy Chapi 🍽️ ¿Qué te apetece hoy? Puedes tocar 📋 Carta arriba para ver todo, pedirme una recomendación ⭐ o decirme qué quieres y lo agrego al pedido 🙌',
   }])
   const [input, setInput]             = useState('')
   const [loading, setLoading]         = useState(false)
@@ -437,6 +562,7 @@ export default function TablePage() {
   const [orderId, setOrderId]         = useState<string | null>(null)
   const [billOpen, setBillOpen]       = useState(false)
   const [chips, setChips]             = useState(INITIAL_CHIPS)
+  const [menu, setMenu]               = useState<MenuItem[]>([])
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const inputRef       = useRef<HTMLInputElement>(null)
@@ -447,20 +573,59 @@ export default function TablePage() {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages, waiting])
 
-  // Fetch restaurant branding on mount (header + review page share this)
+  // Fetch restaurant branding + menu on mount (header + review page share this)
   useEffect(() => {
     if (!slug) return
     const supabase = createClient()
-    supabase
-      .from('restaurants')
-      .select('name, photo_url')
-      .eq('slug', slug)
-      .single()
-      .then(({ data }) => {
-        if (data?.name) setRestaurantName(data.name)
-        if (data?.photo_url) setRestaurantPhoto(data.photo_url)
-      })
+    let cancelled = false
+    ;(async () => {
+      const { data: rest } = await supabase
+        .from('restaurants')
+        .select('id, name, photo_url')
+        .eq('slug', slug)
+        .single()
+      if (cancelled || !rest) return
+      if (rest.name) setRestaurantName(rest.name)
+      if (rest.photo_url) setRestaurantPhoto(rest.photo_url)
+
+      const { data: items } = await supabase
+        .from('menu_items')
+        .select('id, name, description, price, category, photo_url, tags, available, display_order')
+        .eq('restaurant_id', rest.id)
+        .eq('available', true)
+        .order('display_order', { ascending: true })
+      if (cancelled) return
+      if (items) {
+        setMenu((items as Array<MenuItem & { available: boolean; display_order: number | null }>).map(it => ({
+          id: it.id,
+          name: it.name,
+          description: it.description,
+          price: it.price,
+          category: it.category,
+          photo_url: it.photo_url,
+          tags: it.tags,
+        })))
+      }
+    })()
+    return () => { cancelled = true }
   }, [slug])
+
+  const showMenu = useCallback(() => {
+    if (menu.length === 0) {
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        role: 'chapi',
+        text: 'La carta aún se está preparando 🧑‍🍳 Puedes preguntarme qué recomiendo.',
+      }])
+      return
+    }
+    setMessages(prev => [...prev, {
+      id: Date.now().toString(),
+      role: 'chapi',
+      text: '¡Aquí tienes la carta! 📋 Toca el + para agregar al pedido:',
+      menuItems: menu,
+    }])
+  }, [menu])
 
   // Subscribe to order status changes — when admin marks 'paid', send user to review
   useEffect(() => {
@@ -519,6 +684,15 @@ export default function TablePage() {
 
   async function sendMessage(text: string) {
     if (!text.trim() || loading) return
+
+    // Intercept "Ver carta" chip — render the menu inline instead of hitting the LLM
+    const normalized = text.trim().toLowerCase().replace(/[📋⭐🌱🍽️➕🧾✂️🍰]/g, '').trim()
+    if (normalized === 'ver la carta' || normalized === 'ver carta') {
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: text.trim() }])
+      setInput('')
+      showMenu()
+      return
+    }
 
     const userMsg: Message = { id: Date.now().toString(), role: 'user', text: text.trim() }
     setMessages(prev => [...prev, userMsg])
@@ -720,41 +894,70 @@ export default function TablePage() {
           </div>
         </div>
 
-        {/* Cart button */}
-        <button
-          onClick={() => setCartOpen(true)}
-          className={`relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all
-            ${cartCount > 0
-              ? 'bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35]'
-              : 'bg-white/5 border border-white/8 text-white/30'}`}
-        >
-          <ShoppingCart size={15} />
-          {cartCount > 0 && (
-            <>
-              <span className="text-sm font-semibold">{clp(cartTotal)}</span>
-              <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#FF6B35] text-white text-[9px] font-bold flex items-center justify-center">
-                {cartCount}
-              </span>
-            </>
-          )}
-        </button>
+        <div className="flex items-center gap-2">
+          {/* Ver carta button — always available */}
+          <button
+            onClick={showMenu}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-semibold hover:bg-white/8 hover:border-[#FF6B35]/30 hover:text-[#FF6B35] transition-colors"
+            aria-label="Ver carta"
+          >
+            <BookOpen size={13} />
+            Carta 📋
+          </button>
+
+          {/* Cart button */}
+          <button
+            onClick={() => setCartOpen(true)}
+            className={`relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all
+              ${cartCount > 0
+                ? 'bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35]'
+                : 'bg-white/5 border border-white/8 text-white/30'}`}
+          >
+            <ShoppingCart size={15} />
+            {cartCount > 0 && (
+              <>
+                <span className="text-sm font-semibold">{clp(cartTotal)}</span>
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#FF6B35] text-white text-[9px] font-bold flex items-center justify-center">
+                  {cartCount}
+                </span>
+              </>
+            )}
+          </button>
+        </div>
       </div>
 
       {/* ── Messages ───────────────────────────────────────────────────────── */}
       <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
         {messages.map(msg => (
-          <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            {msg.role === 'chapi' && (
-              <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">
-                C
+          <div key={msg.id} className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'}`}>
+            <div className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} w-full`}>
+              {msg.role === 'chapi' && (
+                <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">
+                  C
+                </div>
+              )}
+              <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
+                ${msg.role === 'user'
+                  ? 'bg-[#FF6B35] text-white rounded-br-sm'
+                  : 'bg-[#1C1C2E] text-white/85 border border-white/5 rounded-bl-sm'}`}>
+                {msg.text}
+              </div>
+            </div>
+            {msg.menuItems && msg.menuItems.length > 0 && (
+              <div className="w-full pl-8 pr-2">
+                <MenuPreview
+                  items={msg.menuItems}
+                  onAdd={(it) => {
+                    addToCart([{ menu_item_id: it.id, name: it.name, quantity: 1, unit_price: it.price }])
+                    setMessages(prev => [...prev, {
+                      id: Date.now().toString(),
+                      role: 'chapi',
+                      text: `Agregado: ${it.name} ✅ ¿Algo más?`,
+                    }])
+                  }}
+                />
               </div>
             )}
-            <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
-              ${msg.role === 'user'
-                ? 'bg-[#FF6B35] text-white rounded-br-sm'
-                : 'bg-[#1C1C2E] text-white/85 border border-white/5 rounded-bl-sm'}`}>
-              {msg.text}
-            </div>
           </div>
         ))}
 

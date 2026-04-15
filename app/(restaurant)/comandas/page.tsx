@@ -959,16 +959,21 @@ function NuevaComandaModal({
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <label className="text-white/40 text-xs font-medium">Mesa</label>
-              <select
-                value={mesa}
-                onChange={e => setMesa(e.target.value)}
-                className="w-full px-3 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors appearance-none"
-              >
-                <option value="" className="bg-[#161622]">Seleccionar…</option>
-                {tables.map(t => (
-                  <option key={t.id} value={t.label} className="bg-[#161622]">{t.label}</option>
-                ))}
-              </select>
+              <div className="relative">
+                <select
+                  value={mesa}
+                  onChange={e => setMesa(e.target.value)}
+                  className="w-full pl-3 pr-9 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors appearance-none cursor-pointer"
+                >
+                  <option value="" className="bg-[#161622]">
+                    {tables.length === 0 ? 'Sin mesas — créalas en /mesas' : 'Seleccionar…'}
+                  </option>
+                  {tables.map(t => (
+                    <option key={t.id} value={t.label} className="bg-[#161622]">{t.label}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+              </div>
             </div>
             <div className="space-y-1.5">
               <label className="text-white/40 text-xs font-medium">Personas</label>
@@ -1005,24 +1010,29 @@ function NuevaComandaModal({
                     <select
                       value={line.qty}
                       onChange={e => updateLine(i, { qty: Number(e.target.value) })}
-                      className="w-14 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none text-center"
+                      className="w-14 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none text-center cursor-pointer"
                     >
                       {[1,2,3,4,5,6].map(n => <option key={n} value={n} className="bg-[#161622]">{n}×</option>)}
                     </select>
                     {/* Item name */}
-                    <select
-                      value={line.name}
-                      onChange={e => {
-                        const selected = menuItems.find(m => m.name === e.target.value)
-                        updateLine(i, { name: e.target.value, dest: (selected?.destination as Destination) ?? 'cocina' })
-                      }}
-                      className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
-                    >
-                      <option value="" className="bg-[#161622]">Seleccionar plato…</option>
-                      {menuItems.map(item => (
-                        <option key={item.name} value={item.name} className="bg-[#161622]">{item.name}</option>
-                      ))}
-                    </select>
+                    <div className="relative flex-1">
+                      <select
+                        value={line.name}
+                        onChange={e => {
+                          const selected = menuItems.find(m => m.name === e.target.value)
+                          updateLine(i, { name: e.target.value, dest: (selected?.destination as Destination) ?? 'cocina' })
+                        }}
+                        className="w-full pl-3 pr-9 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 appearance-none cursor-pointer"
+                      >
+                        <option value="" className="bg-[#161622]">
+                          {menuItems.length === 0 ? 'Sin platos — créalos en /carta' : 'Seleccionar plato…'}
+                        </option>
+                        {menuItems.map(item => (
+                          <option key={item.name} value={item.name} className="bg-[#161622]">{item.name}</option>
+                        ))}
+                      </select>
+                      <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/40 pointer-events-none" />
+                    </div>
                     {/* Remove */}
                     {lines.length > 1 && (
                       <button

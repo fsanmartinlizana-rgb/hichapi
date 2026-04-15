@@ -1459,13 +1459,21 @@ export default function MesasPage() {
       return found ? { ...m, posX: found.pos_x, posY: found.pos_y } : m
     }))
     try {
-      await fetch('/api/tables', {
+      const r = await fetch('/api/tables', {
         method:  'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ restaurant_id: restaurant.id, positions }),
       })
+      if (!r.ok) {
+        const e = await r.json().catch(() => ({} as { error?: string }))
+        // Most common cause: pos_x / pos_y columns no existen en la BD.
+        const hint = e.error?.includes('pos_x') || e.error?.includes('pos_y')
+          ? 'Aplica DEPLOY_SPRINTS_26_30.sql en Supabase para habilitar el plano.'
+          : (e.error ?? 'No se pudo guardar el layout')
+        showToast(hint)
+      }
     } catch {
-      showToast('No se pudo guardar el layout')
+      showToast('Sin conexión — el layout no se guardó')
     }
   }, [restaurant?.id])
 

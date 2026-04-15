@@ -1,10 +1,14 @@
 -- ════════════════════════════════════════════════════════════════════════════
---  DEPLOY SCRIPT — Sprints 26-31 (incluye loyalty v1)
---  Copia-pega TODO este bloque en Supabase Studio → SQL Editor → Run.
---  Es idempotente: podes correrlo múltiples veces.
+-- 044 — Loyalty / Fidelización v1
+-- ════════════════════════════════════════════════════════════════════════════
+-- Multi-tenant: every row is scoped by restaurant_id with RLS.
+-- Mechanics supported: stamps (sellos) and points (puntos).
+-- Stub for customer_wallet (saldo CLP) — schema only, no logic in v1.
 -- ════════════════════════════════════════════════════════════════════════════
 
--- ── Helper RLS function (necesaria para 042/043/044) ───────────────────────
+-- ── Helper: is_team_member ──────────────────────────────────────────────────
+-- Used by RLS policies in 042/043/044. Returns true if the current auth user
+-- is an active member (any role) of the given restaurant.
 CREATE OR REPLACE FUNCTION public.is_team_member(p_restaurant_id UUID)
 RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT EXISTS (
@@ -15,116 +19,9 @@ RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
   ) OR (SELECT public.is_super_admin());
 $$;
 
--- ── 035: tables.pos_x / pos_y (floorplan positions) ────────────────────────
-ALTER TABLE public.tables
-  ADD COLUMN IF NOT EXISTS pos_x NUMERIC,
-  ADD COLUMN IF NOT EXISTS pos_y NUMERIC;
-
--- ── 040: orders.delivered status + bill_requested_at ───────────────────────
-ALTER TABLE orders DROP CONSTRAINT IF EXISTS orders_status_check;
-ALTER TABLE orders ADD CONSTRAINT orders_status_check
-  CHECK (status IN ('pending','confirmed','preparing','partial_ready','ready','paying','delivered','paid','cancelled'));
-
-ALTER TABLE orders
-  ADD COLUMN IF NOT EXISTS delivered_at      TIMESTAMPTZ,
-  ADD COLUMN IF NOT EXISTS bill_requested_at TIMESTAMPTZ;
-
-CREATE INDEX IF NOT EXISTS orders_delivered_idx
-  ON orders (restaurant_id, status) WHERE status = 'delivered';
-
--- ── 041: waste_log soporta platos ──────────────────────────────────────────
-ALTER TABLE waste_log
-  ADD COLUMN IF NOT EXISTS menu_item_id UUID REFERENCES menu_items(id) ON DELETE SET NULL,
-  ADD COLUMN IF NOT EXISTS item_type    TEXT NOT NULL DEFAULT 'stock'
-    CHECK (item_type IN ('stock','plato'));
-
-ALTER TABLE waste_log DROP CONSTRAINT IF EXISTS waste_log_reason_check;
-ALTER TABLE waste_log ADD CONSTRAINT waste_log_reason_check
-  CHECK (reason IN (
-    'vencimiento','deterioro','rotura','error_prep','sobras','devolucion','otro',
-    'merma','perdida',
-    'plato_quemado','plato_frio','plato_mal_preparado','plato_devuelto','plato_caido'
-  ));
-
-ALTER TABLE waste_log DROP CONSTRAINT IF EXISTS waste_log_item_presence;
-ALTER TABLE waste_log ADD CONSTRAINT waste_log_item_presence
-  CHECK (stock_item_id IS NOT NULL OR menu_item_id IS NOT NULL);
-
-CREATE INDEX IF NOT EXISTS waste_log_menu_item_idx
-  ON waste_log (restaurant_id, menu_item_id)
-  WHERE menu_item_id IS NOT NULL;
-
--- ── 042: restaurant_zones ──────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS restaurant_zones (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-  name          TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 40),
-  color         TEXT NOT NULL DEFAULT '#6B7280'
-                CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
-  sort_order    INTEGER NOT NULL DEFAULT 0,
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (restaurant_id, name)
-);
-
-CREATE INDEX IF NOT EXISTS restaurant_zones_rest_idx
-  ON restaurant_zones (restaurant_id, sort_order);
-
-ALTER TABLE restaurant_zones ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS restaurant_zones_select ON restaurant_zones;
-CREATE POLICY restaurant_zones_select
-  ON restaurant_zones FOR SELECT
-  USING (public.is_team_member(restaurant_id));
-
-DROP POLICY IF EXISTS restaurant_zones_all ON restaurant_zones;
-CREATE POLICY restaurant_zones_all
-  ON restaurant_zones FOR ALL
-  USING (public.is_admin_for(restaurant_id))
-  WITH CHECK (public.is_admin_for(restaurant_id));
-
--- Seed a partir de zonas ya usadas en tables.zone
-INSERT INTO restaurant_zones (restaurant_id, name, color, sort_order)
-SELECT DISTINCT restaurant_id, zone, '#6B7280', 0
-FROM tables
-WHERE zone IS NOT NULL AND zone <> ''
-ON CONFLICT DO NOTHING;
-
--- ── 043: custom_roles con permisos granulares ──────────────────────────────
-CREATE TABLE IF NOT EXISTS custom_roles (
-  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
-  name          TEXT NOT NULL CHECK (length(trim(name)) BETWEEN 1 AND 40),
-  description   TEXT,
-  permissions   TEXT[] NOT NULL DEFAULT '{}',
-  base_role     TEXT CHECK (base_role IN ('owner','admin','supervisor','garzon','cocina','anfitrion')),
-  color         TEXT NOT NULL DEFAULT '#6B7280' CHECK (color ~ '^#[0-9A-Fa-f]{6}$'),
-  created_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (restaurant_id, name)
-);
-
-CREATE INDEX IF NOT EXISTS custom_roles_rest_idx ON custom_roles (restaurant_id);
-
-ALTER TABLE custom_roles ENABLE ROW LEVEL SECURITY;
-
-DROP POLICY IF EXISTS custom_roles_select ON custom_roles;
-CREATE POLICY custom_roles_select
-  ON custom_roles FOR SELECT
-  USING (public.is_team_member(restaurant_id));
-
-DROP POLICY IF EXISTS custom_roles_all ON custom_roles;
-CREATE POLICY custom_roles_all
-  ON custom_roles FOR ALL
-  USING (public.is_admin_for(restaurant_id))
-  WITH CHECK (public.is_admin_for(restaurant_id));
-
-ALTER TABLE team_members
-  ADD COLUMN IF NOT EXISTS custom_role_id UUID REFERENCES custom_roles(id) ON DELETE SET NULL;
-
-CREATE INDEX IF NOT EXISTS team_members_custom_role_idx
-  ON team_members (custom_role_id) WHERE custom_role_id IS NOT NULL;
-
--- ── 044: loyalty / fidelización v1 ─────────────────────────────────────────
-
+-- ─────────────────────────────────────────────────────────────────────────────
+-- loyalty_programs — un programa por restaurante
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS loyalty_programs (
   id                       UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   restaurant_id            UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
@@ -132,29 +29,36 @@ CREATE TABLE IF NOT EXISTS loyalty_programs (
   active                   BOOLEAN NOT NULL DEFAULT false,
   mechanic                 TEXT NOT NULL DEFAULT 'stamps'
                            CHECK (mechanic IN ('stamps','points','both')),
+  -- SELLOS
   stamps_per_reward        INTEGER NOT NULL DEFAULT 10 CHECK (stamps_per_reward > 0),
   stamp_trigger            TEXT NOT NULL DEFAULT 'per_visit'
                            CHECK (stamp_trigger IN ('per_visit','per_order','per_amount')),
-  stamp_amount_threshold   INTEGER,
-  points_per_clp           NUMERIC NOT NULL DEFAULT 0.01,
+  stamp_amount_threshold   INTEGER,    -- en CLP, requerido si trigger=per_amount
+  -- PUNTOS
+  points_per_clp           NUMERIC NOT NULL DEFAULT 0.01,  -- 1 punto cada $100
   welcome_points           INTEGER NOT NULL DEFAULT 0,
   multi_location           BOOLEAN NOT NULL DEFAULT false,
   created_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at               TIMESTAMPTZ NOT NULL DEFAULT now(),
-  UNIQUE (restaurant_id)
+  UNIQUE (restaurant_id)   -- un solo programa por restaurante
 );
 
 CREATE INDEX IF NOT EXISTS loyalty_programs_rest_idx ON loyalty_programs (restaurant_id);
+
 ALTER TABLE loyalty_programs ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS loyalty_programs_select ON loyalty_programs;
 CREATE POLICY loyalty_programs_select ON loyalty_programs FOR SELECT
   USING (public.is_team_member(restaurant_id) OR active = true);
+
 DROP POLICY IF EXISTS loyalty_programs_all ON loyalty_programs;
 CREATE POLICY loyalty_programs_all ON loyalty_programs FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- loyalty_tiers — niveles opcionales (silver/gold/diamond, etc)
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS loyalty_tiers (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   program_id        UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
@@ -165,15 +69,22 @@ CREATE TABLE IF NOT EXISTS loyalty_tiers (
   sort_order        INTEGER NOT NULL DEFAULT 0,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE INDEX IF NOT EXISTS loyalty_tiers_program_idx ON loyalty_tiers (program_id, sort_order);
+
 ALTER TABLE loyalty_tiers ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS loyalty_tiers_select ON loyalty_tiers;
 CREATE POLICY loyalty_tiers_select ON loyalty_tiers FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS loyalty_tiers_all ON loyalty_tiers;
 CREATE POLICY loyalty_tiers_all ON loyalty_tiers FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- stamp_cards — tarjeta de sellos por (user, program)
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS stamp_cards (
   id                    UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id               UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -185,16 +96,23 @@ CREATE TABLE IF NOT EXISTS stamp_cards (
   created_at            TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, program_id)
 );
+
 CREATE INDEX IF NOT EXISTS stamp_cards_user_idx ON stamp_cards (user_id, restaurant_id);
+
 ALTER TABLE stamp_cards ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS stamp_cards_select_self ON stamp_cards;
 CREATE POLICY stamp_cards_select_self ON stamp_cards FOR SELECT
   USING (user_id = auth.uid() OR public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS stamp_cards_all_admin ON stamp_cards;
 CREATE POLICY stamp_cards_all_admin ON stamp_cards FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- customer_loyalty — saldo de puntos por (user, program)
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS customer_loyalty (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id           UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -208,38 +126,52 @@ CREATE TABLE IF NOT EXISTS customer_loyalty (
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, program_id)
 );
+
 CREATE INDEX IF NOT EXISTS customer_loyalty_user_idx ON customer_loyalty (user_id, restaurant_id);
+
 ALTER TABLE customer_loyalty ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS customer_loyalty_select_self ON customer_loyalty;
 CREATE POLICY customer_loyalty_select_self ON customer_loyalty FOR SELECT
   USING (user_id = auth.uid() OR public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS customer_loyalty_all_admin ON customer_loyalty;
 CREATE POLICY customer_loyalty_all_admin ON customer_loyalty FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- points_ledger — historial inmutable de puntos
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS points_ledger (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   program_id      UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
   restaurant_id   UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
   type            TEXT NOT NULL CHECK (type IN ('earn','redeem','expire','bonus','adjust')),
-  amount          INTEGER NOT NULL,
+  amount          INTEGER NOT NULL,        -- puede ser negativo en redeem/expire
   order_id        UUID REFERENCES orders(id) ON DELETE SET NULL,
   description     TEXT,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE INDEX IF NOT EXISTS points_ledger_user_idx ON points_ledger (user_id, restaurant_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS points_ledger_order_idx ON points_ledger (order_id) WHERE order_id IS NOT NULL;
+
 ALTER TABLE points_ledger ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS points_ledger_select_self ON points_ledger;
 CREATE POLICY points_ledger_select_self ON points_ledger FOR SELECT
   USING (user_id = auth.uid() OR public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS points_ledger_all_admin ON points_ledger;
 CREATE POLICY points_ledger_all_admin ON points_ledger FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- multiplier_rules — bonos por día/horario/categoría
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS multiplier_rules (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   program_id        UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
@@ -252,37 +184,51 @@ CREATE TABLE IF NOT EXISTS multiplier_rules (
   active_to         DATE,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE INDEX IF NOT EXISTS multiplier_rules_program_idx ON multiplier_rules (program_id, active);
+
 ALTER TABLE multiplier_rules ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS multiplier_rules_select ON multiplier_rules;
 CREATE POLICY multiplier_rules_select ON multiplier_rules FOR SELECT
   USING (public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS multiplier_rules_all_admin ON multiplier_rules;
 CREATE POLICY multiplier_rules_all_admin ON multiplier_rules FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- trigger_rules — eventos automáticos (cumpleaños, inactividad, milestones)
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS trigger_rules (
   id                UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   program_id        UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
   restaurant_id     UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,
   event             TEXT NOT NULL CHECK (event IN ('birthday','inactivity','tier_upgrade','milestone','first_visit')),
   days_inactive     INTEGER,
-  reward_id         UUID,
+  reward_id         UUID,            -- FK soft a reward_catalog (definida luego)
   message_template  TEXT,
   active            BOOLEAN NOT NULL DEFAULT true,
   created_at        TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+
 CREATE INDEX IF NOT EXISTS trigger_rules_program_idx ON trigger_rules (program_id, active);
+
 ALTER TABLE trigger_rules ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS trigger_rules_select ON trigger_rules;
 CREATE POLICY trigger_rules_select ON trigger_rules FOR SELECT
   USING (public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS trigger_rules_all_admin ON trigger_rules;
 CREATE POLICY trigger_rules_all_admin ON trigger_rules FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- reward_catalog — recompensas canjeables por puntos o sellos
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS reward_catalog (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   program_id      UUID NOT NULL REFERENCES loyalty_programs(id) ON DELETE CASCADE,
@@ -290,23 +236,30 @@ CREATE TABLE IF NOT EXISTS reward_catalog (
   type            TEXT NOT NULL CHECK (type IN ('free_item','discount_percent','discount_amount','free_category')),
   name            TEXT NOT NULL,
   description     TEXT,
-  value           JSONB NOT NULL DEFAULT '{}'::jsonb,
+  value           JSONB NOT NULL DEFAULT '{}'::jsonb,    -- ej {amount: 5000} o {percent: 20} o {menu_item_id: "..."}
   points_cost     INTEGER,
   stamps_cost     INTEGER,
-  valid_days      JSONB,
+  valid_days      JSONB,    -- ej {monday: true, tuesday: true, ...} | null = todos
   active          BOOLEAN NOT NULL DEFAULT true,
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   CHECK (points_cost IS NOT NULL OR stamps_cost IS NOT NULL)
 );
+
 CREATE INDEX IF NOT EXISTS reward_catalog_program_idx ON reward_catalog (program_id, active);
+
 ALTER TABLE reward_catalog ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS reward_catalog_select ON reward_catalog;
 CREATE POLICY reward_catalog_select ON reward_catalog FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS reward_catalog_all_admin ON reward_catalog;
 CREATE POLICY reward_catalog_all_admin ON reward_catalog FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- customer_coupons — cupones individuales emitidos a usuarios
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS customer_coupons (
   id                  UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id             UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -322,19 +275,26 @@ CREATE TABLE IF NOT EXISTS customer_coupons (
   redeemed_at         TIMESTAMPTZ,
   redeemed_order_id   UUID REFERENCES orders(id) ON DELETE SET NULL
 );
+
 CREATE INDEX IF NOT EXISTS customer_coupons_user_idx
   ON customer_coupons (user_id, restaurant_id, status);
 CREATE INDEX IF NOT EXISTS customer_coupons_code_idx
   ON customer_coupons (code) WHERE status = 'active';
+
 ALTER TABLE customer_coupons ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS customer_coupons_select_self ON customer_coupons;
 CREATE POLICY customer_coupons_select_self ON customer_coupons FOR SELECT
   USING (user_id = auth.uid() OR public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS customer_coupons_all_admin ON customer_coupons;
 CREATE POLICY customer_coupons_all_admin ON customer_coupons FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
+-- ─────────────────────────────────────────────────────────────────────────────
+-- customer_wallet — stub (saldo en CLP). Sin lógica en v1.
+-- ─────────────────────────────────────────────────────────────────────────────
 CREATE TABLE IF NOT EXISTS customer_wallet (
   id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id         UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -346,25 +306,21 @@ CREATE TABLE IF NOT EXISTS customer_wallet (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE (user_id, restaurant_id)
 );
-CREATE INDEX IF NOT EXISTS customer_wallet_user_idx ON customer_wallet (user_id, restaurant_id);
+
+CREATE INDEX IF NOT EXISTS customer_wallet_user_idx
+  ON customer_wallet (user_id, restaurant_id);
+
 ALTER TABLE customer_wallet ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS customer_wallet_select_self ON customer_wallet;
 CREATE POLICY customer_wallet_select_self ON customer_wallet FOR SELECT
   USING (user_id = auth.uid() OR public.is_team_member(restaurant_id));
+
 DROP POLICY IF EXISTS customer_wallet_all_admin ON customer_wallet;
 CREATE POLICY customer_wallet_all_admin ON customer_wallet FOR ALL
   USING (public.is_admin_for(restaurant_id))
   WITH CHECK (public.is_admin_for(restaurant_id));
 
--- ════════════════════════════════════════════════════════════════════════════
--- ✅ DONE. Tablas / columnas creadas:
---    • is_team_member(restaurant_id) helper
---    • tables.pos_x, tables.pos_y
---    • orders.status incluye 'delivered' + delivered_at + bill_requested_at
---    • waste_log.menu_item_id + item_type
---    • restaurant_zones (RLS)
---    • custom_roles (RLS) + team_members.custom_role_id
---    • loyalty_programs, loyalty_tiers, stamp_cards, customer_loyalty,
---      points_ledger, multiplier_rules, trigger_rules, reward_catalog,
---      customer_coupons, customer_wallet (todas con RLS)
--- ════════════════════════════════════════════════════════════════════════════
+COMMENT ON TABLE loyalty_programs IS 'Programas de fidelización por restaurante (sellos / puntos / ambos).';
+COMMENT ON TABLE customer_coupons IS 'Cupones únicos emitidos a comensales — verificación SIEMPRE server-side.';
+COMMENT ON TABLE customer_wallet IS 'Stub de wallet en CLP. Sin lógica activa en v1.';

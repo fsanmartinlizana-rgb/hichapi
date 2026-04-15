@@ -2,6 +2,18 @@
 -- Antes: zona era un enum hardcoded (interior/terraza/barra).
 -- Ahora: cada restaurante crea sus zonas con nombre y color a gusto.
 
+-- Helper RLS: is_team_member (definida idempotente para que esta migración
+-- no dependa del orden de aplicación).
+CREATE OR REPLACE FUNCTION public.is_team_member(p_restaurant_id UUID)
+RETURNS BOOLEAN LANGUAGE sql STABLE SECURITY DEFINER AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM public.team_members
+    WHERE user_id = auth.uid()
+      AND restaurant_id = p_restaurant_id
+      AND COALESCE(active, true) = true
+  ) OR (SELECT public.is_super_admin());
+$$;
+
 CREATE TABLE IF NOT EXISTS restaurant_zones (
   id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   restaurant_id UUID NOT NULL REFERENCES restaurants(id) ON DELETE CASCADE,

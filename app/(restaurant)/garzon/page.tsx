@@ -11,6 +11,7 @@ import { PaymentMethodModal } from '@/components/PaymentMethodModal'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency } from '@/lib/i18n'
+import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -23,6 +24,8 @@ interface Table {
   seats: number
   status: TableStatus
   zone: string | null
+  posX?: number | null
+  posY?: number | null
 }
 
 interface OrderItem {
@@ -273,9 +276,10 @@ export default function GarzonPage() {
   const loadData = useCallback(async () => {
     if (!restId) return
     const [tablesRes, ordersRes] = await Promise.all([
+      // select('*') tolera bases sin pos_x/pos_y aún migradas
       supabase
         .from('tables')
-        .select('id, label, seats, status, zone')
+        .select('*')
         .eq('restaurant_id', restId)
         .order('label'),
       supabase
@@ -286,7 +290,18 @@ export default function GarzonPage() {
         .order('created_at', { ascending: false }),
     ])
 
-    if (!tablesRes.error && tablesRes.data) setTables(tablesRes.data as Table[])
+    if (!tablesRes.error && tablesRes.data) {
+      const mapped: Table[] = (tablesRes.data as Array<{ id: string; label: string; seats: number; status: string; zone: string | null; pos_x?: number | null; pos_y?: number | null }>).map(t => ({
+        id: t.id,
+        label: t.label,
+        seats: t.seats,
+        status: (t.status as TableStatus) ?? 'libre',
+        zone: t.zone ?? null,
+        posX: t.pos_x ?? null,
+        posY: t.pos_y ?? null,
+      }))
+      setTables(mapped)
+    }
     if (!ordersRes.error && ordersRes.data) setOrders(ordersRes.data as Order[])
     setLastRefresh(new Date())
     setLoading(false)
@@ -473,17 +488,21 @@ export default function GarzonPage() {
             No hay mesas configuradas. Agrégalas en el panel de Mesas.
           </p>
         ) : (
-          <div className="grid grid-cols-4 gap-2">
-            {tables.map(table => (
+          <MesasFloorplan
+            mesas={tables}
+            editing={false}
+            cardSize={{ w: 110, h: 96 }}
+            defaultColumns={4}
+            onPositionsChange={() => { /* garzón is read-only — layout is managed in /mesas */ }}
+            renderCard={(t) => (
               <TableCell
-                key={table.id}
-                table={table}
-                order={orders.find(o => o.table_id === table.id) ?? null}
-                selected={selected === table.id}
-                onClick={() => setSelected(selected === table.id ? null : table.id)}
+                table={t}
+                order={orders.find(o => o.table_id === t.id) ?? null}
+                selected={selected === t.id}
+                onClick={() => setSelected(selected === t.id ? null : t.id)}
               />
-            ))}
-          </div>
+            )}
+          />
         )}
 
         {/* Legend */}
