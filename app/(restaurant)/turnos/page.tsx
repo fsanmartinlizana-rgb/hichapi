@@ -14,8 +14,7 @@ import {
 interface TeamMember {
   id: string
   role: string
-  user_id: string
-  full_name?: string | null
+  user_id: string | null
   invited_email?: string | null
 }
 
@@ -153,7 +152,7 @@ export default function TurnosPage() {
         .order('start_time'),
       supabase
         .from('team_members')
-        .select('id, role, user_id, full_name, invited_email')
+        .select('id, role, user_id, invited_email')
         .eq('restaurant_id', restId)
         .eq('active', true),
     ])
@@ -238,9 +237,11 @@ export default function TurnosPage() {
   }
 
   function memberName(m: TeamMember): string {
-    if (m.full_name) return m.full_name
-    if (m.invited_email) return m.invited_email.split('@')[0]
-    return m.role
+    if (m.invited_email) {
+      const local = m.invited_email.split('@')[0].replace(/[._-]/g, ' ')
+      return local.charAt(0).toUpperCase() + local.slice(1)
+    }
+    return m.role.charAt(0).toUpperCase() + m.role.slice(1)
   }
 
   function memberInitials(m: TeamMember): string {
@@ -700,7 +701,7 @@ export default function TurnosPage() {
                   <option value="">Selecciona...</option>
                   {team.map(m => (
                     <option key={m.id} value={m.id}>
-                      {m.role} — {m.user_id.slice(-8)}
+                      {memberName(m)} · {m.role}
                     </option>
                   ))}
                 </select>

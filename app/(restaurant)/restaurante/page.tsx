@@ -232,6 +232,7 @@ export default function RestaurantePage() {
           capacity:    capacity ? parseInt(capacity, 10) : null,
           tags,
           hours:       schedule,
+          photo_url:   photoUrl,
           gallery_urls: galleryUrls,
           reservations_enabled:     reservationsEnabled,
           reservation_timeout_min:  parseInt(reservationTimeout, 10) || 15,

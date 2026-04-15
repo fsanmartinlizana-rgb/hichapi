@@ -8,6 +8,7 @@ import {
   ShieldCheck, ChefHat, UtensilsCrossed, UserCheck, Crown
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
+import { RolesManagerModal } from '@/components/restaurant/RolesManagerModal'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +80,7 @@ export default function EquipoPage() {
   const [feedback,   setFeedback]   = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
   const [editingRoles, setEditingRoles] = useState<string | null>(null)
   const [editRolesValue, setEditRolesValue] = useState<string[]>([])
+  const [showRolesModal, setShowRolesModal] = useState(false)
 
   // Form state
   const [email,    setEmail]    = useState('')
@@ -205,6 +207,13 @@ export default function EquipoPage() {
         <div className="flex gap-2">
           <button onClick={load} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
             <RefreshCw size={16} />
+          </button>
+          <button
+            onClick={() => setShowRolesModal(true)}
+            className="flex items-center gap-2 px-3 py-2 rounded-xl border border-white/12 hover:bg-white/5 text-white/80 hover:text-white text-sm font-medium transition-colors"
+            title="Crear y administrar roles personalizados"
+          >
+            <Plus size={14} /> Rol
           </button>
           <button
             onClick={() => { setShowForm(true); setFeedback(null) }}
@@ -504,6 +513,14 @@ export default function EquipoPage() {
             </form>
           </div>
         </div>
+      )}
+
+      {/* Roles manager modal */}
+      {showRolesModal && restaurant?.id && (
+        <RolesManagerModal
+          restaurantId={restaurant.id}
+          onClose={() => setShowRolesModal(false)}
+        />
       )}
     </div>
   )
