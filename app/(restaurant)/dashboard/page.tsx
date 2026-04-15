@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   ChevronRight, Plus, RefreshCw,
   DollarSign, Receipt, Grid3X3, Star, TrendingUp, Users,
@@ -36,7 +36,8 @@ interface DashboardData {
 function useDashboardData(restaurantId: string | undefined) {
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  // Memoizado: evita re-suscripciones infinitas en el canal Realtime
+  const supabase = useMemo(() => createClient(), [])
 
   const load = useCallback(async () => {
     if (!restaurantId) { setLoading(false); return }

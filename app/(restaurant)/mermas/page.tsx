@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
@@ -69,7 +69,8 @@ const CLP = (v: number) => formatCurrency(v)
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function MermasPage() {
-  const supabase = createClient()
+  // Singleton del cliente para que useEffect con Realtime no se re-suscriba infinito
+  const supabase = useMemo(() => createClient(), [])
   const { restaurant } = useRestaurant()
   const restId = restaurant?.id
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
@@ -112,7 +112,8 @@ function getDateRange(view: ViewMode, anchor: Date): { start: string; end: strin
 // ── Component ────────────────────────────────────────────────────────────────
 
 export default function TurnosPage() {
-  const supabase = createClient()
+  // Singleton del cliente para evitar re-suscripciones infinitas en Realtime
+  const supabase = useMemo(() => createClient(), [])
   const { restaurant } = useRestaurant()
   const restId = restaurant?.id
 

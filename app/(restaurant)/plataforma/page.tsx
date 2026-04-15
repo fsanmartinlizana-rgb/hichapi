@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import {
   BarChart2, Store, Users, Ticket, Star, TrendingUp,
   AlertTriangle, Check, Clock, RefreshCw, ChevronRight,
@@ -34,7 +34,8 @@ export default function SuperAdminPage() {
   const { isSuperAdmin, loading: ctxLoading } = useRestaurant()
   const [stats, setStats] = useState<PlatformStats | null>(null)
   const [loading, setLoading] = useState(true)
-  const supabase = createClient()
+  // Memoizado: evita que loadStats se recree en cada render y dispare loops
+  const supabase = useMemo(() => createClient(), [])
 
   const loadStats = useCallback(async () => {
     setLoading(true)

@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useEffect, useState, useCallback } from 'react'
+import { createContext, useContext, useEffect, useMemo, useState, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 export interface Restaurant {
@@ -45,7 +45,9 @@ export function useRestaurant() {
 const LS_KEY = 'hichapi_selected_restaurant'
 
 export function RestaurantProvider({ children }: { children: React.ReactNode }) {
-  const supabase = createClient()
+  // Memoizado: si no, cada render crea un cliente nuevo → load() se recrea →
+  // el useEffect se re-dispara infinitamente y el panel entero queda trabado.
+  const supabase = useMemo(() => createClient(), [])
 
   const [restaurants,  setRestaurants]  = useState<Restaurant[]>([])
   const [restaurant,   setRestaurant]   = useState<Restaurant | null>(null)
