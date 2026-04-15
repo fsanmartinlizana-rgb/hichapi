@@ -4,6 +4,7 @@ import { requireUser, requireRestaurantRole } from '@/lib/supabase/auth-guard'
 import { z } from 'zod'
 import { loyaltyCouponEmail } from '@/lib/email/templates'
 import { sendBrandedEmail } from '@/lib/email/sender'
+import { resolveAppUrl } from '@/lib/app-url'
 
 /**
  * POST /api/loyalty/redeem
@@ -223,8 +224,7 @@ export async function POST(req: NextRequest) {
         .eq('id', data.restaurant_id)
         .maybeSingle()
 
-      const origin = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-        ?? req.nextUrl.origin
+      const origin = resolveAppUrl(req)
       // Both paths land on /login with the coupon pre-filled. The login page
       // can redirect to a wallet view post-auth; pre-registration users are
       // prompted to create their account (customer flow TBD).

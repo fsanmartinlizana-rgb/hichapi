@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { welcomeEmail } from '@/lib/email/templates'
+import { resolveAppUrl } from '@/lib/app-url'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // POST /api/auth/register-restaurant
@@ -110,7 +111,7 @@ export async function POST(req: NextRequest) {
 
     // 4. Enviar email de bienvenida (best-effort — no bloqueante)
     try {
-      const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin
+      const origin = resolveAppUrl(req)
       const { subject, html, text } = welcomeEmail({
         restaurantName: body.restName.trim(),
         dashboardUrl:   `${origin}/dashboard`,

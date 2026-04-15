@@ -4,6 +4,7 @@ import { requireUser } from '@/lib/supabase/auth-guard'
 import { z } from 'zod'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { reservationConfirmEmail } from '@/lib/email/templates'
+import { resolveAppUrl } from '@/lib/app-url'
 
 // ── POST /api/reservations — Create a reservation (public) ──────────────────
 
@@ -108,7 +109,7 @@ export async function POST(req: NextRequest) {
     let emailSent = false
     if (data.email) {
       try {
-        const origin = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin
+        const origin = resolveAppUrl(req)
         const statusUrl = reservation.token
           ? `${origin}/reservar/${rest.id}?token=${reservation.token}`
           : `${origin}/reservar/${rest.id}`

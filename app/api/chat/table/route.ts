@@ -53,10 +53,44 @@ const RequestSchema = z.object({
 
 // ── Build system prompt with live menu ───────────────────────────────────────
 
+// Formato CLP chileno: $18.000 (con punto de miles, sin decimales)
+function formatCLP(amount: number): string {
+  return '$' + Math.round(amount).toLocaleString('es-CL').replace(/,/g, '.')
+}
+
+// Formatea la lista de ingredientes de un plato (JSONB en menu_items.ingredients)
+function formatIngredients(ingredients: unknown): string {
+  if (!Array.isArray(ingredients) || ingredients.length === 0) return ''
+  const names = ingredients
+    .map((ing: unknown) => {
+      if (typeof ing === 'string') return ing
+      if (typeof ing === 'object' && ing) {
+        const obj = ing as Record<string, unknown>
+        return (obj.name as string) ?? (obj.stock_item as string) ?? null
+      }
+      return null
+    })
+    .filter(Boolean)
+    .slice(0, 8)
+  return names.length > 0 ? ` · ingredientes: ${names.join(', ')}` : ''
+}
+
+interface MenuRow {
+  id: string
+  name: string
+  description: string | null
+  price: number
+  tags: string[]
+  category: string
+  available: boolean
+  ingredients?: unknown
+  allergens?: unknown
+}
+
 function buildSystemPrompt(
   restaurantName: string,
   tableLabel: string,
-  menu: { id: string; name: string; description: string | null; price: number; tags: string[]; category: string; available: boolean }[],
+  menu: MenuRow[],
   cart: z.infer<typeof CartItemSchema>[]
 ) {
   const available = menu.filter(m => m.available)
@@ -70,17 +104,17 @@ function buildSystemPrompt(
 
   const menuText = Object.entries(menuByCategory).map(([cat, items]) =>
     `${cat.toUpperCase()}:\n${items.map(i =>
-      `  - [${i.id}] ${i.name} · $${(i.price/1000).toFixed(1)}k${i.description ? ` · ${i.description}` : ''}${i.tags?.length ? ` · tags: ${i.tags.join(', ')}` : ''}`
+      `  - [${i.id}] ${i.name} · ${formatCLP(i.price)}${i.description ? ` · ${i.description}` : ''}${i.tags?.length ? ` · tags: ${i.tags.join(', ')}` : ''}${formatIngredients(i.ingredients)}`
     ).join('\n')}`
   ).join('\n\n')
 
   const featuredItems = available.filter(i => i.tags?.includes('promovido'))
   const featuredText = featuredItems.length > 0
-    ? `\nPLATOS ESPECIALES HOY (recomiéndalos activamente a cada mesa, en el momento oportuno):\n${featuredItems.map(i => `  - ${i.name} · $${(i.price/1000).toFixed(1)}k`).join('\n')}\n`
+    ? `\nPLATOS ESPECIALES HOY (recomiéndalos activamente a cada mesa, en el momento oportuno):\n${featuredItems.map(i => `  - ${i.name} · ${formatCLP(i.price)}`).join('\n')}\n`
     : ''
 
   const cartText = cart.length > 0
-    ? `\nPEDIDO ACTUAL DEL CLIENTE:\n${cart.map(c => `  - ${c.quantity}× ${c.name} $${(c.unit_price/1000).toFixed(1)}k${c.note ? ` (${c.note})` : ''}`).join('\n')}\nTotal actual: $${(cart.reduce((s,c) => s + c.unit_price * c.quantity, 0)/1000).toFixed(1)}k\n`
+    ? `\nPEDIDO ACTUAL DEL CLIENTE:\n${cart.map(c => `  - ${c.quantity}× ${c.name} ${formatCLP(c.unit_price)}${c.note ? ` (${c.note})` : ''}`).join('\n')}\nTotal actual: ${formatCLP(cart.reduce((s,c) => s + c.unit_price * c.quantity, 0))}\n`
     : '\nEl cliente aún no ha pedido nada.\n'
 
   return `Eres Chapi, el asistente de ${restaurantName} en la ${tableLabel}.
@@ -99,13 +133,17 @@ REGLAS:
 6. Si pide dividir la cuenta → acción "request_split" con split_count.
 7. Si recomienda sin pedir → acción "recommend", sugiere 2-3 platos con descripción breve y precio.
 8. Si es saludo o pregunta general → acción "chat", responde amigablemente.
-9. Máximo 2 oraciones por mensaje. Tono: cálido, como un amigo que trabaja ahí.
-10. NUNCA inventes precios ni platos que no estén en la carta.
+9. Si pide "ver la carta", "el menú", "qué tienen", "qué puedo pedir" → acción "show_menu".
+10. Si pregunta por ingredientes de un plato ("¿qué lleva el...?", "con qué viene...") → usa la lista de ingredientes de la CARTA DISPONIBLE de arriba para responder.
+11. Máximo 2-3 oraciones por mensaje. Tono: cálido, como un amigo que trabaja ahí.
+12. NUNCA inventes precios, platos ni ingredientes que no estén en la carta.
+
+FORMATO DE PRECIOS (crítico): SIEMPRE escribí los precios completos en pesos chilenos, con separador de miles. Ejemplo: "$18.000" o "$18000". NUNCA uses la forma "18k" o "18.5k" — eso confunde al cliente.
 
 RESPONDE SIEMPRE EN JSON (sin markdown):
 {
   "message": "respuesta al cliente",
-  "action": "add_items" | "request_bill" | "request_split" | "recommend" | "chat",
+  "action": "add_items" | "request_bill" | "request_split" | "recommend" | "show_menu" | "chat",
   "items_to_add": [{ "menu_item_id": "uuid", "name": "nombre", "quantity": 1, "note": "opcional" }] | null,
   "split_count": número | null
 }`
@@ -124,10 +162,10 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     const { message, restaurant_slug, table_id, cart, history } = RequestSchema.parse(body)
 
-    // ── Fetch restaurant + menu ──────────────────────────────────────────────
+    // ── Fetch restaurant + menu (incluye ingredientes) ──────────────────────
     const { data: restaurant } = await supabase
       .from('restaurants')
-      .select('id, name, menu_items(*)')
+      .select('id, name, menu_items(id, name, description, price, tags, category, available, ingredients)')
       .eq('slug', restaurant_slug)
       .single()
 

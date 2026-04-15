@@ -659,15 +659,35 @@ export default function TablePage() {
       if (rest.name) setRestaurantName(rest.name)
       if (rest.photo_url) setRestaurantPhoto(rest.photo_url)
 
-      const { data: items } = await supabase
+      // Intento 1: con display_order si existe; intento 2: por categoría/nombre
+      type MenuRow = MenuItem & { available?: boolean; ingredients?: unknown }
+      let menuItems: MenuRow[] = []
+      const withOrder = await supabase
         .from('menu_items')
-        .select('id, name, description, price, category, photo_url, tags, available, display_order')
+        .select('id, name, description, price, category, photo_url, tags, available, ingredients, display_order')
         .eq('restaurant_id', rest.id)
         .eq('available', true)
         .order('display_order', { ascending: true })
+      if (!withOrder.error && withOrder.data) {
+        menuItems = withOrder.data as unknown as MenuRow[]
+      } else {
+        const fallback = await supabase
+          .from('menu_items')
+          .select('id, name, description, price, category, photo_url, tags, available, ingredients')
+          .eq('restaurant_id', rest.id)
+          .eq('available', true)
+          .order('category', { ascending: true })
+          .order('name',     { ascending: true })
+        if (fallback.error) {
+          console.error('[table] menu fetch fallback also failed:', fallback.error.message)
+        } else if (fallback.data) {
+          menuItems = fallback.data as unknown as MenuRow[]
+        }
+      }
+
       if (cancelled) return
-      if (items) {
-        setMenu((items as Array<MenuItem & { available: boolean; display_order: number | null }>).map(it => ({
+      if (menuItems.length > 0) {
+        setMenu(menuItems.map(it => ({
           id: it.id,
           name: it.name,
           description: it.description,
@@ -676,6 +696,8 @@ export default function TablePage() {
           photo_url: it.photo_url,
           tags: it.tags,
         })))
+      } else {
+        console.warn('[table] menu fetch returned 0 items for slug=', slug)
       }
     })()
     return () => { cancelled = true }
@@ -830,11 +852,22 @@ export default function TablePage() {
                 setTimeout(() => setCartOpen(true), 600)
               }
               if (data.action === 'request_bill') {
+                // Si hay items en el cart sin confirmar Y no hay orderId todavía,
+                // auto-confirmamos el pedido antes de abrir la cuenta.
+                // Así el garzón recibe la notificación con el detalle real.
+                if (!orderId && cart.length > 0) {
+                  await confirmOrder()
+                }
+                // Disparar el PATCH status=paying para notificar al garzón
+                await requestBill()
                 setBillOpen(true)
               }
               if (data.action === 'request_split') {
                 setOrderStatus('splitting')
                 setCartOpen(true)
+              }
+              if (data.action === 'show_menu') {
+                showMenu()
               }
 
             } else if (event === 'error') {
@@ -897,12 +930,36 @@ export default function TablePage() {
   }
 
   async function requestBill() {
-    // Signal garzon via order status update
-    if (orderId) {
+    let activeOrderId = orderId
+
+    // Si no hay orderId pero el cart tiene items: auto-confirmar primero
+    // para que el garzón reciba la notificación con el detalle real.
+    if (!activeOrderId && cart.length > 0) {
+      try {
+        const res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ restaurant_slug: slug, table_id: tableId, cart }),
+        })
+        if (res.ok) {
+          const data = await res.json()
+          if (data.orderId) {
+            activeOrderId = data.orderId
+            setOrderId(data.orderId)
+            setCart([])
+          }
+        }
+      } catch (err) {
+        console.error('[table] auto-confirm before bill failed:', err)
+      }
+    }
+
+    // Si tenemos orderId (existente o recién creado), avisar al garzón
+    if (activeOrderId) {
       await fetch('/api/orders', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, status: 'paying' }),
+        body: JSON.stringify({ order_id: activeOrderId, status: 'paying' }),
       }).catch(() => null)
     }
   }

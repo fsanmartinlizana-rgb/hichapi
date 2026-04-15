@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { teamInviteEmail } from '@/lib/email/templates'
+import { resolveAppUrl } from '@/lib/app-url'
 
 const RoleEnum = z.enum(['admin','supervisor','garzon','waiter','cocina','anfitrion'])
 
@@ -129,7 +130,7 @@ export async function POST(req: NextRequest) {
     //    Si Resend está configurado: usamos generateLink (no envía correo) y mandamos
     //    nuestro template branded. Si no, usamos inviteUserByEmail (Supabase manda
     //    su template default — el admin debería personalizarlo en el dashboard).
-    const origin       = process.env.NEXT_PUBLIC_SITE_URL ?? req.nextUrl.origin
+    const origin       = resolveAppUrl(req)
     const useBranded   = !!process.env.RESEND_API_KEY
     const redirectTo   = `${origin}/invite-callback`
 
