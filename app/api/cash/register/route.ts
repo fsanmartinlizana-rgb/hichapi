@@ -61,6 +61,7 @@ export async function GET(req: NextRequest) {
     id: string; total: number; payment_method: string | null; cash_amount: number | null;
     digital_amount: number | null; updated_at: string; client_name: string | null;
     hichapi_commission: number | null; table_id: string | null; table_label?: string | null;
+    items: Array<{ name: string; quantity: number }>;
   }> = []
   if (session) {
     const { data: expRows } = await supabase
@@ -74,7 +75,7 @@ export async function GET(req: NextRequest) {
     // Orders paid during this session — expose as list for Caja screen
     const { data: sessOrders } = await supabase
       .from('orders')
-      .select('id, total, payment_method, cash_amount, digital_amount, updated_at, client_name, hichapi_commission, table_id, tables(label)')
+      .select('id, total, payment_method, cash_amount, digital_amount, updated_at, client_name, hichapi_commission, table_id, tables(label), order_items(name, quantity)')
       .eq('restaurant_id', restaurant_id)
       .eq('status', 'paid')
       .gte('updated_at', session.opened_at)
@@ -85,6 +86,7 @@ export async function GET(req: NextRequest) {
       updated_at: string; client_name: string | null;
       hichapi_commission: number | null; table_id: string | null;
       tables?: { label: string } | { label: string }[] | null;
+      order_items?: Array<{ name: string; quantity: number }> | null;
     }) => ({
       id: o.id,
       total: o.total,
@@ -96,6 +98,7 @@ export async function GET(req: NextRequest) {
       hichapi_commission: o.hichapi_commission,
       table_id: o.table_id,
       table_label: Array.isArray(o.tables) ? o.tables[0]?.label ?? null : o.tables?.label ?? null,
+      items: o.order_items ?? [],
     }))
   }
 

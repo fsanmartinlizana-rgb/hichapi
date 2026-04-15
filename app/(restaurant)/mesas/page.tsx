@@ -6,7 +6,7 @@ import {
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
   Download, Copy, Check, Banknote, Wifi, WifiOff, RefreshCw,
   Utensils, Trash2, Split, MoreVertical, Merge, AlertCircle,
-  Move, Lock,
+  Move, Lock, Settings, LayoutGrid,
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
@@ -19,7 +19,15 @@ import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
 type MesaStatus = 'ocupada' | 'cuenta' | 'libre' | 'limpia' | 'reserva'
-type MesaZone = 'interior' | 'terraza' | 'barra'
+// Dynamic — cada restaurante define sus zonas en restaurant_zones
+type MesaZone = string
+
+interface ZoneDef {
+  id: string
+  name: string
+  color: string
+  sort_order: number
+}
 
 type MesaStatusRaw = MesaStatus | 'bloqueada'
 
@@ -31,6 +39,7 @@ interface Mesa {
   seatedAt?: string      // ISO string
   pax?: number
   zone?: MesaZone
+  zoneColor?: string
   smoking?: boolean
   reservedUntil?: string // ISO string - when reservation expires
   reservedFor?: string   // name of person who reserved
@@ -328,16 +337,18 @@ function MesaCard({
       )}
 
       {/* Zone + smoking badges */}
-      {(mesa.zone === 'terraza' || mesa.zone === 'barra' || mesa.smoking) && (
+      {(mesa.zone || mesa.smoking) && (
         <div className="flex flex-wrap gap-1">
-          {mesa.zone === 'terraza' && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/20 leading-none">
-              🌿 terraza
-            </span>
-          )}
-          {mesa.zone === 'barra' && (
-            <span className="text-[8px] px-1.5 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20 leading-none">
-              🍺 barra
+          {mesa.zone && mesa.zoneColor && (
+            <span
+              className="text-[8px] px-1.5 py-0.5 rounded-full border leading-none"
+              style={{
+                backgroundColor: `${mesa.zoneColor}26`,
+                borderColor: `${mesa.zoneColor}55`,
+                color: mesa.zoneColor,
+              }}
+            >
+              {mesa.zone}
             </span>
           )}
           {mesa.smoking && (
@@ -949,16 +960,18 @@ function SplitMesaModal({
 
 function NuevaMesaModal({
   restaurantId,
+  zones,
   onClose,
   onSave,
 }: {
   restaurantId: string
+  zones: ZoneDef[]
   onClose: () => void
   onSave: (mesa: Mesa) => void
 }) {
   const [label, setLabel]     = useState('')
   const [seats, setSeats]     = useState(4)
-  const [zone, setZone]       = useState<MesaZone>('interior')
+  const [zone, setZone]       = useState<MesaZone>(zones[0]?.name ?? '')
   const [smoking, setSmoking] = useState(false)
   const [saving, setSaving]   = useState(false)
   const [error, setError]     = useState('')
@@ -1024,15 +1037,28 @@ function NuevaMesaModal({
         {/* Zone */}
         <div className="space-y-1.5">
           <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Zona</label>
-          <div className="grid grid-cols-3 gap-2">
-            {(['interior', 'terraza', 'barra'] as MesaZone[]).map(z => (
-              <button key={z} type="button" onClick={() => setZone(z)}
-                className={`py-2 rounded-xl text-xs font-medium border transition-colors capitalize
-                  ${zone === z ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20'}`}>
-                {z === 'interior' ? '🏠' : z === 'terraza' ? '🌿' : '🍺'} {z}
-              </button>
-            ))}
-          </div>
+          {zones.length === 0 ? (
+            <p className="text-white/30 text-xs italic">Crea zonas primero con el botón "Gestionar zonas".</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2">
+              {zones.map(z => {
+                const active = zone === z.name
+                return (
+                  <button key={z.id} type="button" onClick={() => setZone(z.name)}
+                    className={`py-2 px-2 rounded-xl text-xs font-medium border transition-colors truncate
+                      ${active ? 'text-white' : 'text-white/50 hover:text-white/80'}`}
+                    style={{
+                      backgroundColor: active ? `${z.color}33` : 'rgba(255,255,255,0.03)',
+                      borderColor: active ? `${z.color}88` : 'rgba(255,255,255,0.08)',
+                    }}
+                  >
+                    <span className="inline-block w-2 h-2 rounded-full mr-1.5 align-middle" style={{ backgroundColor: z.color }} />
+                    {z.name}
+                  </button>
+                )
+              })}
+            </div>
+          )}
         </div>
 
         {/* Smoking */}
@@ -1062,14 +1088,139 @@ function NuevaMesaModal({
 
 // ── Zone filter tabs ──────────────────────────────────────────────────────────
 
-type ZoneFilter = 'todos' | MesaZone
+type ZoneFilter = 'todos' | 'plano' | MesaZone
 
-const ZONE_TABS: { key: ZoneFilter; label: string }[] = [
-  { key: 'todos',    label: 'Todos' },
-  { key: 'interior', label: 'Interior' },
-  { key: 'terraza',  label: 'Terraza' },
-  { key: 'barra',    label: 'Barra' },
-]
+// ── Zonas manager modal ───────────────────────────────────────────────────────
+
+function ZonasManagerModal({
+  restaurantId,
+  zones,
+  onClose,
+  onChanged,
+}: {
+  restaurantId: string
+  zones: ZoneDef[]
+  onClose: () => void
+  onChanged: () => void
+}) {
+  const [newName, setNewName]   = useState('')
+  const [newColor, setNewColor] = useState('#FF6B35')
+  const [saving, setSaving]     = useState(false)
+  const [error, setError]       = useState('')
+
+  async function createZone() {
+    if (!newName.trim()) return
+    setSaving(true); setError('')
+    const res = await fetch('/api/restaurants/zones', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: restaurantId, name: newName.trim(), color: newColor }),
+    })
+    const j = await res.json()
+    setSaving(false)
+    if (!res.ok) { setError(j.error ?? 'Error al crear zona'); return }
+    setNewName('')
+    onChanged()
+  }
+
+  async function updateZone(id: string, patch: Partial<Pick<ZoneDef, 'name' | 'color'>>) {
+    const res = await fetch('/api/restaurants/zones', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, restaurant_id: restaurantId, ...patch }),
+    })
+    if (res.ok) onChanged()
+  }
+
+  async function deleteZone(id: string) {
+    if (!confirm('¿Eliminar esta zona? Las mesas que la usaban quedarán sin zona.')) return
+    const res = await fetch(`/api/restaurants/zones?id=${id}&restaurant_id=${restaurantId}`, {
+      method: 'DELETE',
+    })
+    if (res.ok) onChanged()
+  }
+
+  const SWATCHES = ['#FF6B35', '#34D399', '#FBBF24', '#60A5FA', '#A78BFA', '#F472B6', '#F87171', '#14B8A6', '#6B7280']
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4" onClick={onClose}>
+      <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-6 w-full max-w-md space-y-4 max-h-[85vh] overflow-y-auto"
+           onClick={e => e.stopPropagation()}>
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="text-white font-bold">Gestionar zonas</h3>
+            <p className="text-white/40 text-xs mt-0.5">Personaliza cómo organizas tu restaurante</p>
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white/60 transition-colors">
+            <X size={16} />
+          </button>
+        </div>
+
+        {/* Create new zone */}
+        <div className="bg-white/3 border border-white/8 rounded-xl p-3 space-y-2">
+          <p className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Nueva zona</p>
+          <div className="flex gap-2">
+            <input
+              value={newName}
+              onChange={e => setNewName(e.target.value)}
+              placeholder="Ej. Terraza, Salón Privado"
+              maxLength={40}
+              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40"
+            />
+            <input
+              type="color"
+              value={newColor}
+              onChange={e => setNewColor(e.target.value)}
+              className="w-10 h-10 bg-transparent border border-white/10 rounded-lg cursor-pointer"
+            />
+          </div>
+          <div className="flex gap-1 flex-wrap">
+            {SWATCHES.map(c => (
+              <button key={c} type="button" onClick={() => setNewColor(c)}
+                className={`w-5 h-5 rounded-full border-2 transition-transform ${newColor === c ? 'scale-125 border-white' : 'border-white/20'}`}
+                style={{ backgroundColor: c }} />
+            ))}
+          </div>
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+          <button onClick={createZone} disabled={saving || !newName.trim()}
+            className="w-full py-2 rounded-lg bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
+            {saving ? <RefreshCw size={12} className="animate-spin" /> : <Plus size={12} />}
+            Crear zona
+          </button>
+        </div>
+
+        {/* Existing zones */}
+        <div className="space-y-2">
+          <p className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Zonas existentes · {zones.length}</p>
+          {zones.length === 0 ? (
+            <p className="text-white/30 text-xs italic">Aún no hay zonas. Crea la primera arriba.</p>
+          ) : (
+            zones.map(z => (
+              <div key={z.id} className="flex items-center gap-2 bg-white/3 border border-white/8 rounded-lg p-2">
+                <input
+                  type="color"
+                  value={z.color}
+                  onChange={e => updateZone(z.id, { color: e.target.value })}
+                  className="w-8 h-8 bg-transparent border border-white/10 rounded cursor-pointer shrink-0"
+                />
+                <input
+                  defaultValue={z.name}
+                  onBlur={e => { if (e.target.value !== z.name && e.target.value.trim()) updateZone(z.id, { name: e.target.value.trim() }) }}
+                  maxLength={40}
+                  className="flex-1 bg-transparent text-white text-sm focus:outline-none"
+                />
+                <button onClick={() => deleteZone(z.id)}
+                  className="w-8 h-8 rounded text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors flex items-center justify-center shrink-0">
+                  <Trash2 size={13} />
+                </button>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
@@ -1082,12 +1233,14 @@ export default function MesasPage() {
   const [waitlist, setWaitlist]   = useState<WaitlistEntry[]>(WAITLIST_INIT)
   const [assignModal, setAssignModal] = useState<{ mesaId: string } | null>(null)
   const [toast, setToast]         = useState<string | null>(null)
-  const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('todos')
+  const [zoneFilter, setZoneFilter] = useState<ZoneFilter>('plano')
   const [qrMesa, setQrMesa]       = useState<Mesa | null>(null)
   const [showNuevaMesa, setShowNuevaMesa] = useState(false)
   const [splitMesa, setSplitMesa] = useState<Mesa | null>(null)
   const [deleteMesa, setDeleteMesa] = useState<Mesa | null>(null)
   const [editingLayout, setEditingLayout] = useState(false)
+  const [zones, setZones] = useState<ZoneDef[]>([])
+  const [showZonesManager, setShowZonesManager] = useState(false)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -1127,16 +1280,40 @@ export default function MesasPage() {
     setOnline(true)
   }, [supabase, restId])
 
+  const loadZones = useCallback(async () => {
+    if (!restId) return
+    try {
+      const r = await fetch(`/api/restaurants/zones?restaurant_id=${restId}`)
+      if (r.ok) {
+        const j = await r.json()
+        setZones(j.zones ?? [])
+      }
+    } catch { /* silent */ }
+  }, [restId])
+
   useEffect(() => {
     if (!restId) return
     loadData()
+    loadZones()
     const ch = supabase
       .channel('mesas-alerts')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadData)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, loadData)
       .subscribe(s => setOnline(s === 'SUBSCRIBED'))
     return () => { supabase.removeChannel(ch) }
-  }, [restId, loadData, supabase])
+  }, [restId, loadData, loadZones, supabase])
+
+  // Enrich mesas with zone color from zones list
+  const zoneColorMap = useMemo(() => {
+    const m: Record<string, string> = {}
+    for (const z of zones) m[z.name] = z.color
+    return m
+  }, [zones])
+
+  const enrichedMesas = useMemo(
+    () => mesas.map(m => m.zone ? { ...m, zoneColor: zoneColorMap[m.zone] } : m),
+    [mesas, zoneColorMap]
+  )
 
   function showToast(msg: string) {
     setToast(msg)
@@ -1309,9 +1486,9 @@ export default function MesasPage() {
   const assignMesa = mesas.find(m => m.id === assignModal?.mesaId)
   const nextInQueue = waitlist.filter(e => e.status === 'waiting').sort((a, b) => a.position - b.position)[0] ?? null
 
-  const filteredMesas = zoneFilter === 'todos'
-    ? mesas
-    : mesas.filter(m => m.zone === zoneFilter)
+  const filteredMesas = (zoneFilter === 'todos' || zoneFilter === 'plano')
+    ? enrichedMesas
+    : enrichedMesas.filter(m => m.zone === zoneFilter)
 
   const stats = {
     ocupadas: mesas.filter(m => m.status === 'ocupada' || m.status === 'cuenta').length,
@@ -1391,28 +1568,55 @@ export default function MesasPage() {
         )}
 
         {/* Zone filter tabs */}
-        <div className="flex items-center gap-1.5 mb-4 shrink-0">
-          {ZONE_TABS.map(tab => (
-            <button
-              key={tab.key}
-              onClick={() => setZoneFilter(tab.key)}
-              className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors
-                ${zoneFilter === tab.key
-                  ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30'
-                  : 'text-white/30 border border-white/8 hover:border-white/16 hover:text-white/50'
-                }`}
-            >
-              {tab.key === 'terraza' && '🌿 '}
-              {tab.key === 'barra' && '🍺 '}
-              {tab.key === 'interior' && '🏠 '}
-              {tab.label}
-              {tab.key !== 'todos' && (
-                <span className="ml-1 text-[9px] opacity-60">
-                  {mesas.filter(m => m.zone === tab.key).length}
-                </span>
-              )}
-            </button>
-          ))}
+        <div className="flex items-center gap-1.5 mb-4 shrink-0 flex-wrap">
+          <button
+            onClick={() => setZoneFilter('plano')}
+            className={`flex items-center gap-1 px-3 py-1 rounded-full text-[11px] font-medium transition-colors
+              ${zoneFilter === 'plano'
+                ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30'
+                : 'text-white/30 border border-white/8 hover:border-white/16 hover:text-white/50'
+              }`}
+            title="Todas las mesas en un solo plano"
+          >
+            <LayoutGrid size={10} /> Plano único
+          </button>
+          <button
+            onClick={() => setZoneFilter('todos')}
+            className={`px-3 py-1 rounded-full text-[11px] font-medium transition-colors
+              ${zoneFilter === 'todos'
+                ? 'bg-[#FF6B35]/20 text-[#FF6B35] border border-[#FF6B35]/30'
+                : 'text-white/30 border border-white/8 hover:border-white/16 hover:text-white/50'
+              }`}
+          >
+            Todas <span className="ml-1 text-[9px] opacity-60">{mesas.length}</span>
+          </button>
+          {zones.map(z => {
+            const active = zoneFilter === z.name
+            const count = mesas.filter(m => m.zone === z.name).length
+            return (
+              <button
+                key={z.id}
+                onClick={() => setZoneFilter(z.name)}
+                className="px-3 py-1 rounded-full text-[11px] font-medium transition-colors border"
+                style={{
+                  backgroundColor: active ? `${z.color}33` : 'transparent',
+                  borderColor: active ? `${z.color}88` : 'rgba(255,255,255,0.08)',
+                  color: active ? z.color : 'rgba(255,255,255,0.4)',
+                }}
+              >
+                <span className="inline-block w-1.5 h-1.5 rounded-full mr-1.5 align-middle" style={{ backgroundColor: z.color }} />
+                {z.name}
+                <span className="ml-1 text-[9px] opacity-60">{count}</span>
+              </button>
+            )
+          })}
+          <button
+            onClick={() => setShowZonesManager(true)}
+            className="flex items-center gap-1 ml-auto px-3 py-1 rounded-full text-[11px] font-medium text-white/40 border border-white/8 hover:border-white/20 hover:text-white/70 transition-colors"
+            title="Crear, renombrar o eliminar zonas"
+          >
+            <Settings size={10} /> Gestionar zonas
+          </button>
         </div>
 
         {/* Floorplan — drag-enabled when editingLayout is true */}
@@ -1545,8 +1749,19 @@ export default function MesasPage() {
       {showNuevaMesa && restaurant?.id && (
         <NuevaMesaModal
           restaurantId={restaurant.id}
+          zones={zones}
           onClose={() => setShowNuevaMesa(false)}
           onSave={addMesa}
+        />
+      )}
+
+      {/* ── Zonas manager modal ──────────────────────────────────────────── */}
+      {showZonesManager && restaurant?.id && (
+        <ZonasManagerModal
+          restaurantId={restaurant.id}
+          zones={zones}
+          onClose={() => setShowZonesManager(false)}
+          onChanged={loadZones}
         />
       )}
 

@@ -1,4 +1,5 @@
 import { createAdminClient } from '@/lib/supabase/server'
+import { createNotification } from '@/lib/notifications/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -155,7 +156,7 @@ export async function PATCH(req: NextRequest) {
     const body = await req.json()
     const parsed = z.object({
       order_id:       z.string().uuid(),
-      status:         z.enum(['confirmed','preparing','ready','paying','paid','cancelled']),
+      status:         z.enum(['confirmed','preparing','ready','paying','delivered','paid','cancelled']),
       payment_method: z.enum(['cash','digital','mixed']).optional(),
       cash_amount:    z.number().int().min(0).optional(),
       digital_amount: z.number().int().min(0).optional(),
@@ -169,6 +170,24 @@ export async function PATCH(req: NextRequest) {
     // Build update payload
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const updatePayload: Record<string, any> = { status }
+
+    if (status === 'delivered') {
+      updatePayload.delivered_at = new Date().toISOString()
+    }
+
+    if (status === 'paying') {
+      updatePayload.bill_requested_at = new Date().toISOString()
+      // If the order was already delivered, don't regress the status —
+      // just record the bill_requested_at timestamp (garzón still sees the badge).
+      const { data: cur } = await supabase
+        .from('orders')
+        .select('status')
+        .eq('id', order_id)
+        .single()
+      if ((cur as { status?: string } | null)?.status === 'delivered') {
+        delete (updatePayload as Record<string, unknown>).status
+      }
+    }
 
     if (status === 'paid' && payment_method) {
       const cash    = cash_amount ?? 0
@@ -188,6 +207,41 @@ export async function PATCH(req: NextRequest) {
 
     if (error) {
       return NextResponse.json({ error: 'No se pudo actualizar' }, { status: 500 })
+    }
+
+    // Notificación: cliente pidió la cuenta desde Chapi
+    if (status === 'paying') {
+      try {
+        const { data: ordRaw } = await supabase
+          .from('orders')
+          .select('restaurant_id, table_id, total, tables(label)')
+          .eq('id', order_id)
+          .single()
+        const ord = ordRaw as {
+          restaurant_id: string
+          table_id: string
+          total: number
+          tables: { label: string } | { label: string }[] | null
+        } | null
+        if (ord?.restaurant_id) {
+          const tbl = Array.isArray(ord.tables) ? ord.tables[0] : ord.tables
+          const tableLabel = tbl?.label ?? 'Mesa'
+          await createNotification({
+            restaurant_id: ord.restaurant_id,
+            type:          'bill_requested',
+            severity:      'warning',
+            category:      'operacion',
+            title:         `${tableLabel} pidió la cuenta`,
+            message:       `Total pendiente: $${ord.total.toLocaleString('es-CL')}. Acércate a cobrar.`,
+            action_url:    `/comandas?focus=${order_id}`,
+            action_label:  'Ver comanda',
+            dedupe_key:    `bill_requested:${order_id}`,
+            metadata:      { order_id, table_id: ord.table_id, total: ord.total },
+          })
+        }
+      } catch (notifErr) {
+        console.error('[notifications] bill_requested failed (non-blocking):', notifErr)
+      }
     }
 
     // Deduct stock when order is confirmed (entering prep flow).

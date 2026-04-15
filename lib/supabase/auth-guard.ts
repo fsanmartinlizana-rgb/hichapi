@@ -7,6 +7,7 @@
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { canAccessModule } from '@/lib/plans'
 
 /** Returns the authenticated user or an error response. */
 export async function requireUser() {
@@ -74,4 +75,41 @@ export async function requireRestaurantRole(
   }
 
   return { user, role, error: null }
+}
+
+/**
+ * Gate an API route by the restaurant's subscription plan.
+ * Returns `{ error }` (402 Payment Required) if the plan is insufficient.
+ * Usage:
+ *   const { error: planErr } = await requirePlan(restaurantId, 'starter')
+ *   if (planErr) return planErr
+ */
+export async function requirePlan(
+  restaurantId: string,
+  requiredPlan: 'free' | 'starter' | 'pro' | 'enterprise',
+) {
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } },
+  )
+
+  const { data: rest } = await supabase
+    .from('restaurants')
+    .select('plan')
+    .eq('id', restaurantId)
+    .maybeSingle<{ plan: string | null }>()
+
+  const currentPlan = rest?.plan ?? 'free'
+  if (!canAccessModule(currentPlan, requiredPlan)) {
+    return {
+      plan: currentPlan,
+      error: NextResponse.json(
+        { error: `Esta funcionalidad requiere plan ${requiredPlan} o superior`, currentPlan, requiredPlan },
+        { status: 402 },
+      ),
+    }
+  }
+  return { plan: currentPlan, error: null }
 }

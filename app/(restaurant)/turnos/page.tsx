@@ -6,7 +6,7 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import {
   CalendarDays, Clock, User, Plus, RefreshCw,
   ChevronLeft, ChevronRight, Check, X, AlertCircle,
-  Download, Info, Zap
+  Download, Info, Zap, Sparkles, MoveRight,
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -15,6 +15,8 @@ interface TeamMember {
   id: string
   role: string
   user_id: string
+  full_name?: string | null
+  invited_email?: string | null
 }
 
 interface Shift {
@@ -151,7 +153,7 @@ export default function TurnosPage() {
         .order('start_time'),
       supabase
         .from('team_members')
-        .select('id, role, user_id')
+        .select('id, role, user_id, full_name, invited_email')
         .eq('restaurant_id', restId)
         .eq('active', true),
     ])
@@ -209,6 +211,46 @@ export default function TurnosPage() {
     await supabase.from('shifts').delete().eq('id', id)
     await load()
   }
+
+  // ── Quick assign: one-click shift creation ────────────────────────────────
+  // Click a preset, then click a team member → instant shift for the target date.
+  const [quickPreset, setQuickPreset] = useState<typeof PRESET_SHIFTS[number] | null>(null)
+  const [quickDate,   setQuickDate]   = useState(toDateStr(new Date()))
+  const [assigning,   setAssigning]   = useState<string | null>(null)
+
+  async function quickAssign(staffId: string) {
+    if (!quickPreset || !restId) return
+    setAssigning(staffId)
+    const r = quickPreset.ranges[0]
+    const { error } = await supabase.from('shifts').insert({
+      restaurant_id: restId,
+      staff_id:      staffId,
+      shift_date:    quickDate,
+      start_time:    r.start,
+      end_time:      r.end,
+      notes:         quickPreset.ranges.length > 1
+        ? `${quickPreset.name}: ${quickPreset.ranges.map(rr => `${rr.start}-${rr.end}`).join(', ')}`
+        : quickPreset.name,
+      status:        'scheduled',
+    })
+    setAssigning(null)
+    if (!error) await load()
+  }
+
+  function memberName(m: TeamMember): string {
+    if (m.full_name) return m.full_name
+    if (m.invited_email) return m.invited_email.split('@')[0]
+    return m.role
+  }
+
+  function memberInitials(m: TeamMember): string {
+    const name = memberName(m)
+    const parts = name.split(/[\s._-]+/).filter(Boolean)
+    return ((parts[0]?.[0] ?? '?') + (parts[1]?.[0] ?? '')).toUpperCase()
+  }
+
+  // Mesas asignables hoy (staff con shift programado para quickDate)
+  const staffAssignedToday = new Set(shifts.filter(s => s.shift_date === quickDate).map(s => s.staff_id))
 
   // ── Navigation ─────────────────────────────────────────────────────────────
 
@@ -275,6 +317,89 @@ export default function TurnosPage() {
           <span className="font-semibold">Normativa laboral Chile:</span>{' '}
           Maximo legal: 45 hrs/semana &middot; 10 hrs/dia &middot; Descanso dominical obligatorio
         </p>
+      </div>
+
+      {/* ── Quick Assign — 2-step shift creation ───────────────────────── */}
+      <div className="bg-gradient-to-br from-[#FF6B35]/10 to-purple-500/5 border border-[#FF6B35]/20 rounded-2xl p-4 space-y-3">
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div className="flex items-center gap-2">
+            <span className="w-7 h-7 rounded-lg bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center">
+              <Sparkles size={13} className="text-[#FF6B35]" />
+            </span>
+            <div>
+              <p className="text-white text-sm font-semibold">Asignación rápida</p>
+              <p className="text-white/40 text-[11px]">1. Elige un turno · 2. Toca al miembro del equipo</p>
+            </div>
+          </div>
+          <input
+            type="date"
+            value={quickDate}
+            onChange={e => setQuickDate(e.target.value)}
+            className="bg-[#0F0F1C] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#FF6B35]/40"
+          />
+        </div>
+
+        {/* Step 1: pick preset */}
+        <div className="flex gap-2 flex-wrap">
+          {PRESET_SHIFTS.map(p => {
+            const active = quickPreset?.name === p.name
+            return (
+              <button
+                key={p.name}
+                onClick={() => setQuickPreset(active ? null : p)}
+                className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
+                  ${active
+                    ? 'bg-[#FF6B35] text-white border-[#FF6B35] shadow-lg shadow-[#FF6B35]/30 scale-105'
+                    : 'bg-white/3 text-white/60 border-white/10 hover:border-white/25 hover:text-white/90'}`}
+              >
+                <Clock size={11} />
+                {p.name}
+                <span className={`text-[10px] ${active ? 'text-white/80' : 'text-white/30'}`}>
+                  {p.ranges.map(r => `${r.start}–${r.end}`).join(' · ')}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+
+        {/* Step 2: pick member */}
+        {quickPreset && (
+          <div className="pt-2 border-t border-white/5 space-y-2">
+            <div className="flex items-center gap-2 text-xs text-white/50">
+              <span>Turno <span className="text-[#FF6B35] font-semibold">{quickPreset.name}</span> listo</span>
+              <MoveRight size={12} />
+              <span>toca al miembro</span>
+            </div>
+            {team.length === 0 ? (
+              <p className="text-white/40 text-xs italic">Invita miembros en /equipo primero.</p>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {team.map(m => {
+                  const alreadyAssigned = staffAssignedToday.has(m.id)
+                  const isLoading = assigning === m.id
+                  return (
+                    <button
+                      key={m.id}
+                      disabled={alreadyAssigned || isLoading}
+                      onClick={() => quickAssign(m.id)}
+                      className={`group flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border transition-all
+                        ${alreadyAssigned
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300/80 cursor-not-allowed'
+                          : 'bg-white/5 border-white/10 text-white/80 hover:border-[#FF6B35]/60 hover:bg-[#FF6B35]/10 hover:text-[#FF6B35] cursor-pointer active:scale-95'}`}
+                      title={alreadyAssigned ? 'Ya tiene un turno este día' : `Asignar ${quickPreset.name} a ${memberName(m)}`}
+                    >
+                      <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                        {isLoading ? <RefreshCw size={10} className="animate-spin" /> : memberInitials(m)}
+                      </span>
+                      <span className="text-xs">{memberName(m)}</span>
+                      {alreadyAssigned && <Check size={11} />}
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Header */}

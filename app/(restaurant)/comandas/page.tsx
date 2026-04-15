@@ -53,20 +53,22 @@ interface DbOrderItem {
 interface DbOrder {
   id: string; table_id: string; status: string; total: number
   created_at: string; order_items: DbOrderItem[]
+  bill_requested_at?: string | null
 }
 
 function dbToUI(status: string): OrderStatus | null {
   if (status === 'pending' || status === 'confirmed') return 'recibida'
   if (status === 'preparing' || status === 'partial_ready') return 'preparando'
   if (status === 'ready' || status === 'paying')      return 'lista'
-  return null   // paid / cancelled / entregada-only → ocultar
+  if (status === 'delivered')                         return 'entregada'
+  return null   // paid / cancelled → ocultar
 }
 
 function uiToDb(next: OrderStatus): string {
   switch (next) {
     case 'preparando': return 'preparing'
     case 'lista':      return 'ready'
-    case 'entregada':  return 'paying'
+    case 'entregada':  return 'delivered'
     default:           return 'preparing'
   }
 }
@@ -91,7 +93,7 @@ function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
     amount:        o.total,
     mins:          Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000),
     viaChapi:      false,
-    billRequested: o.status === 'paying',
+    billRequested: o.status === 'paying' || Boolean(o.bill_requested_at),
   }
 }
 
@@ -512,6 +514,7 @@ function OrderCard({
   onMarkLow,
   onDevolucion,
   onCancel,
+  onCharge,
 }: {
   order: Order
   col: typeof COLUMNS[0]
@@ -526,6 +529,7 @@ function OrderCard({
   onMarkLow: (itemName: string, qty: number) => void
   onDevolucion: (orderId: string, itemIndex: number, itemName: string, reason: string) => void
   onCancel: (orderId: string, tableLabel: string) => void
+  onCharge?: (orderId: string, amount: number, tableLabel: string) => void
 }) {
   const [hoveredItem, setHoveredItem] = useState<number | null>(null)
   const [popoverItem, setPopoverItem] = useState<number | null>(null)
@@ -749,6 +753,18 @@ function OrderCard({
           )
         })}
       </div>
+
+      {/* Cobrar — visible en columna "entregada" para garzón/admin */}
+      {order.status === 'entregada' && (role === 'garzon' || role === 'admin') && onCharge && (
+        <button
+          onClick={() => onCharge(order.id, order.amount, order.tableLabel)}
+          className="w-full py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5
+                     bg-[#FF6B35]/18 text-[#FF6B35] border border-[#FF6B35]/30 hover:bg-[#FF6B35]/28"
+        >
+          <CheckCircle2 size={13} />
+          Cobrar · ${order.amount.toLocaleString('es-CL')}
+        </button>
+      )}
 
       {/* Action — station mode shows "Marcar listo (cocina/barra)", todo mode shows the column action */}
       {actionAllowed && order.status !== 'entregada' && (
@@ -1092,6 +1108,7 @@ function ComandasPageInner() {
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
   const [realTables, setRealTables]   = useState<{ id: string; label: string }[]>([])
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel: string } | null>(null)
+  const [chargingOrder, setChargingOrder] = useState<{ id: string; amount: number; tableLabel: string } | null>(null)
   const [realMenuItems, setRealMenuItems] = useState<{ id: string; name: string; price: number; destination?: string }[]>([])
 
   const supabase = useMemo(() => createClient(), [])
@@ -1104,7 +1121,7 @@ function ComandasPageInner() {
       supabase.from('tables').select('id, label').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
-        .select('id, table_id, status, total, created_at, order_items(id, name, quantity, notes)')
+        .select('id, table_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status)')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
@@ -1528,6 +1545,7 @@ function ComandasPageInner() {
                         onMarkLow={markLow}
                         onDevolucion={handleDevolucion}
                         onCancel={(id, label) => setCancellingOrder({ id, tableLabel: label })}
+                        onCharge={(id, amount, label) => setChargingOrder({ id, amount, tableLabel: label })}
                       />
                     ))
                   )}
@@ -1567,6 +1585,102 @@ function ComandasPageInner() {
           onCancelled={async () => { await loadData() }}
         />
       )}
+
+      {/* Charge (cobrar) modal */}
+      {chargingOrder && (
+        <ChargeOrderModal
+          orderId={chargingOrder.id}
+          amount={chargingOrder.amount}
+          tableLabel={chargingOrder.tableLabel}
+          onClose={() => setChargingOrder(null)}
+          onCharged={async () => { setChargingOrder(null); await loadData() }}
+        />
+      )}
+    </div>
+  )
+}
+
+// ── ChargeOrderModal ─────────────────────────────────────────────────────────
+// Inline modal (no separate file) — cobra un pedido ya entregado
+function ChargeOrderModal({
+  orderId, amount, tableLabel, onClose, onCharged,
+}: {
+  orderId: string
+  amount: number
+  tableLabel: string
+  onClose: () => void
+  onCharged: () => void | Promise<void>
+}) {
+  const [method, setMethod] = useState<'cash' | 'digital' | 'mixed'>('digital')
+  const [cashAmount, setCashAmount] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleCharge() {
+    setSaving(true); setError(null)
+    const cash    = method === 'cash' ? amount : method === 'mixed' ? cashAmount : 0
+    const digital = method === 'digital' ? amount : method === 'mixed' ? Math.max(0, amount - cashAmount) : 0
+    try {
+      const res = await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderId,
+          status: 'paid',
+          payment_method: method,
+          cash_amount: cash,
+          digital_amount: digital,
+        }),
+      })
+      if (!res.ok) throw new Error('No se pudo cobrar')
+      await onCharged()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error al cobrar')
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4" onClick={onClose}>
+      <div className="bg-[#12121E] border border-white/10 rounded-2xl p-5 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+        <h3 className="text-white font-bold text-base mb-1">Cobrar {tableLabel}</h3>
+        <p className="text-white/40 text-xs mb-4">Total: <span className="text-[#FF6B35] font-mono font-bold">${amount.toLocaleString('es-CL')}</span></p>
+
+        <p className="text-white/60 text-[10px] uppercase tracking-wider mb-2">Método</p>
+        <div className="grid grid-cols-3 gap-1.5 mb-4">
+          {(['digital','cash','mixed'] as const).map(m => (
+            <button key={m} onClick={() => setMethod(m)}
+              className={`py-2 rounded-lg text-[11px] font-medium border transition-colors ${
+                method === m ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]' : 'bg-white/4 border-white/10 text-white/50 hover:text-white/80'
+              }`}>
+              {m === 'digital' ? 'Tarjeta' : m === 'cash' ? 'Efectivo' : 'Mixto'}
+            </button>
+          ))}
+        </div>
+
+        {method === 'mixed' && (
+          <div className="mb-4">
+            <label className="text-white/60 text-[10px] uppercase tracking-wider mb-1.5 block">Efectivo recibido</label>
+            <input type="number" min={0} max={amount} value={cashAmount}
+              onChange={e => setCashAmount(Math.min(amount, Math.max(0, Number(e.target.value))))}
+              className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+            <p className="text-white/40 text-[10px] mt-1">Tarjeta: ${Math.max(0, amount - cashAmount).toLocaleString('es-CL')}</p>
+          </div>
+        )}
+
+        {error && <p className="text-red-400 text-xs mb-3">{error}</p>}
+
+        <div className="flex gap-2">
+          <button onClick={onClose} disabled={saving}
+            className="flex-1 py-2 rounded-lg text-[11px] text-white/40 hover:text-white/70 transition-colors">
+            Cancelar
+          </button>
+          <button onClick={handleCharge} disabled={saving}
+            className="flex-1 py-2 rounded-lg text-[11px] font-semibold bg-[#FF6B35] hover:bg-[#e55a2b] text-white transition-colors disabled:opacity-50">
+            {saving ? 'Cobrando…' : 'Confirmar cobro'}
+          </button>
+        </div>
+      </div>
     </div>
   )
 }

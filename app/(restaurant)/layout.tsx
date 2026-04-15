@@ -72,6 +72,7 @@ const ALL_NAV: NavSection[] = [
     icon: Settings,
     items: [
       { label: 'Equipo',         href: '/equipo',        icon: Users,             roles: ['admin','owner','super_admin'] },
+      { label: 'Roles custom',   href: '/roles',         icon: ShieldCheck,       roles: ['admin','owner','super_admin'] },
       { label: 'Mi restaurante', href: '/restaurante',   icon: Store,             roles: ['admin','owner','super_admin'] },
       { label: 'Módulos y Plan', href: '/modulos',       icon: Boxes,             roles: ['admin','owner','super_admin'] },
       { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },

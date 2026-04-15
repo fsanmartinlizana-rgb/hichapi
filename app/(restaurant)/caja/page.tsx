@@ -66,6 +66,7 @@ export default function CajaPage() {
     id: string; total: number; payment_method: string | null; cash_amount: number | null;
     digital_amount: number | null; updated_at: string; client_name: string | null;
     hichapi_commission: number | null; table_label: string | null;
+    items?: Array<{ name: string; quantity: number }>;
   }>>([])
   const [loading, setLoading]       = useState(true)
 
@@ -288,9 +289,12 @@ export default function CajaPage() {
                   : o.payment_method === 'digital' ? 'text-blue-400'
                   : o.payment_method === 'mixed' ? 'text-purple-400'
                   : 'text-white/40'
+                const itemsText = (o.items ?? [])
+                  .map(it => `${it.quantity}× ${it.name}`)
+                  .join(' · ')
                 return (
-                  <div key={o.id} className="flex items-center gap-3 px-4 py-2.5">
-                    <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-white/60 text-[10px] font-mono shrink-0">
+                  <div key={o.id} className="flex items-start gap-3 px-4 py-2.5">
+                    <div className="w-7 h-7 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-white/60 text-[10px] font-mono shrink-0 mt-0.5">
                       {o.table_label ?? '—'}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -303,8 +307,13 @@ export default function CajaPage() {
                         {new Date(o.updated_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                         {o.hichapi_commission ? ` · com. ${clp(o.hichapi_commission)}` : ''}
                       </p>
+                      {itemsText && (
+                        <p className="text-white/45 text-[10px] mt-0.5 truncate" title={itemsText}>
+                          {itemsText}
+                        </p>
+                      )}
                     </div>
-                    <span className="text-white font-bold text-xs shrink-0">{clp(o.total)}</span>
+                    <span className="text-white font-bold text-xs shrink-0 mt-0.5">{clp(o.total)}</span>
                   </div>
                 )
               })
