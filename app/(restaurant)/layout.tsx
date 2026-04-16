@@ -77,6 +77,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Mi restaurante', href: '/restaurante',   icon: Store,             roles: ['admin','owner','super_admin'] },
       { label: 'Locales',        href: '/configuracion/locations',   icon: MapPin,    roles: ['admin','owner','super_admin'] },
       { label: 'Estaciones',     href: '/configuracion/estaciones',  icon: ChefHat,   roles: ['admin','owner','super_admin'] },
+      { label: 'Categorías',     href: '/configuracion/categorias',  icon: BookOpen,  roles: ['admin','owner','super_admin'] },
       { label: 'Módulos y Plan', href: '/modulos',       icon: Boxes,             roles: ['admin','owner','super_admin'] },
       { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },
       { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },

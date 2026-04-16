@@ -3,40 +3,37 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole, requireUser } from '@/lib/supabase/auth-guard'
 
-// ── /api/stations ────────────────────────────────────────────────────────────
-// CRUD de estaciones de preparación (cocina, barra, parrilla, postres, etc.)
-// Una station vive en una location y puede apuntar a un print_server.
-
-const STATION_KINDS = [
-  'cocina','cocina_fria','cocina_caliente','parrilla','horno',
-  'barra','postres','panaderia','otro',
-] as const
+// ── /api/categories ──────────────────────────────────────────────────────────
+// CRUD de menu_categories. Las categorías pueden ser por brand (compartidas
+// entre todos los locales de la marca) o por restaurant específico.
+// Siempre escribimos con brand_id cuando tenemos brand disponible para que
+// sean compartidas por default.
 
 const CreateSchema = z.object({
   restaurant_id:   z.string().uuid(),
-  location_id:     z.string().uuid().nullish(),
-  name:            z.string().min(1).max(120),
-  kind:            z.enum(STATION_KINDS).default('cocina'),
-  print_server_id: z.string().uuid().nullish(),
-  color:           z.string().max(20).nullish(),
+  name:            z.string().min(1).max(80),
+  slug:            z.string().max(80).optional(),
+  icon:            z.string().max(40).nullish(),
   sort_order:      z.number().int().optional(),
+  // Si true, escribe con brand_id (compartida). Si false, solo restaurant_id.
+  shared_in_brand: z.boolean().default(true),
 })
 
 const UpdateSchema = z.object({
   id:              z.string().uuid(),
   restaurant_id:   z.string().uuid(),
-  name:            z.string().min(1).max(120).optional(),
-  kind:            z.enum(STATION_KINDS).optional(),
-  location_id:     z.string().uuid().nullish(),
-  print_server_id: z.string().uuid().nullish(),
-  color:           z.string().max(20).nullish(),
+  name:            z.string().min(1).max(80).optional(),
+  icon:            z.string().max(40).nullish(),
   sort_order:      z.number().int().optional(),
   active:          z.boolean().optional(),
 })
 
+function slugify(s: string) {
+  return s.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
+}
+
 export async function GET(req: NextRequest) {
   const restaurantId = req.nextUrl.searchParams.get('restaurant_id')
-  const locationId   = req.nextUrl.searchParams.get('location_id')
   const brandId      = req.nextUrl.searchParams.get('brand_id')
 
   if (!restaurantId && !brandId) {
@@ -45,12 +42,12 @@ export async function GET(req: NextRequest) {
 
   const supabase = createAdminClient()
 
-  // ── Query por brand_id (stations de TODOS los restaurantes de la marca) ──
+  // Query por brand_id: trae categorías compartidas (brand_id=X) + propias
+  // de cualquier restaurant de la brand.
   if (brandId && !restaurantId) {
     const { user, error: userErr } = await requireUser()
     if (userErr || !user) return userErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
-    // Auth: super_admin ó membership activa en al menos 1 restaurant de la brand
     const { data: isSuper } = await supabase
       .from('team_members')
       .select('id')
@@ -72,34 +69,34 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const { data: restsInBrand } = await supabase
-      .from('restaurants')
-      .select('id')
-      .eq('brand_id', brandId)
-    const restIds = ((restsInBrand ?? []) as { id: string }[]).map(r => r.id)
-
     const { data } = await supabase
-      .from('stations')
-      .select('*, locations(id, name)')
-      .in('restaurant_id', restIds)
+      .from('menu_categories')
+      .select('*')
+      .eq('brand_id', brandId)
       .order('sort_order', { ascending: true })
-    return NextResponse.json({ stations: data ?? [] })
+    return NextResponse.json({ categories: data ?? [] })
   }
 
-  // ── Query por restaurant_id ──────────────────────────────────────────────
-  const { error: authErr } = await requireRestaurantRole(restaurantId!, ['owner', 'admin', 'supervisor', 'garzon', 'cocina', 'anfitrion'])
+  // Query por restaurant_id: trae las del restaurant Y las compartidas de su brand
+  const { error: authErr } = await requireRestaurantRole(restaurantId!, ['owner', 'admin', 'supervisor'])
   if (authErr) return authErr
 
-  let q = supabase
-    .from('stations')
-    .select('*, locations(id, name)')
-    .eq('restaurant_id', restaurantId!)
+  const { data: rest } = await supabase
+    .from('restaurants')
+    .select('brand_id')
+    .eq('id', restaurantId!)
+    .maybeSingle()
+
+  const query = supabase
+    .from('menu_categories')
+    .select('*')
     .order('sort_order', { ascending: true })
 
-  if (locationId) q = q.eq('location_id', locationId)
+  const { data } = rest?.brand_id
+    ? await query.or(`restaurant_id.eq.${restaurantId},brand_id.eq.${rest.brand_id}`)
+    : await query.eq('restaurant_id', restaurantId!)
 
-  const { data } = await q
-  return NextResponse.json({ stations: data ?? [] })
+  return NextResponse.json({ categories: data ?? [] })
 }
 
 export async function POST(req: NextRequest) {
@@ -115,25 +112,29 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient()
 
+  const { data: rest } = await supabase
+    .from('restaurants')
+    .select('brand_id')
+    .eq('id', body.restaurant_id)
+    .maybeSingle()
+
+  const slug = body.slug ?? slugify(body.name)
+
   const { data, error } = await supabase
-    .from('stations')
+    .from('menu_categories')
     .insert({
-      restaurant_id:   body.restaurant_id,
-      location_id:     body.location_id ?? null,
-      name:            body.name,
-      kind:            body.kind,
-      print_server_id: body.print_server_id ?? null,
-      color:           body.color ?? null,
-      sort_order:      body.sort_order ?? 0,
+      brand_id:      body.shared_in_brand ? (rest?.brand_id ?? null) : null,
+      restaurant_id: body.shared_in_brand && rest?.brand_id ? null : body.restaurant_id,
+      name:          body.name,
+      slug,
+      icon:          body.icon ?? null,
+      sort_order:    body.sort_order ?? 0,
     })
     .select('*')
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ station: data })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ category: data })
 }
 
 export async function PATCH(req: NextRequest) {
@@ -148,26 +149,23 @@ export async function PATCH(req: NextRequest) {
   if (authErr) return authErr
 
   const supabase = createAdminClient()
-  const { id, restaurant_id, ...updates } = body
+  const { id, restaurant_id: _rest, ...updates } = body
+  void _rest
 
   const { data, error } = await supabase
-    .from('stations')
-    .update({ ...updates, updated_at: new Date().toISOString() })
+    .from('menu_categories')
+    .update(updates)
     .eq('id', id)
-    .eq('restaurant_id', restaurant_id)
     .select('*')
     .single()
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  return NextResponse.json({ station: data })
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ category: data })
 }
 
 export async function DELETE(req: NextRequest) {
-  const id           = req.nextUrl.searchParams.get('id')
-  const restaurantId = req.nextUrl.searchParams.get('restaurant_id')
+  const id            = req.nextUrl.searchParams.get('id')
+  const restaurantId  = req.nextUrl.searchParams.get('restaurant_id')
 
   if (!id || !restaurantId) {
     return NextResponse.json({ error: 'id y restaurant_id requeridos' }, { status: 400 })
@@ -177,11 +175,7 @@ export async function DELETE(req: NextRequest) {
   if (authErr) return authErr
 
   const supabase = createAdminClient()
-  const { error } = await supabase.from('stations').delete().eq('id', id).eq('restaurant_id', restaurantId)
-
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
+  const { error } = await supabase.from('menu_categories').delete().eq('id', id)
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ ok: true })
 }
