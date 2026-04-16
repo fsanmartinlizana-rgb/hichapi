@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
-import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
+import { requireRestaurantRole, requireUser } from '@/lib/supabase/auth-guard'
 
 // ── /api/locations ───────────────────────────────────────────────────────────
 // CRUD de locales (sucursales) de una marca.
@@ -58,7 +58,35 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ locations: data ?? [] })
   }
 
-  // by brand: retornamos todas las locations de la marca
+  // by brand: retornamos todas las locations de la marca.
+  // Auth: el usuario debe tener una membership activa en AL MENOS un
+  // restaurant perteneciente a esa brand (o ser super_admin).
+  const { user, error: userErr } = await requireUser()
+  if (userErr || !user) return userErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
+  const { data: isSuper } = await supabase
+    .from('team_members')
+    .select('id')
+    .eq('user_id', user.id)
+    .eq('role', 'super_admin')
+    .eq('active', true)
+    .limit(1)
+
+  if (!isSuper || isSuper.length === 0) {
+    const { data: memberships } = await supabase
+      .from('team_members')
+      .select('restaurant_id, restaurants(brand_id)')
+      .eq('user_id', user.id)
+      .eq('active', true)
+
+    const hasBrandAccess = ((memberships ?? []) as { restaurants: { brand_id: string | null } | null }[]).some(
+      (m) => m.restaurants?.brand_id === brandId,
+    )
+    if (!hasBrandAccess) {
+      return NextResponse.json({ error: 'Acceso denegado' }, { status: 403 })
+    }
+  }
+
   const { data } = await supabase
     .from('locations')
     .select('*')

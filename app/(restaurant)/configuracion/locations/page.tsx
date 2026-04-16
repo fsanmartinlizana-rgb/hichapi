@@ -35,8 +35,9 @@ interface Brand {
 }
 
 export default function LocationsConfigPage() {
-  const { restaurant } = useRestaurant()
-  const restId = restaurant?.id
+  const { restaurant, restaurants, switchTo } = useRestaurant()
+  const restId  = restaurant?.id
+  const brandId = restaurant?.brand_id ?? null
 
   const [loading, setLoading]     = useState(true)
   const [saving,  setSaving]      = useState(false)
@@ -57,8 +58,14 @@ export default function LocationsConfigPage() {
   const load = useCallback(async () => {
     if (!restId) return
     setLoading(true)
+    // Fetch por brand_id si la tenemos → trae TODOS los locales de la marca
+    // (Irrarrázaval + Jorge Washington + ...). Fallback a restaurant_id para
+    // restaurantes legacy que aún no tengan brand asignada.
+    const locsUrl = brandId
+      ? `/api/locations?brand_id=${brandId}`
+      : `/api/locations?restaurant_id=${restId}`
     const [locsRes, brandRes] = await Promise.all([
-      fetch(`/api/locations?restaurant_id=${restId}`),
+      fetch(locsUrl),
       fetch(`/api/brands?restaurant_id=${restId}`),
     ])
     const locs   = await locsRes.json()
@@ -66,7 +73,7 @@ export default function LocationsConfigPage() {
     setLocations(locs.locations ?? [])
     setBrand(brandD.brand ?? null)
     setLoading(false)
-  }, [restId])
+  }, [restId, brandId])
 
   useEffect(() => { load() }, [load])
 
@@ -74,13 +81,18 @@ export default function LocationsConfigPage() {
   useEffect(() => {
     if (!restId) return
     const supabase = createClient()
+    // Si tenemos brandId escuchamos por brand_id (cubre todas las sucursales),
+    // si no por restaurant_id del local actual.
+    const filter = brandId
+      ? `brand_id=eq.${brandId}`
+      : `restaurant_id=eq.${restId}`
     const ch = supabase
       .channel(`locations-cfg:${restId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter: `restaurant_id=eq.${restId}` }, () => load())
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'locations', filter }, () => load())
       .on('postgres_changes', { event: '*', schema: 'public', table: 'brands' }, () => load())
       .subscribe()
     return () => { supabase.removeChannel(ch) }
-  }, [restId, load])
+  }, [restId, brandId, load])
 
   function notify(msg: string) {
     setToast(msg)
@@ -236,15 +248,22 @@ export default function LocationsConfigPage() {
         <EmptyState icon={MapPin} title="Sin locales" description="Todavía no tenés locales configurados. Agregá el primero arriba." />
       ) : (
         <div className="space-y-3">
-          {locations.map(loc => (
-            <LocationCard
-              key={loc.id}
-              location={loc}
-              hasMultiple={hasMultiple}
-              onUpdate={patch => updateLocation(loc.id, patch)}
-              onDelete={() => deleteLocation(loc.id)}
-            />
-          ))}
+          {locations.map(loc => {
+            const isCurrent     = loc.restaurant_id === restId
+            const otherRestMatch = restaurants.find(r => r.id === loc.restaurant_id)
+            return (
+              <LocationCard
+                key={loc.id}
+                location={loc}
+                hasMultiple={hasMultiple}
+                isCurrent={isCurrent}
+                canSwitchTo={!isCurrent && !!otherRestMatch}
+                onSwitchTo={() => loc.restaurant_id && switchTo(loc.restaurant_id)}
+                onUpdate={patch => updateLocation(loc.id, patch)}
+                onDelete={() => deleteLocation(loc.id)}
+              />
+            )
+          })}
         </div>
       )}
 
@@ -307,9 +326,12 @@ function BookIcon() {
   return <Store size={16} className="text-yellow-400" />
 }
 
-function LocationCard({ location, hasMultiple, onUpdate, onDelete }: {
+function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchTo, onUpdate, onDelete }: {
   location: Location
   hasMultiple: boolean
+  isCurrent: boolean
+  canSwitchTo: boolean
+  onSwitchTo: () => void
   onUpdate: (patch: Partial<Location>) => void
   onDelete: () => void
 }) {
@@ -333,19 +355,37 @@ function LocationCard({ location, hasMultiple, onUpdate, onDelete }: {
     <div className="bg-white/[0.02] border border-white/8 rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 p-4">
-        <div className="w-10 h-10 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center">
-          <MapPin size={16} className="text-[#FF6B35]" />
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCurrent ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/20' : 'bg-white/5 border border-white/10'}`}>
+          <MapPin size={16} className={isCurrent ? 'text-[#FF6B35]' : 'text-white/40'} />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm">{location.name}</p>
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-white font-semibold text-sm">{location.name}</p>
+            {isCurrent && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FF6B35]/15 text-[#FF6B35] font-semibold">Actual</span>
+            )}
+            {!location.active && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/30">Inactivo</span>
+            )}
+          </div>
           <p className="text-white/40 text-xs truncate">{location.address ?? 'Sin dirección'}</p>
         </div>
-        <button
-          onClick={() => setExpanded(e => !e)}
-          className="text-white/40 text-xs hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 border border-white/8"
-        >
-          {expanded ? 'Cerrar' : 'Editar'}
-        </button>
+        {canSwitchTo && (
+          <button
+            onClick={onSwitchTo}
+            className="text-[#FF6B35] text-xs font-semibold hover:text-[#FF6B35]/80 transition-colors px-3 py-1.5 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20"
+          >
+            Gestionar
+          </button>
+        )}
+        {isCurrent && (
+          <button
+            onClick={() => setExpanded(e => !e)}
+            className="text-white/40 text-xs hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 border border-white/8"
+          >
+            {expanded ? 'Cerrar' : 'Editar'}
+          </button>
+        )}
       </div>
 
       {/* Expanded editor */}
