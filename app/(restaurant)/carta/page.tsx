@@ -69,12 +69,16 @@ const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; h
 function ItemForm({
   initial,
   stockItems,
+  stations,
+  initialOverrideId,
   onSave,
   onCancel,
 }: {
   initial?: Partial<MenuItem>
   stockItems: { id: string; name: string; unit: string }[]
-  onSave: (item: Omit<MenuItem, 'id'>) => Promise<void>
+  stations: StationOption[]
+  initialOverrideId?: string | null
+  onSave: (item: Omit<MenuItem, 'id'> & { station_override_id?: string | null }) => Promise<void>
   onCancel: () => void
 }) {
   // Infer initial product type from category
@@ -98,6 +102,7 @@ function ItemForm({
   const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? [])
   const [saving, setSaving]           = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null)
+  const [stationOverrideId, setStationOverrideId] = useState<string>(initialOverrideId ?? '')
 
   function addIngredient() {
     if (stockItems.length === 0) return
@@ -149,6 +154,7 @@ function ItemForm({
         cost_price: cost ? parseInt(cost) : undefined,
         photo_url: photoPreview ?? undefined,
         ingredients: ingredients.filter(i => i.qty > 0 && i.stock_item_id),
+        station_override_id: stationOverrideId || null,
       })
     } finally {
       setSaving(false)
@@ -298,6 +304,32 @@ function ItemForm({
           })}
         </div>
       </div>
+      {/* Station override (ruteo a estación distinta a la de la categoría) */}
+      {stations.length > 0 && (
+        <div className="space-y-1.5">
+          <label className="text-white/50 text-xs">Estación de preparación</label>
+          <p className="text-white/25 text-[10px] -mt-0.5 mb-1">
+            Por default el plato se rutea a la estación que definiste en su categoría.
+            Elegí una acá solo si este producto es la excepción.
+          </p>
+          <div className="relative">
+            <select
+              value={stationOverrideId}
+              onChange={e => setStationOverrideId(e.target.value)}
+              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+            >
+              <option value="" className="bg-[#1C1C2E]">Seguir categoría (default)</option>
+              {stations.map(s => (
+                <option key={s.id} value={s.id} className="bg-[#1C1C2E]">
+                  {s.name}{s.locationName ? ` · ${s.locationName}` : ''}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+          </div>
+        </div>
+      )}
+
       {/* Ingredientes / Gramaje */}
       <div className="space-y-2 border-t border-white/5 pt-4">
         <div className="flex items-center justify-between">
@@ -450,12 +482,28 @@ function ItemRow({ item, onEdit, onDelete, onToggle }: {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// ── Station type for override dropdown ────────────────────────────────────────
+interface StationOption {
+  id: string
+  name: string
+  kind: string
+  locationName: string | null
+}
+
+interface ItemOverride {
+  menu_item_id: string
+  station_id: string
+}
+
 export default function CartaPage() {
   const { restaurant } = useRestaurant()
-  const restId = restaurant?.id
+  const restId  = restaurant?.id
+  const brandId = restaurant?.brand_id ?? null
 
   const [items, setItems]         = useState<MenuItem[]>([])
   const [stockItems, setStockItems] = useState<{ id: string; name: string; unit: string }[]>([])
+  const [stations, setStations]   = useState<StationOption[]>([])
+  const [overrides, setOverrides] = useState<ItemOverride[]>([])
   const [loading, setLoading]     = useState(true)
   const [search, setSearch]       = useState('')
   const [catFilter, setCatFilter] = useState('todas')
@@ -479,6 +527,43 @@ export default function CartaPage() {
         }
       })
       .catch(err => console.error('Error loading stock items:', err))
+  }, [restId])
+
+  // ── Load stations (brand-wide for routing) ──────────────────────────────
+  useEffect(() => {
+    if (!restId) return
+    const url = brandId
+      ? `/api/stations?brand_id=${brandId}`
+      : `/api/stations?restaurant_id=${restId}`
+    fetch(url)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.stations)) {
+          setStations(d.stations.map((s: Record<string, unknown>) => ({
+            id:           s.id as string,
+            name:         s.name as string,
+            kind:         (s.kind as string) || 'cocina',
+            locationName: (s.locations as { name: string } | null)?.name ?? null,
+          })))
+        }
+      })
+      .catch(err => console.error('Error loading stations:', err))
+  }, [restId, brandId])
+
+  // ── Load existing item→station overrides ────────────────────────────────
+  useEffect(() => {
+    if (!restId) return
+    fetch(`/api/item-routing?restaurant_id=${restId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.overrides)) {
+          setOverrides(d.overrides.map((o: Record<string, unknown>) => ({
+            menu_item_id: o.menu_item_id as string,
+            station_id:   o.station_id as string,
+          })))
+        }
+      })
+      .catch(err => console.error('Error loading item overrides:', err))
   }, [restId])
 
   // ── Load items from API ──────────────────────────────────────────────────
@@ -523,15 +608,44 @@ export default function CartaPage() {
 
   useEffect(() => { loadItems() }, [loadItems])
 
+  // ── Helper: save or clear station override after item create/update ────
+  async function saveOverride(menuItemId: string, stationId: string | null) {
+    if (!restId) return
+    await fetch('/api/item-routing', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        restaurant_id: restId,
+        menu_item_id:  menuItemId,
+        station_id:    stationId,
+        location_id:   null,
+      }),
+    })
+    // Refresh overrides
+    const res = await fetch(`/api/item-routing?restaurant_id=${restId}`)
+    const d = await res.json()
+    if (Array.isArray(d.overrides)) {
+      setOverrides(d.overrides.map((o: Record<string, unknown>) => ({
+        menu_item_id: o.menu_item_id as string,
+        station_id:   o.station_id as string,
+      })))
+    }
+  }
+
   // ── CRUD handlers ────────────────────────────────────────────────────────
-  async function addItem(data: Omit<MenuItem, 'id'>) {
+  async function addItem(data: Omit<MenuItem, 'id'> & { station_override_id?: string | null }) {
+    const { station_override_id, ...itemData } = data
     const res = await fetch('/api/menu-items', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...data, restaurant_id: restId }),
+      body: JSON.stringify({ ...itemData, restaurant_id: restId }),
     })
     const result = await res.json()
     if (result.item) {
+      // Save station override if set
+      if (station_override_id) {
+        await saveOverride(result.item.id, station_override_id)
+      }
       setItems(prev => [...prev, {
         ...result.item,
         description: result.item.description || '',
@@ -541,14 +655,20 @@ export default function CartaPage() {
     }
   }
 
-  async function updateItem(id: string, data: Omit<MenuItem, 'id'>) {
+  async function updateItem(id: string, data: Omit<MenuItem, 'id'> & { station_override_id?: string | null }) {
+    const { station_override_id, ...itemData } = data
     const res = await fetch('/api/menu-items', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id, restaurant_id: restId, ...data }),
+      body: JSON.stringify({ id, restaurant_id: restId, ...itemData }),
     })
     const result = await res.json()
     if (result.item) {
+      // Save or clear override
+      const currentOverride = overrides.find(o => o.menu_item_id === id)?.station_id ?? null
+      if (station_override_id !== currentOverride) {
+        await saveOverride(id, station_override_id ?? null)
+      }
       setItems(prev => prev.map(i => i.id === id ? {
         ...result.item,
         description: result.item.description || '',
@@ -641,7 +761,7 @@ export default function CartaPage() {
       </div>
 
       {/* Add form */}
-      {adding && <ItemForm stockItems={stockItems} onSave={addItem} onCancel={() => setAdding(false)} />}
+      {adding && <ItemForm stockItems={stockItems} stations={stations} onSave={addItem} onCancel={() => setAdding(false)} />}
 
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
@@ -684,6 +804,8 @@ export default function CartaPage() {
                   editing === item.id
                     ? <ItemForm key={item.id} initial={item}
                         stockItems={stockItems}
+                        stations={stations}
+                        initialOverrideId={overrides.find(o => o.menu_item_id === item.id)?.station_id ?? null}
                         onSave={(data) => updateItem(item.id, data)}
                         onCancel={() => setEditing(null)} />
                     : <ItemRow key={item.id} item={item}
