@@ -398,21 +398,41 @@ export default function GarzonPage() {
 
       // Emit DTE after payment — fire and forget
       if (restaurant?.id) {
+        const emitBody: Record<string, unknown> = {
+          restaurant_id:      restaurant.id,
+          order_id:           payingOrder.id,
+          document_type:      dte.document_type,
+          rut_receptor:       dte.rut_receptor,
+          razon_receptor:     dte.razon_receptor,
+          giro_receptor:      dte.giro_receptor,
+          direccion_receptor: dte.direccion_receptor,
+          comuna_receptor:    dte.comuna_receptor,
+          fma_pago:           dte.fma_pago,
+          email_receptor:     dte.email_receptor,
+        }
+
         fetch('/api/dte/emit', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            restaurant_id:      restaurant.id,
-            order_id:           payingOrder.id,
-            document_type:      dte.document_type,
-            rut_receptor:       dte.rut_receptor,
-            razon_receptor:     dte.razon_receptor,
-            giro_receptor:      dte.giro_receptor,
-            direccion_receptor: dte.direccion_receptor,
-            comuna_receptor:    dte.comuna_receptor,
-            fma_pago:           dte.fma_pago,
-          }),
+          body: JSON.stringify(emitBody),
         }).catch(err => console.error('DTE emit error (non-blocking):', err))
+
+        // Guardar receptor en directorio para autocompletado futuro
+        if (dte.document_type === 33 && dte.rut_receptor && dte.razon_receptor) {
+          fetch('/api/dte/receptores', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              restaurant_id: restaurant.id,
+              rut:           dte.rut_receptor,
+              razon_social:  dte.razon_receptor,
+              giro:          dte.giro_receptor,
+              direccion:     dte.direccion_receptor,
+              comuna:        dte.comuna_receptor,
+              email:         dte.email_receptor,
+            }),
+          }).catch(() => { /* non-critical */ })
+        }
       }
 
       // Mark table as libre
@@ -633,6 +653,7 @@ export default function GarzonPage() {
         <PaymentMethodModal
           orderId={payingOrder.id}
           total={payingOrder.total}
+          restaurantId={restaurant?.id ?? ''}
           onConfirm={handlePaymentConfirm}
           onClose={() => setPayingOrder(null)}
         />

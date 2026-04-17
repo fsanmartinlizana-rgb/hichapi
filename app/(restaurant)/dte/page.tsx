@@ -5,7 +5,7 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import {
   FileText, ShieldCheck, AlertCircle, Loader2, Upload, Clock,
   CheckCircle2, XCircle, ChevronDown, ChevronUp, Globe,
-  RefreshCw, X, Download, Eye,
+  RefreshCw, X, Download, Eye, Inbox, Plus,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -53,6 +53,63 @@ interface FolioCounters {
   41: number
   56: number
   61: number
+}
+
+// ── Facturas recibidas ────────────────────────────────────────────────────────
+
+interface IncomingInvoice {
+  id:               string
+  rut_emisor:       string
+  razon_emisor:     string
+  giro_emisor:      string | null
+  email_emisor:     string | null
+  document_type:    number
+  folio:            number
+  fecha_emision:    string
+  total_amount:     number
+  net_amount:       number | null
+  iva_amount:       number | null
+  reception_status: string
+  reception_glosa:  string | null
+  reception_date:   string | null
+  received_at:      string
+  pdf_url:          string | null
+  dias_restantes:   number
+  vencido:          boolean
+}
+
+interface IncomingFormState {
+  rut_emisor:    string
+  razon_emisor:  string
+  giro_emisor:   string
+  email_emisor:  string
+  folio:         string
+  fecha_emision: string
+  total_amount:  string
+  net_amount:    string
+  iva_amount:    string
+}
+
+function defaultIncomingForm(): IncomingFormState {
+  return {
+    rut_emisor:    '',
+    razon_emisor:  '',
+    giro_emisor:   '',
+    email_emisor:  '',
+    folio:         '',
+    fecha_emision: new Date().toISOString().split('T')[0],
+    total_amount:  '',
+    net_amount:    '',
+    iva_amount:    '',
+  }
+}
+
+interface ProveedorSuggestion {
+  rut:               string
+  razon_social:      string
+  giro:              string | null
+  email:             string | null
+  facturas_emitidas: number
 }
 
 const DOC_TYPE_LABEL: Record<number, string> = {
@@ -116,6 +173,23 @@ export default function DtePage() {
   // Detail modal
   const [detailEmission,  setDetailEmission]   = useState<Emission | null>(null)
 
+  // Facturas recibidas de proveedores
+  const [incomingInvoices,    setIncomingInvoices]    = useState<IncomingInvoice[]>([])
+  const [incomingLoading,     setIncomingLoading]     = useState(false)
+  const [incomingFilter,      setIncomingFilter]      = useState<string | null>(null)
+  const [showAddIncoming,     setShowAddIncoming]     = useState(false)
+  const [incomingForm,        setIncomingForm]        = useState<IncomingFormState>(defaultIncomingForm())
+  const [incomingFormError,   setIncomingFormError]   = useState<string | null>(null)
+  const [incomingFormSaving,  setIncomingFormSaving]  = useState(false)
+  const [processingIncoming,  setProcessingIncoming]  = useState<string | null>(null)
+
+  // Autocompletado de proveedor en formulario de facturas recibidas
+  const [proveedorSuggestions,     setProveedorSuggestions]     = useState<ProveedorSuggestion[]>([])
+  const [showProveedorSuggestions, setShowProveedorSuggestions] = useState(false)
+  const [loadingProveedorSuggest,  setLoadingProveedorSuggest]  = useState(false)
+  const proveedorSuggestRef  = useRef<HTMLDivElement>(null)
+  const proveedorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
   // ── Fetch helpers ──────────────────────────────────────────────────────────
 
   async function fetchFolios(restaurantId: string) {
@@ -123,6 +197,162 @@ export default function DtePage() {
     const data = await res.json()
     if (data.folios) setFolios(data.folios as FolioCounters)
   }
+
+  async function fetchIncomingInvoices(restaurantId: string, status?: string | null) {
+    setIncomingLoading(true)
+    try {
+      const params = new URLSearchParams({ restaurant_id: restaurantId })
+      if (status) params.set('status', status)
+      const res  = await fetch(`/api/dte/incoming?${params}`)
+      const data = await res.json()
+      setIncomingInvoices(data.invoices ?? [])
+    } catch {
+      // non-critical
+    } finally {
+      setIncomingLoading(false)
+    }
+  }
+
+  async function handleIncomingAction(
+    invoiceId: string,
+    action: 'aceptado' | 'rechazado' | 'reclamado',
+    glosa?: string
+  ) {
+    if (!restaurant) return
+    setProcessingIncoming(invoiceId)
+    try {
+      const res = await fetch('/api/dte/incoming', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id:    restaurant.id,
+          id:               invoiceId,
+          reception_status: action,
+          reception_glosa:  glosa,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.message ?? data.error ?? 'Error al procesar la factura')
+        return
+      }
+      await fetchIncomingInvoices(restaurant.id, incomingFilter)
+    } catch {
+      setError('Error de red al procesar la factura')
+    } finally {
+      setProcessingIncoming(null)
+    }
+  }
+
+  async function handleAddIncoming() {
+    if (!restaurant) return
+    setIncomingFormError(null)
+    const total = parseInt(incomingForm.total_amount, 10)
+    if (!incomingForm.rut_emisor || !incomingForm.razon_emisor || !incomingForm.folio || isNaN(total)) {
+      setIncomingFormError('RUT emisor, razón social, folio y monto total son obligatorios')
+      return
+    }
+    setIncomingFormSaving(true)
+    try {
+      const res = await fetch('/api/dte/incoming', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id:  restaurant.id,
+          rut_emisor:     incomingForm.rut_emisor,
+          razon_emisor:   incomingForm.razon_emisor,
+          giro_emisor:    incomingForm.giro_emisor || undefined,
+          email_emisor:   incomingForm.email_emisor || undefined,
+          document_type:  33,
+          folio:          parseInt(incomingForm.folio, 10),
+          fecha_emision:  incomingForm.fecha_emision,
+          total_amount:   total,
+          net_amount:     incomingForm.net_amount ? parseInt(incomingForm.net_amount, 10) : undefined,
+          iva_amount:     incomingForm.iva_amount ? parseInt(incomingForm.iva_amount, 10) : undefined,
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        if (data.error === 'FACTURA_DUPLICADA') {
+          setIncomingFormError('Ya existe una factura con ese folio y emisor.')
+        } else {
+          setIncomingFormError(data.message ?? data.error ?? 'Error al registrar la factura')
+        }
+        return
+      }
+      // Guardar proveedor en directorio para autocompletado futuro
+      fetch('/api/dte/receptores', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurant.id,
+          rut:           incomingForm.rut_emisor,
+          razon_social:  incomingForm.razon_emisor,
+          giro:          incomingForm.giro_emisor || undefined,
+          email:         incomingForm.email_emisor || undefined,
+        }),
+      }).catch(() => { /* non-critical */ })
+
+      setShowAddIncoming(false)
+      setIncomingForm(defaultIncomingForm())
+      await fetchIncomingInvoices(restaurant.id, incomingFilter)
+    } catch {
+      setIncomingFormError('Error de red al registrar la factura')
+    } finally {
+      setIncomingFormSaving(false)
+    }
+  }
+
+  // ── Autocompletado de proveedor ────────────────────────────────────────────
+
+  function handleProveedorRutChange(value: string) {
+    setIncomingForm(f => ({ ...f, rut_emisor: value }))
+    setShowProveedorSuggestions(true)
+
+    if (proveedorDebounceRef.current) clearTimeout(proveedorDebounceRef.current)
+    if (value.length < 3) {
+      setProveedorSuggestions([])
+      setShowProveedorSuggestions(false)
+      return
+    }
+
+    proveedorDebounceRef.current = setTimeout(async () => {
+      if (!restaurant) return
+      setLoadingProveedorSuggest(true)
+      try {
+        const res  = await fetch(`/api/dte/receptores?restaurant_id=${restaurant.id}&rut=${encodeURIComponent(value)}`)
+        const data = await res.json()
+        setProveedorSuggestions(data.receptores ?? [])
+        setShowProveedorSuggestions((data.receptores ?? []).length > 0)
+      } catch {
+        setProveedorSuggestions([])
+      } finally {
+        setLoadingProveedorSuggest(false)
+      }
+    }, 300)
+  }
+
+  function applyProveedorSuggestion(p: ProveedorSuggestion) {
+    setIncomingForm(f => ({
+      ...f,
+      rut_emisor:   p.rut,
+      razon_emisor: p.razon_social,
+      giro_emisor:  p.giro ?? '',
+      email_emisor: p.email ?? '',
+    }))
+    setShowProveedorSuggestions(false)
+  }
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (proveedorSuggestRef.current && !proveedorSuggestRef.current.contains(e.target as Node)) {
+        setShowProveedorSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // ── Initial load ───────────────────────────────────────────────────────────
 
@@ -145,6 +375,8 @@ export default function DtePage() {
 
     // Fetch dte_environment separately (non-blocking)
     fetchDteEnvironment(restaurant.id)
+    // Fetch facturas recibidas (non-blocking)
+    fetchIncomingInvoices(restaurant.id)
   }, [restaurant])
 
   async function fetchDteEnvironment(restaurantId: string) {
@@ -798,6 +1030,228 @@ export default function DtePage() {
           onClose={() => setDetailEmission(null)}
         />
       )}
+
+      {/* ── Facturas recibidas de proveedores ─────────────────────────── */}
+      <div className="bg-[#161622] border border-white/5 rounded-2xl">
+        <div className="p-5 border-b border-white/5 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Inbox size={15} className="text-[#FF6B35]" />
+            <p className="text-white font-semibold text-sm">Facturas recibidas</p>
+            {incomingInvoices.filter(i => i.reception_status === 'pendiente').length > 0 && (
+              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
+                {incomingInvoices.filter(i => i.reception_status === 'pendiente').length} pendientes
+              </span>
+            )}
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => { setShowAddIncoming(v => !v); setIncomingFormError(null) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold transition-colors"
+            >
+              <Plus size={11} />
+              Registrar
+            </button>
+            <button
+              onClick={() => restaurant && fetchIncomingInvoices(restaurant.id, incomingFilter)}
+              disabled={incomingLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40"
+            >
+              <RefreshCw size={11} className={incomingLoading ? 'animate-spin' : ''} />
+            </button>
+          </div>
+        </div>
+
+        {/* Formulario de registro manual */}
+        {showAddIncoming && (
+          <div className="p-5 border-b border-white/5 space-y-3">
+            <p className="text-white/60 text-xs font-semibold">Registrar factura recibida</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {/* RUT emisor con autocompletado */}
+              <div className="space-y-1 sm:col-span-2" ref={proveedorSuggestRef}>
+                <label className="text-white/40 text-[11px]">RUT emisor *</label>
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="77042148-9"
+                    value={incomingForm.rut_emisor}
+                    onChange={e => handleProveedorRutChange(e.target.value)}
+                    onFocus={() => proveedorSuggestions.length > 0 && setShowProveedorSuggestions(true)}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 pr-8"
+                  />
+                  {loadingProveedorSuggest && (
+                    <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />
+                  )}
+
+                  {/* Dropdown sugerencias */}
+                  {showProveedorSuggestions && proveedorSuggestions.length > 0 && (
+                    <div className="absolute z-20 w-full mt-1 bg-[#1a1a2e] border border-white/15 rounded-xl shadow-xl overflow-hidden">
+                      {proveedorSuggestions.map(p => (
+                        <button
+                          key={p.rut}
+                          type="button"
+                          onMouseDown={() => applyProveedorSuggestion(p)}
+                          className="w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                        >
+                          <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0">
+                              <p className="text-white text-xs font-semibold truncate">{p.razon_social}</p>
+                              <p className="text-white/40 text-[10px] font-mono">{p.rut}</p>
+                              {p.giro && <p className="text-white/30 text-[10px] truncate">{p.giro}</p>}
+                            </div>
+                            <span className="text-white/20 text-[10px] shrink-0">
+                              {p.facturas_emitidas} reg.
+                            </span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Razón social *</label>
+                <input
+                  type="text"
+                  placeholder="Proveedor S.A."
+                  value={incomingForm.razon_emisor}
+                  onChange={e => setIncomingForm(f => ({ ...f, razon_emisor: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Giro</label>
+                <input
+                  type="text"
+                  placeholder="Venta al por mayor"
+                  value={incomingForm.giro_emisor}
+                  onChange={e => setIncomingForm(f => ({ ...f, giro_emisor: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Email emisor</label>
+                <input
+                  type="email"
+                  placeholder="proveedor@empresa.cl"
+                  value={incomingForm.email_emisor}
+                  onChange={e => setIncomingForm(f => ({ ...f, email_emisor: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Folio *</label>
+                <input
+                  type="number"
+                  placeholder="123"
+                  value={incomingForm.folio}
+                  onChange={e => setIncomingForm(f => ({ ...f, folio: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Fecha emisión *</label>
+                <input
+                  type="date"
+                  value={incomingForm.fecha_emision}
+                  onChange={e => setIncomingForm(f => ({ ...f, fecha_emision: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Monto total (CLP) *</label>
+                <input
+                  type="number"
+                  placeholder="119000"
+                  value={incomingForm.total_amount}
+                  onChange={e => setIncomingForm(f => ({ ...f, total_amount: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+              <div className="space-y-1">
+                <label className="text-white/40 text-[11px]">Neto (CLP)</label>
+                <input
+                  type="number"
+                  placeholder="100000"
+                  value={incomingForm.net_amount}
+                  onChange={e => setIncomingForm(f => ({ ...f, net_amount: e.target.value }))}
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
+                />
+              </div>
+            </div>
+
+            {incomingFormError && (
+              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
+                <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
+                <p className="text-red-200 text-xs">{incomingFormError}</p>
+              </div>
+            )}
+
+            <div className="flex items-center gap-2 justify-end">
+              <button
+                onClick={() => { setShowAddIncoming(false); setIncomingForm(defaultIncomingForm()); setIncomingFormError(null) }}
+                className="px-4 py-2 rounded-xl bg-white/5 text-white/60 text-xs font-semibold hover:bg-white/10 transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleAddIncoming}
+                disabled={incomingFormSaving}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors"
+              >
+                {incomingFormSaving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
+                {incomingFormSaving ? 'Guardando…' : 'Registrar factura'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Filtros */}
+        <div className="px-5 py-2 flex flex-wrap gap-2 border-b border-white/5">
+          {[null, 'pendiente', 'aceptado', 'rechazado', 'reclamado'].map(s => (
+            <button
+              key={s ?? 'all'}
+              onClick={() => {
+                setIncomingFilter(s)
+                if (restaurant) fetchIncomingInvoices(restaurant.id, s)
+              }}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
+                incomingFilter === s
+                  ? 'bg-[#FF6B35] text-white'
+                  : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
+              }`}
+            >
+              {s === null ? 'Todas' : s.charAt(0).toUpperCase() + s.slice(1)}
+            </button>
+          ))}
+        </div>
+
+        {/* Lista */}
+        {incomingLoading ? (
+          <div className="flex items-center justify-center py-10">
+            <Loader2 size={18} className="text-[#FF6B35] animate-spin" />
+          </div>
+        ) : incomingInvoices.length === 0 ? (
+          <div className="py-10 text-center">
+            <Inbox size={28} className="text-white/10 mx-auto mb-3" />
+            <p className="text-white/30 text-sm">No hay facturas recibidas</p>
+            <p className="text-white/20 text-xs mt-1">
+              Registra manualmente las facturas de tus proveedores para gestionarlas aquí
+            </p>
+          </div>
+        ) : (
+          <div className="divide-y divide-white/5">
+            {incomingInvoices.map(inv => (
+              <IncomingInvoiceRow
+                key={inv.id}
+                invoice={inv}
+                processing={processingIncoming === inv.id}
+                onAction={handleIncomingAction}
+              />
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -1021,6 +1475,176 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
     <div className="flex items-start justify-between gap-4">
       <span className="text-white/30 shrink-0">{label}</span>
       <span className={`text-white/70 text-right break-all ${mono ? 'font-mono' : ''}`}>{value}</span>
+    </div>
+  )
+}
+
+// ── IncomingInvoiceRow ────────────────────────────────────────────────────────
+
+const INCOMING_STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
+  pendiente: { color: '#9CA3AF', label: 'Pendiente',  icon: <Clock size={10} /> },
+  aceptado:  { color: '#34D399', label: 'Aceptada',   icon: <CheckCircle2 size={10} /> },
+  rechazado: { color: '#F87171', label: 'Rechazada',  icon: <XCircle size={10} /> },
+  reclamado: { color: '#FB923C', label: 'Reclamada',  icon: <AlertCircle size={10} /> },
+}
+
+function IncomingInvoiceRow({
+  invoice,
+  processing,
+  onAction,
+}: {
+  invoice:    IncomingInvoice
+  processing: boolean
+  onAction:   (id: string, action: 'aceptado' | 'rechazado' | 'reclamado', glosa?: string) => void
+}) {
+  const [expanded,    setExpanded]    = useState(false)
+  const [rejectGlosa, setRejectGlosa] = useState('')
+  const [showReject,  setShowReject]  = useState(false)
+
+  const cfg = INCOMING_STATUS_CONFIG[invoice.reception_status] ?? INCOMING_STATUS_CONFIG.pendiente
+  const isPending = invoice.reception_status === 'pendiente'
+
+  return (
+    <div>
+      <div
+        className="px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 items-center cursor-pointer hover:bg-white/2"
+        onClick={() => setExpanded(v => !v)}
+      >
+        {/* Emisor / Folio */}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-white text-sm font-semibold">
+              Factura #{invoice.folio}
+            </span>
+            <span className="text-white/40 text-xs truncate">· {invoice.razon_emisor}</span>
+            {invoice.vencido && (
+              <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-[9px] font-bold">
+                PLAZO VENCIDO
+              </span>
+            )}
+            {isPending && !invoice.vencido && invoice.dias_restantes <= 3 && (
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold">
+                {invoice.dias_restantes}d restantes
+              </span>
+            )}
+          </div>
+          <p className="text-white/30 text-[11px] mt-0.5 font-mono">{invoice.rut_emisor}</p>
+        </div>
+
+        {/* Monto */}
+        <p className="text-white font-mono text-sm shrink-0">{fmtCLP(invoice.total_amount)}</p>
+
+        {/* Fecha */}
+        <p className="text-white/30 text-[11px] shrink-0">
+          {new Date(invoice.fecha_emision).toLocaleDateString('es-CL')}
+        </p>
+
+        {/* Estado */}
+        <div className="flex items-center gap-1.5 shrink-0">
+          <span
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border"
+            style={{ color: cfg.color, backgroundColor: `${cfg.color}1a`, borderColor: `${cfg.color}40` }}
+          >
+            {cfg.icon}
+            {cfg.label}
+          </span>
+          {expanded ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />}
+        </div>
+      </div>
+
+      {/* Detalle expandido */}
+      {expanded && (
+        <div className="px-5 pb-4 space-y-3">
+          <div className="bg-white/3 border border-white/8 rounded-xl p-4 space-y-2 text-xs">
+            <DetailRow label="RUT emisor"    value={invoice.rut_emisor} mono />
+            <DetailRow label="Razón social"  value={invoice.razon_emisor} />
+            {invoice.giro_emisor && <DetailRow label="Giro"         value={invoice.giro_emisor} />}
+            {invoice.email_emisor && <DetailRow label="Email"        value={invoice.email_emisor} />}
+            <DetailRow label="Folio"         value={invoice.folio.toString()} />
+            <DetailRow label="Fecha emisión" value={new Date(invoice.fecha_emision).toLocaleDateString('es-CL')} />
+            <DetailRow label="Total"         value={fmtCLP(invoice.total_amount)} />
+            {invoice.net_amount != null && <DetailRow label="Neto"  value={fmtCLP(invoice.net_amount)} />}
+            {invoice.iva_amount != null && <DetailRow label="IVA"   value={fmtCLP(invoice.iva_amount)} />}
+            <DetailRow label="Recibida"      value={new Date(invoice.received_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })} />
+            {invoice.reception_date && (
+              <DetailRow
+                label={`Fecha ${invoice.reception_status}`}
+                value={new Date(invoice.reception_date).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
+              />
+            )}
+            {invoice.reception_glosa && (
+              <DetailRow label="Motivo" value={invoice.reception_glosa} />
+            )}
+            {isPending && !invoice.vencido && (
+              <p className="text-amber-300/70 text-[10px] pt-1">
+                ⏱ Plazo legal: {invoice.dias_restantes} día{invoice.dias_restantes !== 1 ? 's' : ''} restante{invoice.dias_restantes !== 1 ? 's' : ''} para aceptar o rechazar
+              </p>
+            )}
+          </div>
+
+          {/* Acciones — solo si está pendiente */}
+          {isPending && (
+            <div className="space-y-2">
+              {showReject ? (
+                <div className="space-y-2">
+                  <textarea
+                    placeholder="Motivo del rechazo (obligatorio para rechazar)"
+                    value={rejectGlosa}
+                    onChange={e => setRejectGlosa(e.target.value)}
+                    rows={2}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-red-500/50 resize-none"
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setShowReject(false)}
+                      className="px-3 py-1.5 rounded-lg bg-white/5 text-white/50 text-xs hover:bg-white/10 transition-colors"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={() => onAction(invoice.id, 'rechazado', rejectGlosa)}
+                      disabled={processing || !rejectGlosa.trim()}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
+                    >
+                      {processing ? <Loader2 size={10} className="animate-spin" /> : <XCircle size={10} />}
+                      Confirmar rechazo
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => onAction(invoice.id, 'aceptado')}
+                    disabled={processing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 disabled:opacity-40 transition-colors"
+                  >
+                    {processing ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
+                    Aceptar
+                  </button>
+                  {!invoice.vencido && (
+                    <button
+                      onClick={() => setShowReject(true)}
+                      disabled={processing}
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
+                    >
+                      <XCircle size={10} />
+                      Rechazar
+                    </button>
+                  )}
+                  <button
+                    onClick={() => onAction(invoice.id, 'reclamado', 'Reclamo comercial')}
+                    disabled={processing}
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-semibold hover:bg-amber-500/30 disabled:opacity-40 transition-colors"
+                  >
+                    <AlertCircle size={10} />
+                    Reclamar
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }

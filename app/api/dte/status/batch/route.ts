@@ -6,6 +6,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
 import { checkDteStatus, getSiiToken, getSiiTokenFactura, SiiEnvironment } from '@/lib/dte/sii-client'
 import { loadCredentials } from '@/lib/dte/signer'
+import { sendBrandedEmail } from '@/lib/email/sender'
+import { facturaEmail } from '@/lib/email/templates'
+import { generateDtePdf } from '@/lib/dte/pdf-generator'
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  POST /api/dte/status/batch
@@ -44,7 +47,7 @@ export async function POST(req: NextRequest) {
   // Load all 'sent' emissions with fields needed for factura status query
   const { data: sentEmissions } = await supabase
     .from('dte_emissions')
-    .select('id, sii_track_id, document_type, folio, emitted_at, total_amount, rut_receptor')
+    .select('id, sii_track_id, document_type, folio, emitted_at, total_amount, rut_receptor, razon_receptor, email_receptor, xml_signed')
     .eq('restaurant_id', body.restaurant_id)
     .eq('status', 'sent')
     .not('sii_track_id', 'is', null)
@@ -56,7 +59,7 @@ export async function POST(req: NextRequest) {
   // Load restaurant + credentials
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('rut, dte_environment')
+    .select('rut, razon_social, dte_environment, logo_url')
     .eq('id', body.restaurant_id)
     .single()
 
@@ -168,6 +171,50 @@ export async function POST(req: NextRequest) {
           if (estado === 'EPR' && aceptados > 0 && rechazados === 0) {
             await supabase.from('dte_emissions').update({ status: 'accepted', accepted_at: now }).eq('id', em.id)
             updated++
+
+            // Enviar XML + PDF al receptor por email si tiene email_receptor y xml_signed
+            if (em.email_receptor && em.xml_signed) {
+              try {
+                // Generar PDF desde el XML firmado
+                const pdfResult = await generateDtePdf(em.xml_signed, restaurant?.logo_url ?? undefined)
+
+                const { subject, html, text } = facturaEmail({
+                  restaurantName: restaurant?.razon_social ?? 'Restaurante',
+                  razonReceptor:  em.razon_receptor ?? 'Cliente',
+                  folio:          em.folio,
+                  totalAmount:    em.total_amount,
+                  emittedAt:      em.emitted_at as string,
+                  hasXml:         true,
+                  hasPdf:         pdfResult.ok,
+                })
+
+                const attachments: Array<{ filename: string; content: string; type: string }> = [
+                  {
+                    filename: `factura_${em.folio}.xml`,
+                    content:  Buffer.from(em.xml_signed).toString('base64'),
+                    type:     'application/xml',
+                  },
+                ]
+
+                if (pdfResult.ok && pdfResult.buffer) {
+                  attachments.push({
+                    filename: `factura_${em.folio}.pdf`,
+                    content:  pdfResult.buffer.toString('base64'),
+                    type:     'application/pdf',
+                  })
+                }
+
+                await sendBrandedEmail({
+                  to:      em.email_receptor,
+                  subject,
+                  html,
+                  text,
+                  attachments,
+                })
+              } catch (emailErr) {
+                console.error(`[batch] Error enviando email factura ${em.folio}:`, emailErr)
+              }
+            }
           } else if (rechazados > 0) {
             await supabase.from('dte_emissions').update({ status: 'rejected', error_detail: `Rechazado por el SII (QueryEstUp)` }).eq('id', em.id)
             updated++

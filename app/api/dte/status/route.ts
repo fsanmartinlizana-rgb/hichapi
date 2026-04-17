@@ -6,6 +6,9 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
 import { checkDteStatus, getSiiToken, getSiiTokenFactura, queryEstDteFactura, SiiEnvironment } from '@/lib/dte/sii-client'
 import { loadCredentials } from '@/lib/dte/signer'
+import { sendBrandedEmail } from '@/lib/email/sender'
+import { facturaEmail } from '@/lib/email/templates'
+import { generateDtePdf } from '@/lib/dte/pdf-generator'
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  POST /api/dte/status
@@ -56,13 +59,13 @@ export async function POST(req: NextRequest) {
   const [emissionResult, restaurantResult] = await Promise.all([
     supabase
       .from('dte_emissions')
-      .select('id, sii_track_id, status, document_type, folio, emitted_at, total_amount, rut_receptor')
+      .select('id, sii_track_id, status, document_type, folio, emitted_at, total_amount, rut_receptor, razon_receptor, email_receptor, xml_signed')
       .eq('id', body.emission_id)
       .eq('restaurant_id', body.restaurant_id)
       .maybeSingle(),
     supabase
       .from('restaurants')
-      .select('rut, dte_environment')
+      .select('rut, razon_social, dte_environment, logo_url')
       .eq('id', body.restaurant_id)
       .maybeSingle(),
   ])
@@ -147,6 +150,52 @@ export async function POST(req: NextRequest) {
         .from('dte_emissions')
         .update({ status: 'accepted', accepted_at: now, error_detail: errorDetailJson })
         .eq('id', body.emission_id)
+
+      // ── Enviar XML + PDF al receptor por email ──────────────────────────
+      // Solo si la emisión tiene email_receptor y xml_signed
+      if (emission.email_receptor && emission.xml_signed) {
+        try {
+          // Generar PDF desde el XML firmado
+          const pdfResult = await generateDtePdf(emission.xml_signed, restaurant?.logo_url ?? undefined)
+
+          const { subject, html, text } = facturaEmail({
+            restaurantName: restaurant?.razon_social ?? 'Restaurante',
+            razonReceptor:  emission.razon_receptor ?? 'Cliente',
+            folio:          emission.folio,
+            totalAmount:    emission.total_amount,
+            emittedAt:      emission.emitted_at as string,
+            hasXml:         true,
+            hasPdf:         pdfResult.ok,
+          })
+
+          const attachments: Array<{ filename: string; content: string; type: string }> = [
+            {
+              filename: `factura_${emission.folio}.xml`,
+              content:  Buffer.from(emission.xml_signed).toString('base64'),
+              type:     'application/xml',
+            },
+          ]
+
+          if (pdfResult.ok && pdfResult.buffer) {
+            attachments.push({
+              filename: `factura_${emission.folio}.pdf`,
+              content:  pdfResult.buffer.toString('base64'),
+              type:     'application/pdf',
+            })
+          }
+
+          await sendBrandedEmail({
+            to:      emission.email_receptor,
+            subject,
+            html,
+            text,
+            attachments,
+          })
+        } catch (emailErr) {
+          // No fallar la respuesta si el email falla — solo loguear
+          console.error('[dte/status] Error enviando email de factura aceptada:', emailErr)
+        }
+      }
     } else if (queryResult.estado && REJECTION_STATES.includes(queryResult.estado)) {
       await supabase
         .from('dte_emissions')

@@ -64,6 +64,8 @@ const EmitSchema = z.object({
   fch_ref:      z.string().optional(),
   cod_ref:      z.union([z.literal(1), z.literal(2), z.literal(3)]).optional(),
   razon_ref:    z.string().max(90).optional(),
+  // Email del receptor para envío automático cuando la factura es aceptada
+  email_receptor: z.string().email().optional(),
 })
 
 // Chilean IVA rate
@@ -181,6 +183,8 @@ export async function POST(req: NextRequest) {
       fch_ref:            body.fch_ref ?? null,
       cod_ref:            body.cod_ref ?? null,
       razon_ref:          body.razon_ref ?? null,
+      // Email del receptor para envío automático
+      email_receptor:     body.email_receptor ?? null,
       net_amount:         net,
       iva_amount:         iva,
       total_amount:       total,

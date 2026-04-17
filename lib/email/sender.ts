@@ -9,13 +9,20 @@
 // Debugging: los logs con prefijo [email] aparecen en Vercel Function Logs.
 // ─────────────────────────────────────────────────────────────────────────────
 
+interface Attachment {
+  filename: string
+  content:  string   // base64-encoded content
+  type:     string   // MIME type, e.g. 'application/xml' or 'application/pdf'
+}
+
 interface SendArgs {
-  to:       string
-  subject:  string
-  html:     string
-  text?:    string
-  from?:    string
-  replyTo?: string
+  to:          string
+  subject:     string
+  html:        string
+  text?:       string
+  from?:       string
+  replyTo?:    string
+  attachments?: Attachment[]
 }
 
 export interface SendResult {
@@ -56,6 +63,13 @@ export async function sendBrandedEmail(args: SendArgs): Promise<SendResult> {
       text:    args.text,
     }
     if (args.replyTo) payload.reply_to = args.replyTo
+    if (args.attachments && args.attachments.length > 0) {
+      payload.attachments = args.attachments.map(a => ({
+        filename: a.filename,
+        content:  a.content,
+        type:     a.type,
+      }))
+    }
 
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',

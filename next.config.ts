@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // @react-pdf/renderer usa módulos que Next.js necesita transpilar
+  transpilePackages: ['@react-pdf/renderer'],
+  serverExternalPackages: ['bwip-js'],
   images: {
     remotePatterns: [
       {

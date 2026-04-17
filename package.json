@@ -13,11 +13,13 @@
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
+    "@react-pdf/renderer": "^4.5.1",
     "@stripe/stripe-js": "^9.1.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",
     "@types/form-data": "^2.2.1",
     "@types/mapbox-gl": "^3.4.1",
+    "bwip-js": "^4.9.2",
     "clsx": "^2.1.1",
     "dotenv": "^17.4.2",
     "form-data": "^4.0.5",

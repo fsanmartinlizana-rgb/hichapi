@@ -562,3 +562,167 @@ export function loyaltyCouponEmail(opts: LoyaltyCouponOpts): { subject: string; 
     text,
   }
 }
+
+// ── Factura electrónica al receptor ──────────────────────────────────────────
+
+interface FacturaEmailOpts {
+  restaurantName:  string
+  razonReceptor:   string
+  folio:           number
+  totalAmount:     number
+  emittedAt:       string   // ISO date string
+  hasXml:          boolean
+  hasPdf:          boolean
+}
+
+export function facturaEmail(opts: FacturaEmailOpts): { subject: string; html: string; text: string } {
+  const subject = `Factura Electrónica N° ${opts.folio} — ${opts.restaurantName}`
+  const fecha   = new Date(opts.emittedAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+  const monto   = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(opts.totalAmount)
+
+  const adjuntosLine = [
+    opts.hasXml ? 'XML (DTE firmado)' : null,
+    opts.hasPdf ? 'PDF (representación impresa)' : null,
+  ].filter(Boolean).join(' y ')
+
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">
+      Factura Electrónica N° ${opts.folio}
+    </h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      Estimado(a) <strong style="color:#fff;">${escapeHtml(opts.razonReceptor)}</strong>,<br/>
+      adjuntamos su factura electrónica emitida por <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>.
+    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.06);">Folio</td>
+        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#fff;border-bottom:1px solid rgba(255,255,255,0.06);">${opts.folio}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.06);">Fecha emisión</td>
+        <td style="padding:12px 16px;font-size:14px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.06);">${fecha}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);">Monto total</td>
+        <td style="padding:12px 16px;font-size:16px;font-weight:800;color:${BRAND_ORANGE};">${monto}</td>
+      </tr>
+    </table>
+
+    ${adjuntosLine ? `
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.6);">
+      📎 Se adjunta el documento en formato ${adjuntosLine}.
+    </p>` : ''}
+
+    <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.35);">
+      Este documento tiene validez tributaria ante el SII. Consérvelo para sus registros contables.
+    </p>
+  `
+
+  const text = [
+    `Factura Electrónica N° ${opts.folio}`,
+    ``,
+    `Estimado(a) ${opts.razonReceptor},`,
+    `Adjuntamos su factura electrónica emitida por ${opts.restaurantName}.`,
+    ``,
+    `Folio:         ${opts.folio}`,
+    `Fecha emisión: ${fecha}`,
+    `Monto total:   ${monto}`,
+    ``,
+    adjuntosLine ? `Adjuntos: ${adjuntosLine}` : '',
+    ``,
+    `Este documento tiene validez tributaria ante el SII.`,
+    ``,
+    `— ${opts.restaurantName}`,
+  ].filter(l => l !== undefined).join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview: `Factura N° ${opts.folio} por ${monto} de ${opts.restaurantName}`, bodyHtml }),
+    text,
+  }
+}
+
+// ── Acuse de Recibo (AEC) al emisor ──────────────────────────────────────────
+
+interface AecEmailOpts {
+  razonEmisor:   string
+  razonReceptor: string
+  folio:         number
+  tipoDte:       number
+  totalAmount:   number
+  estado:        'aceptado' | 'rechazado' | 'reclamado'
+  glosa?:        string
+}
+
+const AEC_ESTADO_LABEL: Record<string, { label: string; color: string; emoji: string }> = {
+  aceptado:  { label: 'Aceptada',  color: '#34D399', emoji: '✅' },
+  rechazado: { label: 'Rechazada', color: '#F87171', emoji: '❌' },
+  reclamado: { label: 'Reclamada', color: '#FB923C', emoji: '⚠️' },
+}
+
+export function aecEmail(opts: AecEmailOpts): { subject: string; html: string; text: string } {
+  const cfg     = AEC_ESTADO_LABEL[opts.estado] ?? AEC_ESTADO_LABEL.aceptado
+  const subject = `${cfg.emoji} Acuse de Recibo — Factura N° ${opts.folio} ${cfg.label}`
+  const monto   = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(opts.totalAmount)
+
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">
+      ${cfg.emoji} Acuse de Recibo
+    </h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      Estimado(a) <strong style="color:#fff;">${escapeHtml(opts.razonEmisor)}</strong>,<br/>
+      <strong style="color:${cfg.color};">${escapeHtml(opts.razonReceptor)}</strong>
+      ha procesado su factura electrónica con el siguiente resultado:
+    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.06);">Folio</td>
+        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#fff;border-bottom:1px solid rgba(255,255,255,0.06);">${opts.folio}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.06);">Monto total</td>
+        <td style="padding:12px 16px;font-size:14px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.06);">${monto}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);${opts.glosa ? 'border-bottom:1px solid rgba(255,255,255,0.06);' : ''}">Estado</td>
+        <td style="padding:12px 16px;font-size:15px;font-weight:800;color:${cfg.color};${opts.glosa ? 'border-bottom:1px solid rgba(255,255,255,0.06);' : ''}">${cfg.label.toUpperCase()}</td>
+      </tr>
+      ${opts.glosa ? `
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);">Motivo</td>
+        <td style="padding:12px 16px;font-size:14px;color:#fff;">${escapeHtml(opts.glosa)}</td>
+      </tr>` : ''}
+    </table>
+
+    <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.35);">
+      Se adjunta el XML del Acuse de Recibo firmado digitalmente según el estándar SII Chile.
+      Consérvelo para sus registros contables.
+    </p>
+  `
+
+  const text = [
+    `Acuse de Recibo — Factura N° ${opts.folio}`,
+    ``,
+    `Estimado(a) ${opts.razonEmisor},`,
+    `${opts.razonReceptor} ha procesado su factura con el siguiente resultado:`,
+    ``,
+    `Folio:   ${opts.folio}`,
+    `Monto:   ${monto}`,
+    `Estado:  ${cfg.label.toUpperCase()}`,
+    ...(opts.glosa ? [`Motivo:  ${opts.glosa}`] : []),
+    ``,
+    `Se adjunta el XML del Acuse de Recibo firmado digitalmente.`,
+    ``,
+    `— ${opts.razonReceptor}`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview: `Factura N° ${opts.folio} — ${cfg.label} por ${opts.razonReceptor}`, bodyHtml }),
+    text,
+  }
+}
