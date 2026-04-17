@@ -7,6 +7,7 @@ import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, 
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
+import NuevaComandaFlow from '@/components/nueva-comanda/NuevaComandaFlow'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -41,7 +42,7 @@ interface Order {
 
 // ── DB Types & mapping ────────────────────────────────────────────────────────
 
-interface DbTable { id: string; label: string }
+interface DbTable { id: string; label: string; status?: string; zone?: string; seats?: number }
 interface DbOrderItem {
   id: string
   name: string
@@ -1116,10 +1117,10 @@ function ComandasPageInner() {
   const [stockMap, setStockMap]       = useState<Record<string, StockEntry>>(ITEM_STOCK_INITIAL)
   const [toasts, setToasts]           = useState<ToastMsg[]>([])
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
-  const [realTables, setRealTables]   = useState<{ id: string; label: string }[]>([])
+  const [realTables, setRealTables]   = useState<import('@/components/nueva-comanda/types').TableOption[]>([])
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel: string } | null>(null)
   const [chargingOrder, setChargingOrder] = useState<{ id: string; amount: number; tableLabel: string } | null>(null)
-  const [realMenuItems, setRealMenuItems] = useState<{ id: string; name: string; price: number; destination?: string }[]>([])
+  const [realMenuItems, setRealMenuItems] = useState<import('@/components/nueva-comanda/types').MenuItemOption[]>([])
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -1128,7 +1129,7 @@ function ComandasPageInner() {
   const loadData = useCallback(async () => {
     if (!restId) return
     const [tablesRes, ordersRes, menuRes] = await Promise.all([
-      supabase.from('tables').select('id, label, status').eq('restaurant_id', restId).order('label'),
+      supabase.from('tables').select('id, label, status, zone, seats').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
         .select('id, table_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status)')
@@ -1137,7 +1138,7 @@ function ComandasPageInner() {
         .order('created_at', { ascending: false }),
       supabase
         .from('menu_items')
-        .select('id, name, price, destination')
+        .select('id, name, price, category, destination')
         .eq('restaurant_id', restId)
         .eq('available', true)
         .order('name'),
@@ -1153,10 +1154,10 @@ function ComandasPageInner() {
     // Filtrar mesas con status='bloqueada' (madres divididas) — no se puede tomar pedido en ellas.
     setRealTables(
       tables
-        .filter((t: { id: string; label: string; status?: string }) => t.status !== 'bloqueada')
-        .map(t => ({ id: t.id, label: t.label }))
+        .filter((t: DbTable) => t.status !== 'bloqueada')
+        .map(t => ({ id: t.id, label: t.label, status: (t.status ?? 'libre') as 'libre' | 'ocupada' | 'reservada' | 'bloqueada', zone: t.zone, seats: t.seats }))
     )
-    setRealMenuItems((menuRes.data ?? []).map((m: { id: string; name: string; price: number | null; destination?: string | null }) => ({ id: m.id, name: m.name, price: m.price ?? 0, destination: m.destination ?? undefined })))
+    setRealMenuItems((menuRes.data ?? []).map((m: { id: string; name: string; price: number | null; category?: string | null; destination?: string | null }) => ({ id: m.id, name: m.name, price: m.price ?? 0, category: m.category ?? '', destination: m.destination ?? undefined })))
 
     const mapped = dbOrders
       .map(o => mapDbOrder(o, tables))
@@ -1166,8 +1167,9 @@ function ComandasPageInner() {
     setLoading(false)
   }, [restId, supabase])
 
+  const toastCounter = useRef(0)
   function pushToast(text: string, variant: ToastMsg['variant'] = 'break') {
-    const id = Date.now()
+    const id = ++toastCounter.current
     setToasts(prev => [...prev, { id, text, variant }])
     setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), 4000)
   }
@@ -1712,9 +1714,9 @@ function ComandasPageInner() {
         </div>
       )}
 
-      {/* Nueva comanda modal */}
+      {/* Nueva comanda flow */}
       {showNueva && (
-        <NuevaComandaModal
+        <NuevaComandaFlow
           onClose={() => setShowNueva(false)}
           onSave={handleNuevaComanda}
           tables={realTables}
