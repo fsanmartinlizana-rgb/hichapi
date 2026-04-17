@@ -26,10 +26,13 @@ interface ChatMessage {
   tools_used?: Array<{ tool: string; input: unknown }>
 }
 
-const STARTERS: { text: string; category: 'data' | 'help' }[] = [
+const STARTERS: { text: string; category: 'data' | 'help' | 'dte' }[] = [
   { text: '¿Cuánto vendí hoy?',                     category: 'data' },
   { text: '¿Plato más vendido esta semana?',        category: 'data' },
   { text: '¿Insumos por quebrarme?',                category: 'data' },
+  { text: '¿Cuántos folios me quedan?',             category: 'dte'  },
+  { text: '¿Me rechazaron algún documento?',        category: 'dte'  },
+  { text: '¿Cuánto he facturado este mes?',         category: 'dte'  },
   { text: '¿Cómo agrego un plato a la carta?',      category: 'help' },
   { text: '¿Cómo invito a un garzón al equipo?',    category: 'help' },
   { text: '¿Cómo configuro PedidosYa?',             category: 'help' },
@@ -280,6 +283,22 @@ export function ChapiAssistant() {
                 </p>
                 <div className="space-y-1.5">
                   {STARTERS.filter(s => s.category === 'data').map(s => (
+                    <button
+                      key={s.text}
+                      onClick={() => send(s.text)}
+                      className="w-full text-left text-[11px] text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 rounded-lg px-3 py-2 transition-all"
+                    >
+                      {s.text}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="text-white/30 text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
+                  Facturación electrónica (DTE)
+                </p>
+                <div className="space-y-1.5">
+                  {STARTERS.filter(s => s.category === 'dte').map(s => (
                     <button
                       key={s.text}
                       onClick={() => send(s.text)}

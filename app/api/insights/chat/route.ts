@@ -114,6 +114,47 @@ const TOOLS: Anthropic.Messages.Tool[] = [
       },
     },
   },
+  {
+    name: 'get_dte_folios',
+    description:
+      'Folios disponibles por tipo de documento DTE (boleta 39, boleta exenta 41, factura 33, '
+      + 'nota de débito 56, nota de crédito 61). Muestra cuántos folios quedan en cada CAF activo. '
+      + 'Usa cuando preguntan por folios, CAF, cuántas boletas/facturas puedo emitir, '
+      + '"¿me quedan folios?", "¿cuándo se acaban los folios?".',
+    input_schema: {
+      type: 'object',
+      properties: {},
+    },
+  },
+  {
+    name: 'get_dte_summary',
+    description:
+      'Resumen de emisiones DTE en un rango de fechas: total emitido, desglose por tipo '
+      + '(boleta/factura), estados (aceptadas, rechazadas, pendientes), monto total facturado. '
+      + 'Usa cuando preguntan por facturación electrónica, boletas emitidas, facturas, '
+      + '"¿cuánto he facturado?", "¿me rechazaron algo?", "estado del SII".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        start_date: { type: 'string', description: 'Fecha inicial YYYY-MM-DD.' },
+        end_date:   { type: 'string', description: 'Fecha final inclusive YYYY-MM-DD.' },
+      },
+      required: ['start_date', 'end_date'],
+    },
+  },
+  {
+    name: 'get_dte_rejections',
+    description:
+      'Lista las emisiones DTE rechazadas o con error por el SII, con el detalle del rechazo. '
+      + 'Usa cuando preguntan "¿me rechazaron algo?", "¿hay errores en el SII?", '
+      + '"¿qué documentos tienen problema?", "¿por qué me rechazaron?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limit: { type: 'integer', description: 'Máximo de registros a devolver (default 10).' },
+      },
+    },
+  },
 ]
 
 // ── Tool implementations ─────────────────────────────────────────────────────
@@ -317,6 +358,141 @@ async function runTool(
       return { date, sessions }
     }
 
+    case 'get_dte_folios': {
+      const { data: cafs } = await supabase
+        .from('dte_cafs')
+        .select('document_type, folio_desde, folio_hasta, folio_actual, expires_at, status')
+        .eq('restaurant_id', restaurantId)
+        .eq('status', 'active')
+
+      const DOC_NAMES: Record<number, string> = {
+        33: 'Factura electrónica',
+        39: 'Boleta electrónica',
+        41: 'Boleta exenta',
+        56: 'Nota de débito',
+        61: 'Nota de crédito',
+      }
+
+      const now = new Date()
+      const byType: Record<number, { available: number; cafs: unknown[] }> = {}
+
+      for (const caf of (cafs ?? []) as Array<{ document_type: number; folio_desde: number; folio_hasta: number; folio_actual: number; expires_at: string | null; status: string }>) {
+        const expired = caf.expires_at ? new Date(caf.expires_at) <= now : false
+        const available = expired ? 0 : Math.max(0, caf.folio_hasta - caf.folio_actual + 1)
+        if (!byType[caf.document_type]) byType[caf.document_type] = { available: 0, cafs: [] }
+        byType[caf.document_type].available += available
+        byType[caf.document_type].cafs.push({
+          folio_desde:  caf.folio_desde,
+          folio_hasta:  caf.folio_hasta,
+          folio_actual: caf.folio_actual,
+          available,
+          expires_at:   caf.expires_at,
+          expired,
+        })
+      }
+
+      const summary = Object.entries(byType).map(([type, data]) => ({
+        document_type: Number(type),
+        document_name: DOC_NAMES[Number(type)] ?? `Tipo ${type}`,
+        available_folios: data.available,
+        alert: data.available < 9 ? 'crítico' : data.available < 50 ? 'bajo' : 'ok',
+        cafs: data.cafs,
+      }))
+
+      return {
+        folios_by_type: summary,
+        total_types_configured: summary.length,
+        has_critical: summary.some(s => s.alert === 'crítico'),
+      }
+    }
+
+    case 'get_dte_summary': {
+      const start = String(input.start_date ?? ymd(new Date()))
+      const end   = String(input.end_date   ?? ymd(new Date()))
+
+      const { data: emissions } = await supabase
+        .from('dte_emissions')
+        .select('document_type, folio, status, total_amount, emitted_at, error_detail')
+        .eq('restaurant_id', restaurantId)
+        .gte('emitted_at', startOf(start))
+        .lte('emitted_at', endOf(end))
+        .order('emitted_at', { ascending: false })
+
+      type E = { document_type: number; folio: number; status: string; total_amount: number; emitted_at: string; error_detail: string | null }
+      const rows = (emissions ?? []) as E[]
+
+      const DOC_NAMES: Record<number, string> = {
+        33: 'Factura', 39: 'Boleta', 41: 'Boleta exenta', 56: 'Nota débito', 61: 'Nota crédito',
+      }
+
+      const total_emitted   = rows.length
+      const total_amount    = rows.reduce((s, e) => s + (e.total_amount ?? 0), 0)
+      const accepted        = rows.filter(e => e.status === 'accepted').length
+      const rejected        = rows.filter(e => e.status === 'rejected').length
+      const pending         = rows.filter(e => ['pending', 'signed', 'sent', 'draft'].includes(e.status)).length
+      const cancelled       = rows.filter(e => e.status === 'cancelled').length
+
+      const by_type = Object.entries(
+        rows.reduce<Record<number, { count: number; amount: number }>>((acc, e) => {
+          if (!acc[e.document_type]) acc[e.document_type] = { count: 0, amount: 0 }
+          acc[e.document_type].count++
+          acc[e.document_type].amount += e.total_amount ?? 0
+          return acc
+        }, {})
+      ).map(([type, data]) => ({
+        document_type: Number(type),
+        document_name: DOC_NAMES[Number(type)] ?? `Tipo ${type}`,
+        count:  data.count,
+        amount: data.amount,
+      }))
+
+      return {
+        range: { start, end },
+        total_emitted,
+        total_amount,
+        currency: 'CLP',
+        by_status: { accepted, rejected, pending, cancelled },
+        by_type,
+        has_rejections: rejected > 0,
+      }
+    }
+
+    case 'get_dte_rejections': {
+      const limit = Number(input.limit ?? 10)
+
+      const { data: emissions } = await supabase
+        .from('dte_emissions')
+        .select('document_type, folio, status, total_amount, emitted_at, error_detail, sii_response')
+        .eq('restaurant_id', restaurantId)
+        .in('status', ['rejected', 'cancelled'])
+        .order('emitted_at', { ascending: false })
+        .limit(limit)
+
+      type E = { document_type: number; folio: number; status: string; total_amount: number; emitted_at: string; error_detail: string | null; sii_response: unknown }
+      const rows = (emissions ?? []) as E[]
+
+      const DOC_NAMES: Record<number, string> = {
+        33: 'Factura', 39: 'Boleta', 41: 'Boleta exenta', 56: 'Nota débito', 61: 'Nota crédito',
+      }
+
+      if (rows.length === 0) {
+        return { message: 'No hay documentos rechazados o cancelados. ¡Todo en orden con el SII! ✅', rejections: [] }
+      }
+
+      return {
+        total_rejections: rows.length,
+        rejections: rows.map(e => ({
+          document_type: e.document_type,
+          document_name: DOC_NAMES[e.document_type] ?? `Tipo ${e.document_type}`,
+          folio:         e.folio,
+          status:        e.status,
+          total_amount:  e.total_amount,
+          emitted_at:    e.emitted_at,
+          error_detail:  e.error_detail ?? 'Sin detalle disponible',
+        })),
+      }
+    }
+
     default:
       return { error: `Unknown tool: ${name}` }
   }
@@ -397,7 +573,7 @@ INVENTARIO
 - Si tienes insumos próximos a vencer, sugiere proactivamente platos de la carta cuyos ingredientes prioricen esos insumos (usa get_expiring_stock + menu_items).
 - Turnos (/turnos): planificación de horarios.
 - Caja (/caja): apertura/cierre de sesión, total cash + digital, diferencia.
-- DTE Chile (/dte): boletas y facturas electrónicas SII.
+- DTE Chile (/dte): boletas y facturas electrónicas SII. Puedes consultar folios disponibles, emisiones y rechazos con las herramientas get_dte_folios, get_dte_summary y get_dte_rejections.
 - Impresoras (/impresoras): configuración de impresoras térmicas.
 
 INTELIGENCIA

@@ -5,7 +5,7 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import {
   FileText, ShieldCheck, AlertCircle, Loader2, Upload, Clock,
   CheckCircle2, XCircle, ChevronDown, ChevronUp, Globe,
-  RefreshCw, X, Download, Eye, Inbox, Plus,
+  RefreshCw, X, Download, Eye, Inbox, Plus, Search,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
@@ -190,10 +190,28 @@ export default function DtePage() {
   const proveedorSuggestRef  = useRef<HTMLDivElement>(null)
   const proveedorDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
-  // ── Fetch helpers ──────────────────────────────────────────────────────────
+  // Secciones colapsables
+  const [openSections, setOpenSections] = useState<Record<string, boolean>>({
+    resumen:   true,
+    config:    false,
+    emisiones: true,
+    recibidas: true,
+  })
+  function toggleSection(key: string) {
+    setOpenSections(prev => ({ ...prev, [key]: !prev[key] }))
+  }
 
-  async function fetchFolios(restaurantId: string) {
-    const res  = await fetch(`/api/dte/folios?restaurant_id=${restaurantId}`)
+  // Paginador + buscador emisiones
+  const [emisionSearch,   setEmisionSearch]   = useState('')
+  const [emisionPage,     setEmisionPage]      = useState(1)
+  const EMISION_PAGE_SIZE = 15
+
+  // Paginador + buscador facturas recibidas
+  const [incomingSearch,  setIncomingSearch]  = useState('')
+  const [incomingPage,    setIncomingPage]     = useState(1)
+  const INCOMING_PAGE_SIZE = 15
+
+  async function fetchFolios(restaurantId: string) {    const res  = await fetch(`/api/dte/folios?restaurant_id=${restaurantId}`)
     const data = await res.json()
     if (data.folios) setFolios(data.folios as FolioCounters)
   }
@@ -581,8 +599,42 @@ export default function DtePage() {
   }
   // ── Render ─────────────────────────────────────────────────────────────────
 
+  // Derived: filtered + searched emissions
+  const emisionFiltered = (() => {
+    let list = filterDocType === null ? emissions : emissions.filter(e => e.document_type === filterDocType)
+    if (emisionSearch.trim()) {
+      const q = emisionSearch.toLowerCase()
+      list = list.filter(e =>
+        String(e.folio).includes(q) ||
+        (e.rut_receptor ?? '').toLowerCase().includes(q) ||
+        (e.razon_receptor ?? '').toLowerCase().includes(q)
+      )
+    }
+    return list
+  })()
+  const emisionTotalPages = Math.max(1, Math.ceil(emisionFiltered.length / EMISION_PAGE_SIZE))
+  const emisionPageSafe   = Math.min(emisionPage, emisionTotalPages)
+  const emisionPaged      = emisionFiltered.slice((emisionPageSafe - 1) * EMISION_PAGE_SIZE, emisionPageSafe * EMISION_PAGE_SIZE)
+
+  // Derived: filtered + searched incoming
+  const incomingFiltered = (() => {
+    let list = incomingFilter ? incomingInvoices.filter(i => i.reception_status === incomingFilter) : incomingInvoices
+    if (incomingSearch.trim()) {
+      const q = incomingSearch.toLowerCase()
+      list = list.filter(i =>
+        String(i.folio).includes(q) ||
+        i.rut_emisor.toLowerCase().includes(q) ||
+        i.razon_emisor.toLowerCase().includes(q)
+      )
+    }
+    return list
+  })()
+  const incomingTotalPages = Math.max(1, Math.ceil(incomingFiltered.length / INCOMING_PAGE_SIZE))
+  const incomingPageSafe   = Math.min(incomingPage, incomingTotalPages)
+  const incomingPaged      = incomingFiltered.slice((incomingPageSafe - 1) * INCOMING_PAGE_SIZE, incomingPageSafe * INCOMING_PAGE_SIZE)
+
   return (
-    <div className="p-6 space-y-6 max-w-5xl">
+    <div className="p-6 space-y-4 max-w-5xl">
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -592,7 +644,6 @@ export default function DtePage() {
               <FileText size={20} className="text-[#FF6B35]" />
               DTE Chile
             </h1>
-            {/* Environment badge — 10.1 */}
             <EnvironmentBadge environment={dteEnvironment} />
           </div>
           <p className="text-white/40 text-sm mt-0.5">
@@ -608,499 +659,379 @@ export default function DtePage() {
         </div>
       )}
 
-      {/* Environment selector — 10.1 */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Globe size={15} className="text-[#FF6B35]" />
-          <p className="text-white font-semibold text-sm">Ambiente SII</p>
+      {/* ── SECCIÓN: Resumen ─────────────────────────────────────────── */}
+      <Section
+        id="resumen"
+        title="Resumen"
+        icon={<FileText size={14} className="text-[#FF6B35]" />}
+        open={openSections.resumen}
+        onToggle={() => toggleSection('resumen')}
+      >
+        {/* Stats */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <StatCard label="Emitidas"     value={totals.count.toString()}    icon={<FileText size={14} />} />
+          <StatCard label="Aceptadas SII" value={totals.accepted.toString()} icon={<CheckCircle2 size={14} className="text-emerald-400" />} />
+          <StatCard label="Facturado"    value={fmtCLP(totals.gross)}       icon={<ShieldCheck size={14} />} />
         </div>
-        <p className="text-white/40 text-xs">
-          Selecciona el ambiente donde se enviarán los documentos tributarios electrónicos.
-        </p>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <button
-            onClick={() => handleEnvironmentChange('certification')}
-            disabled={updatingEnv || dteEnvironment === 'certification'}
-            className={`p-4 rounded-xl border transition-all ${
-              dteEnvironment === 'certification'
-                ? 'bg-[#FBBF24]/10 border-[#FBBF24]/40 ring-2 ring-[#FBBF24]/30'
-                : 'bg-white/3 border-white/8 hover:border-white/20'
-            } disabled:opacity-40 disabled:cursor-not-allowed`}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-3 h-3 rounded-full ${
-                dteEnvironment === 'certification' ? 'bg-[#FBBF24]' : 'bg-white/20'
-              }`} />
-              <span className="text-white font-semibold text-sm">Certificación</span>
+        {/* Folio counters */}
+        <div className="bg-[#0f0f1a] border border-white/5 rounded-xl p-4 space-y-3 mt-3">
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Folios disponibles</p>
+          {folios === null ? (
+            <p className="text-white/30 text-xs">No se pudieron cargar los folios.</p>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+              {([33, 39, 41, 56, 61] as const).map(docType => (
+                <FolioCounter key={docType} label={DOC_TYPE_LABEL[docType]} count={folios[docType]} />
+              ))}
             </div>
-            <p className="text-white/40 text-xs text-left">
-              Ambiente de pruebas del SII (maullin.sii.cl, apicert.sii.cl, pangal.sii.cl)
-            </p>
-          </button>
+          )}
+        </div>
+      </Section>
 
-          <button
-            onClick={() => handleEnvironmentChange('production')}
-            disabled={updatingEnv || dteEnvironment === 'production'}
-            className={`p-4 rounded-xl border transition-all ${
-              dteEnvironment === 'production'
-                ? 'bg-[#34D399]/10 border-[#34D399]/40 ring-2 ring-[#34D399]/30'
-                : 'bg-white/3 border-white/8 hover:border-white/20'
-            } disabled:opacity-40 disabled:cursor-not-allowed`}
-          >
-            <div className="flex items-center gap-2 mb-2">
-              <div className={`w-3 h-3 rounded-full ${
-                dteEnvironment === 'production' ? 'bg-[#34D399]' : 'bg-white/20'
-              }`} />
-              <span className="text-white font-semibold text-sm">Producción</span>
+      {/* ── SECCIÓN: Configuración ───────────────────────────────────── */}
+      <Section
+        id="config"
+        title="Certificado y CAFs"
+        icon={<ShieldCheck size={14} className="text-[#FF6B35]" />}
+        open={openSections.config}
+        onToggle={() => toggleSection('config')}
+        badge={!credential ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">Sin certificado</span> : undefined}
+      >
+        {/* Ambiente SII */}
+        <div className="space-y-3">
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Ambiente SII</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <button
+              onClick={() => handleEnvironmentChange('certification')}
+              disabled={updatingEnv || dteEnvironment === 'certification'}
+              className={`p-4 rounded-xl border transition-all ${
+                dteEnvironment === 'certification'
+                  ? 'bg-[#FBBF24]/10 border-[#FBBF24]/40 ring-2 ring-[#FBBF24]/30'
+                  : 'bg-white/3 border-white/8 hover:border-white/20'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-2.5 h-2.5 rounded-full ${dteEnvironment === 'certification' ? 'bg-[#FBBF24]' : 'bg-white/20'}`} />
+                <span className="text-white font-semibold text-sm">Certificación</span>
+              </div>
+              <p className="text-white/40 text-xs text-left">Ambiente de pruebas del SII</p>
+            </button>
+            <button
+              onClick={() => handleEnvironmentChange('production')}
+              disabled={updatingEnv || dteEnvironment === 'production'}
+              className={`p-4 rounded-xl border transition-all ${
+                dteEnvironment === 'production'
+                  ? 'bg-[#34D399]/10 border-[#34D399]/40 ring-2 ring-[#34D399]/30'
+                  : 'bg-white/3 border-white/8 hover:border-white/20'
+              } disabled:opacity-40 disabled:cursor-not-allowed`}
+            >
+              <div className="flex items-center gap-2 mb-1">
+                <div className={`w-2.5 h-2.5 rounded-full ${dteEnvironment === 'production' ? 'bg-[#34D399]' : 'bg-white/20'}`} />
+                <span className="text-white font-semibold text-sm">Producción</span>
+              </div>
+              <p className="text-white/40 text-xs text-left">Ambiente real del SII</p>
+            </button>
+          </div>
+          {dteEnvironment === 'production' && (
+            <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              <AlertCircle size={14} className="text-amber-300 shrink-0 mt-0.5" />
+              <p className="text-amber-200 text-xs"><strong>Producción:</strong> Los documentos emitidos tienen validez legal y se reportan al SII.</p>
             </div>
-            <p className="text-white/40 text-xs text-left">
-              Ambiente real del SII (palena.sii.cl, api.sii.cl, rahue.sii.cl)
-            </p>
-          </button>
+          )}
         </div>
 
-        {dteEnvironment === 'production' && (
-          <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-            <AlertCircle size={14} className="text-amber-300 shrink-0 mt-0.5" />
-            <p className="text-amber-200 text-xs">
-              <strong>Producción:</strong> Los documentos emitidos tienen validez legal y se reportan al SII.
-            </p>
+        {/* Certificado */}
+        <div className="border-t border-white/5 pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Certificado SII</p>
+            <button
+              onClick={() => { setShowUpload(v => !v); setError(null) }}
+              className="text-xs text-[#FF6B35] hover:text-[#FF8A5B] transition-colors"
+            >
+              {credential ? 'Rotar certificado' : 'Subir certificado'}
+            </button>
           </div>
-        )}
-      </div>
-
-      {/* Stats */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-        <StatCard label="Emitidas"    value={totals.count.toString()}    icon={<FileText size={14} />} />
-        <StatCard label="Aceptadas SII" value={totals.accepted.toString()} icon={<CheckCircle2 size={14} className="text-emerald-400" />} />
-        <StatCard label="Facturado"   value={fmtCLP(totals.gross)}       icon={<ShieldCheck size={14} />} />
-      </div>
-
-      {/* Folio counters — 10.2 */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <FileText size={15} className="text-[#FF6B35]" />
-          <p className="text-white font-semibold text-sm">Folios disponibles</p>
-        </div>
-
-        {folios === null ? (
-          <p className="text-white/30 text-xs">No se pudieron cargar los folios.</p>
-        ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
-            {([33, 39, 41, 56, 61] as const).map(docType => (
-              <FolioCounter
-                key={docType}
-                label={DOC_TYPE_LABEL[docType]}
-                count={folios[docType]}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Credential card */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <ShieldCheck size={15} className="text-[#FF6B35]" />
-            <p className="text-white font-semibold text-sm">Certificado SII</p>
-          </div>
-          <button
-            onClick={() => {
-              setShowUpload(v => !v)
-              setError(null) // Clear error when toggling
-            }}
-            className="text-xs text-[#FF6B35] hover:text-[#FF8A5B] transition-colors"
-          >
-            {credential ? 'Rotar certificado' : 'Subir certificado'}
-          </button>
-        </div>
-
-        {credential ? (
-          <div className="space-y-2 text-xs">
-            <Row label="Sujeto"  value={credential.cert_subject ?? '—'} />
-            <Row label="Emisor"  value={credential.cert_issuer ?? '—'} />
-            <Row
-              label="Vigencia"
-              value={
+          {credential ? (
+            <div className="space-y-2 text-xs">
+              <Row label="Sujeto"  value={credential.cert_subject ?? '—'} />
+              <Row label="Emisor"  value={credential.cert_issuer ?? '—'} />
+              <Row label="Vigencia" value={
                 credential.cert_valid_from && credential.cert_valid_to
                   ? `${new Date(credential.cert_valid_from).toLocaleDateString('es-CL')} – ${new Date(credential.cert_valid_to).toLocaleDateString('es-CL')}`
                   : '—'
-              }
-            />
-            <Row
-              label="Subido"
-              value={new Date(credential.rotated_at ?? credential.uploaded_at).toLocaleString('es-CL')}
-            />
-          </div>
-        ) : (
-          <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">
-            <p className="text-white/50 text-xs">
-              Aún no has subido tu certificado. Sin él, no puedes emitir DTE.
-            </p>
-          </div>
-        )}
-
-        {showUpload && (
-          <div className="border-t border-white/5 pt-4 space-y-3">
-            {error && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
-                <p className="text-red-200 text-xs">{error}</p>
+              } />
+              <Row label="Subido" value={new Date(credential.rotated_at ?? credential.uploaded_at).toLocaleString('es-CL')} />
+            </div>
+          ) : (
+            <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">
+              <p className="text-white/50 text-xs">Aún no has subido tu certificado. Sin él, no puedes emitir DTE.</p>
+            </div>
+          )}
+          {showUpload && (
+            <div className="border-t border-white/5 pt-4 space-y-3">
+              {error && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
+                  <p className="text-red-200 text-xs">{error}</p>
+                </div>
+              )}
+              <div className="space-y-1.5">
+                <label className="text-white/40 text-xs font-medium">Archivo .pfx / .p12</label>
+                <input type="file" accept=".pfx,.p12" onChange={e => { setCertFile(e.target.files?.[0] ?? null); setError(null) }}
+                  className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30" />
               </div>
-            )}
-            
-            <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Archivo .pfx / .p12</label>
-              <input
-                type="file"
-                accept=".pfx,.p12"
-                onChange={e => {
-                  setCertFile(e.target.files?.[0] ?? null)
-                  setError(null) // Clear error when selecting file
-                }}
-                className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30"
-              />
+              <div className="space-y-1.5">
+                <label className="text-white/40 text-xs font-medium">Contraseña del certificado</label>
+                <input type="password" value={certPassword} onChange={e => { setCertPassword(e.target.value); setError(null) }}
+                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                <p className="text-white/20 text-[10px]">Se cifra con AES-256-GCM antes de guardarse. Nunca queda en logs.</p>
+              </div>
+              <button onClick={handleUpload} disabled={!certFile || !certPassword || uploading}
+                className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {uploading ? 'Cifrando y subiendo…' : 'Subir certificado'}
+              </button>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Contraseña del certificado</label>
-              <input
-                type="password"
-                value={certPassword}
-                onChange={e => {
-                  setCertPassword(e.target.value)
-                  setError(null) // Clear error when typing password
-                }}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
-              />
-              <p className="text-white/20 text-[10px]">
-                Se cifra con AES-256-GCM antes de guardarse. Nunca queda en logs.
-              </p>
-            </div>
-            <button
-              onClick={handleUpload}
-              disabled={!certFile || !certPassword || uploading}
-              className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {uploading ? 'Cifrando y subiendo…' : 'Subir certificado'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* CAF upload form — 10.3 */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
-        <div className="flex items-center gap-2">
-          <Upload size={15} className="text-[#FF6B35]" />
-          <p className="text-white font-semibold text-sm">CAFs</p>
+          )}
         </div>
-        <p className="text-white/40 text-xs">
-          Sube los archivos CAF (XML) emitidos por el SII para autorizar folios por tipo de documento.
-        </p>
 
-        {!credential ? (
-          <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-            <AlertCircle size={13} className="text-amber-300 shrink-0 mt-0.5" />
-            <p className="text-amber-200 text-xs">
-              Debes subir un certificado SII antes de cargar archivos CAF
-            </p>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Archivo CAF (.xml)</label>
-              <input
-                ref={cafFileRef}
-                type="file"
-                accept=".xml"
-                onChange={e => { setCafFile(e.target.files?.[0] ?? null); setCafError(null) }}
-                className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30"
-              />
+        {/* CAF */}
+        <div className="border-t border-white/5 pt-4 space-y-3">
+          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">CAFs</p>
+          <p className="text-white/40 text-xs">Sube los archivos CAF (XML) emitidos por el SII para autorizar folios por tipo de documento.</p>
+          {!credential ? (
+            <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
+              <AlertCircle size={13} className="text-amber-300 shrink-0 mt-0.5" />
+              <p className="text-amber-200 text-xs">Debes subir un certificado SII antes de cargar archivos CAF</p>
             </div>
-
-            {cafError && (
-              <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
-                <p className="text-red-200 text-xs">{cafError}</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="space-y-1.5">
+                <label className="text-white/40 text-xs font-medium">Archivo CAF (.xml)</label>
+                <input ref={cafFileRef} type="file" accept=".xml" onChange={e => { setCafFile(e.target.files?.[0] ?? null); setCafError(null) }}
+                  className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30" />
               </div>
-            )}
+              {cafError && (
+                <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
+                  <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
+                  <p className="text-red-200 text-xs">{cafError}</p>
+                </div>
+              )}
+              <button onClick={handleCafUpload} disabled={!cafFile || cafUploading}
+                className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
+                {cafUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
+                {cafUploading ? 'Subiendo CAF…' : 'Subir CAF'}
+              </button>
+            </div>
+          )}
+        </div>
+      </Section>
 
-            <button
-              onClick={handleCafUpload}
-              disabled={!cafFile || cafUploading}
-              className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-            >
-              {cafUploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
-              {cafUploading ? 'Subiendo CAF…' : 'Subir CAF'}
-            </button>
-          </div>
-        )}
-      </div>
-
-      {/* Emissions list — 10.4 */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl">
-        <div className="p-5 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <p className="text-white font-semibold text-sm">Últimas emisiones</p>
-            {emissions.some(e => e.status === 'sent') && (
-              <span className="flex items-center gap-1 text-[10px] text-[#FF6B35]/70 animate-pulse">
-                <span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35] inline-block" />
-                Auto-actualizando
-              </span>
-            )}
-          </div>
-          <button
-            onClick={() => batchPoll(false)}
-            disabled={autoPolling}
-            title="Actualizar estados ahora"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40"
-          >
+      {/* ── SECCIÓN: Emisiones ──────────────────────────────────────── */}
+      <Section
+        id="emisiones"
+        title="Emisiones"
+        icon={<FileText size={14} className="text-[#FF6B35]" />}
+        open={openSections.emisiones}
+        onToggle={() => toggleSection('emisiones')}
+        badge={
+          emissions.some(e => e.status === 'sent')
+            ? <span className="flex items-center gap-1 text-[10px] text-[#FF6B35]/70 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35] inline-block" />Auto-actualizando</span>
+            : undefined
+        }
+        action={
+          <button onClick={() => batchPoll(false)} disabled={autoPolling}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40">
             <RefreshCw size={11} className={autoPolling ? 'animate-spin' : ''} />
             {autoPolling ? 'Actualizando…' : 'Actualizar'}
           </button>
-        </div>
-
+        }
+      >
         {emissions.length === 0 ? (
-          <EmptyState
-            icon={FileText}
-            title="Aún no has emitido documentos"
-            description="Cuando emitas boletas o facturas, aparecerán acá con su estado en el SII"
-          />
+          <EmptyState icon={FileText} title="Aún no has emitido documentos" description="Cuando emitas boletas o facturas, aparecerán acá con su estado en el SII" />
         ) : (
-          <div className="divide-y divide-white/5">
-            {/* Filter buttons */}
-            <div className="px-5 py-2 flex flex-wrap gap-2 border-b border-white/5">
+          <div className="space-y-3">
+            {/* Filtros + buscador */}
+            <div className="flex flex-wrap items-center gap-2">
               {[null, 33, 56, 61, 39, 41].map(type => (
-                <button
-                  key={type ?? 'all'}
-                  onClick={() => setFilterDocType(type)}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                    filterDocType === type
-                      ? 'bg-[#FF6B35] text-white'
-                      : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-                  }`}
-                >
+                <button key={type ?? 'all'} onClick={() => { setFilterDocType(type); setEmisionPage(1) }}
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${filterDocType === type ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>
                   {type === null ? 'Todos' : DOC_TYPE_LABEL[type] ?? `Tipo ${type}`}
                 </button>
               ))}
+              <div className="relative ml-auto">
+                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                <input
+                  type="text"
+                  placeholder="Buscar folio, RUT, razón…"
+                  value={emisionSearch}
+                  onChange={e => { setEmisionSearch(e.target.value); setEmisionPage(1) }}
+                  className="pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 w-52"
+                />
+              </div>
             </div>
 
-            {/* Table header */}
-            <div className="px-5 py-2 hidden sm:grid grid-cols-[1fr_auto_auto_auto_auto] gap-4 items-center">
-              <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Tipo / Folio</span>
-              <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">RUT receptor</span>
-              <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Monto</span>
-              <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
-              <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Estado</span>
-            </div>
+            {/* Tabla */}
+            <div className="bg-[#0f0f1a] border border-white/5 rounded-xl overflow-hidden">
+              {/* Header */}
+              <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 border-b border-white/5">
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Tipo / Folio</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">RUT receptor</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider text-right">Monto</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Estado</span>
+              </div>
 
-            {(() => {
-              const filteredEmissions = filterDocType === null
-                ? emissions
-                : emissions.filter(e => e.document_type === filterDocType)
-              return filteredEmissions
-            })().map(em => {
-              const style    = STATUS_STYLE[em.status] ?? STATUS_STYLE.draft
-              const hasDetail = em.status === 'rejected' || (em.error_detail !== null && em.error_detail !== '')
-              const isSent   = em.status === 'sent'
-              const expanded = expandedRows.has(em.id)
-              const polling  = pollingRows.has(em.id)
+              <div className="divide-y divide-white/5">
+                {emisionPaged.length === 0 ? (
+                  <p className="text-white/30 text-xs text-center py-8">Sin resultados</p>
+                ) : emisionPaged.map(em => {
+                  const style     = STATUS_STYLE[em.status] ?? STATUS_STYLE.draft
+                  const hasDetail = em.status === 'rejected' || (em.error_detail !== null && em.error_detail !== '')
+                  const isSent    = em.status === 'sent'
+                  const expanded  = expandedRows.has(em.id)
+                  const polling   = pollingRows.has(em.id)
+                  const relatedDocs = em.document_type === 33
+                    ? emissions.filter(e => (e.document_type === 56 || e.document_type === 61) && (e as any).folio_ref === em.folio)
+                    : []
 
-              const relatedDocs = em.document_type === 33
-                ? emissions.filter(e =>
-                    (e.document_type === 56 || e.document_type === 61) &&
-                    (e as any).folio_ref === em.folio
-                  )
-                : []
-
-              return (
-                <div key={em.id}>
-                  <div
-                    className={`px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto_auto] gap-2 sm:gap-4 items-center ${hasDetail ? 'cursor-pointer hover:bg-white/2' : ''}`}
-                    onClick={hasDetail ? () => toggleRow(em.id) : undefined}
-                    role={hasDetail ? 'button' : undefined}
-                    aria-expanded={hasDetail ? expanded : undefined}
-                  >
-                    {/* Tipo / Folio */}
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-white text-sm font-semibold">
-                          {DOC_TYPE_LABEL[em.document_type] ?? `Tipo ${em.document_type}`} #{em.folio}
-                        </span>
-                        {em.razon_receptor && (
-                          <span className="text-white/40 text-xs truncate">· {em.razon_receptor}</span>
-                        )}
-                      </div>
-                    </div>
-
-                    {/* RUT receptor */}
-                    <span className="text-white/50 text-xs font-mono shrink-0">
-                      {em.rut_receptor ?? '—'}
-                    </span>
-
-                    {/* Monto */}
-                    <p className="text-white font-mono text-sm shrink-0">{fmtCLP(em.total_amount)}</p>
-
-                    {/* Fecha */}
-                    <p className="text-white/30 text-[11px] shrink-0">
-                      {new Date(em.emitted_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
-                    </p>
-
-                    {/* Estado + acción */}
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <StatusBadge tone={style.tone} icon={style.icon} label={style.label} />
-                      {/* AEC badge for types 33, 56, 61 */}
-                      {(em.document_type === 33 || em.document_type === 56 || em.document_type === 61) && (
-                        <AecBadge status={em.aec_status} emittedAt={em.emitted_at} />
-                      )}
-                      {/* Detail button — always visible */}
-                      <button
-                        onClick={e => { e.stopPropagation(); setDetailEmission(em) }}
-                        title="Ver detalle"
-                        className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+                  return (
+                    <div key={em.id}>
+                      <div
+                        className={`px-4 py-3 grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 sm:gap-3 items-center ${hasDetail ? 'cursor-pointer hover:bg-white/2' : ''}`}
+                        onClick={hasDetail ? () => toggleRow(em.id) : undefined}
+                        role={hasDetail ? 'button' : undefined}
+                        aria-expanded={hasDetail ? expanded : undefined}
                       >
-                        <Eye size={11} />
-                      </button>
-                      {isSent && (
-                        <button
-                          onClick={e => { e.stopPropagation(); pollStatus(em.id) }}
-                          disabled={polling}
-                          title="Consultar estado en el SII"
-                          className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-[10px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-1"
-                        >
-                          {polling
-                            ? <Loader2 size={10} className="animate-spin" />
-                            : <Clock size={10} />}
-                          {polling ? 'Consultando…' : 'Consultar SII'}
-                        </button>
-                      )}
-                      {hasDetail && (
-                        expanded
-                          ? <ChevronUp size={12} className="text-white/30" />
-                          : <ChevronDown size={12} className="text-white/30" />
-                      )}
-                    </div>
-                  </div>
-
-                  {/* Expandable detail row */}
-                  {hasDetail && expanded && (
-                    <div className="px-5 pb-3">
-                      <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-                        <p className="text-red-300 text-[11px] font-semibold mb-1">Motivo del rechazo</p>
-                        <p className="text-red-200/80 text-xs break-words">
-                          {em.error_detail ?? 'Sin detalle disponible.'}
+                        <div className="min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-white text-sm font-semibold whitespace-nowrap">
+                              {DOC_TYPE_LABEL[em.document_type] ?? `Tipo ${em.document_type}`} #{em.folio}
+                            </span>
+                            {em.razon_receptor && (
+                              <span className="text-white/40 text-xs truncate max-w-[160px]">· {em.razon_receptor}</span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-white/50 text-xs font-mono truncate">{em.rut_receptor ?? '—'}</span>
+                        <p className="text-white font-mono text-sm text-right">{fmtCLP(em.total_amount)}</p>
+                        <p className="text-white/30 text-[11px] whitespace-nowrap">
+                          {new Date(em.emitted_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
                         </p>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Related documents (notas de crédito/débito) */}
-                  {em.document_type === 33 && relatedDocs.length > 0 && (
-                    <div className="px-5 pb-3">
-                      <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3">
-                        <p className="text-blue-300 text-[11px] font-semibold mb-2">
-                          Documentos relacionados ({relatedDocs.length})
-                        </p>
-                        <div className="space-y-1">
-                          {relatedDocs.map(rd => (
-                            <div key={rd.id} className="flex items-center justify-between text-xs">
-                              <span className="text-blue-200/70">
-                                {DOC_TYPE_LABEL[rd.document_type]} #{rd.folio}
-                              </span>
-                              <span className="text-blue-200/50">{fmtCLP(rd.total_amount)}</span>
-                            </div>
-                          ))}
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          <StatusBadge tone={style.tone} icon={style.icon} label={style.label} />
+                          {(em.document_type === 33 || em.document_type === 56 || em.document_type === 61) && (
+                            <AecBadge status={em.aec_status} emittedAt={em.emitted_at} />
+                          )}
+                          <button onClick={e => { e.stopPropagation(); setDetailEmission(em) }} title="Ver detalle"
+                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+                            <Eye size={11} />
+                          </button>
+                          {isSent && (
+                            <button onClick={e => { e.stopPropagation(); pollStatus(em.id) }} disabled={polling}
+                              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-[10px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-1">
+                              {polling ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
+                              {polling ? 'Consultando…' : 'Consultar SII'}
+                            </button>
+                          )}
+                          {hasDetail && (expanded ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />)}
                         </div>
                       </div>
+                      {hasDetail && expanded && (
+                        <div className="px-4 pb-3">
+                          <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
+                            <p className="text-red-300 text-[11px] font-semibold mb-1">Motivo del rechazo</p>
+                            <p className="text-red-200/80 text-xs break-words">{em.error_detail ?? 'Sin detalle disponible.'}</p>
+                          </div>
+                        </div>
+                      )}
+                      {em.document_type === 33 && relatedDocs.length > 0 && (
+                        <div className="px-4 pb-3">
+                          <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3">
+                            <p className="text-blue-300 text-[11px] font-semibold mb-2">Documentos relacionados ({relatedDocs.length})</p>
+                            <div className="space-y-1">
+                              {relatedDocs.map(rd => (
+                                <div key={rd.id} className="flex items-center justify-between text-xs">
+                                  <span className="text-blue-200/70">{DOC_TYPE_LABEL[rd.document_type]} #{rd.folio}</span>
+                                  <span className="text-blue-200/50">{fmtCLP(rd.total_amount)}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                      )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Paginador */}
+            {emisionTotalPages > 1 && (
+              <Paginator page={emisionPageSafe} total={emisionTotalPages} onChange={p => setEmisionPage(p)} count={emisionFiltered.length} pageSize={EMISION_PAGE_SIZE} />
+            )}
           </div>
         )}
-      </div>
+      </Section>
 
       {/* Detail modal */}
       {detailEmission && (
-        <EmissionDetailModal
-          emission={detailEmission}
-          onClose={() => setDetailEmission(null)}
-        />
+        <EmissionDetailModal emission={detailEmission} onClose={() => setDetailEmission(null)} />
       )}
 
-      {/* ── Facturas recibidas de proveedores ─────────────────────────── */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl">
-        <div className="p-5 border-b border-white/5 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Inbox size={15} className="text-[#FF6B35]" />
-            <p className="text-white font-semibold text-sm">Facturas recibidas</p>
-            {incomingInvoices.filter(i => i.reception_status === 'pendiente').length > 0 && (
-              <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
+      {/* ── SECCIÓN: Facturas recibidas ─────────────────────────────── */}
+      <Section
+        id="recibidas"
+        title="Facturas recibidas"
+        icon={<Inbox size={14} className="text-[#FF6B35]" />}
+        open={openSections.recibidas}
+        onToggle={() => toggleSection('recibidas')}
+        badge={
+          incomingInvoices.filter(i => i.reception_status === 'pendiente').length > 0
+            ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
                 {incomingInvoices.filter(i => i.reception_status === 'pendiente').length} pendientes
               </span>
-            )}
-          </div>
+            : undefined
+        }
+        action={
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => { setShowAddIncoming(v => !v); setIncomingFormError(null) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold transition-colors"
-            >
-              <Plus size={11} />
-              Registrar
+            <button onClick={() => { setShowAddIncoming(v => !v); setIncomingFormError(null) }}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold transition-colors">
+              <Plus size={11} />Registrar
             </button>
-            <button
-              onClick={() => restaurant && fetchIncomingInvoices(restaurant.id, incomingFilter)}
-              disabled={incomingLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40"
-            >
+            <button onClick={() => restaurant && fetchIncomingInvoices(restaurant.id, incomingFilter)} disabled={incomingLoading}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40">
               <RefreshCw size={11} className={incomingLoading ? 'animate-spin' : ''} />
             </button>
           </div>
-        </div>
-
+        }
+      >
         {/* Formulario de registro manual */}
         {showAddIncoming && (
-          <div className="p-5 border-b border-white/5 space-y-3">
+          <div className="bg-[#0f0f1a] border border-white/5 rounded-xl p-4 space-y-3 mb-3">
             <p className="text-white/60 text-xs font-semibold">Registrar factura recibida</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {/* RUT emisor con autocompletado */}
               <div className="space-y-1 sm:col-span-2" ref={proveedorSuggestRef}>
                 <label className="text-white/40 text-[11px]">RUT emisor *</label>
                 <div className="relative">
-                  <input
-                    type="text"
-                    placeholder="77042148-9"
-                    value={incomingForm.rut_emisor}
+                  <input type="text" placeholder="77042148-9" value={incomingForm.rut_emisor}
                     onChange={e => handleProveedorRutChange(e.target.value)}
                     onFocus={() => proveedorSuggestions.length > 0 && setShowProveedorSuggestions(true)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 pr-8"
-                  />
-                  {loadingProveedorSuggest && (
-                    <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />
-                  )}
-
-                  {/* Dropdown sugerencias */}
+                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 pr-8" />
+                  {loadingProveedorSuggest && <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />}
                   {showProveedorSuggestions && proveedorSuggestions.length > 0 && (
                     <div className="absolute z-20 w-full mt-1 bg-[#1a1a2e] border border-white/15 rounded-xl shadow-xl overflow-hidden">
                       {proveedorSuggestions.map(p => (
-                        <button
-                          key={p.rut}
-                          type="button"
-                          onMouseDown={() => applyProveedorSuggestion(p)}
-                          className="w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
-                        >
+                        <button key={p.rut} type="button" onMouseDown={() => applyProveedorSuggestion(p)}
+                          className="w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
                               <p className="text-white text-xs font-semibold truncate">{p.razon_social}</p>
                               <p className="text-white/40 text-[10px] font-mono">{p.rut}</p>
                               {p.giro && <p className="text-white/30 text-[10px] truncate">{p.giro}</p>}
                             </div>
-                            <span className="text-white/20 text-[10px] shrink-0">
-                              {p.facturas_emitidas} reg.
-                            </span>
+                            <span className="text-white/20 text-[10px] shrink-0">{p.facturas_emitidas} reg.</span>
                           </div>
                         </button>
                       ))}
@@ -1108,97 +1039,62 @@ export default function DtePage() {
                   )}
                 </div>
               </div>
-
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Razón social *</label>
-                <input
-                  type="text"
-                  placeholder="Proveedor S.A."
-                  value={incomingForm.razon_emisor}
+                <input type="text" placeholder="Proveedor S.A." value={incomingForm.razon_emisor}
                   onChange={e => setIncomingForm(f => ({ ...f, razon_emisor: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Giro</label>
-                <input
-                  type="text"
-                  placeholder="Venta al por mayor"
-                  value={incomingForm.giro_emisor}
+                <input type="text" placeholder="Venta al por mayor" value={incomingForm.giro_emisor}
                   onChange={e => setIncomingForm(f => ({ ...f, giro_emisor: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Email emisor</label>
-                <input
-                  type="email"
-                  placeholder="proveedor@empresa.cl"
-                  value={incomingForm.email_emisor}
+                <input type="email" placeholder="proveedor@empresa.cl" value={incomingForm.email_emisor}
                   onChange={e => setIncomingForm(f => ({ ...f, email_emisor: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Folio *</label>
-                <input
-                  type="number"
-                  placeholder="123"
-                  value={incomingForm.folio}
+                <input type="number" placeholder="123" value={incomingForm.folio}
                   onChange={e => setIncomingForm(f => ({ ...f, folio: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Fecha emisión *</label>
-                <input
-                  type="date"
-                  value={incomingForm.fecha_emision}
+                <input type="date" value={incomingForm.fecha_emision}
                   onChange={e => setIncomingForm(f => ({ ...f, fecha_emision: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Monto total (CLP) *</label>
-                <input
-                  type="number"
-                  placeholder="119000"
-                  value={incomingForm.total_amount}
+                <input type="number" placeholder="119000" value={incomingForm.total_amount}
                   onChange={e => setIncomingForm(f => ({ ...f, total_amount: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
                 <label className="text-white/40 text-[11px]">Neto (CLP)</label>
-                <input
-                  type="number"
-                  placeholder="100000"
-                  value={incomingForm.net_amount}
+                <input type="number" placeholder="100000" value={incomingForm.net_amount}
                   onChange={e => setIncomingForm(f => ({ ...f, net_amount: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50"
-                />
+                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
             </div>
-
             {incomingFormError && (
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
                 <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
                 <p className="text-red-200 text-xs">{incomingFormError}</p>
               </div>
             )}
-
             <div className="flex items-center gap-2 justify-end">
-              <button
-                onClick={() => { setShowAddIncoming(false); setIncomingForm(defaultIncomingForm()); setIncomingFormError(null) }}
-                className="px-4 py-2 rounded-xl bg-white/5 text-white/60 text-xs font-semibold hover:bg-white/10 transition-colors"
-              >
+              <button onClick={() => { setShowAddIncoming(false); setIncomingForm(defaultIncomingForm()); setIncomingFormError(null) }}
+                className="px-4 py-2 rounded-xl bg-white/5 text-white/60 text-xs font-semibold hover:bg-white/10 transition-colors">
                 Cancelar
               </button>
-              <button
-                onClick={handleAddIncoming}
-                disabled={incomingFormSaving}
-                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors"
-              >
+              <button onClick={handleAddIncoming} disabled={incomingFormSaving}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors">
                 {incomingFormSaving ? <Loader2 size={12} className="animate-spin" /> : <Plus size={12} />}
                 {incomingFormSaving ? 'Guardando…' : 'Registrar factura'}
               </button>
@@ -1206,24 +1102,20 @@ export default function DtePage() {
           </div>
         )}
 
-        {/* Filtros */}
-        <div className="px-5 py-2 flex flex-wrap gap-2 border-b border-white/5">
+        {/* Filtros + buscador */}
+        <div className="flex flex-wrap items-center gap-2 mb-3">
           {[null, 'pendiente', 'aceptado', 'rechazado', 'reclamado'].map(s => (
-            <button
-              key={s ?? 'all'}
-              onClick={() => {
-                setIncomingFilter(s)
-                if (restaurant) fetchIncomingInvoices(restaurant.id, s)
-              }}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${
-                incomingFilter === s
-                  ? 'bg-[#FF6B35] text-white'
-                  : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'
-              }`}
-            >
+            <button key={s ?? 'all'} onClick={() => { setIncomingFilter(s); setIncomingPage(1); if (restaurant) fetchIncomingInvoices(restaurant.id, s) }}
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${incomingFilter === s ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>
               {s === null ? 'Todas' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
+          <div className="relative ml-auto">
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <input type="text" placeholder="Buscar folio, RUT, razón…" value={incomingSearch}
+              onChange={e => { setIncomingSearch(e.target.value); setIncomingPage(1) }}
+              className="pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 w-52" />
+          </div>
         </div>
 
         {/* Lista */}
@@ -1231,32 +1123,118 @@ export default function DtePage() {
           <div className="flex items-center justify-center py-10">
             <Loader2 size={18} className="text-[#FF6B35] animate-spin" />
           </div>
-        ) : incomingInvoices.length === 0 ? (
+        ) : incomingFiltered.length === 0 ? (
           <div className="py-10 text-center">
             <Inbox size={28} className="text-white/10 mx-auto mb-3" />
             <p className="text-white/30 text-sm">No hay facturas recibidas</p>
-            <p className="text-white/20 text-xs mt-1">
-              Registra manualmente las facturas de tus proveedores para gestionarlas aquí
-            </p>
+            <p className="text-white/20 text-xs mt-1">Registra manualmente las facturas de tus proveedores para gestionarlas aquí</p>
           </div>
         ) : (
-          <div className="divide-y divide-white/5">
-            {incomingInvoices.map(inv => (
-              <IncomingInvoiceRow
-                key={inv.id}
-                invoice={inv}
-                processing={processingIncoming === inv.id}
-                onAction={handleIncomingAction}
-              />
-            ))}
-          </div>
+          <>
+            <div className="bg-[#0f0f1a] border border-white/5 rounded-xl overflow-hidden">
+              {/* Header */}
+              <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 border-b border-white/5">
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Emisor / Folio</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">RUT emisor</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider text-right">Monto</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
+                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Estado</span>
+              </div>
+              <div className="divide-y divide-white/5">
+                {incomingPaged.map(inv => (
+                  <IncomingInvoiceRow key={inv.id} invoice={inv} processing={processingIncoming === inv.id} onAction={handleIncomingAction} />
+                ))}
+              </div>
+            </div>
+            {incomingTotalPages > 1 && (
+              <Paginator page={incomingPageSafe} total={incomingTotalPages} onChange={p => setIncomingPage(p)} count={incomingFiltered.length} pageSize={INCOMING_PAGE_SIZE} />
+            )}
+          </>
         )}
-      </div>
+      </Section>
     </div>
   )
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
+
+// ── Section (colapsable) ──────────────────────────────────────────────────────
+
+function Section({
+  id, title, icon, open, onToggle, badge, action, children,
+}: {
+  id:        string
+  title:     string
+  icon?:     React.ReactNode
+  open:      boolean
+  onToggle:  () => void
+  badge?:    React.ReactNode
+  action?:   React.ReactNode
+  children:  React.ReactNode
+}) {
+  return (
+    <div className="bg-[#161622] border border-white/5 rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+        {/* Lado izquierdo — clickeable para colapsar */}
+        <button
+          onClick={onToggle}
+          className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity text-left"
+        >
+          {icon}
+          <span className="text-white font-semibold text-sm">{title}</span>
+          {badge}
+          {open
+            ? <ChevronUp size={14} className="text-white/30 ml-1" />
+            : <ChevronDown size={14} className="text-white/30 ml-1" />}
+        </button>
+        {/* Lado derecho — acciones, no colapsan */}
+        {action && <div className="flex items-center gap-2 ml-3 shrink-0">{action}</div>}
+      </div>
+      {open && (
+        <div className="px-5 pb-5 pt-4">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Paginator ─────────────────────────────────────────────────────────────────
+
+function Paginator({ page, total, onChange, count, pageSize }: {
+  page:     number
+  total:    number
+  onChange: (p: number) => void
+  count:    number
+  pageSize: number
+}) {
+  const from = (page - 1) * pageSize + 1
+  const to   = Math.min(page * pageSize, count)
+  return (
+    <div className="flex items-center justify-between pt-3">
+      <span className="text-white/30 text-xs">{from}–{to} de {count}</span>
+      <div className="flex items-center gap-1">
+        <button onClick={() => onChange(page - 1)} disabled={page <= 1}
+          className="px-2.5 py-1 rounded-lg bg-white/5 text-white/50 text-xs hover:bg-white/10 disabled:opacity-30 transition-colors">
+          ‹
+        </button>
+        {Array.from({ length: Math.min(total, 7) }, (_, i) => {
+          const p = total <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= total - 3 ? total - 6 + i : page - 3 + i
+          return (
+            <button key={p} onClick={() => onChange(p)}
+              className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${p === page ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>
+              {p}
+            </button>
+          )
+        })}
+        <button onClick={() => onChange(page + 1)} disabled={page >= total}
+          className="px-2.5 py-1 rounded-lg bg-white/5 text-white/50 text-xs hover:bg-white/10 disabled:opacity-30 transition-colors">
+          ›
+        </button>
+      </div>
+    </div>
+  )
+}
 
 /**
  * AEC status badge — shows the acuse de recibo state for facturas (types 33, 56, 61).
