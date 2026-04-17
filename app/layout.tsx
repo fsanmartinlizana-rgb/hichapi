@@ -1,6 +1,7 @@
 import type { Metadata } from 'next'
 import { DM_Sans, DM_Mono } from 'next/font/google'
 import './globals.css'
+export const dynamic = 'force-dynamic'
 
 const dmSans = DM_Sans({
   subsets: ['latin'],

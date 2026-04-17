@@ -133,6 +133,13 @@ export default function RestaurantePage() {
   const [reservationMaxParty, setReservationMaxParty] = useState('10')
   const [reservationAdvanceDays, setReservationAdvanceDays] = useState('30')
 
+  // DTE / SII fields
+  const [rut, setRut]               = useState('')
+  const [razonSocial, setRazonSocial] = useState('')
+  const [giro, setGiro]             = useState('')
+  const [direccion, setDireccion]   = useState('')
+  const [comuna, setComuna]         = useState('')
+
   // Score (from API)
   const [score, setScore] = useState<ProfileScore | null>(null)
 
@@ -181,6 +188,12 @@ export default function RestaurantePage() {
             setReservationMaxParty(String(profileJson.restaurant.reservation_max_party ?? 10))
             setReservationAdvanceDays(String(profileJson.restaurant.reservation_advance_days ?? 30))
           }
+          // DTE fields
+          setRut(profileJson.restaurant.rut ?? '')
+          setRazonSocial(profileJson.restaurant.razon_social ?? '')
+          setGiro(profileJson.restaurant.giro ?? '')
+          setDireccion(profileJson.restaurant.direccion ?? '')
+          setComuna(profileJson.restaurant.comuna ?? '')
         }
 
         if (modsRes.data?.modules_config) {
@@ -239,6 +252,12 @@ export default function RestaurantePage() {
           reservation_slot_duration: parseInt(reservationSlotDuration, 10) || 90,
           reservation_max_party:    parseInt(reservationMaxParty, 10) || 10,
           reservation_advance_days: parseInt(reservationAdvanceDays, 10) || 30,
+          // DTE fields
+          rut:          rut || null,
+          razon_social: razonSocial || null,
+          giro:         giro || null,
+          direccion:    direccion || null,
+          comuna:       comuna || null,
         }),
       })
       const data = await res.json()
@@ -477,9 +496,34 @@ export default function RestaurantePage() {
           </div>
         </Section>
 
+        {/* DTE / SII */}
+        <Section title="Datos tributarios (DTE)">
+          <p className="text-white/30 text-xs -mt-1">
+            Requeridos para emitir boletas electrónicas al SII. Deben coincidir exactamente con tu resolución SII.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="RUT emisor" hint="Ej: 77042148-9">
+              <TextInput value={rut} onChange={setRut} placeholder="12345678-9" />
+            </Field>
+            <Field label="Razón social">
+              <TextInput value={razonSocial} onChange={setRazonSocial} placeholder="MI EMPRESA SPA" />
+            </Field>
+          </div>
+          <Field label="Giro" hint="Giro comercial tal como aparece en el SII">
+            <TextInput value={giro} onChange={setGiro} placeholder="RESTAURANTES Y SIMILARES" />
+          </Field>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Dirección (SII)">
+              <TextInput value={direccion} onChange={setDireccion} placeholder="Av. Ejemplo 123" />
+            </Field>
+            <Field label="Comuna">
+              <TextInput value={comuna} onChange={setComuna} placeholder="Santiago" />
+            </Field>
+          </div>
+        </Section>
+
         {/* Hours */}
-        <Section title="Horarios de atención" icon={<Clock size={14} className="text-[#FF6B35]" />}>
-          <div className="space-y-2">
+        <Section title="Horarios de atención" icon={<Clock size={14} className="text-[#FF6B35]" />}>          <div className="space-y-2">
             {DIAS.map(day => {
               const s = schedule[day] ?? DEFAULT_HOURS[day]
               return (

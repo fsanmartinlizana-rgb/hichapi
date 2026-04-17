@@ -1,37 +1,103 @@
 'use client'
 
 import { useState } from 'react'
-import { X, Banknote, CreditCard, Layers } from 'lucide-react'
+import { X, Banknote, CreditCard, Layers, FileText, Building2, ChevronLeft } from 'lucide-react'
 import { formatCurrency } from '@/lib/i18n'
+
+const clp = (n: number) => formatCurrency(n)
+
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+export interface DteSelection {
+  document_type: 39 | 33
+  rut_receptor?: string
+  razon_receptor?: string
+  giro_receptor?: string
+  direccion_receptor?: string
+  comuna_receptor?: string
+  fma_pago?: 1 | 2 | 3
+}
 
 interface PaymentMethodModalProps {
   orderId:    string
   total:      number
-  onConfirm:  (method: 'cash' | 'digital' | 'mixed', cashAmount?: number, digitalAmount?: number) => Promise<void>
+  onConfirm:  (
+    method: 'cash' | 'digital' | 'mixed',
+    dte: DteSelection,
+    cashAmount?: number,
+    digitalAmount?: number,
+  ) => Promise<void>
   onClose:    () => void
 }
 
-const clp = (n: number) => formatCurrency(n)
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+function isValidRut(rut: string): boolean {
+  const stripped = rut.replace(/\./g, '').trim()
+  return /^\d{7,8}-[\dkK]$/.test(stripped)
+}
+
+// ── Component ─────────────────────────────────────────────────────────────────
 
 export function PaymentMethodModal({ orderId: _orderId, total, onConfirm, onClose }: PaymentMethodModalProps) {
+  // Step 1: payment method
+  const [step, setStep]         = useState<1 | 2>(1)
   const [method, setMethod]     = useState<'cash' | 'digital' | 'mixed' | null>(null)
   const [cashPart, setCashPart] = useState('')
   const [saving, setSaving]     = useState(false)
 
+  // Step 2: document type
+  const [docType, setDocType]   = useState<39 | 33>(39)
+
+  // Factura receptor fields
+  const [rut,       setRut]       = useState('')
+  const [razon,     setRazon]     = useState('')
+  const [giro,      setGiro]      = useState('')
+  const [direccion, setDireccion] = useState('')
+  const [comuna,    setComuna]    = useState('')
+
   const digitalPart = method === 'mixed' ? Math.max(0, total - (parseInt(cashPart) || 0)) : 0
 
-  async function handleConfirm() {
+  // Map payment method → fma_pago
+  const fmaPago: 1 | 2 | 3 = method === 'cash' ? 1 : method === 'digital' ? 2 : 1
+
+  // Factura form validation
+  const rutValid    = docType === 39 || isValidRut(rut)
+  const facturaOk   = docType === 39 || (
+    rutValid && razon.trim() && giro.trim() && direccion.trim() && comuna.trim()
+  )
+
+  function handleNextStep() {
     if (!method) return
+    if (method === 'mixed' && !cashPart) return
+    setStep(2)
+  }
+
+  async function handleConfirm() {
+    if (!method || !facturaOk) return
     setSaving(true)
+
+    const dte: DteSelection = docType === 33
+      ? {
+          document_type:      33,
+          rut_receptor:       rut.replace(/\./g, '').trim(),
+          razon_receptor:     razon.trim(),
+          giro_receptor:      giro.trim(),
+          direccion_receptor: direccion.trim(),
+          comuna_receptor:    comuna.trim(),
+          fma_pago:           fmaPago,
+        }
+      : { document_type: 39 }
+
     try {
       if (method === 'cash') {
-        await onConfirm('cash', total, 0)
+        await onConfirm('cash', dte, total, 0)
       } else if (method === 'digital') {
-        await onConfirm('digital', 0, total)
+        await onConfirm('digital', dte, 0, total)
       } else {
         const cash    = parseInt(cashPart) || 0
         const digital = Math.max(0, total - cash)
-        await onConfirm('mixed', cash, digital)
+        await onConfirm('mixed', dte, cash, digital)
       }
     } finally {
       setSaving(false)
@@ -40,67 +106,231 @@ export function PaymentMethodModal({ orderId: _orderId, total, onConfirm, onClos
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1a1a2e] rounded-2xl p-6 w-full max-w-sm border border-white/10">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h3 className="text-white font-semibold">Método de pago</h3>
-            <p className="text-gray-400 text-sm">Total: {clp(total)}</p>
-          </div>
-          <button onClick={onClose}><X size={18} className="text-gray-400" /></button>
-        </div>
+      <div className="bg-[#1a1a2e] rounded-2xl w-full max-w-sm border border-white/10 overflow-hidden">
 
-        <div className="space-y-3 mb-4">
-          {[
-            { id: 'cash'    as const, icon: Banknote,    label: 'Efectivo',          desc: 'Sin comisión HiChapi' },
-            { id: 'digital' as const, icon: CreditCard,  label: 'Digital (Stripe)',  desc: '1% comisión HiChapi' },
-            { id: 'mixed'   as const, icon: Layers,      label: 'Pago mixto',        desc: 'Parte efectivo + parte digital' },
-          ].map(({ id, icon: Icon, label, desc }) => (
-            <button
-              key={id}
-              onClick={() => setMethod(id)}
-              className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
-                method === id
-                  ? 'border-orange-500 bg-orange-500/10'
-                  : 'border-white/10 hover:border-white/20'
-              }`}
-            >
-              <div className={`w-9 h-9 rounded-lg flex items-center justify-center ${method === id ? 'bg-orange-500/20' : 'bg-white/5'}`}>
-                <Icon size={18} className={method === id ? 'text-orange-400' : 'text-gray-400'} />
-              </div>
-              <div>
-                <p className="text-white text-sm font-medium">{label}</p>
-                <p className="text-gray-500 text-xs">{desc}</p>
-              </div>
-            </button>
-          ))}
-        </div>
-
-        {method === 'mixed' && (
-          <div className="mb-4">
-            <label className="text-gray-400 text-xs mb-1 block">Parte en efectivo (CLP)</label>
-            <input
-              type="number"
-              value={cashPart}
-              onChange={e => setCashPart(e.target.value)}
-              placeholder="0"
-              max={total}
-              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
-            />
-            {cashPart && (
-              <p className="text-gray-400 text-xs mt-1">Digital: {clp(digitalPart)}</p>
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <div className="flex items-center gap-2">
+            {step === 2 && (
+              <button
+                onClick={() => setStep(1)}
+                className="p-1 rounded-lg text-white/40 hover:text-white transition-colors"
+              >
+                <ChevronLeft size={16} />
+              </button>
             )}
+            <div>
+              <h3 className="text-white font-semibold text-sm">
+                {step === 1 ? 'Método de pago' : 'Tipo de documento'}
+              </h3>
+              <p className="text-white/40 text-xs">Total: {clp(total)}</p>
+            </div>
           </div>
-        )}
+          <div className="flex items-center gap-2">
+            {/* Step indicator */}
+            <div className="flex items-center gap-1">
+              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${step === 1 ? 'bg-[#FF6B35]' : 'bg-white/20'}`} />
+              <span className={`w-1.5 h-1.5 rounded-full transition-colors ${step === 2 ? 'bg-[#FF6B35]' : 'bg-white/20'}`} />
+            </div>
+            <button onClick={onClose} className="text-white/30 hover:text-white transition-colors ml-1">
+              <X size={16} />
+            </button>
+          </div>
+        </div>
 
-        <div className="flex gap-3">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-lg border border-white/10 text-gray-400 text-sm">Cancelar</button>
-          <button
-            onClick={handleConfirm}
-            disabled={!method || saving || (method === 'mixed' && !cashPart)}
-            className="flex-1 py-2.5 rounded-lg bg-orange-500 hover:bg-orange-600 text-white text-sm font-medium disabled:opacity-40 transition-colors"
-          >
-            {saving ? 'Registrando...' : 'Confirmar pago'}
-          </button>
+        <div className="p-5">
+
+          {/* ── Step 1: Payment method ── */}
+          {step === 1 && (
+            <>
+              <div className="space-y-2.5 mb-5">
+                {[
+                  { id: 'cash'    as const, icon: Banknote,   label: 'Efectivo',         desc: 'Sin comisión HiChapi' },
+                  { id: 'digital' as const, icon: CreditCard, label: 'Digital (Stripe)',  desc: '1% comisión HiChapi' },
+                  { id: 'mixed'   as const, icon: Layers,     label: 'Pago mixto',        desc: 'Parte efectivo + parte digital' },
+                ].map(({ id, icon: Icon, label, desc }) => (
+                  <button
+                    key={id}
+                    onClick={() => setMethod(id)}
+                    className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                      method === id
+                        ? 'border-[#FF6B35] bg-[#FF6B35]/10'
+                        : 'border-white/10 hover:border-white/20'
+                    }`}
+                  >
+                    <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${method === id ? 'bg-[#FF6B35]/20' : 'bg-white/5'}`}>
+                      <Icon size={18} className={method === id ? 'text-[#FF6B35]' : 'text-white/40'} />
+                    </div>
+                    <div>
+                      <p className="text-white text-sm font-medium">{label}</p>
+                      <p className="text-white/30 text-xs">{desc}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {method === 'mixed' && (
+                <div className="mb-5">
+                  <label className="text-white/40 text-xs mb-1.5 block">Parte en efectivo (CLP)</label>
+                  <input
+                    type="number"
+                    value={cashPart}
+                    onChange={e => setCashPart(e.target.value)}
+                    placeholder="0"
+                    max={total}
+                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                  />
+                  {cashPart && (
+                    <p className="text-white/30 text-xs mt-1">Digital: {clp(digitalPart)}</p>
+                  )}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={onClose}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={handleNextStep}
+                  disabled={!method || (method === 'mixed' && !cashPart)}
+                  className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  Siguiente →
+                </button>
+              </div>
+            </>
+          )}
+
+          {/* ── Step 2: Document type ── */}
+          {step === 2 && (
+            <>
+              <div className="space-y-2.5 mb-5">
+                <button
+                  onClick={() => setDocType(39)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    docType === 39
+                      ? 'border-[#FF6B35] bg-[#FF6B35]/10'
+                      : 'border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${docType === 39 ? 'bg-[#FF6B35]/20' : 'bg-white/5'}`}>
+                    <FileText size={18} className={docType === 39 ? 'text-[#FF6B35]' : 'text-white/40'} />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">Boleta electrónica</p>
+                    <p className="text-white/30 text-xs">Para consumidores finales</p>
+                  </div>
+                </button>
+
+                <button
+                  onClick={() => setDocType(33)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
+                    docType === 33
+                      ? 'border-[#FF6B35] bg-[#FF6B35]/10'
+                      : 'border-white/10 hover:border-white/20'
+                  }`}
+                >
+                  <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${docType === 33 ? 'bg-[#FF6B35]/20' : 'bg-white/5'}`}>
+                    <Building2 size={18} className={docType === 33 ? 'text-[#FF6B35]' : 'text-white/40'} />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">Factura electrónica</p>
+                    <p className="text-white/30 text-xs">Para empresas con crédito fiscal</p>
+                  </div>
+                </button>
+              </div>
+
+              {/* Factura receptor form */}
+              {docType === 33 && (
+                <div className="space-y-3 mb-5 border-t border-white/8 pt-4">
+                  <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Datos del receptor</p>
+
+                  <div>
+                    <label className="text-white/40 text-xs mb-1 block">RUT empresa *</label>
+                    <input
+                      type="text"
+                      value={rut}
+                      onChange={e => setRut(e.target.value)}
+                      placeholder="76354771-K"
+                      className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                        rut && !rutValid
+                          ? 'border-red-500/50 focus:border-red-500'
+                          : 'border-white/10 focus:border-[#FF6B35]/50'
+                      }`}
+                    />
+                    {rut && !rutValid && (
+                      <p className="text-red-400 text-[10px] mt-1">Formato inválido. Ej: 76354771-K</p>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="text-white/40 text-xs mb-1 block">Razón social *</label>
+                    <input
+                      type="text"
+                      value={razon}
+                      onChange={e => setRazon(e.target.value)}
+                      placeholder="Empresa Ejemplo SpA"
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-white/40 text-xs mb-1 block">Giro *</label>
+                    <input
+                      type="text"
+                      value={giro}
+                      onChange={e => setGiro(e.target.value)}
+                      placeholder="Servicios de alimentación"
+                      className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-white/40 text-xs mb-1 block">Dirección *</label>
+                      <input
+                        type="text"
+                        value={direccion}
+                        onChange={e => setDireccion(e.target.value)}
+                        placeholder="Av. Providencia 1234"
+                        className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-white/40 text-xs mb-1 block">Comuna *</label>
+                      <input
+                        type="text"
+                        value={comuna}
+                        onChange={e => setComuna(e.target.value)}
+                        placeholder="Providencia"
+                        className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                      />
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setStep(1)}
+                  className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors"
+                >
+                  ← Volver
+                </button>
+                <button
+                  onClick={handleConfirm}
+                  disabled={!facturaOk || saving}
+                  className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] hover:bg-[#e85d2a] text-white text-sm font-semibold disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                >
+                  {saving ? 'Registrando…' : 'Confirmar pago'}
+                </button>
+              </div>
+            </>
+          )}
+
         </div>
       </div>
     </div>

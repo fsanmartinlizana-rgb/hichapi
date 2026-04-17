@@ -4,36 +4,48 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "migrate": "npx ts-node scripts/migrate.ts",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.82.0",
     "@stripe/stripe-js": "^9.1.0",
     "@supabase/ssr": "^0.10.0",
     "@supabase/supabase-js": "^2.101.1",
+    "@types/form-data": "^2.2.1",
     "@types/mapbox-gl": "^3.4.1",
     "clsx": "^2.1.1",
+    "dotenv": "^17.4.2",
+    "form-data": "^4.0.5",
     "lucide-react": "^1.7.0",
     "mapbox-gl": "^3.21.0",
     "next": "16.2.2",
+    "node-forge": "^1.4.0",
     "qrcode.react": "^4.2.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stripe": "^22.0.1",
+    "xml-crypto": "6.1.2",
     "zod": "^4.3.6"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/node-forge": "^1.3.14",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "@vitest/coverage-v8": "^4.1.4",
     "eslint": "^9",
     "eslint-config-next": "16.2.2",
+    "fast-check": "^4.6.0",
     "postgres": "^3.4.9",
     "tailwindcss": "^4",
     "typescript": "^5",
+    "vitest": "^4.1.4",
     "xlsx": "^0.18.5"
   }
 }

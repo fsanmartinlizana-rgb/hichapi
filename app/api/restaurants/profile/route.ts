@@ -41,6 +41,12 @@ const ProfilePatchSchema = z.object({
   reservation_slot_duration: z.number().int().min(15).max(360).optional(),
   reservation_max_party:     z.number().int().min(1).max(50).optional(),
   reservation_advance_days:  z.number().int().min(1).max(90).optional(),
+  // DTE / SII fields
+  rut:          z.string().max(20).nullable().optional(),
+  razon_social: z.string().max(200).nullable().optional(),
+  giro:         z.string().max(200).nullable().optional(),
+  direccion:    z.string().max(200).nullable().optional(),
+  comuna:       z.string().max(80).nullable().optional(),
 })
 
 // ── Profile completion score ─────────────────────────────────────────────────
@@ -97,7 +103,8 @@ export async function GET(req: NextRequest) {
       cuisine_type, price_range, capacity, tags, hours, photo_url, gallery_urls,
       profile_score, profile_updated_at, claimed,
       reservations_enabled, reservation_timeout_min, reservation_slot_duration,
-      reservation_max_party, reservation_advance_days
+      reservation_max_party, reservation_advance_days,
+      rut, razon_social, giro, direccion, comuna
     `)
     .eq('id', restaurantId)
     .single()
@@ -155,7 +162,8 @@ export async function PATCH(req: NextRequest) {
       cuisine_type, price_range, capacity, tags, hours, photo_url, gallery_urls,
       profile_score, profile_updated_at, claimed,
       reservations_enabled, reservation_timeout_min, reservation_slot_duration,
-      reservation_max_party, reservation_advance_days
+      reservation_max_party, reservation_advance_days,
+      rut, razon_social, giro, direccion, comuna
     `)
     .single()
 

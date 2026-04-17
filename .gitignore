@@ -33,6 +33,10 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# sensitive project files
+.kiro/credentials.md
+HiChapi_Credenciales.xlsx
+
 # vercel
 .vercel
 
@@ -41,3 +45,4 @@ yarn-error.log*
 next-env.d.ts
 
 .vercel
+.kiro

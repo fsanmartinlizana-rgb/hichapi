@@ -7,9 +7,9 @@ import {
   RefreshCw, Wifi, WifiOff, AlertCircle, Plus, XCircle, Ticket,
 } from 'lucide-react'
 import Link from 'next/link'
-import { PaymentMethodModal } from '@/components/PaymentMethodModal'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
 import { CouponRedeemModal } from '@/components/restaurant/CouponRedeemModal'
+import { PaymentMethodModal, type DteSelection } from '@/components/PaymentMethodModal'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency } from '@/lib/i18n'
 import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
@@ -377,6 +377,7 @@ export default function GarzonPage() {
 
   async function handlePaymentConfirm(
     method: 'cash' | 'digital' | 'mixed',
+    dte: DteSelection,
     cashAmount?: number,
     digitalAmount?: number,
   ) {
@@ -394,6 +395,25 @@ export default function GarzonPage() {
           digital_amount: digitalAmount ?? 0,
         }),
       })
+
+      // Emit DTE after payment — fire and forget
+      if (restaurant?.id) {
+        fetch('/api/dte/emit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            restaurant_id:      restaurant.id,
+            order_id:           payingOrder.id,
+            document_type:      dte.document_type,
+            rut_receptor:       dte.rut_receptor,
+            razon_receptor:     dte.razon_receptor,
+            giro_receptor:      dte.giro_receptor,
+            direccion_receptor: dte.direccion_receptor,
+            comuna_receptor:    dte.comuna_receptor,
+            fma_pago:           dte.fma_pago,
+          }),
+        }).catch(err => console.error('DTE emit error (non-blocking):', err))
+      }
 
       // Mark table as libre
       const order = orders.find(o => o.id === payingOrder.id)

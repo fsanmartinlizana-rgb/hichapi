@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
     .from('dte_emissions')
     .select(`
       id, document_type, folio, status, total_amount, net_amount, iva_amount,
-      rut_receptor, razon_receptor, sii_track_id, emitted_at, order_id
+      rut_receptor, razon_receptor, sii_track_id, emitted_at, order_id, error_detail, xml_signed
     `)
     .eq('restaurant_id', restaurantId)
     .order('emitted_at', { ascending: false })
