@@ -4,7 +4,9 @@
 //  Handles atomic folio assignment via the `dte_take_next_folio` RPC and
 //  low-stock notifications for DTE document types.
 //
-//  Supported document types: 33 (Factura), 39 (Boleta), 41 (Boleta exenta)
+//  Supported document types: 33 (Factura), 34 (Factura exenta), 39 (Boleta), 
+//  41 (Boleta exenta), 43 (Liquidación), 46 (Factura compra), 52 (Guía despacho),
+//  56 (Nota débito), 61 (Nota crédito), 110/111/112 (Exportación)
 //
 //  Notification thresholds:
 //    < 50 folios → warning
@@ -168,10 +170,17 @@ export async function checkFolioAlerts(
   // 4. Insert notification
   const docTypeLabel: Record<number, string> = {
     33: 'Factura (tipo 33)',
+    34: 'Factura exenta (tipo 34)',
     39: 'Boleta (tipo 39)',
     41: 'Boleta exenta (tipo 41)',
+    43: 'Liquidación (tipo 43)',
+    46: 'Factura compra (tipo 46)',
+    52: 'Guía despacho (tipo 52)',
     56: 'Nota de Débito (tipo 56)',
     61: 'Nota de Crédito (tipo 61)',
+    110: 'Factura exportación (tipo 110)',
+    111: 'Nota débito exportación (tipo 111)',
+    112: 'Nota crédito exportación (tipo 112)',
   }
   const label = docTypeLabel[documentType] ?? `Tipo ${documentType}`
 

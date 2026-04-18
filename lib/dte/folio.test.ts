@@ -576,4 +576,41 @@ describe('checkFolioAlerts', () => {
 
     expect((inserted as Record<string, unknown>)['restaurant_id']).toBe('my-restaurant-id')
   })
+
+  it('includes correct document type labels for certification document types', async () => {
+    const testCases = [
+      { docType: 34, expectedLabel: 'Factura exenta (tipo 34)' },
+      { docType: 43, expectedLabel: 'Liquidación (tipo 43)' },
+      { docType: 46, expectedLabel: 'Factura compra (tipo 46)' },
+      { docType: 52, expectedLabel: 'Guía despacho (tipo 52)' },
+      { docType: 110, expectedLabel: 'Factura exportación (tipo 110)' },
+      { docType: 111, expectedLabel: 'Nota débito exportación (tipo 111)' },
+      { docType: 112, expectedLabel: 'Nota crédito exportación (tipo 112)' },
+    ]
+
+    for (const { docType, expectedLabel } of testCases) {
+      let inserted: Record<string, unknown> | null = null
+
+      // Reset modules for each iteration
+      vi.resetModules()
+      
+      vi.doMock('@/lib/supabase/server', () =>
+        buildMockSupabase({
+          cafs: [{ folio_actual: 60, folio_hasta: 100, status: 'active', expires_at: null }],
+          existingNotifications: [],
+          captureInsert: (data) => { inserted = data },
+        })
+      )
+
+      const { checkFolioAlerts: checkFolioAlertsMocked } = await import('./folio')
+      await checkFolioAlertsMocked('restaurant-1', docType)
+
+      expect(inserted).not.toBeNull()
+      const message = (inserted as Record<string, unknown>)['message'] as string
+      const title = (inserted as Record<string, unknown>)['title'] as string
+      
+      expect(message).toContain(expectedLabel)
+      expect(title).toContain(expectedLabel)
+    }
+  })
 })

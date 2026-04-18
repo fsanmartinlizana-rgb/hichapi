@@ -4,7 +4,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
-import { checkDteStatus, getSiiToken, getSiiTokenFactura, SiiEnvironment } from '@/lib/dte/sii-client'
+import { checkDteStatus, getSiiToken, getSiiTokenFactura, queryEstDteFactura, SiiEnvironment } from '@/lib/dte/sii-client'
 import { loadCredentials } from '@/lib/dte/signer'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { facturaEmail } from '@/lib/email/templates'
@@ -25,7 +25,8 @@ const Schema = z.object({
 })
 
 function toSiiEnvironment(dbValue: string | null | undefined): SiiEnvironment {
-  if (dbValue === 'production') return 'produccion'
+  if (dbValue === 'production' || dbValue === 'produccion') return 'produccion'
+  // Handle both 'certification' and 'certificacion'
   return 'certificacion'
 }
 
@@ -59,7 +60,7 @@ export async function POST(req: NextRequest) {
   // Load restaurant + credentials
   const { data: restaurant } = await supabase
     .from('restaurants')
-    .select('rut, razon_social, dte_environment, logo_url')
+    .select('rut, razon_social, dte_environment, photo_url')
     .eq('id', body.restaurant_id)
     .single()
 
@@ -109,74 +110,49 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Facturas: use SOAP QueryEstUp (by track_id) ────────────────────────────
+  // ── Facturas: use SOAP QueryEstDte (individual queries) ────────────────────
   if (facturaEmissions.length > 0) {
     const tokenResult = await getSiiTokenFactura(creds.privateKeyPem, creds.certificate, environment)
     if (tokenResult.token) {
       for (const em of facturaEmissions) {
         try {
-          const servidor = environment === 'produccion' ? 'palena' : 'maullin'
-          // eslint-disable-next-line @typescript-eslint/no-require-imports
-          const https = require('https') as typeof import('https')
+          // Validate rut_receptor format
+          const rawRut = (em.rut_receptor ?? '').replace(/\./g, '')
+          const rutReceptorValid = /^\d{7,8}-[\dkK]$/.test(rawRut)
+          
+          if (!rutReceptorValid) {
+            continue // Skip emissions with invalid receptor RUT
+          }
 
-          const [rutEmisor] = (restaurant?.rut ?? '').replace(/\./g, '').split('-')
-          const [dvEmisor]  = (restaurant?.rut ?? '').replace(/\./g, '').split('-').slice(1)
+          const queryResult = await queryEstDteFactura(
+            {
+              rutConsultante: restaurant?.rut ?? '',
+              rutCompania:    restaurant?.rut ?? '',
+              rutReceptor:    rawRut,
+              tipoDte:        em.document_type,
+              folioDte:       em.folio,
+              fechaEmisionDte: em.emitted_at ? (em.emitted_at as string).split('T')[0] : new Date().toISOString().split('T')[0],
+              montoDte:       em.total_amount,
+              token:          tokenResult.token,
+            },
+            environment
+          )
 
-          const soapEnvelope = `<?xml version="1.0" encoding="UTF-8"?>
-<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
-  <soapenv:Body>
-    <getEstUp xmlns="http://DefaultNamespace">
-      <RutEmpresa>${rutEmisor}</RutEmpresa>
-      <DvEmpresa>${dvEmisor}</DvEmpresa>
-      <TrackId>${em.sii_track_id}</TrackId>
-      <token>${tokenResult.token}</token>
-    </getEstUp>
-  </soapenv:Body>
-</soapenv:Envelope>`
+          if (queryResult.error) continue // Skip on error
 
-          const responseXml = await new Promise<string>((resolve, reject) => {
-            let settled = false, gotResponse = false
-            const done = (v: string) => { if (!settled) { settled = true; resolve(v) } }
-            const fail = (e: Error)  => { if (!settled) { settled = true; reject(e) } }
-            const req = https.request({
-              hostname: `${servidor}.sii.cl`, port: 443,
-              path: '/DTEWS/QueryEstUp.jws', method: 'POST',
-              headers: { 'Content-Type': 'text/xml; charset=UTF-8', 'SOAPAction': '', 'Connection': 'close' },
-            }, (res: any) => {
-              gotResponse = true
-              const chunks: Buffer[] = []
-              res.on('data', (c: Buffer) => chunks.push(c))
-              res.on('end',  () => done(Buffer.concat(chunks).toString('utf8')))
-              res.on('close',() => { if (chunks.length > 0) done(Buffer.concat(chunks).toString('utf8')) })
-              res.on('error',(e: Error) => { if (chunks.length > 0) done(Buffer.concat(chunks).toString('utf8')); else fail(e) })
-            })
-            req.on('error', (err: NodeJS.ErrnoException) => {
-              if (gotResponse) setTimeout(() => fail(err), 500)
-              else fail(err)
-            })
-            req.write(soapEnvelope)
-            req.end()
-          })
+          const errorDetailJson = JSON.stringify({ estado: queryResult.estado, glosa: queryResult.glosa })
 
-          // Decode HTML entities and extract ACEPTADOS/RECHAZADOS
-          const decode = (s: string) => s.replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&').replace(/&#xd;/gi,'').replace(/&quot;/g,'"')
-          const returnMatch = /<(?:\w+:)?getEstUpReturn[^>]*>([\s\S]*?)<\/(?:\w+:)?getEstUpReturn>/.exec(responseXml)
-          if (!returnMatch) continue
-
-          const inner = decode(returnMatch[1])
-          const aceptados = parseInt(/<ACEPTADOS>(\d+)<\/ACEPTADOS>/.exec(inner)?.[1] ?? '0')
-          const rechazados = parseInt(/<RECHAZADOS>(\d+)<\/RECHAZADOS>/.exec(inner)?.[1] ?? '0')
-          const estado = /<ESTADO>([^<]+)<\/ESTADO>/.exec(inner)?.[1]?.trim()
-
-          if (estado === 'EPR' && aceptados > 0 && rechazados === 0) {
-            await supabase.from('dte_emissions').update({ status: 'accepted', accepted_at: now }).eq('id', em.id)
+          if (queryResult.estado === 'DOK') {
+            await supabase
+              .from('dte_emissions')
+              .update({ status: 'accepted', accepted_at: now, error_detail: errorDetailJson })
+              .eq('id', em.id)
             updated++
 
             // Enviar XML + PDF al receptor por email si tiene email_receptor y xml_signed
             if (em.email_receptor && em.xml_signed) {
               try {
-                // Generar PDF desde el XML firmado
-                const pdfResult = await generateDtePdf(em.xml_signed, restaurant?.logo_url ?? undefined)
+                const pdfResult = await generateDtePdf(em.xml_signed, restaurant?.photo_url ?? undefined)
 
                 const { subject, html, text } = facturaEmail({
                   restaurantName: restaurant?.razon_social ?? 'Restaurante',
@@ -196,6 +172,7 @@ export async function POST(req: NextRequest) {
                   },
                 ]
 
+                // Solo agregar PDF si se generó correctamente
                 if (pdfResult.ok && pdfResult.buffer) {
                   attachments.push({
                     filename: `factura_${em.folio}.pdf`,
@@ -215,12 +192,23 @@ export async function POST(req: NextRequest) {
                 console.error(`[batch] Error enviando email factura ${em.folio}:`, emailErr)
               }
             }
-          } else if (rechazados > 0) {
-            await supabase.from('dte_emissions').update({ status: 'rejected', error_detail: `Rechazado por el SII (QueryEstUp)` }).eq('id', em.id)
+          } else if (queryResult.estado && REJECTION_STATES.includes(queryResult.estado)) {
+            await supabase
+              .from('dte_emissions')
+              .update({ status: 'rejected', error_detail: errorDetailJson })
+              .eq('id', em.id)
             updated++
+          } else {
+            // Pending or unknown state — just save traceability info
+            await supabase
+              .from('dte_emissions')
+              .update({ error_detail: errorDetailJson })
+              .eq('id', em.id)
           }
-          // EPR with 0 aceptados = still processing, skip
-        } catch { /* non-fatal */ }
+        } catch (err) {
+          console.error(`[batch] Error processing factura ${em.folio}:`, err)
+          // Continue with next emission
+        }
       }
     }
   }

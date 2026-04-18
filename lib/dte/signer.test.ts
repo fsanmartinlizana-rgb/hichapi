@@ -188,6 +188,179 @@ describe('buildDteXml', () => {
     expect(xml).toContain('Empresa &amp; Hijos &lt;SpA&gt;')
     expect(xml).not.toContain('Empresa & Hijos <SpA>')
   })
+
+  // ── New document types (34, 43, 46, 52, 110, 111, 112) ──────────────────────
+
+  it('generates XML for document type 34 (Factura Exenta)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 34,
+      total_amount: 10000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Cliente Test',
+      giro_receptor: 'Comercio',
+      direccion_receptor: 'Calle Test 456',
+      comuna_receptor: 'Las Condes',
+      items: [{ name: 'Servicio Exento', quantity: 1, unit_price: 10000, ind_exe: 1 }]
+    }))
+    expect(xml).toContain('<TipoDTE>34</TipoDTE>')
+    expect(xml).toContain('<MntExe>10000</MntExe>')
+    expect(xml).toContain('<MntTotal>10000</MntTotal>')
+    expect(xml).toContain('<RUTRecep>12345678-9</RUTRecep>')
+    expect(xml).toContain('<IndExe>1</IndExe>')
+  })
+
+  it('generates XML for document type 43 (Liquidación Factura)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 43,
+      total_amount: 30000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Proveedor Test',
+      giro_receptor: 'Distribuidor',
+      direccion_receptor: 'Calle Proveedor 321',
+      comuna_receptor: 'Providencia',
+      liquidacion_data: {
+        comisiones: [
+          { descripcion: 'Comisión por venta', monto: 5000 },
+          { descripcion: 'Gastos administrativos', monto: 2000 }
+        ]
+      },
+      items: [{ name: 'Producto Base', quantity: 1, unit_price: 23000 }]
+    }))
+    expect(xml).toContain('<TipoDTE>43</TipoDTE>')
+    expect(xml).toContain('<RUTRecep>12345678-9</RUTRecep>')
+    expect(xml).toContain('Comision por venta')
+    expect(xml).toContain('Gastos administrativos')
+  })
+
+  it('generates XML for document type 52 (Guía de Despacho)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 52,
+      total_amount: 15000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Cliente Guía',
+      giro_receptor: 'Comercio',
+      direccion_receptor: 'Calle Destino 789',
+      comuna_receptor: 'Santiago',
+      items: [{ name: 'Producto Despacho', quantity: 3, unit_price: 5000 }]
+    }))
+    expect(xml).toContain('<TipoDTE>52</TipoDTE>')
+    expect(xml).toContain('<MntExe>15000</MntExe>')
+    expect(xml).toContain('<MntTotal>15000</MntTotal>')
+    expect(xml).toContain('<RUTRecep>12345678-9</RUTRecep>')
+  })
+
+  it('generates XML for document type 110 (Factura de Exportación)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 110,
+      total_amount: 50000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Cliente Export',
+      giro_receptor: 'Importador',
+      direccion_receptor: 'Export Street 789',
+      comuna_receptor: 'Miami',
+      export_data: {
+        moneda: 'USD',
+        forma_pago: 'CONTADO',
+        clausula_venta: 'FOB',
+        via_transporte: 'MARITIMO',
+        puerto_embarque: 'VALPARAISO',
+        puerto_desembarque: 'MIAMI',
+        pais_receptor: 'US',
+        pais_destino: 'US'
+      },
+      items: [{ name: 'Producto Exportación', quantity: 2, unit_price: 25000 }]
+    }))
+    expect(xml).toContain('<TipoDTE>110</TipoDTE>')
+    expect(xml).toContain('<Transporte>')
+    expect(xml).toContain('<CodModVenta>CONTADO</CodModVenta>')
+    expect(xml).toContain('<CodClauVenta>FOB</CodClauVenta>')
+    expect(xml).toContain('<CodPaisRecep>US</CodPaisRecep>')
+    expect(xml).toContain('<CodPaisDestin>US</CodPaisDestin>')
+  })
+
+  it('generates XML for document type 111 (Nota de Débito Exportación)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 111,
+      total_amount: 10000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Cliente Export',
+      giro_receptor: 'Importador',
+      direccion_receptor: 'Export Street 789',
+      comuna_receptor: 'Miami',
+      tipo_doc_ref: 110,
+      folio_ref: 1001,
+      fch_ref: '2024-01-10',
+      cod_ref: 1,
+      razon_ref: 'Ajuste por diferencia de cambio',
+      export_data: {
+        moneda: 'USD',
+        forma_pago: 'CONTADO',
+        clausula_venta: 'FOB',
+        via_transporte: 'MARITIMO',
+        puerto_embarque: 'VALPARAISO',
+        puerto_desembarque: 'MIAMI',
+        pais_receptor: 'US',
+        pais_destino: 'US'
+      },
+      items: [{ name: 'Ajuste Exportación', quantity: 1, unit_price: 10000 }]
+    }))
+    expect(xml).toContain('<TipoDTE>111</TipoDTE>')
+    expect(xml).toContain('<Transporte>')
+    expect(xml).toContain('<TpoDocRef>110</TpoDocRef>')
+    expect(xml).toContain('<FolioRef>1001</FolioRef>')
+    expect(xml).toContain('<RazonRef>Ajuste por diferencia de cambio</RazonRef>')
+  })
+
+  it('generates XML for document type 112 (Nota de Crédito Exportación)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 112,
+      total_amount: 5000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Cliente Export',
+      giro_receptor: 'Importador',
+      direccion_receptor: 'Export Street 789',
+      comuna_receptor: 'Miami',
+      tipo_doc_ref: 110,
+      folio_ref: 1001,
+      fch_ref: '2024-01-10',
+      cod_ref: 2,
+      razon_ref: 'Devolución parcial',
+      export_data: {
+        moneda: 'USD',
+        forma_pago: 'CONTADO',
+        clausula_venta: 'FOB',
+        via_transporte: 'MARITIMO',
+        puerto_embarque: 'VALPARAISO',
+        puerto_desembarque: 'MIAMI',
+        pais_receptor: 'US',
+        pais_destino: 'US'
+      },
+      items: [{ name: 'Devolución Exportación', quantity: 1, unit_price: 5000 }]
+    }))
+    expect(xml).toContain('<TipoDTE>112</TipoDTE>')
+    expect(xml).toContain('<Transporte>')
+    expect(xml).toContain('<TpoDocRef>110</TpoDocRef>')
+    expect(xml).toContain('<FolioRef>1001</FolioRef>')
+    expect(xml).toContain('<CodRef>2</CodRef>')
+    expect(xml).toContain('<RazonRef>Devolucion parcial</RazonRef>')
+  })
+
+  it('generates XML for document type 46 (Factura de Compra)', () => {
+    const xml = buildDteXml(makeInput({
+      document_type: 46,
+      total_amount: 25000,
+      rut_receptor: '12345678-9',
+      razon_receptor: 'Proveedor Compra',
+      giro_receptor: 'Distribuidor',
+      direccion_receptor: 'Calle Proveedor 123',
+      comuna_receptor: 'Valparaíso',
+      items: [{ name: 'Producto Compra', quantity: 5, unit_price: 5000 }]
+    }))
+    expect(xml).toContain('<TipoDTE>46</TipoDTE>')
+    expect(xml).toContain('<RUTRecep>12345678-9</RUTRecep>')
+    expect(xml).toContain('<RznSocRecep>Proveedor Compra</RznSocRecep>')
+    expect(xml).toContain('<GiroRecep>Distribuidor</GiroRecep>')
+  })
 })
 
 // ── Property 10: IVA calculation identity ────────────────────────────────────
@@ -310,9 +483,24 @@ describe('Property 11: DTE XML contains all required fields', () => {
               total_amount:    total,
               rut_receptor:    '11111111-1',
               razon_receptor:  'Test',
+              giro_receptor:   'Test Giro',
+              direccion_receptor: 'Test Dir',
+              comuna_receptor: 'Test Comuna',
             })
           )
-          return requiredFields.every((field) => xml.includes(`<${field}`) || xml.includes(`<${field}>`))
+          // For type 33 (factura), the tag is RznSoc, not RznSocEmisor
+          const facturaRequiredFields = [
+            'TipoDTE',
+            'Folio',
+            'FchEmis',
+            'RUTEmisor',
+            'RznSoc',  // Changed from RznSocEmisor
+            'GiroEmis', // Changed from GiroEmisor
+            'DirOrigen',
+            'CmnaOrigen',
+            'Totales',
+          ]
+          return facturaRequiredFields.every((field) => xml.includes(`<${field}`) || xml.includes(`<${field}>`))
         }
       ),
       { numRuns: 100 }

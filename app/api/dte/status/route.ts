@@ -32,7 +32,8 @@ const StatusSchema = z.object({
 
 // Maps DB dte_environment value to SiiEnvironment type
 function toSiiEnvironment(dbValue: string | null | undefined): SiiEnvironment {
-  if (dbValue === 'production') return 'produccion'
+  if (dbValue === 'production' || dbValue === 'produccion') return 'produccion'
+  // Handle both 'certification' and 'certificacion'
   return 'certificacion'
 }
 
@@ -65,7 +66,7 @@ export async function POST(req: NextRequest) {
       .maybeSingle(),
     supabase
       .from('restaurants')
-      .select('rut, razon_social, dte_environment, logo_url')
+      .select('rut, razon_social, dte_environment, photo_url')
       .eq('id', body.restaurant_id)
       .maybeSingle(),
   ])
@@ -73,6 +74,11 @@ export async function POST(req: NextRequest) {
   if (emissionResult.error) {
     console.error('GET emission error:', emissionResult.error)
     return NextResponse.json({ error: 'Error consultando la emisión' }, { status: 500 })
+  }
+
+  if (restaurantResult.error) {
+    console.error('[dte/status] GET restaurant error:', restaurantResult.error)
+    return NextResponse.json({ error: 'Error consultando el restaurante' }, { status: 500 })
   }
 
   const emission = emissionResult.data
@@ -88,7 +94,12 @@ export async function POST(req: NextRequest) {
   }
 
   const restaurant = restaurantResult.data
-  const environment = toSiiEnvironment(restaurant?.dte_environment)
+  
+  if (!restaurant) {
+    return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 })
+  }
+  
+  const environment = toSiiEnvironment(restaurant.dte_environment)
 
   // Get SII credentials
   const creds = await loadCredentials(body.restaurant_id)
@@ -126,12 +137,12 @@ export async function POST(req: NextRequest) {
     // Query individual DTE status
     const queryResult = await queryEstDteFactura(
       {
-        rutConsultante: restaurant?.rut ?? '',
-        rutCompania:    restaurant?.rut ?? '',
+        rutConsultante: restaurant.rut ?? '',
+        rutCompania:    restaurant.rut ?? '',
         rutReceptor:    rawRut,
         tipoDte:        33,
         folioDte:       emission.folio,
-        fechaEmisionDte: (emission.emitted_at as string).split('T')[0], // YYYY-MM-DD
+        fechaEmisionDte: emission.emitted_at ? (emission.emitted_at as string).split('T')[0] : new Date().toISOString().split('T')[0], // YYYY-MM-DD
         montoDte:       emission.total_amount,
         token:          tokenResult.token,
       },
@@ -156,7 +167,7 @@ export async function POST(req: NextRequest) {
       if (emission.email_receptor && emission.xml_signed) {
         try {
           // Generar PDF desde el XML firmado
-          const pdfResult = await generateDtePdf(emission.xml_signed, restaurant?.logo_url ?? undefined)
+          const pdfResult = await generateDtePdf(emission.xml_signed, restaurant.photo_url ?? undefined)
 
           const { subject, html, text } = facturaEmail({
             restaurantName: restaurant?.razon_social ?? 'Restaurante',
@@ -176,6 +187,7 @@ export async function POST(req: NextRequest) {
             },
           ]
 
+          // Solo agregar PDF si se generó correctamente
           if (pdfResult.ok && pdfResult.buffer) {
             attachments.push({
               filename: `factura_${emission.folio}.pdf`,
@@ -229,7 +241,7 @@ export async function POST(req: NextRequest) {
     // Poll SII for current status
     const pollResult = await checkDteStatus(
       emission.sii_track_id,
-      restaurant?.rut ?? '',
+      restaurant.rut ?? '',
       tokenResult.token,
       environment
     )

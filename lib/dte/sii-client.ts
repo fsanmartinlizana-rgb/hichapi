@@ -518,30 +518,37 @@ export async function sendFacturaToSII(
       })
 
       req.on('error', (err: NodeJS.ErrnoException) => {
-        if (gotResponse) {
-          setTimeout(() => fail(err), 500)
-        } else {
-          fail(err)
+        // Si ya recibimos respuesta, ignorar errores de conexión posteriores
+        if (gotResponse && (err.code === 'ECONNRESET' || err.message === 'socket hang up')) {
+          // El SII cierra la conexión abruptamente después de enviar la respuesta
+          // Esto es normal, no es un error
+          return
         }
+        fail(err)
       })
 
       req.write(bodyBuffer)
       req.end()
     })
 
-    // Reintentar hasta 3 veces en caso de ECONNRESET (comportamiento intermitente de maullin)
+    // Reintentar hasta 3 veces en caso de errores de conexión
     let responseXml = ''
     let lastError: Error | null = null
     for (let attempt = 1; attempt <= 3; attempt++) {
       try {
         responseXml = await doRequest()
-        break
+        if (responseXml) break // Si tenemos respuesta, salir del loop
       } catch (err) {
         lastError = err as Error
-        const isReset = (err as NodeJS.ErrnoException).code === 'ECONNRESET' ||
-                        (err as Error).message === 'socket hang up'
-        if (isReset && attempt < 3) {
-          console.warn(`sendFacturaToSII: ECONNRESET en intento ${attempt}, reintentando...`)
+        const errCode = (err as NodeJS.ErrnoException).code
+        const isNetworkError = errCode === 'ECONNRESET' || 
+                              errCode === 'ETIMEDOUT' ||
+                              errCode === 'ENOTFOUND' ||
+                              (err as Error).message === 'socket hang up' ||
+                              (err as Error).message.includes('fetch failed')
+        
+        if (isNetworkError && attempt < 3) {
+          console.warn(`sendFacturaToSII: Error de red en intento ${attempt} (${errCode || err.message}), reintentando...`)
           await new Promise(r => setTimeout(r, 1000 * attempt))
           continue
         }
@@ -632,7 +639,7 @@ export async function queryEstDteFactura(
       method: 'POST',
       headers: {
         'Content-Type': 'text/xml; charset=UTF-8',
-        'SOAPAction': '',
+        'SOAPAction': '""',  // Empty string in quotes as required by SII SOAP server
         'User-Agent': 'Mozilla/4.0 (compatible; PROG 1.0; LibreDTE)',
       },
       body: soapEnvelope,
@@ -678,6 +685,13 @@ export async function queryEstDteFactura(
 
   } catch (err) {
     console.error('queryEstDteFactura error:', err)
+    // Categorize network errors properly
+    if (err instanceof Error) {
+      const errCode = (err as NodeJS.ErrnoException).code
+      if (errCode === 'ECONNRESET' || errCode === 'ETIMEDOUT' || errCode === 'ENOTFOUND' || err.message.includes('fetch failed')) {
+        return { error: 'NETWORK_ERROR' }
+      }
+    }
     return { error: String(err) }
   }
 }

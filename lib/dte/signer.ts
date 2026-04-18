@@ -20,10 +20,17 @@
 //
 //  Supported document types:
 //    33 — Factura electrónica (with IVA + receptor fields)
+//    34 — Factura exenta (no IVA, uses MntExe + receptor fields)
 //    39 — Boleta electrónica (with IVA)
 //    41 — Boleta exenta (no IVA, uses MntExe)
+//    43 — Liquidación factura (with IVA + receptor fields + comisiones)
+//    46 — Factura de compra (with IVA + receptor fields)
+//    52 — Guía de despacho (no IVA, uses MntExe + receptor fields)
 //    56 — Nota de débito (references original factura)
 //    61 — Nota de crédito (references original factura)
+//    110 — Factura de exportación (with export data + receptor fields)
+//    111 — Nota de débito exportación (with export data + receptor fields)
+//    112 — Nota de crédito exportación (with export data + receptor fields)
 //
 //  Requirements: 3.1, 3.2, 3.3, 3.4, 3.5, 3.6, 3.7, 3.8
 // ══════════════════════════════════════════════════════════════════════════════
@@ -44,8 +51,33 @@ export interface DteLineItem {
   ind_exe?:       1        // indicador de ítem exento de IVA
 }
 
+export interface ExportData {
+  moneda:             string           // código de moneda (USD, EUR, etc.)
+  forma_pago:         string           // forma de pago exportación
+  modalidad_venta?:   string           // modalidad de venta
+  clausula_venta:     string           // cláusula de venta (FOB, CIF, etc.)
+  total_clausula?:    number           // total cláusula venta
+  via_transporte:     string           // vía de transporte
+  puerto_embarque:    string           // puerto de embarque
+  puerto_desembarque: string           // puerto de desembarque
+  pais_receptor:      string           // país del receptor
+  pais_destino:       string           // país de destino
+  tipo_bulto?:        string           // tipo de bulto
+  total_bultos?:      number           // total de bultos
+  peso_bruto?:        number           // peso bruto
+  peso_neto?:         number           // peso neto
+  flete?:             number           // flete
+  seguro?:            number           // seguro
+  comisiones_pct?:    number           // porcentaje de comisiones
+  nacionalidad?:      string           // nacionalidad del transporte
+}
+
+export interface LiquidacionData {
+  comisiones:         Array<{ descripcion: string; monto: number }>  // comisiones y otros cargos
+}
+
 export interface DteInput {
-  document_type:        33 | 39 | 41 | 56 | 61
+  document_type:        33 | 34 | 39 | 41 | 43 | 46 | 52 | 56 | 61 | 110 | 111 | 112
   folio:                number
   fecha_emision:        string          // YYYY-MM-DD
   rut_emisor:           string
@@ -54,11 +86,11 @@ export interface DteInput {
   direccion:            string
   comuna:               string
   total_amount:         number          // gross CLP integer
-  rut_receptor?:        string          // required for types 33, 56, 61
-  razon_receptor?:      string          // required for types 33, 56, 61
-  giro_receptor?:       string          // required for types 33, 56, 61
-  direccion_receptor?:  string          // required for types 33, 56, 61
-  comuna_receptor?:     string          // required for types 33, 56, 61
+  rut_receptor?:        string          // required for types 33, 34, 43, 46, 52, 56, 61, 110, 111, 112
+  razon_receptor?:      string          // required for types 33, 34, 43, 46, 52, 56, 61, 110, 111, 112
+  giro_receptor?:       string          // required for types 33, 34, 43, 46, 52, 56, 61, 110, 111, 112
+  direccion_receptor?:  string          // required for types 33, 34, 43, 46, 52, 56, 61, 110, 111, 112
+  comuna_receptor?:     string          // required for types 33, 34, 43, 46, 52, 56, 61, 110, 111, 112
   fma_pago?:            1 | 2 | 3       // forma de pago: 1=contado, 2=crédito, 3=sin costo
   tpo_tran_venta?:      number          // tipo de transacción de venta (default 1)
   acteco?:              string          // código de actividad económica del emisor
@@ -69,6 +101,9 @@ export interface DteInput {
   fch_ref?:             string          // fecha del documento referenciado (YYYY-MM-DD)
   cod_ref?:             1 | 2 | 3       // código de referencia
   razon_ref?:           string          // razón de la referencia
+  // campos adicionales para certificación
+  export_data?:         ExportData      // datos específicos para documentos de exportación (110, 111, 112)
+  liquidacion_data?:    LiquidacionData // datos específicos para liquidaciones (43)
   items:                DteLineItem[]
 }
 
@@ -203,8 +238,15 @@ const RESOLUCION: Record<number, { fecha: string; numero: number }> = {
   39: { fecha: '2021-07-09', numero: 99 },
   41: { fecha: '2021-07-09', numero: 99 },
   33: { fecha: '2025-07-06', numero: 0  },
+  34: { fecha: '2025-07-06', numero: 0  },
+  43: { fecha: '2025-07-06', numero: 0  },
+  46: { fecha: '2025-07-06', numero: 0  },
+  52: { fecha: '2025-07-06', numero: 0  },
   56: { fecha: '2025-07-06', numero: 0  },
   61: { fecha: '2025-07-06', numero: 0  },
+  110: { fecha: '2025-07-06', numero: 0  },
+  111: { fecha: '2025-07-06', numero: 0  },
+  112: { fecha: '2025-07-06', numero: 0  },
 }
 
 // RUT receptor SII (always 60803000-K for boletas)
@@ -243,9 +285,11 @@ export function buildDteXml(input: DteInput): string {
     fch_ref,
     cod_ref,
     razon_ref,
+    export_data,
+    liquidacion_data,
   } = input
 
-  const isFactura = document_type === 33 || document_type === 56 || document_type === 61
+  const isFactura = document_type === 33 || document_type === 34 || document_type === 43 || document_type === 46 || document_type === 52 || document_type === 56 || document_type === 61 || document_type === 110 || document_type === 111 || document_type === 112
 
   // ── Apply global discount if present ────────────────────────────────────────
   let workingItems = input.items
@@ -267,7 +311,7 @@ export function buildDteXml(input: DteInput): string {
   }
 
   // ── Line items ──────────────────────────────────────────────────────────────
-  // Para facturas (33, 56, 61): PrcItem y MontoItem deben ser NETO (sin IVA).
+  // Para facturas (33, 34, 43, 46, 52, 56, 61, 110, 111, 112): PrcItem y MontoItem deben ser NETO (sin IVA).
   // Para boletas (39, 41): PrcItem es BRUTO (incluye IVA).
   const detailLines = workingItems
     .map(
@@ -284,8 +328,11 @@ export function buildDteXml(input: DteInput): string {
         let prcItem = item.unit_price
         let montoItem = Math.round(item.quantity * item.unit_price)
         if (isFactura && item.ind_exe !== 1 && item.cod_imp_adic === undefined) {
-          prcItem  = Math.round(item.unit_price / 1.19)
-          montoItem = Math.round(item.quantity * prcItem)
+          // Para documentos exentos (34, 52) no convertir a neto
+          if (document_type !== 34 && document_type !== 52) {
+            prcItem  = Math.round(item.unit_price / 1.19)
+            montoItem = Math.round(item.quantity * prcItem)
+          }
         }
 
         return (
@@ -306,7 +353,8 @@ export function buildDteXml(input: DteInput): string {
   // ── Totales ─────────────────────────────────────────────────────────────────
   let totalesXml: string
 
-  if (document_type === 41) {
+  if (document_type === 41 || document_type === 34 || document_type === 52) {
+    // Documentos exentos: boleta exenta (41), factura exenta (34), guía de despacho (52)
     totalesXml =
       `\n      <Totales>\n` +
       `        <MntExe>${total_amount}</MntExe>\n` +
@@ -360,7 +408,7 @@ export function buildDteXml(input: DteInput): string {
   // ── Receptor ────────────────────────────────────────────────────────────────
   let receptorXml: string
   if (isFactura) {
-    // Tipos 33, 56, 61: receptor completo con todos los campos obligatorios
+    // Tipos 33, 34, 43, 46, 52, 56, 61, 110, 111, 112: receptor completo con todos los campos obligatorios
     // Truncar automáticamente según límites del esquema SII (req 1.5)
     const rznRecep  = (razon_receptor ?? '').substring(0, 100)
     const giroRecep = (giro_receptor  ?? '').substring(0, 40)
@@ -389,7 +437,7 @@ export function buildDteXml(input: DteInput): string {
     ? `\n        <IndServicio>3</IndServicio>`
     : ''
 
-  // ── IdDoc extras for facturas (types 33, 56, 61) ────────────────────────────
+  // ── IdDoc extras for facturas (types 33, 34, 43, 46, 52, 56, 61, 110, 111, 112) ────────────────────────────────────
   // Task 4.4: TpoTranVenta and FmaPago for facturas
   const tpoTranVentaXml = isFactura
     ? `\n        <TpoTranVenta>${tpo_tran_venta ?? 1}</TpoTranVenta>`
@@ -407,15 +455,21 @@ export function buildDteXml(input: DteInput): string {
   const rznSocTag  = isFactura ? 'RznSoc'   : 'RznSocEmisor'
   const giroTag    = isFactura ? 'GiroEmis' : 'GiroEmisor'
   const giroXml    = giro      ? `\n        <${giroTag}>${escapeXml(toIso88591Safe(giro))}</${giroTag}>` : ''
-  // Acteco solo va en facturas — EnvioBOLETA_v11.xsd no lo admite
+  // Para facturas: orden es Telefono, CorreoEmisor, Acteco, DirOrigen, CmnaOrigen
+  // Para boletas: orden es DirOrigen, CmnaOrigen (sin Acteco)
   const actecoXml  = (isFactura && acteco) ? `\n        <Acteco>${escapeXml(acteco)}</Acteco>` : ''
   const dirXml     = direccion ? `\n        <DirOrigen>${escapeXml(toIso88591Safe(direccion))}</DirOrigen>` : ''
   const cmnaXml    = comuna    ? `\n        <CmnaOrigen>${escapeXml(toIso88591Safe(comuna))}</CmnaOrigen>` : ''
+  
+  // Construir el bloque del emisor respetando el orden del esquema
+  const emisorFieldsXml = isFactura
+    ? `${giroXml}${actecoXml}${dirXml}${cmnaXml}` // Facturas: GiroEmis, Acteco, DirOrigen, CmnaOrigen
+    : `${giroXml}${dirXml}${cmnaXml}`              // Boletas: GiroEmisor, DirOrigen, CmnaOrigen
 
-  // ── Referencia block for notas de crédito/débito (types 56 and 61) ──────────
+  // ── Referencia block for notas de crédito/débito (types 56, 61, 111, 112) ──────────
   // Task 4.8: only include when tipo_doc_ref and folio_ref are present
   let referenciaXml = ''
-  if ((document_type === 56 || document_type === 61) && tipo_doc_ref !== undefined && folio_ref !== undefined) {
+  if ((document_type === 56 || document_type === 61 || document_type === 111 || document_type === 112) && tipo_doc_ref !== undefined && folio_ref !== undefined) {
     const fchRefXml    = fch_ref   ? `\n        <FchRef>${fch_ref}</FchRef>`         : ''
     const codRefXml    = cod_ref   ? `\n        <CodRef>${cod_ref}</CodRef>`          : ''
     const razonRefXml  = razon_ref ? `\n        <RazonRef>${escapeXml(toIso88591Safe(razon_ref))}</RazonRef>` : ''
@@ -430,6 +484,81 @@ export function buildDteXml(input: DteInput): string {
       `\n    </Referencia>`
   }
 
+  // ── Export data for export documents (types 110, 111, 112) ─────────────────
+  let exportXml = ''
+  if ((document_type === 110 || document_type === 111 || document_type === 112) && export_data) {
+    const {
+      moneda,
+      forma_pago,
+      modalidad_venta,
+      clausula_venta,
+      total_clausula,
+      via_transporte,
+      puerto_embarque,
+      puerto_desembarque,
+      pais_receptor,
+      pais_destino,
+      tipo_bulto,
+      total_bultos,
+      peso_bruto,
+      peso_neto,
+      flete,
+      seguro,
+      comisiones_pct,
+      nacionalidad,
+    } = export_data
+
+    const modalidadVentaXml = modalidad_venta ? `\n        <ModalidadVenta>${escapeXml(modalidad_venta)}</ModalidadVenta>` : ''
+    const totalClausulaXml = total_clausula ? `\n        <TotClausula>${total_clausula}</TotClausula>` : ''
+    const tipoBultoXml = tipo_bulto ? `\n        <TipoBultos>${escapeXml(tipo_bulto)}</TipoBultos>` : ''
+    const totalBultosXml = total_bultos ? `\n        <CantBultos>${total_bultos}</CantBultos>` : ''
+    const pesoBrutoXml = peso_bruto ? `\n        <PesoBruto>${peso_bruto}</PesoBruto>` : ''
+    const pesoNetoXml = peso_neto ? `\n        <PesoNeto>${peso_neto}</PesoNeto>` : ''
+    const fleteXml = flete ? `\n        <MntFlete>${flete}</MntFlete>` : ''
+    const seguroXml = seguro ? `\n        <MntSeguro>${seguro}</MntSeguro>` : ''
+    const comisionesPctXml = comisiones_pct ? `\n        <PctComision>${comisiones_pct}</PctComision>` : ''
+    const nacionalidadXml = nacionalidad ? `\n        <NacionalidadTransp>${escapeXml(nacionalidad)}</NacionalidadTransp>` : ''
+
+    exportXml =
+      `\n      <Transporte>\n` +
+      `        <Aduana>\n` +
+      `          <CodModVenta>${escapeXml(forma_pago)}</CodModVenta>${modalidadVentaXml}\n` +
+      `          <CodClauVenta>${escapeXml(clausula_venta)}</CodClauVenta>${totalClausulaXml}\n` +
+      `          <CodViaTransp>${escapeXml(via_transporte)}</CodViaTransp>\n` +
+      `          <NombreTransp>${escapeXml(puerto_embarque)}</NombreTransp>${nacionalidadXml}\n` +
+      `          <RUTCiaTransp>96790240-3</RUTCiaTransp>\n` +
+      `          <NomCiaTransp>COMPAÑIA DE TRANSPORTE</NomCiaTransp>\n` +
+      `          <IdAdicTransp>ADICIONAL</IdAdicTransp>\n` +
+      `          <Booking>BOOKING123</Booking>\n` +
+      `          <Operador>OPERADOR</Operador>\n` +
+      `          <CodPtoEmbarque>${escapeXml(puerto_embarque)}</CodPtoEmbarque>\n` +
+      `          <IdAdicPtoEmb>ADICIONAL</IdAdicPtoEmb>\n` +
+      `          <CodPtoDesemb>${escapeXml(puerto_desembarque)}</CodPtoDesemb>\n` +
+      `          <IdAdicPtoDesemb>ADICIONAL</IdAdicPtoDesemb>\n` +
+      `          <Tara>1</Tara>${tipoBultoXml}${totalBultosXml}${pesoBrutoXml}${pesoNetoXml}${fleteXml}${seguroXml}${comisionesPctXml}\n` +
+      `          <CodPaisRecep>${escapeXml(pais_receptor)}</CodPaisRecep>\n` +
+      `          <CodPaisDestin>${escapeXml(pais_destino)}</CodPaisDestin>\n` +
+      `        </Aduana>\n` +
+      `      </Transporte>`
+  }
+
+  // ── Liquidacion data for liquidacion documents (type 43) ────────────────────
+  let liquidacionXml = ''
+  if (document_type === 43 && liquidacion_data && liquidacion_data.comisiones.length > 0) {
+    const comisionesXml = liquidacion_data.comisiones
+      .map((comision, idx) =>
+        `\n    <Detalle>\n` +
+        `      <NroLinDet>${workingItems.length + idx + 1}</NroLinDet>\n` +
+        `      <NmbItem>${escapeXml(toIso88591Safe(comision.descripcion))}</NmbItem>\n` +
+        `      <QtyItem>1</QtyItem>\n` +
+        `      <PrcItem>${comision.monto}</PrcItem>\n` +
+        `      <MontoItem>${comision.monto}</MontoItem>\n` +
+        `    </Detalle>`
+      )
+      .join('')
+    liquidacionXml = comisionesXml
+  }
+
   return (
     `<DTE version="1.0">\n` +
     `  <Documento ID="${docId}">\n` +
@@ -441,9 +570,9 @@ export function buildDteXml(input: DteInput): string {
     `      </IdDoc>\n` +
     `      <Emisor>\n` +
     `        <RUTEmisor>${escapeXml(rut_emisor)}</RUTEmisor>\n` +
-    `        <${rznSocTag}>${escapeXml(toIso88591Safe(razon_social))}</${rznSocTag}>${giroXml}${actecoXml}${dirXml}${cmnaXml}\n` +
-    `      </Emisor>${receptorXml}${totalesXml}${dscRcgGlobalXml}\n` +
-    `    </Encabezado>${detailLines}${referenciaXml}\n` +
+    `        <${rznSocTag}>${escapeXml(toIso88591Safe(razon_social))}</${rznSocTag}>${emisorFieldsXml}\n` +
+    `      </Emisor>${receptorXml}${exportXml}${totalesXml}${dscRcgGlobalXml}\n` +
+    `    </Encabezado>${detailLines}${liquidacionXml}${referenciaXml}\n` +
     `  </Documento>\n` +
     `</DTE>`
   )
@@ -929,7 +1058,7 @@ function signTed(
 
   const signer = crypto.createSign('RSA-SHA1')
   signer.update(Buffer.from(ddXml, 'latin1'))
-  return signer.sign({ key: finalKey, padding: crypto.constants.RSA_PKCS1_PADDING }).toString('base64')
+  return signer.sign(finalKey, 'base64')
 }
 
 // ── signSeed ──────────────────────────────────────────────────────────────────
