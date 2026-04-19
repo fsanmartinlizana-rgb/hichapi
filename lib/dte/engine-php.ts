@@ -258,7 +258,7 @@ export async function runEmissionViaPhp(
     .from('dte_emissions')
     .update({
       status:        'sent',
-      sii_track_id:  phpResult.track_id,
+      sii_track_id:  phpResult.trackid,
       signed_at:     now,
       emitted_at:    now,
     })
@@ -274,7 +274,7 @@ export async function runEmissionViaPhp(
   return {
     ok:       true,
     folio,
-    track_id: phpResult.track_id,
+    track_id: phpResult.trackid,
     xml_file: phpResult.xml_file,
   }
 }
