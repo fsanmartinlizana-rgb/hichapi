@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
   // Test with PHP script
   const scriptPath = path.join(process.cwd(), '.kiro/SII/APISII/test_cert_read.php')
 
-  return new Promise((resolve) => {
+  return new Promise<NextResponse>((resolve) => {
     const phpProcess = spawn('php', [scriptPath], {
       stdio: ['pipe', 'pipe', 'pipe'],
     })
