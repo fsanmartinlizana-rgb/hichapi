@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     },
     cafs: {
       count: cafs?.length ?? 0,
-      active: cafs?.map(c => ({
+      active: cafs?.map((c: any) => ({
         id: c.id,
         document_type: c.document_type,
         folio_range: `${c.folio_desde}-${c.folio_hasta}`,
