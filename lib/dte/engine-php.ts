@@ -13,7 +13,7 @@
 
 import { createAdminClient } from '@/lib/supabase/server'
 import { decrypt } from '@/lib/crypto/aes'
-import { emitDteViaPhp, PhpDteInput } from '@/lib/dte/php-bridge'
+import { emitDteViaPHP, PhpEmitInput } from '@/lib/dte/php-bridge'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -221,32 +221,29 @@ export async function runEmissionViaPhp(
   // ── Step (c): Call PHP bridge ──────────────────────────────────────────────
   const today = new Date().toISOString().split('T')[0]
 
-  const phpInput: PhpDteInput = {
+  // TODO: Extract cert RUT from certificate instead of hardcoding
+  // For now, use the known RUT from the certificate (10089092-5)
+  const rutEnvia = '10089092-5'
+
+  const phpInput: PhpEmitInput = {
+    cert_base64:     certBase64,
+    cert_password:   pfxPassword,
+    caf_xml:         cafXml,
     document_type:   documentType,
     folio,
     fecha_emision:   today,
     rut_emisor:      restaurant.rut ?? '',
     razon_social:    restaurant.razon_social ?? '',
+    rut_envia:       rutEnvia,
     giro:            restaurant.giro ?? '',
     direccion:       restaurant.address ?? '',
     comuna:          '',  // Not stored separately
-    total_amount:    order.total,
     rut_receptor:    rutReceptor,
     razon_receptor:  razonReceptor,
     items,
   }
 
-  // TODO: Extract cert RUT from certificate instead of hardcoding
-  // For now, use the known RUT from the certificate (10089092-5)
-  const rutEnvia = '10089092-5'
-
-  const phpResult = await emitDteViaPhp(
-    phpInput,
-    cafXml,
-    certBase64,
-    pfxPassword,
-    rutEnvia
-  )
+  const phpResult = await emitDteViaPHP(phpInput)
 
   if ('error' in phpResult) {
     const detail = phpResult.error
