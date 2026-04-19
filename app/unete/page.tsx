@@ -16,14 +16,14 @@ export default function UnetePage() {
       {/* Nav */}
       <nav className="flex items-center justify-between px-6 py-5 max-w-4xl mx-auto">
         <Link
-          href="/landing"
+          href="/"
           className="font-bold text-xl tracking-tight"
           style={{ fontFamily: 'var(--font-dm-sans), sans-serif', color: '#1A1A2E' }}
         >
           hi<span style={{ color: '#FF6B35' }}>chapi</span>
         </Link>
         <Link
-          href="/landing"
+          href="/"
           className="flex items-center gap-1.5 text-sm text-neutral-400 hover:text-[#FF6B35] transition-colors"
         >
           <ArrowLeft size={14} />

@@ -51,6 +51,50 @@ const PatchSchema = z.union([
   }),
 ])
 
+// ── Auto-layout helper ──────────────────────────────────────────────────────
+// Bug fixed 2026-04-19: las mesas nuevas nacían con pos_x=NULL, pos_y=NULL, y
+// el floorplan las renderizaba todas apiladas en (0,0). Ahora calculamos la
+// próxima slot libre en una grilla de GRID px, evitando colisiones con las
+// mesas existentes en el mismo restaurant.
+const GRID_SIZE      = 120    // px entre centros de mesas
+const TABLES_PER_ROW = 6      // ancho típico de la pantalla del floorplan
+const START_X        = 40
+const START_Y        = 40
+
+async function pickNextPosition(
+  supabase: ReturnType<typeof createAdminClient>,
+  restaurantId: string,
+): Promise<{ pos_x: number; pos_y: number }> {
+  const { data: existing } = await supabase
+    .from('tables')
+    .select('pos_x, pos_y')
+    .eq('restaurant_id', restaurantId)
+
+  const taken = new Set<string>()
+  for (const t of (existing ?? []) as { pos_x: number | null; pos_y: number | null }[]) {
+    if (t.pos_x != null && t.pos_y != null) {
+      // Redondear a grid para detectar colisión tolerante
+      const gx = Math.round((t.pos_x - START_X) / GRID_SIZE)
+      const gy = Math.round((t.pos_y - START_Y) / GRID_SIZE)
+      taken.add(`${gx},${gy}`)
+    }
+  }
+
+  // Buscar primer slot libre recorriendo fila por fila
+  for (let row = 0; row < 100; row++) {
+    for (let col = 0; col < TABLES_PER_ROW; col++) {
+      if (!taken.has(`${col},${row}`)) {
+        return {
+          pos_x: START_X + col * GRID_SIZE,
+          pos_y: START_Y + row * GRID_SIZE,
+        }
+      }
+    }
+  }
+  // Fallback muy improbable: 600 mesas ya tomadas en grilla
+  return { pos_x: START_X, pos_y: START_Y }
+}
+
 // ── POST /api/tables — create single ────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
@@ -64,9 +108,14 @@ export async function POST(req: NextRequest) {
     const qr_token  = genQrToken(fullLabel)
 
     const supabase = createAdminClient()
+
+    // Pre-asignar posición en grilla antes del insert para que la mesa nueva
+    // no caiga sobre otras ya existentes.
+    const { pos_x, pos_y } = await pickNextPosition(supabase, restaurant_id)
+
     const { data, error } = await supabase
       .from('tables')
-      .insert({ label: fullLabel, seats, zone, smoking, status: 'libre', qr_token, restaurant_id })
+      .insert({ label: fullLabel, seats, zone, smoking, status: 'libre', qr_token, restaurant_id, pos_x, pos_y })
       .select()
       .single()
 

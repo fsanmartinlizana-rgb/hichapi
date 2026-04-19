@@ -102,3 +102,25 @@ export function getUpgradePlan(currentPlan: string): PlanInfo | null {
   const nextId = PLAN_HIERARCHY[level + 1]
   return nextId ? PLANS[nextId] : null
 }
+
+// ── Feature flags (overrides por restaurant) ────────────────────────────────
+//
+// Permite activar/desactivar features puntuales por restaurant, independiente
+// del plan. Útil para betas, rollouts graduales o overrides manuales.
+// Fuente: restaurants.feature_flags (JSONB) — migration 050.
+
+export type FeatureFlags = Record<string, boolean>
+
+/**
+ * Chequea si un feature flag específico está activo para un restaurant.
+ * Si el flag no está seteado, devuelve el `defaultValue` (false por default).
+ */
+export function hasFeature(
+  flags: FeatureFlags | null | undefined,
+  flag: string,
+  defaultValue = false,
+): boolean {
+  if (!flags) return defaultValue
+  const v = flags[flag]
+  return typeof v === 'boolean' ? v : defaultValue
+}

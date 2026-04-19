@@ -299,6 +299,15 @@ export default function ReportePage() {
   return (
     <div className="p-6 space-y-6">
 
+      {/* Demo banner — los datos de esta página son mock mientras conectamos
+          queries reales. Se reemplaza por el dashboard unificado en Sprint 3. */}
+      <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3">
+        <AlertCircle size={16} className="text-amber-400 shrink-0" />
+        <p className="text-amber-200/90 text-xs">
+          <span className="font-semibold">Modo demo.</span> Los datos de esta página son de muestra. Pronto vas a ver reportes reales conectados a tu operación.
+        </p>
+      </div>
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

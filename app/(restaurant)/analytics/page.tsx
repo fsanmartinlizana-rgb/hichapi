@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Download, Zap } from 'lucide-react'
+import { TrendingUp, ArrowUpRight, ArrowDownRight, Download, Zap, AlertCircle } from 'lucide-react'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -163,6 +163,15 @@ export default function AnalyticsPage() {
 
   return (
     <div className="p-6 space-y-6">
+
+      {/* Demo banner — datos mock hasta que unifiquemos reporte+analytics con
+          data real en Sprint 3. */}
+      <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3">
+        <AlertCircle size={16} className="text-amber-400 shrink-0" />
+        <p className="text-amber-200/90 text-xs">
+          <span className="font-semibold">Modo demo.</span> Métricas de muestra. Estamos conectando esta vista a tus datos reales.
+        </p>
+      </div>
 
       {/* Header */}
       <div className="flex items-center justify-between">
