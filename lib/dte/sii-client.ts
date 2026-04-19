@@ -548,7 +548,7 @@ export async function sendFacturaToSII(
                               (err as Error).message.includes('fetch failed')
         
         if (isNetworkError && attempt < 3) {
-          console.warn(`sendFacturaToSII: Error de red en intento ${attempt} (${errCode || err.message}), reintentando...`)
+          console.warn(`sendFacturaToSII: Error de red en intento ${attempt} (${errCode || (err as Error).message}), reintentando...`)
           await new Promise(r => setTimeout(r, 1000 * attempt))
           continue
         }
