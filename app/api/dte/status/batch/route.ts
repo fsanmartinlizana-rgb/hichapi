@@ -72,8 +72,8 @@ export async function POST(req: NextRequest) {
   }
 
   // Separate emissions by type
-  const boletaEmissions  = sentEmissions.filter(e => e.document_type === 39 || e.document_type === 41)
-  const facturaEmissions = sentEmissions.filter(e => e.document_type === 33 || e.document_type === 56 || e.document_type === 61)
+  const boletaEmissions  = sentEmissions.filter((e: any) => e.document_type === 39 || e.document_type === 41)
+  const facturaEmissions = sentEmissions.filter((e: any) => e.document_type === 33 || e.document_type === 56 || e.document_type === 61)
 
   const now = new Date().toISOString()
   let updated = 0
