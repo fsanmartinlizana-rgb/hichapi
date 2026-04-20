@@ -176,6 +176,33 @@ export async function GET(req: NextRequest) {
     .eq('restaurant_id', restaurantId)
     .eq('status', 'ocupada')
 
+  // ── Mermas del período ─────────────────────────────────────────────────
+  const { data: wasteRaw } = await supabase
+    .from('waste_log')
+    .select('qty_lost, cost_lost, reason, item_type, menu_item_id, stock_item_id, logged_at')
+    .eq('restaurant_id', restaurantId)
+    .gte('logged_at', start.toISOString())
+    .lte('logged_at', end.toISOString())
+  const waste = (wasteRaw ?? []) as Array<{
+    qty_lost: number; cost_lost: number | null; reason: string | null
+    item_type: string | null; menu_item_id: string | null; stock_item_id: string | null
+    logged_at: string
+  }>
+
+  const wasteTotalCost  = waste.reduce((s, w) => s + (w.cost_lost ?? 0), 0)
+  const wasteByReason   = new Map<string, { count: number; cost: number }>()
+  for (const w of waste) {
+    const key = w.reason ?? 'otro'
+    const cur = wasteByReason.get(key) ?? { count: 0, cost: 0 }
+    cur.count += 1
+    cur.cost  += w.cost_lost ?? 0
+    wasteByReason.set(key, cur)
+  }
+  const topReasons = [...wasteByReason.entries()]
+    .map(([reason, v]) => ({ reason, count: v.count, cost: v.cost }))
+    .sort((a, b) => b.cost - a.cost)
+    .slice(0, 5)
+
   return NextResponse.json({
     period: periodParam,
     range: { start: start.toISOString(), end: end.toISOString() },
@@ -194,5 +221,10 @@ export async function GET(req: NextRequest) {
     by_day:       byDayArr,
     stock_alerts: stockAlerts,
     open_tables:  openTables ?? 0,
+    waste: {
+      total_cost:   wasteTotalCost,
+      events_count: waste.length,
+      top_reasons:  topReasons,
+    },
   })
 }

@@ -87,6 +87,22 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     defaultSize:  { w: 6, h: 3 },
     planRequired: 'pro',
   },
+  {
+    type:         'waste_cost',
+    label:        'Pérdidas por mermas',
+    description:  'Costo total y top razones',
+    icon:         'Trash2',
+    defaultSize:  { w: 3, h: 2 },
+    planRequired: 'pro',
+  },
+  {
+    type:         'waste_breakdown',
+    label:        'Mermas por razón',
+    description:  'Detalle por tipo de pérdida',
+    icon:         'Trash2',
+    defaultSize:  { w: 6, h: 3 },
+    planRequired: 'pro',
+  },
 ]
 
 export function widgetDef(type: string): WidgetDef | undefined {

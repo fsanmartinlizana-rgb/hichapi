@@ -6,14 +6,18 @@ import { teamInviteEmail } from '@/lib/email/templates'
 import { resolveAppUrl } from '@/lib/app-url'
 import { createInviteToken } from '@/lib/invite-token'
 
-const RoleEnum = z.enum(['admin','supervisor','garzon','waiter','cocina','anfitrion'])
+// Roles base del sistema. Los custom_roles (creados desde
+// RolesManagerModal) llegan como UUID, por eso la validación es laxa.
+const BASE_ROLES = ['admin','supervisor','garzon','waiter','cocina','anfitrion'] as const
+type BaseRole = typeof BASE_ROLES[number]
+const isBaseRole = (v: string): v is BaseRole => (BASE_ROLES as readonly string[]).includes(v)
 
 const BodySchema = z.object({
   email:         z.string().email(),
-  // Either a single role or a list of roles (multi-rol). We keep `role`
-  // as the "primary" role for compatibility.
-  role:          RoleEnum.optional(),
-  roles:         z.array(RoleEnum).min(1).optional(),
+  // Permitimos cualquier string: puede ser un rol base (admin, garzon, etc.)
+  // o un UUID de custom_role creado por el restaurant. El server valida después.
+  role:          z.string().min(1).max(80).optional(),
+  roles:         z.array(z.string().min(1).max(80)).min(1).optional(),
   restaurant_id: z.string().uuid(),
   full_name:     z.string().min(1).max(120).optional(),
   phone:         z.string().max(40).optional(),
@@ -38,7 +42,31 @@ export async function POST(req: NextRequest) {
     const body = BodySchema.parse(await req.json())
     const { email, restaurant_id, full_name, phone } = body
     const rolesArr = body.roles ?? (body.role ? [body.role] : [])
-    const role = (body.role ?? rolesArr[0]) as z.infer<typeof RoleEnum>
+
+    // El "role" primario determina a dónde cae el user post-login (ROLE_HOME).
+    // Si vino un rol base en la lista, lo priorizamos. Si todos son UUIDs de
+    // custom roles, marcamos el primario como 'admin' (fallback seguro).
+    const baseInList = rolesArr.find(isBaseRole) as BaseRole | undefined
+    const role: BaseRole = (body.role && isBaseRole(body.role) ? body.role as BaseRole : baseInList) ?? 'admin'
+
+    // Valida que cada rol no-base sea un custom_role que pertenezca al restaurant.
+    // Bloquea inyección de UUIDs arbitrarios con permisos que no deberían tener.
+    const customIds = rolesArr.filter(r => !isBaseRole(r))
+    if (customIds.length > 0) {
+      const adminSupabase = createAdminClient()
+      const { data: validCustom } = await adminSupabase
+        .from('custom_roles')
+        .select('id')
+        .eq('restaurant_id', restaurant_id)
+        .in('id', customIds)
+      const validIds = new Set(((validCustom ?? []) as { id: string }[]).map(r => r.id))
+      const invalid = customIds.filter(c => !validIds.has(c))
+      if (invalid.length > 0) {
+        return NextResponse.json({
+          error: `Roles custom inválidos: ${invalid.join(', ')}. Creá el rol primero en Equipo → Gestionar roles.`,
+        }, { status: 400 })
+      }
+    }
 
     const { error: authError } = await requireRestaurantRole(restaurant_id, ['owner', 'admin', 'super_admin'])
     if (authError) return authError

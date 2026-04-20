@@ -63,7 +63,6 @@ const ALL_NAV: NavSection[] = [
     label: 'Inteligencia',
     icon: BrainCircuit,
     items: [
-      { label: 'Reporte del día', href: '/reporte',   icon: BarChart2,  roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Analytics',       href: '/analytics', icon: TrendingUp, roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Chapi insights',  href: '/insights',  icon: Sparkles,   roles: ['admin','owner','supervisor','super_admin'] },
     ],

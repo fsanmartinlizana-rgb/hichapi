@@ -95,6 +95,27 @@ async function pickNextPosition(
   return { pos_x: START_X, pos_y: START_Y }
 }
 
+// ── GET /api/tables?restaurant_id=X ────────────────────────────────────────
+// Lista mesas del restaurant. Agregado 2026-04-19 para que /mesas/qrs
+// (pagina de impresion bulk de QRs) pueda fetch en el cliente sin 405.
+
+export async function GET(req: NextRequest) {
+  const { error: authErr } = await requireUser()
+  if (authErr) return authErr
+  const restaurantId = req.nextUrl.searchParams.get('restaurant_id')
+  if (!restaurantId) {
+    return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 })
+  }
+  const supabase = createAdminClient()
+  const { data, error } = await supabase
+    .from('tables')
+    .select('id, label, seats, zone, smoking, status, qr_token, pos_x, pos_y')
+    .eq('restaurant_id', restaurantId)
+    .order('label')
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ tables: data ?? [] })
+}
+
 // ── POST /api/tables — create single ────────────────────────────────────────
 
 export async function POST(req: NextRequest) {

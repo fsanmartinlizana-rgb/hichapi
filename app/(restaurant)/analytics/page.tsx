@@ -235,6 +235,7 @@ function ResumenTab({ summary }: { summary: AnalyticsSummary | null }) {
       <DashboardWidget type="avg_ticket"           summary={summary} />
       <DashboardWidget type="open_tables_now"      summary={summary} />
       <DashboardWidget type="inventory_low_stock"  summary={summary} />
+      <DashboardWidget type="waste_cost"           summary={summary} />
       <div className="lg:col-span-3">
         <div className="h-80">
           <DashboardWidget type="orders_by_hour" summary={summary} />
@@ -255,6 +256,9 @@ function MetricasTab({ summary }: { summary: AnalyticsSummary | null }) {
       </div>
       <div className="h-96 lg:col-span-2">
         <DashboardWidget type="top_items_week" summary={summary} />
+      </div>
+      <div className="h-72 lg:col-span-2">
+        <DashboardWidget type="waste_breakdown" summary={summary} />
       </div>
     </div>
   )

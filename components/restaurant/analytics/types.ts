@@ -16,6 +16,11 @@ export interface AnalyticsSummary {
   by_day:       { date: string; orders: number; revenue: number }[]
   stock_alerts: number
   open_tables:  number
+  waste?: {
+    total_cost:   number
+    events_count: number
+    top_reasons:  { reason: string; count: number; cost: number }[]
+  }
 }
 
 export interface WidgetInstance {

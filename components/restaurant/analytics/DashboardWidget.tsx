@@ -9,7 +9,7 @@
 
 import {
   DollarSign, TrendingUp, TrendingDown, Receipt, Grid3x3,
-  AlertTriangle, BarChart2, Clock, Sparkles,
+  AlertTriangle, BarChart2, Clock, Sparkles, Trash2,
 } from 'lucide-react'
 import type { AnalyticsSummary } from './types'
 
@@ -43,6 +43,10 @@ export function DashboardWidget({ type, summary }: { type: string; summary: Anal
       return <HourlyOrders summary={summary} />
     case 'chapi_tip_of_the_day':
       return <ChapiTip summary={summary} />
+    case 'waste_cost':
+      return <WasteCost summary={summary} />
+    case 'waste_breakdown':
+      return <WasteBreakdown summary={summary} />
     default:
       return (
         <div className="h-full flex items-center justify-center rounded-2xl border border-white/8 bg-[#161622] text-white/40 text-xs">
@@ -155,30 +159,169 @@ function TopItems({ summary }: { summary: AnalyticsSummary }) {
 }
 
 function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
-  const data = summary.by_hour
+  // Recortamos a horas típicas de operación (10:00-00:00). Las 01-09 suelen
+  // estar vacías y solo agregan ruido visual. Si hay data fuera de este
+  // rango, ampliamos dinámicamente al mínimo necesario.
+  const full = summary.by_hour
+  const anyBeforeTen = full.slice(0, 10).some(d => d.orders > 0)
+  const startHour = anyBeforeTen ? 0 : 10
+  const data = full.slice(startHour)
+
   const max = Math.max(...data.map(d => d.orders), 1)
+  const peak = data.reduce<{ hour: number; orders: number } | null>(
+    (acc, d) => (acc && acc.orders >= d.orders ? acc : d), null,
+  )
+  const totalOrders = data.reduce((s, d) => s + d.orders, 0)
+
+  // Ticks del eje Y (4 líneas): 25% 50% 75% 100% del max
+  const yTicks = [0.25, 0.5, 0.75, 1].map(f => Math.ceil(max * f))
+
   return (
     <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
-      <div className="flex items-center justify-between mb-3">
-        <p className="text-white font-semibold text-sm">Órdenes por hora</p>
+      <div className="flex items-center justify-between mb-1">
+        <div>
+          <p className="text-white font-semibold text-sm">Órdenes por hora</p>
+          <p className="text-white/35 text-[10px]">
+            {totalOrders} pedido{totalOrders === 1 ? '' : 's'} en el período
+            {peak && peak.orders > 0 && ` · pico ${String(peak.hour).padStart(2, '0')}:00 con ${peak.orders}`}
+          </p>
+        </div>
         <Clock size={14} className="text-white/30" />
       </div>
-      <div className="flex-1 flex items-end gap-0.5">
-        {data.map(d => {
-          const h = (d.orders / max) * 100
-          return (
-            <div key={d.hour} className="flex-1 flex flex-col items-center gap-1 group" title={`${d.hour}:00 — ${d.orders} pedidos, ${clp(d.revenue)}`}>
-              <div
-                className="w-full rounded-t bg-[#FF6B35]/80 group-hover:bg-[#FF6B35] transition-colors"
-                style={{ height: `${h}%`, minHeight: d.orders > 0 ? 2 : 0 }}
-              />
-              {d.hour % 3 === 0 && (
-                <span className="text-[9px] text-white/30">{d.hour}</span>
-              )}
-            </div>
-          )
-        })}
+
+      {/* Chart area: eje Y izquierdo con ticks + barras */}
+      <div className="flex-1 flex gap-2 min-h-[160px] mt-3">
+        {/* Y axis labels */}
+        <div className="flex flex-col justify-between py-1 pr-1 text-right">
+          {[...yTicks].reverse().map(t => (
+            <span key={t} className="text-[9px] text-white/30 font-mono leading-none">{t}</span>
+          ))}
+          <span className="text-[9px] text-white/30 font-mono leading-none">0</span>
+        </div>
+
+        {/* Bars + grid */}
+        <div className="flex-1 relative">
+          {/* Grid lines */}
+          <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
+            {[...yTicks, 0].reverse().map((_, i) => (
+              <div key={i} className="border-t border-white/5" />
+            ))}
+          </div>
+
+          {/* Bars */}
+          <div className="relative h-full flex items-end gap-[3px]">
+            {data.map(d => {
+              const isPeak = peak && d.hour === peak.hour && d.orders > 0
+              const h = (d.orders / max) * 100
+              return (
+                <div
+                  key={d.hour}
+                  className="flex-1 flex flex-col items-center gap-1 group relative"
+                >
+                  {/* Tooltip */}
+                  {d.orders > 0 && (
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-medium px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                      {String(d.hour).padStart(2, '0')}:00
+                      <span className="text-white/50"> · </span>
+                      {d.orders} pedido{d.orders === 1 ? '' : 's'}
+                      <span className="text-white/50"> · </span>
+                      {clp(d.revenue)}
+                    </div>
+                  )}
+                  <div
+                    className={`w-full rounded-t transition-all ${
+                      isPeak
+                        ? 'bg-[#FF6B35] group-hover:bg-[#ff7a4a]'
+                        : d.orders > 0
+                        ? 'bg-[#FF6B35]/60 group-hover:bg-[#FF6B35]'
+                        : 'bg-white/5 group-hover:bg-white/10'
+                    }`}
+                    style={{ height: `${Math.max(h, d.orders > 0 ? 3 : 0)}%` }}
+                  />
+                </div>
+              )
+            })}
+          </div>
+        </div>
       </div>
+
+      {/* X axis — horas cada 2 */}
+      <div className="flex gap-[3px] mt-1 pl-[26px]">
+        {data.map(d => (
+          <div key={d.hour} className="flex-1 text-center">
+            {(d.hour - startHour) % 2 === 0 && (
+              <span className="text-[9px] text-white/35 font-mono">{String(d.hour).padStart(2, '0')}</span>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function WasteCost({ summary }: { summary: AnalyticsSummary }) {
+  const total  = summary.waste?.total_cost   ?? 0
+  const events = summary.waste?.events_count ?? 0
+  return (
+    <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${total > 0 ? 'border-red-500/20 bg-red-500/5' : 'border-white/8 bg-[#161622]'}`}>
+      <div className="flex items-center justify-between">
+        <p className="text-white/40 text-[11px] uppercase tracking-wider">Pérdidas ({summary.period})</p>
+        <Trash2 size={14} className={total > 0 ? 'text-red-400' : 'text-white/30'} />
+      </div>
+      <p className={`text-2xl font-bold ${total > 0 ? 'text-red-300' : 'text-white'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
+        {clp(total)}
+      </p>
+      <p className="text-white/30 text-[10px]">
+        {events} evento{events === 1 ? '' : 's'} registrado{events === 1 ? '' : 's'}
+      </p>
+    </div>
+  )
+}
+
+const REASON_LABEL: Record<string, string> = {
+  vencimiento: 'Vencimiento',
+  deterioro:   'Deterioro',
+  rotura:      'Rotura',
+  error_prep:  'Error de prep.',
+  sobras:      'Sobras',
+  devolucion:  'Devolución',
+  merma:       'Merma',
+  perdida:     'Pérdida',
+  otro:        'Otro',
+}
+
+function WasteBreakdown({ summary }: { summary: AnalyticsSummary }) {
+  const reasons = summary.waste?.top_reasons ?? []
+  const max     = Math.max(...reasons.map(r => r.cost), 1)
+  const total   = summary.waste?.total_cost ?? 0
+  return (
+    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <p className="text-white font-semibold text-sm">Mermas por razón</p>
+          <p className="text-white/35 text-[10px]">Costo total: {clp(total)}</p>
+        </div>
+        <Trash2 size={14} className="text-white/30" />
+      </div>
+      {reasons.length === 0 ? (
+        <p className="text-white/30 text-xs italic">Sin mermas en el período. Bien ahí.</p>
+      ) : (
+        <div className="space-y-2">
+          {reasons.map(r => (
+            <div key={r.reason} className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-white/80">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                <span className="text-white/40 font-mono">
+                  {r.count} · {clp(r.cost)}
+                </span>
+              </div>
+              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+                <div className="h-full rounded-full bg-red-400/70" style={{ width: `${(r.cost / max) * 100}%` }} />
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

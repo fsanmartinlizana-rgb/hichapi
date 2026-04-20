@@ -56,17 +56,64 @@ function ChatText({ text }: { text: string }) {
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 
+// Clave de storage por restaurant — el historial se preserva cross-navigation.
+// Se usa sessionStorage (no localStorage) para no acumular conversaciones
+// entre sesiones de login distintas.
+const STORAGE_KEY = (restId: string) => `hichapi_insights_history_v1:${restId}`
+
 export default function InsightsPage() {
   const { restaurant } = useRestaurant()
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
+  // Typing animation: índice de caracteres revelados del último mensaje del
+  // assistant. Solo afecta al último; todos los anteriores se renderizan full.
+  const [typingIndex, setTypingIndex] = useState<number | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // ── Restaurar historial al montar ──────────────────────────────────────
+  useEffect(() => {
+    if (!restaurant?.id || typeof window === 'undefined') return
+    try {
+      const raw = sessionStorage.getItem(STORAGE_KEY(restaurant.id))
+      if (raw) {
+        const parsed = JSON.parse(raw) as ChatMessage[]
+        if (Array.isArray(parsed)) setMessages(parsed)
+      }
+    } catch { /* ignore */ }
+  }, [restaurant?.id])
+
+  // ── Persistir historial en cada cambio ─────────────────────────────────
+  useEffect(() => {
+    if (!restaurant?.id || typeof window === 'undefined') return
+    try {
+      if (messages.length === 0) {
+        sessionStorage.removeItem(STORAGE_KEY(restaurant.id))
+      } else {
+        sessionStorage.setItem(STORAGE_KEY(restaurant.id), JSON.stringify(messages))
+      }
+    } catch { /* ignore quota */ }
+  }, [messages, restaurant?.id])
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
-  }, [messages, loading])
+  }, [messages, loading, typingIndex])
+
+  // ── Typing animation: revela la respuesta caracter por caracter ────────
+  useEffect(() => {
+    if (typingIndex === null) return
+    const last = messages[messages.length - 1]
+    if (!last || last.role !== 'assistant') return
+    if (typingIndex >= last.content.length) {
+      setTypingIndex(null)
+      return
+    }
+    const speed = last.content.length > 400 ? 8 : 14 // ms por caracter
+    const step  = last.content.length > 400 ? 3 : 1
+    const t = setTimeout(() => setTypingIndex(i => (i ?? 0) + step), speed)
+    return () => clearTimeout(t)
+  }, [typingIndex, messages])
 
   async function send(text: string) {
     const prompt = text.trim()
@@ -96,6 +143,7 @@ export default function InsightsPage() {
         ...prev,
         { role: 'assistant', content: data.reply, tools_used: data.tools_used },
       ])
+      setTypingIndex(0) // arranca typing animation sobre el nuevo último mensaje
     } catch {
       setError('Sin conexión')
     } finally {
@@ -175,7 +223,13 @@ export default function InsightsPage() {
           )}
 
           {/* Messages */}
-          {messages.map((msg, i) => (
+          {messages.map((msg, i) => {
+            const isLast = i === messages.length - 1
+            const isTyping = isLast && msg.role === 'assistant' && typingIndex !== null
+            const displayedText = isTyping
+              ? msg.content.slice(0, typingIndex ?? 0)
+              : msg.content
+            return (
             <div
               key={i}
               className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}
@@ -194,7 +248,12 @@ export default function InsightsPage() {
               >
                 {msg.role === 'user'
                   ? msg.content
-                  : <ChatText text={msg.content} />
+                  : (
+                    <>
+                      <ChatText text={displayedText} />
+                      {isTyping && <span className="inline-block w-0.5 h-3.5 bg-[#FF6B35] ml-0.5 animate-pulse align-middle" />}
+                    </>
+                  )
                 }
 
                 {/* Tool-use chips (assistant only) */}
@@ -213,7 +272,7 @@ export default function InsightsPage() {
                 )}
               </div>
             </div>
-          ))}
+          )})}
 
           {/* Loading */}
           {loading && (

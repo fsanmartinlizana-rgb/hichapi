@@ -1731,7 +1731,32 @@ export default function MesasPage() {
         </div>
       </div>
 
-      {/* ── Right: waitlist sidebar (collapsible) ───────────────────────── */}
+      {/* ── Right: waitlist sidebar colapsado — drawer vertical visible ─ */}
+      {waitlistHidden && (
+        <button
+          onClick={() => setWaitlistHidden(false)}
+          title="Expandir lista de espera"
+          className="w-10 shrink-0 border-l border-white/5 bg-[#0D0D1A] hover:bg-white/[0.02] transition-colors
+                     flex flex-col items-center gap-3 pt-5 group"
+        >
+          <PanelRightOpen size={14} className="text-white/30 group-hover:text-white/70" />
+          <div className="flex-1 flex flex-col items-center gap-1.5">
+            {stats.enEspera > 0 && (
+              <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF6B35] text-white min-w-[20px] text-center">
+                {stats.enEspera}
+              </span>
+            )}
+            <span
+              className="text-white/40 text-[10px] font-medium tracking-wider group-hover:text-white/70"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              Lista de espera
+            </span>
+          </div>
+        </button>
+      )}
+
+      {/* ── Right: waitlist sidebar expandido ─────────────────────────── */}
       {!waitlistHidden && (
       <div className="w-80 shrink-0 border-l border-white/5 flex flex-col bg-[#0D0D1A]">
 
