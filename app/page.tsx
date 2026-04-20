@@ -137,26 +137,25 @@ const TESTIMONIALS = [
     author: 'Camila R.',
     role: 'Celiaca, Providencia',
     rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80&fit=crop',
   },
   {
     quote: 'Mis clientes piden desde el celular y el pedido llega directo a cocina. Cero errores.',
     author: 'Felipe M.',
     role: 'Dueno, Osteria del Porto',
     rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&fit=crop',
   },
   {
-    quote: 'Solo cobran 1% de lo digital y me dan visibilidad real. No es otro delivery app.',
+    quote: 'Solo cobran 1% de lo digital y me dan visibilidad real. Recupero la inversion en el primer mes.',
     author: 'Andrea L.',
     role: 'Chef, La Meson',
     rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80&fit=crop',
   },
 ]
 
-const ZONES = [
-  'Providencia', 'Las Condes', 'Nunoa', 'Vitacura',
-  'Bellavista', 'Lastarria', 'Barrio Italia', 'Santiago Centro',
-  'Lo Barnechea', 'La Reina', 'Barrio Yungay', 'Manuel Montt',
-]
+// ZONES removido 2026-04-19 junto con ZonesSection.
 
 const PLANS = [
   {
@@ -164,73 +163,54 @@ const PLANS = [
     badge: 'Para empezar',
     price: '$0',
     period: 'siempre gratis',
-    description: 'Tu presencia digital lista: pagina, carta, perfil.',
+    description: 'Tu pagina en hichapi.com/tu-nombre lista en 5 minutos',
     features: [
-      'Tu URL publica en hichapi.com/tu-resto',
+      'Tu propia URL publica',
       'Carta digital con fotos',
-      'Perfil publico con ubicacion y horarios',
       'Apareces en Chapi',
-      'Configuracion del restaurante',
+      'Lista de espera digital',
+      'Link para Instagram y Google Maps',
     ],
-    cta: 'Crear cuenta gratis',
+    cta: 'Crear mi pagina gratis',
     href: '/unete',
     highlighted: false,
   },
   {
     name: 'Starter',
-    badge: 'Mas popular',
+    badge: 'Para operar',
     price: '$29.990',
     period: '/ mes',
-    description: 'Digitaliza el salon: pedidos, caja, lista de espera y turnos.',
+    description: 'Tus clientes piden desde la mesa. Sin papeles, sin errores.',
     features: [
       'Todo lo de Free',
-      'Mesas + QR por mesa',
-      'Comandas (cocina + garzon en tiempo real)',
-      'Caja con cierre de turno',
-      'Lista de espera digital',
-      'Turnos del personal',
+      'Pedidos QR con Chapi',
+      'Panel garzon en tiempo real',
+      'Comandas de cocina',
+      'Division de cuenta',
+      'Control de caja',
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
     href: '/unete?plan=starter',
-    highlighted: true,
+    highlighted: false,
   },
   {
     name: 'Pro',
-    badge: 'Para crecer',
+    badge: 'Mas popular',
     price: '$59.990',
     period: '/ mes',
-    description: 'Inteligencia operativa: stock, reportes IA y fidelizacion.',
+    description: 'Inteligencia de negocio y control total de operaciones.',
     features: [
       'Todo lo de Starter',
-      'Stock + control de mermas',
-      'Analytics unificado con IA',
-      'Dashboards configurables',
-      'Fidelizacion y promociones',
-      'Chapi Insights con datos reales',
+      'Reportes IA diarios',
+      'Inventario y mermas',
+      'Analytics avanzados',
+      'Carga de inventario por foto o Excel',
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
     href: '/unete?plan=pro',
-    highlighted: false,
-  },
-  {
-    name: 'Enterprise',
-    badge: 'Multi-local',
-    price: '$149.990',
-    period: '/ mes',
-    description: 'Multi-local, API publica, geofencing y soporte 24/7.',
-    features: [
-      'Todo lo de Pro',
-      'Multi-local sin limite',
-      'Geofencing y check-in automatico',
-      'API publica con keys y scopes',
-      'Agente IA de soporte 24/7',
-      'Sin comision sobre ventas digitales',
-    ],
-    cta: 'Contactar ventas',
-    href: '/contacto',
-    highlighted: false,
+    highlighted: true,
   },
 ]
 
@@ -524,63 +504,118 @@ function DinerFeatures() {
   )
 }
 
-function ComparisonSection() {
+/* ─── RestaurantShowcase ─────────────────────────────────────────────
+   Reemplaza la vieja ComparisonSection. Vitrina visual de restaurants
+   que ya están en HiChapi: recupera las fotos que había antes y
+   transmite confianza mostrando que la plataforma tiene uso real. */
+function RestaurantShowcase() {
+  const restaurants = [
+    {
+      name: 'La Parrilla de Don Martín',
+      zone: 'Providencia',
+      tag: 'Parrilla · Chile',
+      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80',
+    },
+    {
+      name: 'Sazón Patagónica',
+      zone: 'Ñuñoa',
+      tag: 'Cocina de autor',
+      image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=80',
+    },
+    {
+      name: 'Pizzería Trattoria',
+      zone: 'Lastarria',
+      tag: 'Italiana · Horno a leña',
+      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80',
+    },
+    {
+      name: 'Sushi Ko',
+      zone: 'Las Condes',
+      tag: 'Japonés fusión',
+      image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80',
+    },
+    {
+      name: 'Fuente Alemana',
+      zone: 'Centro',
+      tag: 'Comida clásica chilena',
+      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80',
+    },
+    {
+      name: 'Café Colmado',
+      zone: 'Barrio Italia',
+      tag: 'Brunch · Café de especialidad',
+      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&q=80',
+    },
+  ]
+
   return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="max-w-4xl mx-auto px-6">
-        <div className="text-center mb-16">
+    <section id="restaurantes-ya-dentro" className="py-20 lg:py-28 bg-white">
+      <div className="max-w-6xl mx-auto px-6">
+        <div className="text-center mb-12">
+          <div
+            className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
+                       rounded-full border mb-4"
+            style={{ background: '#FFF4EF', borderColor: '#FFD4C2', color: '#FF6B35' }}
+          >
+            <Star size={12} /> Ya confían en HiChapi
+          </div>
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
-            No somos delivery. Somos discovery.
+            Restaurantes que ya usan HiChapi
           </h2>
           <p className="text-neutral-400 text-lg max-w-xl mx-auto">
-            HiChapi no compite con apps de delivery. Complementamos la experiencia presencial.
+            Desde parrillas de barrio hasta cocina de autor. Todos empezaron gratis.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {/* Others */}
-          <div className="rounded-2xl border border-neutral-200 p-8 bg-neutral-50">
-            <p className="text-sm font-bold text-neutral-400 uppercase tracking-wider mb-6">Apps de delivery</p>
-            <ul className="space-y-4">
-              {[
-                'Comisiones del 20-30%',
-                'El cliente no va al restaurante',
-                'Competencia por precio',
-                'Sin relacion con el comensal',
-                'Tu marca se pierde',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-sm text-neutral-400">
-                  <span className="w-5 h-5 rounded-full bg-neutral-200 flex items-center justify-center shrink-0 mt-0.5">
-                    <span className="text-xs">x</span>
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {/* HiChapi */}
-          <div className="rounded-2xl border-2 border-[#FF6B35]/30 p-8 bg-[#FFF4EF]/30 relative">
-            <div className="absolute -top-3 left-6 bg-[#FF6B35] text-white text-xs font-bold px-3 py-1 rounded-full">
-              HiChapi
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
+          {restaurants.map(r => (
+            <div
+              key={r.name}
+              className="group relative rounded-2xl overflow-hidden border border-neutral-100 bg-[#FAFAF8]
+                         shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
+            >
+              {/* Image */}
+              <div className="aspect-[4/3] overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={r.image}
+                  alt={r.name}
+                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                  loading="lazy"
+                />
+              </div>
+              {/* Overlay text */}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent
+                              flex flex-col justify-end p-4 lg:p-5">
+                <p className="text-white font-bold text-sm lg:text-base leading-tight">{r.name}</p>
+                <div className="flex items-center gap-2 mt-1">
+                  <MapPin size={10} className="text-[#FF6B35]" />
+                  <p className="text-neutral-300 text-[11px]">{r.zone}</p>
+                  <span className="text-neutral-500 text-[11px]">·</span>
+                  <p className="text-neutral-300 text-[11px]">{r.tag}</p>
+                </div>
+              </div>
             </div>
-            <p className="text-sm font-bold text-[#FF6B35] uppercase tracking-wider mb-6">Discovery + Gestion</p>
-            <ul className="space-y-4">
-              {[
-                'Solo 1% en ventas digitales (Rappi: 30%)',
-                'El cliente va presencial',
-                'Recomendacion inteligente por IA',
-                'Relacion directa con el comensal',
-                'Tu marca siempre visible',
-              ].map(item => (
-                <li key={item} className="flex items-start gap-3 text-sm text-[#1A1A2E]">
-                  <span className="w-5 h-5 rounded-full bg-[#FF6B35] flex items-center justify-center shrink-0 mt-0.5">
-                    <Check size={12} className="text-white" />
-                  </span>
-                  {item}
-                </li>
-              ))}
-            </ul>
+          ))}
+        </div>
+
+        {/* Trust signal */}
+        <div className="mt-12 flex items-center justify-center gap-8 flex-wrap">
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Shield size={14} className="text-[#FF6B35]" />
+            Datos encriptados
+          </div>
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Zap size={14} className="text-[#FF6B35]" />
+            99.9% uptime
+          </div>
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Users size={14} className="text-[#FF6B35]" />
+            Soporte en español
+          </div>
+          <div className="flex items-center gap-2 text-sm text-neutral-500">
+            <Check size={14} className="text-[#FF6B35]" />
+            Cancelas cuando quieras
           </div>
         </div>
       </div>
@@ -619,11 +654,82 @@ function RestaurantNumbers() {
 
 function RestaurantFeatures() {
   return (
-    <section id="restaurantes" className="py-20 lg:py-28">
-      <div className="max-w-6xl mx-auto px-6">
+    <section id="restaurantes" className="py-20 lg:py-28 relative overflow-hidden">
+      {/* Orbs decorativos */}
+      <div className="absolute top-1/2 -right-40 w-96 h-96 bg-[#FF6B35]/8 rounded-full blur-3xl -translate-y-1/2" />
+
+      <div className="relative max-w-6xl mx-auto px-6">
         <div className="lg:grid lg:grid-cols-2 lg:gap-16 items-center">
-          {/* Left — text */}
-          <div className="mb-12 lg:mb-0">
+          {/* Left — Mockup del panel (transmite confianza visual) */}
+          <div className="mb-12 lg:mb-0 relative">
+            <div className="relative rounded-3xl overflow-hidden shadow-2xl shadow-neutral-300/40 border border-neutral-200 bg-[#0E0E14]">
+              {/* Mock header del panel */}
+              <div className="bg-[#161622] border-b border-white/5 px-4 py-3 flex items-center gap-2">
+                <div className="flex gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-full bg-red-400/60" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-400/60" />
+                  <span className="w-2.5 h-2.5 rounded-full bg-green-400/60" />
+                </div>
+                <p className="text-white/60 text-[10px] ml-3 font-mono">hichapi.com/dashboard</p>
+              </div>
+              {/* Mock KPIs */}
+              <div className="p-5 space-y-4 bg-[#0E0E14]">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-white/40 text-[10px] uppercase tracking-wider">Hoy</p>
+                    <p className="text-white text-xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>$1.2M</p>
+                  </div>
+                  <div className="flex items-center gap-1 text-xs text-emerald-400 font-semibold bg-emerald-400/10 px-2 py-1 rounded-lg">
+                    <TrendingUp size={11} /> +18%
+                  </div>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                    <p className="text-white/40 text-[9px]">PEDIDOS</p>
+                    <p className="text-white text-sm font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>47</p>
+                  </div>
+                  <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                    <p className="text-white/40 text-[9px]">TICKET</p>
+                    <p className="text-white text-sm font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>$25k</p>
+                  </div>
+                  <div className="bg-[#FF6B35]/10 rounded-xl p-3 border border-[#FF6B35]/30">
+                    <p className="text-[#FF6B35] text-[9px]">MESAS</p>
+                    <p className="text-white text-sm font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>12/14</p>
+                  </div>
+                </div>
+                {/* Mock gráfico de barras */}
+                <div className="bg-white/5 rounded-xl p-3 border border-white/5">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-white/60 text-[10px] font-semibold">Órdenes por hora</p>
+                    <Clock size={10} className="text-white/30" />
+                  </div>
+                  <div className="flex items-end gap-0.5 h-12">
+                    {[30, 45, 60, 50, 80, 95, 70, 55, 90, 85, 65, 40].map((h, i) => (
+                      <div key={i} className="flex-1 rounded-t bg-[#FF6B35]/80" style={{ height: `${h}%` }} />
+                    ))}
+                  </div>
+                </div>
+                {/* Chapi tip mockup */}
+                <div className="bg-gradient-to-br from-[#FF6B35]/10 to-transparent rounded-xl p-3 border border-[#FF6B35]/20">
+                  <div className="flex items-center gap-1.5 mb-1">
+                    <Zap size={11} className="text-[#FF6B35]" />
+                    <p className="text-white text-[10px] font-semibold">Chapi dice</p>
+                  </div>
+                  <p className="text-white/70 text-[10px] leading-snug">
+                    Tu pico es a las 20h. Considera destacar el Lomo Vetado en el menú digital.
+                  </p>
+                </div>
+              </div>
+            </div>
+            {/* Badge flotante */}
+            <div className="absolute -top-3 -right-3 bg-white shadow-lg rounded-full px-3 py-1.5 flex items-center gap-1.5 border border-neutral-100">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+              <p className="text-[10px] font-semibold text-[#1A1A2E]">En tiempo real</p>
+            </div>
+          </div>
+
+          {/* Right — text + features */}
+          <div>
             <div
               className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
                          rounded-full border mb-4"
@@ -631,20 +737,36 @@ function RestaurantFeatures() {
             >
               Para restaurantes
             </div>
-            <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
-              Tu restaurante, inteligente
+            <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4 leading-[1.1]">
+              Todo tu restaurante en un solo lugar
             </h2>
-            <p className="text-neutral-400 text-lg mb-8 leading-relaxed">
-              Panel completo para gestionar pedidos, equipo, inventario y mesas.
+            <p className="text-neutral-500 text-lg mb-6 leading-relaxed">
+              Panel en tiempo real para gestionar pedidos, equipo, inventario y mesas.
               Solo 1% sobre ventas digitales. El cliente llega directo a ti.
             </p>
 
-            <div className="flex flex-col sm:flex-row gap-4">
+            {/* Feature grid compacto */}
+            <div className="grid grid-cols-2 gap-3 mb-8">
+              {RESTAURANT_FEATURES.slice(0, 6).map(({ icon: Icon, title }) => (
+                <div
+                  key={title}
+                  className="flex items-center gap-3 p-3 rounded-xl bg-white border border-neutral-100 shadow-sm
+                             hover:border-[#FF6B35]/30 transition-colors"
+                >
+                  <div className="w-8 h-8 rounded-lg bg-[#FFF4EF] flex items-center justify-center shrink-0">
+                    <Icon size={15} className="text-[#FF6B35]" />
+                  </div>
+                  <p className="text-sm font-semibold text-[#1A1A2E] leading-tight">{title}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
               <Link
                 href="/unete"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl
                            bg-[#FF6B35] text-white font-semibold text-sm
-                           hover:bg-[#e55a2b] transition-colors shadow-sm"
+                           hover:bg-[#e55a2b] transition-colors shadow-lg shadow-[#FF6B35]/25"
               >
                 Sumar mi restaurante <ArrowRight size={14} />
               </Link>
@@ -657,23 +779,6 @@ function RestaurantFeatures() {
                 Ya tengo cuenta
               </Link>
             </div>
-          </div>
-
-          {/* Right — feature cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            {RESTAURANT_FEATURES.map(({ icon: Icon, title, desc }) => (
-              <div
-                key={title}
-                className="bg-white rounded-2xl border border-neutral-100 p-5 shadow-sm
-                           hover:shadow-md hover:-translate-y-0.5 transition-all duration-200"
-              >
-                <div className="w-9 h-9 rounded-xl bg-[#FFF4EF] flex items-center justify-center mb-3">
-                  <Icon size={18} className="text-[#FF6B35]" />
-                </div>
-                <h3 className="font-semibold text-[#1A1A2E] text-sm mb-1">{title}</h3>
-                <p className="text-xs text-neutral-400 leading-relaxed">{desc}</p>
-              </div>
-            ))}
           </div>
         </div>
       </div>
@@ -702,11 +807,11 @@ function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
           {PLANS.map(({ name, badge, price, period, description, features, note, cta, href, highlighted }) => (
             <div
               key={name}
-              className={`relative rounded-3xl p-7 flex flex-col ${
+              className={`relative rounded-3xl p-8 flex flex-col ${
                 highlighted
                   ? 'border-2 border-[#FF6B35] bg-white shadow-xl shadow-[#FF6B35]/10'
                   : 'border border-neutral-200 bg-white shadow-sm'
@@ -788,23 +893,33 @@ function Testimonials() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map(({ quote, author, role, rating }) => (
+          {TESTIMONIALS.map(({ quote, author, role, rating, avatar }) => (
             <div
               key={author}
-              className="bg-white rounded-2xl p-6 border border-neutral-100 shadow-sm
-                         hover:shadow-lg transition-all duration-300"
+              className="bg-white rounded-2xl p-7 border border-neutral-100 shadow-sm
+                         hover:shadow-xl hover:-translate-y-1 transition-all duration-300
+                         flex flex-col"
             >
               <div className="flex gap-1 mb-4">
                 {Array.from({ length: rating }).map((_, i) => (
                   <Star key={i} size={14} className="text-[#FF6B35] fill-[#FF6B35]" />
                 ))}
               </div>
-              <p className="text-sm text-[#1A1A2E] mb-6 leading-relaxed italic">
+              <p className="text-sm text-[#1A1A2E] mb-6 leading-relaxed italic flex-1">
                 &ldquo;{quote}&rdquo;
               </p>
-              <div>
-                <p className="font-semibold text-sm text-[#1A1A2E]">{author}</p>
-                <p className="text-xs text-neutral-400">{role}</p>
+              <div className="flex items-center gap-3 pt-5 border-t border-neutral-100">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={avatar}
+                  alt={author}
+                  className="w-11 h-11 rounded-full object-cover border-2 border-[#FFD4C2]"
+                  loading="lazy"
+                />
+                <div>
+                  <p className="font-semibold text-sm text-[#1A1A2E]">{author}</p>
+                  <p className="text-xs text-neutral-400">{role}</p>
+                </div>
               </div>
             </div>
           ))}
@@ -814,32 +929,8 @@ function Testimonials() {
   )
 }
 
-function ZonesSection() {
-  return (
-    <section className="py-20 lg:py-28 bg-white">
-      <div className="max-w-6xl mx-auto px-6 text-center">
-        <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
-          Disponible en toda Santiago
-        </h2>
-        <p className="text-neutral-400 text-lg mb-10 max-w-xl mx-auto">
-          Y seguimos creciendo. Si tu barrio no esta, avisanos.
-        </p>
-        <div className="flex flex-wrap justify-center gap-3 max-w-3xl mx-auto">
-          {ZONES.map(zone => (
-            <span
-              key={zone}
-              className="px-4 py-2 rounded-full bg-[#FAFAF8] border border-neutral-100 text-sm text-neutral-600
-                         hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors cursor-default shadow-sm"
-            >
-              <MapPin size={12} className="inline mr-1.5 -mt-0.5" />
-              {zone}
-            </span>
-          ))}
-        </div>
-      </div>
-    </section>
-  )
-}
+// ZonesSection removida 2026-04-19 por pedido del usuario.
+// La antigua sección "Disponible en toda Santiago" ya no se muestra.
 
 /* CAMBIO 4: FAQ Section */
 function FAQSection() {
@@ -967,12 +1058,11 @@ export default function LandingPage() {
       <StatsBar />
       <HowItWorks />
       <DinerFeatures />
-      <ComparisonSection />
+      <RestaurantShowcase />
       <RestaurantNumbers />
       <RestaurantFeatures />
       <PricingSection />
       <Testimonials />
-      <ZonesSection />
       <FAQSection />
       <FinalCTA />
       <Footer />
