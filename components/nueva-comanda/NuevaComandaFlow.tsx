@@ -2,12 +2,11 @@
 
 import { useState, useEffect } from 'react'
 import type { NuevaComandaFlowProps, FlowState, OrderLine, MenuItemOption, TableOption } from './types'
-import { calculateTotal, getDefaultDestination } from './utils'
+import { getDefaultDestination } from './utils'
 import FlowProgressBar from './FlowProgressBar'
 import StepMapaMesas from './StepMapaMesas'
 import StepCatalogoVisual from './StepCatalogoVisual'
 import StepConfirmacion from './StepConfirmacion'
-import { createClient } from '@/lib/supabase/client'
 
 export default function NuevaComandaFlow({
   onClose,
@@ -58,50 +57,46 @@ export default function NuevaComandaFlow({
     if (!selectedTable) return
     setSaving(true)
     setError(null)
-    const supabase = createClient()
-    const total = calculateTotal(lines)
 
-    const { data: order, error: orderError } = await supabase
-      .from('orders')
-      .insert({ restaurant_id: restaurantId, table_id: selectedTable.id, status: 'pending', total })
-      .select('id')
-      .single()
-
-    if (orderError || !order) {
-      // Exponer el error real de Supabase (RLS / permission / missing column)
-      // para que el admin pueda diagnosticar cuando pase. Antes solo mostraba
-      // el mensaje generico y no habia pista.
-      console.error('[nueva-comanda] orders insert error:', orderError)
-      const detail = orderError?.message
-        ? ` · ${orderError.message}${orderError.code ? ` (${orderError.code})` : ''}`
-        : ''
-      setError(`No se pudo crear la comanda${detail}`)
+    // Usamos /api/orders/internal (server-side) en vez de inserts directos
+    // a Supabase desde el cliente. Tres motivos:
+    //   1. Resuelve station_id por cada item (override por plato + routing
+    //      por categoria) igual que el flujo publico del QR. Sin esto las
+    //      comandas manuales nunca rutean cross-local aunque la config
+    //      este bien.
+    //   2. Hace rollback del order padre si falla el insert de items.
+    //   3. Centraliza logica que antes estaba duplicada cliente/server.
+    try {
+      const res = await fetch('/api/orders/internal', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({
+          restaurant_id: restaurantId,
+          table_id:      selectedTable.id,
+          cart: lines.map(l => ({
+            menu_item_id: l.menuItemId,
+            name:         l.name,
+            quantity:     l.qty,
+            unit_price:   l.unitPrice,
+            note:         l.note || null,
+            destination:  l.destination,
+          })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        console.error('[nueva-comanda] orders/internal failed:', data)
+        const detail = data.details ? ` · ${data.details}` : ''
+        setError(`${data.error ?? 'No se pudo crear la comanda'}${detail}`)
+        return
+      }
+      onSave()
+    } catch (err) {
+      console.error('[nueva-comanda] network error:', err)
+      setError('Sin conexión. Intenta de nuevo.')
+    } finally {
       setSaving(false)
-      return
     }
-
-    const { error: itemsError } = await supabase.from('order_items').insert(
-      lines.map(l => ({
-        order_id: order.id, menu_item_id: l.menuItemId, name: l.name,
-        quantity: l.qty, unit_price: l.unitPrice, notes: l.note || null,
-        status: 'pending', destination: l.destination,
-      }))
-    )
-
-    if (itemsError) {
-      console.error('[nueva-comanda] order_items insert error:', itemsError)
-      await supabase.from('orders').delete().eq('id', order.id)
-      const detail = itemsError.message ? ` · ${itemsError.message}` : ''
-      setError(`No se pudieron guardar los productos${detail}`)
-      setSaving(false)
-      return
-    }
-
-    const { error: tableError } = await supabase
-      .from('tables').update({ status: 'ocupada' }).eq('id', selectedTable.id)
-    if (tableError) console.warn('No se pudo actualizar el estado de la mesa:', tableError.message)
-
-    onSave()
   }
 
   return (

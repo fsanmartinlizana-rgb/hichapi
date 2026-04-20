@@ -1246,12 +1246,36 @@ function ComandasPageInner() {
 
     const tables: DbTable[]  = tablesRes.data  ?? []
 
+    const myStationSet = new Set(myStationIds)
+
+    // Filtrar las OWN orders: mostrar solo items que se preparan ACÁ.
+    // Regla (2026-04-21):
+    //   • Un item con station_id IN myStations  → sí, se prepara acá
+    //   • Un item con station_id NULL           → sí (legacy sin ruteo, se
+    //                                               agrupa por destination)
+    //   • Un item con station_id que apunta a otro restaurant → NO mostrar
+    //     (la cocina/barra de otro local lo hace; acá el garzón lo verá en
+    //      /garzon para retirarlo, pero la cocina no debe intentar prepararlo)
+    //
+    // Si después del filtro no quedan items en la order, ocultamos la
+    // comanda entera del panel de cocina para no confundir. La order igual
+    // existe en DB y aparece en /garzon para el mozo/anfitrion.
+    const ownFiltered = fullSchemaOK
+      ? ((ownOrdersRes.data ?? []) as DbOrder[])
+          .map(o => ({
+            ...o,
+            order_items: (o.order_items ?? []).filter((it: { station_id?: string | null }) =>
+              !it.station_id || myStationSet.has(it.station_id),
+            ),
+          }))
+          .filter(o => (o.order_items ?? []).length > 0)
+      : ((ownOrdersRes.data ?? []) as DbOrder[])
+
     // Filtrar las cross-orders para dejar SOLO los items que me pertenecen.
     // Si la order original es del restaurant A con 5 items pero solo 2 rutean a
     // mis stations (restaurant B), yo debo ver solo esos 2.
     // Supabase devuelve el join `restaurants(...)` como array/objeto según la
     // relación inferida; lo tratamos como unknown y normalizamos acá.
-    const myStationSet = new Set(myStationIds)
     type CrossOrderRaw = DbOrder & { restaurant_id?: string; restaurants?: unknown }
     const crossFiltered = ((crossOrdersRes.data ?? []) as unknown as CrossOrderRaw[])
       .filter(o => o.restaurant_id !== restId)
@@ -1267,7 +1291,7 @@ function ComandasPageInner() {
       })
       .filter(o => (o.order_items ?? []).length > 0)
 
-    const dbOrders: DbOrder[] = [...(ownOrdersRes.data ?? []), ...crossFiltered]
+    const dbOrders: DbOrder[] = [...ownFiltered, ...crossFiltered]
 
     // Store real tables and menu for NuevaComandaModal
     // Filtrar mesas con status='bloqueada' (madres divididas) — no se puede tomar pedido en ellas.
