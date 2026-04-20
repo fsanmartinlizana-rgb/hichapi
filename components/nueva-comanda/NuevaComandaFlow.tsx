@@ -68,7 +68,14 @@ export default function NuevaComandaFlow({
       .single()
 
     if (orderError || !order) {
-      setError('No se pudo crear la comanda. Por favor intenta de nuevo.')
+      // Exponer el error real de Supabase (RLS / permission / missing column)
+      // para que el admin pueda diagnosticar cuando pase. Antes solo mostraba
+      // el mensaje generico y no habia pista.
+      console.error('[nueva-comanda] orders insert error:', orderError)
+      const detail = orderError?.message
+        ? ` · ${orderError.message}${orderError.code ? ` (${orderError.code})` : ''}`
+        : ''
+      setError(`No se pudo crear la comanda${detail}`)
       setSaving(false)
       return
     }
@@ -82,8 +89,10 @@ export default function NuevaComandaFlow({
     )
 
     if (itemsError) {
+      console.error('[nueva-comanda] order_items insert error:', itemsError)
       await supabase.from('orders').delete().eq('id', order.id)
-      setError('No se pudieron guardar los productos. Por favor intenta de nuevo.')
+      const detail = itemsError.message ? ` · ${itemsError.message}` : ''
+      setError(`No se pudieron guardar los productos${detail}`)
       setSaving(false)
       return
     }
