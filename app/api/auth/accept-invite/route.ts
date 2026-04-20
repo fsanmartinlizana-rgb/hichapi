@@ -110,12 +110,17 @@ export async function POST(req: NextRequest) {
     }
 
     // ── Generar magic link de Supabase para crear la sesión en el browser ───
+    // Pasamos ?invited=<email> al redirectTo para que /update-password pueda
+    // validar que la sesion activa corresponde al invitado (y no a un admin
+    // que ya tenia sesion en el browser). Sin esto, si el admin acepta un
+    // invite en el mismo browser donde esta logueado, updateUser cambia la
+    // contraseña del admin en vez de crear la del invitado.
     const origin = resolveAppUrl(req)
     const { data: link, error: linkErr } = await supabase.auth.admin.generateLink({
       type:  'magiclink',
       email,
       options: {
-        redirectTo: `${origin}/update-password`,
+        redirectTo: `${origin}/update-password?invited=${encodeURIComponent(email)}`,
       },
     })
 
