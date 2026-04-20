@@ -1,375 +1,354 @@
 'use client'
 
-import { useState } from 'react'
-import { TrendingUp, ArrowUpRight, ArrowDownRight, Download, Zap, AlertCircle } from 'lucide-react'
+// ── /analytics — dashboard unificado ────────────────────────────────────────
+// Sprint 3 (2026-04-19): unifica /reporte y /analytics en 3 tabs:
+//   • Resumen del día → KPIs del día + Chapi Tip
+//   • Métricas         → gráficos del período (semana, mes, 30d)
+//   • Mi dashboard     → widgets configurables
+//
+// El mock data viejo fue reemplazado por /api/analytics/summary que consulta
+// orders/order_items/stock_items en supabase.
 
-// ── Mock data ─────────────────────────────────────────────────────────────────
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useSearchParams, useRouter } from 'next/navigation'
+import {
+  RefreshCw, BarChart2, Sparkles, LayoutDashboard, Plus, X, Loader2, Settings,
+} from 'lucide-react'
+import { useRestaurant } from '@/lib/restaurant-context'
+import { canAccessModule } from '@/lib/plans'
+import { DashboardWidget } from '@/components/restaurant/analytics/DashboardWidget'
+import type { AnalyticsSummary, WidgetInstance } from '@/components/restaurant/analytics/types'
+import { WIDGET_CATALOG } from '@/components/restaurant/analytics/widget-catalog'
 
-const PERIODS = ['7 días', '30 días', '3 meses', '12 meses']
-
-const KPI_CARDS = [
-  { label: 'Revenue del período', value: '$18.4M', delta: '+23%', up: true,  sub: 'vs período anterior' },
-  { label: 'Ticket promedio',     value: '$17.8k', delta: '+5%',  up: true,  sub: 'por persona' },
-  { label: 'Covers totales',      value: '1,842',  delta: '+17%', up: true,  sub: 'personas atendidas' },
-  { label: 'Adopción Chapi',      value: '68%',    delta: '+12%', up: true,  sub: 'pedidos vía Chapi' },
-]
-
-// margin: estimated gross margin %, trend: last 5 weeks (relative units), chapi_rec codes:
-// 'promote' | 'raise_price' | 'review_cost' | 'consider_remove'
-const ITEM_ANALYTICS = [
-  { name: 'Lomo vetado',     orders: 312, revenue: 520, margin: 65, trend: [70, 75, 80, 88, 100], chapi_rec: 'promote'         },
-  { name: 'Pasta arrabiata', orders: 280, revenue: 380, margin: 72, trend: [85, 90, 88, 92, 95],  chapi_rec: 'raise_price'     },
-  { name: 'Salmón grillado', orders: 245, revenue: 430, margin: 51, trend: [100, 95, 88, 80, 72], chapi_rec: 'review_cost'     },
-  { name: 'Tiramisú',        orders: 290, revenue: 210, margin: 78, trend: [55, 60, 68, 75, 88],  chapi_rec: 'promote'         },
-  { name: 'Ensalada César',  orders: 178, revenue: 160, margin: 44, trend: [65, 62, 60, 58, 55],  chapi_rec: 'review_cost'     },
-  { name: 'Gazpacho',        orders: 42,  revenue: 58,  margin: 38, trend: [90, 72, 55, 40, 25],  chapi_rec: 'consider_remove' },
-]
-
-const MONTHLY = [
-  { m: 'Oct', v: 14200, proj: false },
-  { m: 'Nov', v: 15800, proj: false },
-  { m: 'Dic', v: 22400, proj: false },
-  { m: 'Ene', v: 11200, proj: false },
-  { m: 'Feb', v: 13600, proj: false },
-  { m: 'Mar', v: 18400, proj: false },
-  { m: 'Abr', v: 19800, proj: true  },
-  { m: 'May', v: 21200, proj: true  },
-]
-
-// Revenue by hour (thousands CLP)
-const HOUR_REVENUE = [
-  { h: '12h', v: 820  },
-  { h: '13h', v: 1540 },
-  { h: '14h', v: 1280 },
-  { h: '15h', v: 420  },
-  { h: '16h', v: 280  },
-  { h: '17h', v: 390  },
-  { h: '18h', v: 680  },
-  { h: '19h', v: 2100 },
-  { h: '20h', v: 2850 },
-  { h: '21h', v: 3200 },
-  { h: '22h', v: 1950 },
-  { h: '23h', v: 740  },
-]
-
-const CHAPI_ACTIONS = [
-  {
-    icon: '💰',
-    title: 'Precio del lomo vetado: puedes subir $500',
-    body: 'Sin afectar demanda (elasticidad calculada). Genera +$156k/mes con la misma cantidad de pedidos.',
-    cta: 'Aplicar',
-    color: 'border-emerald-500/25 bg-emerald-500/5 text-emerald-400',
-  },
-  {
-    icon: '📅',
-    title: 'Miércoles 15–17h: activa una promoción',
-    body: 'Franja de baja ocupación. Una promoción en ese horario genera ~$85k adicionales por semana según datos históricos.',
-    cta: 'Crear promoción',
-    color: 'border-[#FF6B35]/25 bg-[#FF6B35]/5 text-[#FF6B35]',
-  },
-  {
-    icon: '⭐',
-    title: 'Tiramisú: muévelo a "destacado" en la carta',
-    body: 'Margen del 78% y tendencia en alza. Posicionarlo como destacado aumentaría ventas un 23% según datos de conversión.',
-    cta: 'Actualizar carta',
-    color: 'border-yellow-500/25 bg-yellow-500/5 text-yellow-400',
-  },
-]
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-const MARGIN_COLORS: Record<string, string> = {
-  green:  'text-emerald-400 bg-emerald-500/10',
-  yellow: 'text-yellow-400 bg-yellow-500/10',
-  red:    'text-red-400 bg-red-500/10',
-}
-
-function marginBucket(m: number): 'green' | 'yellow' | 'red' {
-  if (m >= 60) return 'green'
-  if (m >= 40) return 'yellow'
-  return 'red'
-}
-
-const REC_LABELS: Record<string, string> = {
-  promote:         '🔥 Promover activamente',
-  raise_price:     '📈 Subir precio 10%',
-  review_cost:     '⚠️ Revisar costo',
-  consider_remove: '📉 Considera retirar',
-}
-
-function Sparkline({ values }: { values: number[] }) {
-  const max = Math.max(...values)
-  return (
-    <div className="flex items-end gap-0.5 h-6">
-      {values.map((v, i) => (
-        <div
-          key={i}
-          className="w-1.5 rounded-sm"
-          style={{
-            height: `${Math.round((v / max) * 24)}px`,
-            backgroundColor: i === values.length - 1 ? '#FF6B35' : '#3A3A55',
-          }}
-        />
-      ))}
-    </div>
-  )
-}
-
-// ── Upcoming events advisor ──────────────────────────────────────────────────
-
-const CHILE_EVENTS = [
-  { month: 1, day: 1,  name: 'Año Nuevo', tip: 'Brunch especial post-celebración', impact: 'medio' as const },
-  { month: 2, day: 14, name: 'San Valentín', tip: 'Menú para parejas, reservas llenas', impact: 'alto' as const },
-  { month: 3, day: 8,  name: 'Día de la Mujer', tip: 'Promociones especiales, alta demanda', impact: 'medio' as const },
-  { month: 5, day: 11, name: 'Día de la Madre', tip: 'Mayor demanda del año, refuerza personal', impact: 'alto' as const },
-  { month: 5, day: 21, name: 'Día de las Glorias Navales', tip: 'Feriado largo, turismo alto', impact: 'medio' as const },
-  { month: 6, day: 15, name: 'Día del Padre', tip: 'Almuerzos familiares, menú especial', impact: 'alto' as const },
-  { month: 7, day: 16, name: 'Día de la Virgen del Carmen', tip: 'Feriado religioso, flujo turístico', impact: 'bajo' as const },
-  { month: 9, day: 18, name: 'Fiestas Patrias', tip: 'Semana completa de alta demanda, menú criollo', impact: 'alto' as const },
-  { month: 10, day: 31, name: 'Halloween', tip: 'Eventos temáticos, cócteles especiales', impact: 'medio' as const },
-  { month: 12, day: 24, name: 'Nochebuena', tip: 'Cenas familiares, reservas con anticipación', impact: 'alto' as const },
-  { month: 12, day: 31, name: 'Año Nuevo', tip: 'Cena de fin de año, precios premium', impact: 'alto' as const },
-]
-
-function getUpcomingEvents() {
-  const now = new Date()
-  const upcoming: { date: string; name: string; tip: string; impact: string; daysUntil: number }[] = []
-
-  for (const evt of CHILE_EVENTS) {
-    let evtDate = new Date(now.getFullYear(), evt.month - 1, evt.day)
-    if (evtDate < now) evtDate = new Date(now.getFullYear() + 1, evt.month - 1, evt.day)
-    const daysUntil = Math.ceil((evtDate.getTime() - now.getTime()) / 86400000)
-    if (daysUntil <= 60) {
-      upcoming.push({
-        date: `En ${daysUntil} días · ${evtDate.toLocaleDateString('es-CL', { day: 'numeric', month: 'short' })}`,
-        name: evt.name,
-        tip: evt.tip,
-        impact: evt.impact,
-        daysUntil,
-      })
-    }
-  }
-
-  return upcoming.sort((a, b) => a.daysUntil - b.daysUntil).slice(0, 3)
-}
-
-// ── Page ─────────────────────────────────────────────────────────────────────
+type Tab = 'resumen' | 'metricas' | 'dashboard'
 
 export default function AnalyticsPage() {
-  const [period, setPeriod] = useState('30 días')
+  const { restaurant } = useRestaurant()
+  const restId     = restaurant?.id
+  const plan       = restaurant?.plan ?? 'free'
+  const searchParams = useSearchParams()
+  const router     = useRouter()
 
-  const maxMonthly = Math.max(...MONTHLY.map(m => m.v))
-  const maxHour    = Math.max(...HOUR_REVENUE.map(h => h.v))
+  const initialTab = (searchParams.get('tab') as Tab) || 'resumen'
+  const [tab, setTab]         = useState<Tab>(initialTab)
+  const [period, setPeriod]   = useState<'dia' | 'semana' | 'mes' | '30d'>('semana')
+  const [summary, setSummary] = useState<AnalyticsSummary | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  // Dashboard custom widgets
+  const [widgets, setWidgets] = useState<WidgetInstance[]>([])
+  const [editing, setEditing] = useState(false)
+  const [picker, setPicker]   = useState(false)
+
+  const loadSummary = useCallback(async () => {
+    if (!restId) return
+    setLoading(true)
+    const res  = await fetch(`/api/analytics/summary?restaurant_id=${restId}&period=${period}`)
+    const data = await res.json()
+    setSummary(data as AnalyticsSummary)
+    setLoading(false)
+  }, [restId, period])
+
+  useEffect(() => { loadSummary() }, [loadSummary])
+
+  // Load user dashboard layout
+  useEffect(() => {
+    if (!restId) return
+    fetch(`/api/dashboard/layout?restaurant_id=${restId}`)
+      .then(r => r.json())
+      .then(d => {
+        if (Array.isArray(d.widgets)) setWidgets(d.widgets as WidgetInstance[])
+      })
+      .catch(() => {})
+  }, [restId])
+
+  const saveLayout = useCallback(async (next: WidgetInstance[]) => {
+    if (!restId) return
+    await fetch('/api/dashboard/layout', {
+      method:  'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body:    JSON.stringify({ restaurant_id: restId, widgets: next }),
+    })
+  }, [restId])
+
+  function addWidget(type: string) {
+    const def = WIDGET_CATALOG.find(w => w.type === type)
+    if (!def) return
+    const newW: WidgetInstance = {
+      id:   crypto.randomUUID(),
+      type,
+      x:    0,
+      y:    widgets.length,
+      w:    def.defaultSize.w,
+      h:    def.defaultSize.h,
+    }
+    const next = [...widgets, newW]
+    setWidgets(next)
+    saveLayout(next)
+    setPicker(false)
+  }
+
+  function removeWidget(id: string) {
+    const next = widgets.filter(w => w.id !== id)
+    setWidgets(next)
+    saveLayout(next)
+  }
+
+  // Gate del tab Dashboard por plan pro+
+  const canUseDashboard = useMemo(() => canAccessModule(plan, 'pro'), [plan])
+
+  function changeTab(next: Tab) {
+    setTab(next)
+    const params = new URLSearchParams(searchParams.toString())
+    params.set('tab', next)
+    router.replace(`/analytics?${params.toString()}`, { scroll: false })
+  }
 
   return (
-    <div className="p-6 space-y-6">
-
-      {/* Demo banner — datos mock hasta que unifiquemos reporte+analytics con
-          data real en Sprint 3. */}
-      <div className="flex items-center gap-3 rounded-xl border border-amber-500/25 bg-amber-500/5 px-4 py-3">
-        <AlertCircle size={16} className="text-amber-400 shrink-0" />
-        <p className="text-amber-200/90 text-xs">
-          <span className="font-semibold">Modo demo.</span> Métricas de muestra. Estamos conectando esta vista a tus datos reales.
-        </p>
-      </div>
-
+    <div className="p-6 space-y-5">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
           <h1 className="text-white text-xl font-bold">Analytics</h1>
-          <p className="text-white/40 text-sm mt-0.5">Inteligencia de negocio de tu restaurante</p>
+          <p className="text-white/40 text-sm mt-0.5">Datos reales de tu operación · {restaurant?.name}</p>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
           <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
-            {PERIODS.map(p => (
+            {(['dia', 'semana', 'mes', '30d'] as const).map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
-                className={`px-3 py-1.5 rounded-lg text-xs transition-all
+                className={`px-3 py-1.5 rounded-lg text-xs capitalize transition-all
                   ${period === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/35 hover:text-white/60'}`}
               >
-                {p}
+                {p === 'dia' ? 'Hoy' : p === 'semana' ? '7 días' : p === 'mes' ? '30 días' : '30d'}
               </button>
             ))}
           </div>
-          <button className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/50 text-xs hover:bg-white/8 transition-colors">
-            <Download size={12} /> Exportar PDF
+          <button
+            onClick={loadSummary}
+            className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
       </div>
 
-      {/* ── Row 1: KPI cards ── */}
-      <div className="grid grid-cols-4 gap-4">
-        {KPI_CARDS.map(k => (
-          <div key={k.label} className="bg-[#161622] border border-white/5 rounded-2xl p-4">
-            <p className="text-white/40 text-xs mb-2">{k.label}</p>
-            <p className="text-white text-2xl font-bold mb-1" style={{ fontFamily: 'var(--font-dm-mono)' }}>{k.value}</p>
-            <div className="flex items-center gap-1.5">
-              {k.up
-                ? <ArrowUpRight size={11} className="text-emerald-400" />
-                : <ArrowDownRight size={11} className="text-red-400" />}
-              <span className={`text-xs font-medium ${k.up ? 'text-emerald-400' : 'text-red-400'}`}>{k.delta}</span>
-              <span className="text-white/25 text-xs">{k.sub}</span>
+      {/* Tabs */}
+      <div className="flex border-b border-white/10 gap-1">
+        <TabButton active={tab === 'resumen'}   icon={Sparkles}          onClick={() => changeTab('resumen')}>Resumen del día</TabButton>
+        <TabButton active={tab === 'metricas'}  icon={BarChart2}         onClick={() => changeTab('metricas')}>Métricas</TabButton>
+        <TabButton active={tab === 'dashboard'} icon={LayoutDashboard}   onClick={() => changeTab('dashboard')} locked={!canUseDashboard}>Mi dashboard</TabButton>
+      </div>
+
+      {/* Content */}
+      {loading && !summary ? (
+        <div className="flex items-center justify-center py-16">
+          <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        </div>
+      ) : tab === 'resumen' ? (
+        <ResumenTab summary={summary} />
+      ) : tab === 'metricas' ? (
+        <MetricasTab summary={summary} />
+      ) : canUseDashboard ? (
+        <DashboardTab
+          widgets={widgets}
+          summary={summary}
+          editing={editing}
+          onToggleEdit={() => setEditing(e => !e)}
+          onAdd={() => setPicker(true)}
+          onRemove={removeWidget}
+        />
+      ) : (
+        <UpgradeGate />
+      )}
+
+      {/* Widget picker */}
+      {picker && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPicker(false)}>
+          <div className="w-full max-w-2xl bg-[#111111] border border-white/10 rounded-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <h3 className="text-white font-bold text-lg flex items-center gap-2">
+                <Plus size={18} className="text-[#FF6B35]" /> Agregar widget
+              </h3>
+              <button onClick={() => setPicker(false)} className="text-white/40 hover:text-white"><X size={16} /></button>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              {WIDGET_CATALOG.map(w => {
+                const blocked = !canAccessModule(plan, w.planRequired)
+                const already = widgets.some(x => x.type === w.type)
+                return (
+                  <button
+                    key={w.type}
+                    disabled={blocked || already}
+                    onClick={() => addWidget(w.type)}
+                    className={`text-left p-4 rounded-xl border transition-all ${
+                      blocked || already
+                        ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed'
+                        : 'bg-white/[0.02] border-white/8 hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5'
+                    }`}
+                  >
+                    <p className="text-white text-sm font-semibold">{w.label}</p>
+                    <p className="text-white/40 text-xs mt-0.5">{w.description}</p>
+                    {blocked && <p className="text-amber-400/80 text-[10px] mt-2">Requiere plan {w.planRequired}+</p>}
+                    {already && <p className="text-emerald-400/80 text-[10px] mt-2">Ya en el dashboard</p>}
+                  </button>
+                )
+              })}
             </div>
           </div>
-        ))}
-      </div>
-
-      {/* ── Row 2: Rentabilidad table ── */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-5">
-        <div className="flex items-center justify-between mb-4">
-          <p className="text-white font-semibold text-sm">Análisis de rentabilidad</p>
-          <span className="text-white/25 text-[10px] flex items-center gap-1"><Zap size={10} className="text-[#FF6B35]" /> Impulsado por Chapi</span>
         </div>
+      )}
+    </div>
+  )
+}
 
-        {/* Table header */}
-        <div className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr] gap-3 pb-2 border-b border-white/5 text-white/30 text-[10px] font-semibold uppercase tracking-wider">
-          <span>Plato</span>
-          <span className="text-right">Pedidos</span>
-          <span className="text-right">Revenue</span>
-          <span className="text-center">Margen</span>
-          <span className="text-center">Tendencia</span>
-          <span>Recomendación Chapi</span>
-        </div>
+function TabButton({ active, icon: Icon, children, onClick, locked }: {
+  active:   boolean
+  icon:     React.ComponentType<{ size?: number; className?: string }>
+  children: React.ReactNode
+  onClick:  () => void
+  locked?:  boolean
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors ${
+        active
+          ? 'border-[#FF6B35] text-white'
+          : 'border-transparent text-white/40 hover:text-white/70'
+      }`}
+    >
+      <Icon size={14} />
+      {children}
+      {locked && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">Pro</span>}
+    </button>
+  )
+}
 
-        <div className="divide-y divide-white/[0.04]">
-          {ITEM_ANALYTICS.map(item => {
-            const bucket = marginBucket(item.margin)
-            const marginCls = MARGIN_COLORS[bucket]
-            return (
-              <div
-                key={item.name}
-                className="grid grid-cols-[2fr_1fr_1fr_1fr_1fr_2fr] gap-3 py-3 items-center"
-              >
-                <span className="text-white/80 text-sm font-medium">{item.name}</span>
-                <span className="text-right text-white/50 text-sm font-mono">{item.orders}</span>
-                <span className="text-right text-white/70 text-sm font-mono">${item.revenue}k</span>
-                <div className="flex justify-center">
-                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${marginCls}`}>
-                    {item.margin}%
-                  </span>
-                </div>
-                <div className="flex justify-center">
-                  <Sparkline values={item.trend} />
-                </div>
-                <span className="text-white/40 text-[11px]">{REC_LABELS[item.chapi_rec]}</span>
-              </div>
-            )
-          })}
+function ResumenTab({ summary }: { summary: AnalyticsSummary | null }) {
+  if (!summary) return null
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+      <DashboardWidget type="chapi_tip_of_the_day" summary={summary} />
+      <DashboardWidget type="revenue_today"        summary={summary} />
+      <DashboardWidget type="avg_ticket"           summary={summary} />
+      <DashboardWidget type="open_tables_now"      summary={summary} />
+      <DashboardWidget type="inventory_low_stock"  summary={summary} />
+      <div className="lg:col-span-3">
+        <div className="h-80">
+          <DashboardWidget type="orders_by_hour" summary={summary} />
         </div>
       </div>
+    </div>
+  )
+}
 
-      {/* ── Row 3: Revenue chart + Hour heatmap ── */}
-      <div className="grid grid-cols-2 gap-5">
-
-        {/* Revenue mensual + proyección */}
-        <div className="bg-[#161622] border border-white/5 rounded-2xl p-5">
-          <div className="flex items-center justify-between mb-4">
-            <p className="text-white font-semibold text-sm">Revenue mensual (CLP miles)</p>
-            <div className="flex items-center gap-3 text-[10px]">
-              <span className="flex items-center gap-1"><span className="w-2.5 h-2.5 rounded-sm bg-[#3A3A55] inline-block" /> Real</span>
-              <span className="flex items-center gap-1 text-white/40"><span className="w-2.5 h-2.5 rounded-sm bg-[#FF6B35]/30 inline-block border border-dashed border-[#FF6B35]/50" /> Proyección</span>
-            </div>
-          </div>
-          <div className="flex items-end gap-2.5 h-32">
-            {MONTHLY.map(({ m, v, proj }) => (
-              <div key={m} className="flex-1 flex flex-col items-center gap-1.5">
-                <span className="text-white/35 text-[10px] font-mono">{(v / 1000).toFixed(0)}M</span>
-                <div
-                  className="w-full rounded-t-lg transition-all hover:opacity-90"
-                  style={{
-                    height: `${(v / maxMonthly) * 96}px`,
-                    backgroundColor: proj ? 'transparent' : m === 'Mar' ? '#FF6B35' : '#3A3A55',
-                    border: proj ? '1.5px dashed rgba(255,107,53,0.45)' : 'none',
-                    backgroundImage: proj ? 'linear-gradient(to top, rgba(255,107,53,0.15), rgba(255,107,53,0.05))' : 'none',
-                  }}
-                />
-                <span className={`text-[10px] ${proj ? 'text-[#FF6B35]/50' : 'text-white/25'}`}>{m}</span>
-              </div>
-            ))}
-          </div>
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t border-white/5">
-            <TrendingUp size={13} className="text-emerald-400" />
-            <span className="text-emerald-400 text-xs font-semibold">+30% vs Oct–Dic</span>
-            <span className="text-white/25 text-xs">· Proyección Abr–May: +8%</span>
-          </div>
-        </div>
-
-        {/* Horas de mayor valor */}
-        <div className="bg-[#161622] border border-white/5 rounded-2xl p-5">
-          <p className="text-white font-semibold text-sm mb-1">Horas de mayor valor</p>
-          <p className="text-white/30 text-[10px] mb-4">Revenue promedio por hora del día (CLP)</p>
-          <div className="flex items-end gap-1.5 h-28">
-            {HOUR_REVENUE.map(({ h, v }) => {
-              const pct = (v / maxHour) * 100
-              const isTop = v === maxHour
-              const isHigh = pct > 60
-              return (
-                <div key={h} className="flex-1 flex flex-col items-center gap-1">
-                  <div
-                    className="w-full rounded-t-md transition-all"
-                    style={{
-                      height: `${pct * 0.96}px`,
-                      backgroundColor: isTop ? '#FF6B35' : isHigh ? '#FF6B3570' : '#3A3A55',
-                    }}
-                  />
-                  <span className="text-white/20 text-[8px]">{h}</span>
-                </div>
-              )
-            })}
-          </div>
-          <div className="mt-4 pt-3 border-t border-white/5">
-            <p className="text-white/30 text-[10px]">
-              21h es tu hora pico · Mediodía (13h) es el segundo peak · 16h es el valle del día
-            </p>
-          </div>
-        </div>
+function MetricasTab({ summary }: { summary: AnalyticsSummary | null }) {
+  if (!summary) return null
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <DashboardWidget type="revenue_week" summary={summary} />
+      <DashboardWidget type="avg_ticket"   summary={summary} />
+      <div className="h-96 lg:col-span-2">
+        <DashboardWidget type="orders_by_hour" summary={summary} />
       </div>
-
-      {/* ── Advisor: Fechas importantes ── */}
-      <div className="bg-gradient-to-r from-purple-500/10 to-[#FF6B35]/10 border border-purple-500/20 rounded-2xl p-5 space-y-3">
-        <div className="flex items-center gap-2">
-          <Zap size={14} className="text-purple-400" />
-          <p className="text-white font-semibold text-sm">Fechas importantes para tu negocio</p>
-        </div>
-        <p className="text-white/40 text-xs">Prepárate con anticipación para estos eventos que impactan la demanda</p>
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {getUpcomingEvents().map(evt => (
-            <div key={evt.name} className="bg-white/5 border border-white/8 rounded-xl p-3 space-y-1">
-              <p className="text-white/60 text-[10px] font-mono">{evt.date}</p>
-              <p className="text-white font-semibold text-xs">{evt.name}</p>
-              <p className="text-white/30 text-[10px]">{evt.tip}</p>
-              <div className="flex items-center gap-1 mt-1">
-                <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded ${evt.impact === 'alto' ? 'bg-red-500/15 text-red-400' : evt.impact === 'medio' ? 'bg-yellow-500/15 text-yellow-400' : 'bg-white/5 text-white/30'}`}>
-                  Impacto {evt.impact}
-                </span>
-              </div>
-            </div>
-          ))}
-        </div>
+      <div className="h-96 lg:col-span-2">
+        <DashboardWidget type="top_items_week" summary={summary} />
       </div>
+    </div>
+  )
+}
 
-      {/* ── Row 4: Acciones recomendadas por Chapi ── */}
-      <div>
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-widest mb-4">
-          Acciones recomendadas por Chapi
+function DashboardTab({ widgets, summary, editing, onToggleEdit, onAdd, onRemove }: {
+  widgets:      WidgetInstance[]
+  summary:      AnalyticsSummary | null
+  editing:      boolean
+  onToggleEdit: () => void
+  onAdd:        () => void
+  onRemove:     (id: string) => void
+}) {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <p className="text-white/50 text-xs">
+          {widgets.length === 0
+            ? 'Tu dashboard está vacío. Agregá widgets para armar tu vista personalizada.'
+            : `${widgets.length} widget${widgets.length === 1 ? '' : 's'} · personalizalo a tu gusto`}
         </p>
-        <div className="grid grid-cols-3 gap-4">
-          {CHAPI_ACTIONS.map(a => (
-            <div key={a.title} className={`border rounded-2xl p-5 space-y-3 ${a.color.split(' ').slice(0, 2).join(' ')}`}>
-              <div className="flex items-start gap-2.5">
-                <span className="text-xl shrink-0 mt-0.5">{a.icon}</span>
-                <p className="text-white font-semibold text-sm leading-snug">{a.title}</p>
-              </div>
-              <p className="text-white/50 text-xs leading-relaxed">{a.body}</p>
-              <button className={`w-full py-2 rounded-xl text-xs font-semibold transition-colors border ${a.color.split(' ').slice(2).join(' ')} border-current/30 hover:opacity-80`}>
-                {a.cta}
-              </button>
-            </div>
-          ))}
+        <div className="flex items-center gap-2">
+          <button
+            onClick={onToggleEdit}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
+              editing
+                ? 'bg-[#FF6B35] text-white'
+                : 'bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-white/25'
+            }`}
+          >
+            <Settings size={12} /> {editing ? 'Listo' : 'Editar'}
+          </button>
+          <button
+            onClick={onAdd}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
+          >
+            <Plus size={12} /> Agregar widget
+          </button>
         </div>
       </div>
 
+      {widgets.length === 0 ? (
+        <div className="py-16 text-center">
+          <LayoutDashboard size={36} className="text-white/15 mx-auto mb-3" />
+          <p className="text-white/40 text-sm mb-4">Dashboard vacío</p>
+          <button
+            onClick={onAdd}
+            className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors"
+          >
+            <Plus size={14} /> Agregar mi primer widget
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-12 gap-4 auto-rows-[80px]">
+          {widgets.map(w => (
+            <div
+              key={w.id}
+              style={{
+                gridColumn: `span ${w.w} / span ${w.w}`,
+                gridRow:    `span ${w.h} / span ${w.h}`,
+              }}
+              className="relative"
+            >
+              {editing && (
+                <button
+                  onClick={() => onRemove(w.id)}
+                  className="absolute -top-2 -right-2 w-6 h-6 rounded-full bg-red-500 text-white text-xs flex items-center justify-center shadow-lg z-10 hover:bg-red-600"
+                  title="Quitar widget"
+                >
+                  <X size={12} />
+                </button>
+              )}
+              <DashboardWidget type={w.type} summary={summary} />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function UpgradeGate() {
+  return (
+    <div className="py-16 text-center">
+      <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 mb-4">
+        <LayoutDashboard size={20} className="text-[#FF6B35]" />
+      </div>
+      <h3 className="text-white font-semibold text-lg mb-2">Mi dashboard está disponible en plan Pro</h3>
+      <p className="text-white/50 text-sm max-w-md mx-auto mb-5">
+        Configurá widgets con las métricas que te importan. Reportes, fidelización y analytics avanzados incluidos.
+      </p>
+      <a href="/modulos" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors">
+        Ver planes
+      </a>
     </div>
   )
 }
