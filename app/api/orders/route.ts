@@ -192,29 +192,69 @@ export async function POST(req: NextRequest) {
       stationByItem.set(r.id, station)
     }
 
-    // 6. Create order items with destination + station_id snapshot
-    const { error: itemsErr } = await supabase
+    // 6. Create order items con destination + station_id snapshot.
+    // Hacemos 2 intentos con fallback gradual para tolerar DBs que no
+    // corrieron aún la migration 048 (agrega order_items.station_id):
+    //   Intento 1: con station_id (schema completo)
+    //   Intento 2: sin station_id (legacy)
+    // Si ambos fallan, borramos la order padre y devolvemos error claro
+    // al cliente para que no quede la mesa ocupada con comanda fantasma.
+    const baseRow = (item: typeof cart[number]) => ({
+      order_id:    order.id,
+      menu_item_id: item.menu_item_id,
+      name:        item.name,
+      quantity:    item.quantity,
+      unit_price:  item.unit_price,
+      notes:       item.note ?? null,
+      status:      'pending' as const,
+      destination: destByItem.get(item.menu_item_id) || 'cocina',
+    })
+
+    let itemsErr = (await supabase
       .from('order_items')
       .insert(
         cart.map(item => ({
-          order_id:    order.id,
-          menu_item_id: item.menu_item_id,
-          name:        item.name,
-          quantity:    item.quantity,
-          unit_price:  item.unit_price,
-          notes:       item.note ?? null,
-          status:      'pending',
-          destination: destByItem.get(item.menu_item_id) || 'cocina',
-          station_id:  stationByItem.get(item.menu_item_id) ?? null,
-        }))
-      )
+          ...baseRow(item),
+          station_id: stationByItem.get(item.menu_item_id) ?? null,
+        })),
+      )).error
 
     if (itemsErr) {
-      console.error('Order items insert error:', itemsErr)
-      // Order was created — don't fail, just log
+      // Log detalles completos para poder diagnosticar en Vercel logs
+      console.error('Order items insert (with station_id) failed:', {
+        code:    itemsErr.code,
+        message: itemsErr.message,
+        details: itemsErr.details,
+        hint:    itemsErr.hint,
+      })
+      // Retry sin station_id (DBs que no corrieron migration 048)
+      itemsErr = (await supabase
+        .from('order_items')
+        .insert(cart.map(baseRow))).error
+      if (itemsErr) {
+        console.error('Order items insert (fallback sin station_id) failed:', {
+          code:    itemsErr.code,
+          message: itemsErr.message,
+          details: itemsErr.details,
+          hint:    itemsErr.hint,
+        })
+        // Última línea de defensa: rollback de la order padre para que
+        // la mesa no quede ocupada con un pedido fantasma.
+        await supabase.from('orders').delete().eq('id', order.id)
+        return NextResponse.json(
+          {
+            error:      'No se pudo guardar los items del pedido',
+            details:    itemsErr.message,
+            diagnostic: itemsErr.code === '42703'
+              ? 'Falta columna en order_items. Revisá que la migration 048 (multi_location_stations) esté aplicada.'
+              : 'Revisá logs de /api/orders en Vercel.',
+          },
+          { status: 500 },
+        )
+      }
     }
 
-    // 6. Mark table as occupied
+    // 7. Mark table as occupied — SOLO si los items se guardaron bien.
     await supabase
       .from('tables')
       .update({ status: 'ocupada' })
