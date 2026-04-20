@@ -11,6 +11,10 @@
 -- realmente prepara. La RPC antigua queda por compatibilidad con el flow
 -- legacy (sin multi-local).
 
+-- Usamos dollar-quote etiquetado ($mark_sr$) en lugar de $$ porque el SQL
+-- Editor de Supabase a veces corta mal los statements en los ; internos del
+-- body cuando el delimitador es $$ sin etiqueta.
+
 CREATE OR REPLACE FUNCTION mark_station_ready_by_stations(
   p_order_id    UUID,
   p_station_ids UUID[]
@@ -18,9 +22,8 @@ CREATE OR REPLACE FUNCTION mark_station_ready_by_stations(
 RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
-AS $$
+AS $mark_sr$
 DECLARE
-  v_affected_count INT;
   v_pending_count  INT;
   v_total_count    INT;
   v_new_order_status TEXT;
@@ -33,9 +36,7 @@ BEGIN
     AND station_id = ANY(p_station_ids)
     AND station_status <> 'ready';
 
-  GET DIAGNOSTICS v_affected_count = ROW_COUNT;
-
-  -- Contar items pendientes (todos los del order, excluyendo 'ninguno')
+  -- Contar items pendientes del order (todos, excluyendo 'ninguno')
   SELECT
     COUNT(*) FILTER (WHERE station_status <> 'ready' AND destination <> 'ninguno'),
     COUNT(*)
@@ -57,12 +58,11 @@ BEGIN
 
   RETURN jsonb_build_object(
     'order_id',            p_order_id,
-    'affected_items',      v_affected_count,
     'pending_remaining',   v_pending_count,
     'order_status',        v_new_order_status
   );
 END;
-$$;
+$mark_sr$;
 
 COMMENT ON FUNCTION mark_station_ready_by_stations IS
   'Multi-local: marca listos los items cuyo station_id esté en el array provisto. Usado desde paneles que conocen sus propias stations.';
