@@ -78,6 +78,8 @@ const ALL_NAV: NavSection[] = [
       { label: 'Locales',        href: '/configuracion/locations',   icon: MapPin,    roles: ['admin','owner','super_admin'] },
       { label: 'Estaciones',     href: '/configuracion/estaciones',  icon: ChefHat,   roles: ['admin','owner','super_admin'] },
       { label: 'Categorías',     href: '/configuracion/categorias',  icon: BookOpen,  roles: ['admin','owner','super_admin'] },
+      { label: 'API pública',    href: '/configuracion/api-keys',    icon: ShieldCheck, roles: ['admin','owner','super_admin'] },
+      { label: 'Geofencing',     href: '/configuracion/geofencing',  icon: MapPin,      roles: ['admin','owner','super_admin'] },
       { label: 'Módulos y Plan', href: '/modulos',       icon: Boxes,             roles: ['admin','owner','super_admin'] },
       { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },
       { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },
