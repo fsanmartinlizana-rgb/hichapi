@@ -1,19 +1,9 @@
--- ── Fix cross-local sync: RPC por station_id en vez de destination ───────
--- Bug: mark_station_ready(order_id, destination) marca TODOS los items con
--- destination='cocina'. Con multi-local, si la order tiene items de cocina
--- en Irra y cocina en JW, al marcar "cocina lista" en cualquiera de los 2
--- locales, se marcan los items del OTRO también (el estado se sincroniza
--- mal entre locales).
+-- ── mark_station_ready_by_stations ────────────────────────────────────
+-- Multi-local: marca items listos filtrando por station_ids específicas.
 --
--- Fix: nueva RPC mark_station_ready_by_stations que recibe UUID[] de
--- stations específicas. El endpoint /api/orders/station pasa las stations
--- del restaurant actual, así cada panel solo marca listos los items que
--- realmente prepara. La RPC antigua queda por compatibilidad con el flow
--- legacy (sin multi-local).
-
--- Usamos dollar-quote etiquetado ($mark_sr$) en lugar de $$ porque el SQL
--- Editor de Supabase a veces corta mal los statements en los ; internos del
--- body cuando el delimitador es $$ sin etiqueta.
+-- Versión reescrita 2026-04-21: el SQL Editor de Supabase rechazaba la
+-- versión con DECLARE + variables con error 42P01 "relation v_pending_count
+-- does not exist". Re-escrito sin DECLARE usando subqueries inline.
 
 CREATE OR REPLACE FUNCTION mark_station_ready_by_stations(
   p_order_id    UUID,
@@ -23,46 +13,37 @@ RETURNS JSONB
 LANGUAGE plpgsql
 SECURITY DEFINER
 AS $mark_sr$
-DECLARE
-  v_pending_count  INT;
-  v_total_count    INT;
-  v_new_order_status TEXT;
 BEGIN
-  -- Marcar solo items cuyo station_id esté en la lista provista
   UPDATE order_items
-  SET station_status   = 'ready',
-      station_ready_at = now()
-  WHERE order_id = p_order_id
-    AND station_id = ANY(p_station_ids)
-    AND station_status <> 'ready';
-
-  -- Contar items pendientes del order (todos, excluyendo 'ninguno')
-  SELECT
-    COUNT(*) FILTER (WHERE station_status <> 'ready' AND destination <> 'ninguno'),
-    COUNT(*)
-  INTO v_pending_count, v_total_count
-  FROM order_items
-  WHERE order_id = p_order_id;
-
-  -- Decidir status del order padre
-  IF v_pending_count = 0 THEN
-    v_new_order_status := 'ready';
-  ELSE
-    v_new_order_status := 'partial_ready';
-  END IF;
+     SET station_status   = 'ready',
+         station_ready_at = now()
+   WHERE order_id = p_order_id
+     AND station_id = ANY(p_station_ids)
+     AND station_status <> 'ready';
 
   UPDATE orders
-  SET status = v_new_order_status
-  WHERE id = p_order_id
-    AND status NOT IN ('paid', 'cancelled');
+     SET status = (
+       CASE
+         WHEN (SELECT COUNT(*)
+                 FROM order_items
+                WHERE order_id = p_order_id
+                  AND station_status <> 'ready'
+                  AND destination   <> 'ninguno') = 0
+         THEN 'ready'
+         ELSE 'partial_ready'
+       END
+     )
+   WHERE id = p_order_id
+     AND status NOT IN ('paid', 'cancelled');
 
   RETURN jsonb_build_object(
-    'order_id',            p_order_id,
-    'pending_remaining',   v_pending_count,
-    'order_status',        v_new_order_status
+    'order_id',          p_order_id,
+    'pending_remaining', (SELECT COUNT(*)
+                            FROM order_items
+                           WHERE order_id = p_order_id
+                             AND station_status <> 'ready'
+                             AND destination   <> 'ninguno'),
+    'order_status',      (SELECT status FROM orders WHERE id = p_order_id)
   );
 END;
 $mark_sr$;
-
-COMMENT ON FUNCTION mark_station_ready_by_stations IS
-  'Multi-local: marca listos los items cuyo station_id esté en el array provisto. Usado desde paneles que conocen sus propias stations.';
