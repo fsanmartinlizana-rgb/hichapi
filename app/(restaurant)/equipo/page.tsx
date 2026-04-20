@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
   Users, Plus, Mail, RefreshCw, X, Check, Trash2,
-  ShieldCheck, ChefHat, UtensilsCrossed, UserCheck, Crown, Shield
+  ShieldCheck, ChefHat, UtensilsCrossed, UserCheck, Crown, Shield, AlertCircle,
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { RolesManagerModal, type CustomRole } from '@/components/restaurant/RolesManagerModal'
@@ -104,6 +104,9 @@ export default function EquipoPage() {
   const [showForm,   setShowForm]   = useState(false)
   const [sending,    setSending]    = useState(false)
   const [feedback,   setFeedback]   = useState<{ type: 'ok' | 'err'; msg: string } | null>(null)
+  // Link manual cuando el email no pudo enviarse (Resend no configurado).
+  // El admin copia y lo manda por WhatsApp/Telegram al invitado.
+  const [manualLink, setManualLink] = useState<{ url: string; email: string } | null>(null)
   const [editingRoles, setEditingRoles] = useState<string | null>(null)
   const [editRolesValue, setEditRolesValue] = useState<string[]>([])
   const [showRolesModal, setShowRolesModal] = useState(false)
@@ -200,12 +203,21 @@ export default function EquipoPage() {
     if (!res.ok) {
       setFeedback({ type: 'err', msg: data.error ?? 'Error al enviar invitación' })
     } else {
-      setFeedback({
-        type: 'ok',
-        msg: data.existing_user
-          ? `${email} ya tenía cuenta y fue agregado al equipo.`
-          : `Invitación enviada a ${email}. Recibirá un correo para acceder.`,
-      })
+      // Si el backend nos devuelve needs_manual_share=true (el email no pudo
+      // enviarse por Resend), guardamos el action_link para que el admin lo
+      // copie y lo comparta por otro canal (WhatsApp, etc.). Si el email sí
+      // salió, mensaje normal.
+      if (data.needs_manual_share && data.action_link && !data.existing_user) {
+        setManualLink({ url: data.action_link as string, email })
+        setFeedback(null)
+      } else {
+        setFeedback({
+          type: 'ok',
+          msg: data.existing_user
+            ? `${email} ya tenía cuenta y fue agregado al equipo.`
+            : `Invitación enviada a ${email}. Recibirá un correo para acceder.`,
+        })
+      }
       setEmail('')
       setFullName('')
       setPhone('')
@@ -292,6 +304,44 @@ export default function EquipoPage() {
         }`}>
           {feedback.type === 'ok' ? <Check size={16} className="shrink-0 mt-0.5" /> : <X size={16} className="shrink-0 mt-0.5" />}
           <p>{feedback.msg}</p>
+        </div>
+      )}
+
+      {/* Manual share link: cuando Resend no esta configurado, el admin
+          debe copiar este link y mandarlo por WhatsApp al invitado. */}
+      {manualLink && (
+        <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
+          <div className="flex items-start gap-2">
+            <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <p className="text-amber-200 text-sm font-semibold">
+                Servicio de email no configurado
+              </p>
+              <p className="text-amber-100/70 text-xs mt-0.5">
+                No pudimos mandar automáticamente el email a <strong>{manualLink.email}</strong>.
+                Copiá el link y enviáselo por WhatsApp, Telegram o el canal que uses. El link es válido por 7 días.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 bg-black/40 rounded-xl px-3 py-2 font-mono text-xs">
+            <span className="flex-1 text-white/90 break-all">{manualLink.url}</span>
+            <button
+              onClick={async () => {
+                await navigator.clipboard.writeText(manualLink.url)
+                setFeedback({ type: 'ok', msg: 'Link copiado al portapapeles' })
+                setTimeout(() => setFeedback(null), 2500)
+              }}
+              className="shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e55a2b] transition-colors"
+            >
+              Copiar
+            </button>
+          </div>
+          <button
+            onClick={() => setManualLink(null)}
+            className="text-amber-200/50 text-xs hover:text-amber-200 underline"
+          >
+            Ya lo mandé, cerrar
+          </button>
         </div>
       )}
 

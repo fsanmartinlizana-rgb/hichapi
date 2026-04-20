@@ -211,26 +211,23 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Fallback: si Resend no está configurado o falló, igual usamos
-    // auth.admin.inviteUserByEmail SOLO como carrier de email — el link en el
-    // email default de Supabase puede caer mal, pero al menos llega "algo".
-    // El usuario puede pedir un nuevo invite desde /invite-callback.
-    if (!emailStatus.sent && !existingUserId) {
-      try {
-        await supabase.auth.admin.inviteUserByEmail(email, {
-          redirectTo: `${origin}/invite-callback`,
-          data: { restaurant_id, role },
-        })
-        emailStatus = { sent: true, carrier: 'supabase_fallback' }
-      } catch { /* non-fatal */ }
-    }
+    // Sprint 2026-04-20: se removió el fallback a supabase.auth.admin.
+    // inviteUserByEmail. Ese fallback mandaba un link con formato
+    // "https://<site-url>/#access_token=..." que rompía con el cert SSL
+    // configurado en el dominio. Ahora, si Resend no envió el email,
+    // devolvemos action_link explícito para que el admin lo comparta
+    // manualmente por WhatsApp/Telegram/etc. El link usa NUESTRO
+    // token firmado hacia /aceptar-invitacion → flow controlado con
+    // cert válido (el mismo dominio de la landing).
 
     return NextResponse.json({
       ok: true,
       existing_user: !!existingUserId,
       redirect_hint: ROLE_HOME[role] ?? '/dashboard',
-      action_link:   actionLink,  // el admin puede copiarlo y compartir manualmente si el email no llega
-      email: emailStatus,
+      action_link:   actionLink,
+      email:         emailStatus,
+      // Si el email no se envió, el admin debe compartir el link a mano.
+      needs_manual_share: !emailStatus.sent,
     })
   } catch (err) {
     if (err instanceof z.ZodError) {
