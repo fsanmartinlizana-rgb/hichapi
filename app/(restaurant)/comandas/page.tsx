@@ -87,12 +87,19 @@ function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
   const uiStatus = dbToUI(o.status)
   if (!uiStatus) return null
   const table = tables.find(t => t.id === o.table_id)
+
+  // Cross-local (multi-local enterprise): la mesa vive en el otro local, no
+  // en mi lista. Mostramos un label descriptivo sin referenciar la mesa
+  // local (que no existe acá) — el banner superior del card muestra
+  // el origen y el nro de mesa.
+  const crossLabel = o._cross_from
+    ? (o.table_id ? `Mesa ${o.table_id.slice(-2).toUpperCase()}` : 'Mesa remota')
+    : null
+
   return {
     id:         o.id,
-    // Cross-local: si la mesa no pertenece a mi lista (porque vive en el
-    // otro restaurant), caemos al tail del UUID del table_id como fallback.
     tableId:    table?.label?.replace('Mesa ', 'M-') ?? o.table_id.slice(-4).toUpperCase(),
-    tableLabel: table?.label ?? (o._cross_from ? `Mesa (${o._cross_from})` : 'Mesa'),
+    tableLabel: table?.label ?? crossLabel ?? 'Mesa',
     pax:        2,
     status:     uiStatus,
     crossFrom:  o._cross_from,
@@ -571,18 +578,39 @@ function OrderCard({
   const stationHasItems = (dest: 'cocina' | 'barra') => stationItems(dest).length > 0
 
   return (
-    <div className={`bg-[#1C1C2E] rounded-xl border p-3.5 space-y-3 transition-all
-                     ${urgent ? 'border-red-500/40' : 'border-white/6'}`}>
+    <div className={`rounded-xl border p-3.5 space-y-3 transition-all
+                     ${order.crossFrom
+                       ? 'bg-gradient-to-br from-violet-500/8 to-[#1C1C2E] border-violet-500/40'
+                       : 'bg-[#1C1C2E] ' + (urgent ? 'border-red-500/40' : 'border-white/6')}`}>
+
+      {/* Cross-local banner: el pedido se hizo en otro local de la marca.
+          Se muestra arriba del todo para que cocina/barra entienda al toque
+          que NO es una mesa propia y no vaya a buscarla. */}
+      {order.crossFrom && (
+        <div className="flex items-center gap-2 -mx-3.5 -mt-3.5 px-3.5 py-2 border-b border-violet-500/25 bg-violet-500/10 rounded-t-xl">
+          <span className="text-base">🏬</span>
+          <div className="flex-1 min-w-0">
+            <p className="text-violet-200 text-[11px] font-bold leading-tight">
+              Pedido de {order.crossFrom}
+            </p>
+            <p className="text-violet-300/70 text-[10px] leading-tight">
+              Preparar acá · Entregar allá · {order.tableLabel}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border shrink-0"
-               style={{ backgroundColor: col.color + '15', borderColor: col.color + '30', color: col.color }}>
-            {order.tableId}
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border shrink-0 ${order.crossFrom ? 'bg-violet-500/15 border-violet-500/40 text-violet-300' : ''}`}
+               style={order.crossFrom ? undefined : { backgroundColor: col.color + '15', borderColor: col.color + '30', color: col.color }}>
+            {order.crossFrom ? '↗' : order.tableId}
           </div>
           <div>
-            <p className="text-white text-xs font-semibold">{order.tableLabel}</p>
+            <p className="text-white text-xs font-semibold">
+              {order.crossFrom ? `Cross · ${order.crossFrom}` : order.tableLabel}
+            </p>
             <div className="flex items-center gap-1 mt-0.5">
               {/* SLA Timer */}
               <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${order.status === 'entregada' ? 'bg-emerald-500/10 text-emerald-400' : order.mins > 20 ? 'bg-red-500/15 text-red-400 animate-pulse' : order.mins > 10 ? 'bg-yellow-500/10 text-yellow-400' : 'bg-white/5 text-white/30'}`}>
@@ -590,13 +618,8 @@ function OrderCard({
                 {order.mins < 60 ? `${order.mins}m` : `${Math.floor(order.mins / 60)}h${String(order.mins % 60).padStart(2, '0')}m`}
                 {order.status === 'entregada' && <CheckCircle2 size={8} />}
               </div>
-              {order.viaChapi && (
+              {order.viaChapi && !order.crossFrom && (
                 <span className="text-[9px] text-[#FF6B35]/70 px-1.5 py-0.5 rounded bg-[#FF6B35]/10 ml-1">vía Chapi</span>
-              )}
-              {order.crossFrom && (
-                <span className="text-[9px] text-violet-300 px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 ml-1" title="Comanda ruteada desde otro local de la marca">
-                  de {order.crossFrom}
-                </span>
               )}
             </div>
           </div>
