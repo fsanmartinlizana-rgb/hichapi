@@ -38,6 +38,10 @@ interface Order {
   mins: number        // elapsed minutes
   viaChapi: boolean
   billRequested?: boolean  // customer pressed "pedir la cuenta" (raw status === 'paying')
+  // Cross-location (multi-local): nombre del restaurant ORIGEN cuando esta
+  // order vive en otro local pero sus items fueron ruteados a mis stations.
+  // Se renderiza como badge "De [Restaurant origen]" para diferenciar.
+  crossFrom?: string
 }
 
 // ── DB Types & mapping ────────────────────────────────────────────────────────
@@ -50,11 +54,16 @@ interface DbOrderItem {
   notes: string | null
   destination?: string | null
   station_status?: string | null
+  station_id?: string | null
 }
 interface DbOrder {
   id: string; table_id: string; status: string; total: number
   created_at: string; order_items: DbOrderItem[]
   bill_requested_at?: string | null
+  restaurant_id?: string
+  // Nombre del restaurant origen cuando el order es cross-local.
+  // Se setea solo cuando el panel carga items de OTRO restaurant (multi-local).
+  _cross_from?: string
 }
 
 function dbToUI(status: string): OrderStatus | null {
@@ -80,10 +89,13 @@ function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
   const table = tables.find(t => t.id === o.table_id)
   return {
     id:         o.id,
+    // Cross-local: si la mesa no pertenece a mi lista (porque vive en el
+    // otro restaurant), caemos al tail del UUID del table_id como fallback.
     tableId:    table?.label?.replace('Mesa ', 'M-') ?? o.table_id.slice(-4).toUpperCase(),
-    tableLabel: table?.label ?? 'Mesa',
+    tableLabel: table?.label ?? (o._cross_from ? `Mesa (${o._cross_from})` : 'Mesa'),
     pax:        2,
     status:     uiStatus,
+    crossFrom:  o._cross_from,
     items:      o.order_items.map(item => ({
       name: item.name,
       qty:  item.quantity,
@@ -580,6 +592,11 @@ function OrderCard({
               </div>
               {order.viaChapi && (
                 <span className="text-[9px] text-[#FF6B35]/70 px-1.5 py-0.5 rounded bg-[#FF6B35]/10 ml-1">vía Chapi</span>
+              )}
+              {order.crossFrom && (
+                <span className="text-[9px] text-violet-300 px-1.5 py-0.5 rounded bg-violet-500/15 border border-violet-500/30 ml-1" title="Comanda ruteada desde otro local de la marca">
+                  de {order.crossFrom}
+                </span>
               )}
             </div>
           </div>
@@ -1128,14 +1145,46 @@ function ComandasPageInner() {
 
   const loadData = useCallback(async () => {
     if (!restId) return
-    const [tablesRes, ordersRes, menuRes] = await Promise.all([
+
+    // Sprint 2026-04-20: multi-local. Además de las órdenes propias del
+    // restaurant, traemos las orders cuyos order_items estén ruteados a
+    // stations de ESTE restaurant (aunque la order viva en otro local de
+    // la misma brand). Esto evita que las comandas "se pierdan" cuando
+    // un plato de un menú compartido se prepara en la cocina/barra de
+    // otro local.
+    const stationIdsRes = await supabase
+      .from('stations')
+      .select('id')
+      .eq('restaurant_id', restId)
+    const myStationIds = ((stationIdsRes.data ?? []) as { id: string }[]).map(s => s.id)
+
+    // Query extra: order_items ruteados a mis stations. Agrupamos por
+    // order_id y después mergeamos con las órdenes propias. Solo activas.
+    let crossOrderIds: string[] = []
+    if (myStationIds.length > 0) {
+      const { data: crossItems } = await supabase
+        .from('order_items')
+        .select('order_id')
+        .in('station_id', myStationIds)
+        .not('status', 'in', '("paid","cancelled")')
+      crossOrderIds = [...new Set(((crossItems ?? []) as { order_id: string }[]).map(i => i.order_id))]
+    }
+
+    const [tablesRes, ownOrdersRes, crossOrdersRes, menuRes] = await Promise.all([
       supabase.from('tables').select('id, label, status, zone, seats').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
-        .select('id, table_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status)')
+        .select('id, table_id, restaurant_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status, station_id)')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
+      crossOrderIds.length > 0
+        ? supabase
+            .from('orders')
+            .select('id, table_id, restaurant_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status, station_id), restaurants(name)')
+            .in('id', crossOrderIds)
+            .not('status', 'in', '("paid","cancelled")')
+        : Promise.resolve({ data: [], error: null }),
       supabase
         .from('menu_items')
         .select('id, name, price, category, destination')
@@ -1144,11 +1193,33 @@ function ComandasPageInner() {
         .order('name'),
     ])
 
-    if (ordersRes.error) { setOnline(false); setLoading(false); return }
+    if (ownOrdersRes.error) { setOnline(false); setLoading(false); return }
     setOnline(true)
 
     const tables: DbTable[]  = tablesRes.data  ?? []
-    const dbOrders: DbOrder[] = ordersRes.data ?? []
+
+    // Filtrar las cross-orders para dejar SOLO los items que me pertenecen.
+    // Si la order original es del restaurant A con 5 items pero solo 2 rutean a
+    // mis stations (restaurant B), yo debo ver solo esos 2.
+    // Supabase devuelve el join `restaurants(...)` como array/objeto según la
+    // relación inferida; lo tratamos como unknown y normalizamos acá.
+    const myStationSet = new Set(myStationIds)
+    type CrossOrderRaw = DbOrder & { restaurant_id?: string; restaurants?: unknown }
+    const crossFiltered = ((crossOrdersRes.data ?? []) as unknown as CrossOrderRaw[])
+      .filter(o => o.restaurant_id !== restId)
+      .map(o => {
+        const restNameRaw = Array.isArray(o.restaurants)
+          ? (o.restaurants[0] as { name?: string } | undefined)?.name
+          : (o.restaurants as { name?: string } | null)?.name
+        return {
+          ...o,
+          order_items: (o.order_items ?? []).filter((it: { station_id?: string | null }) => it.station_id && myStationSet.has(it.station_id)),
+          _cross_from: restNameRaw ?? 'otro local',
+        }
+      })
+      .filter(o => (o.order_items ?? []).length > 0)
+
+    const dbOrders: DbOrder[] = [...(ownOrdersRes.data ?? []), ...crossFiltered]
 
     // Store real tables and menu for NuevaComandaModal
     // Filtrar mesas con status='bloqueada' (madres divididas) — no se puede tomar pedido en ellas.

@@ -99,6 +99,25 @@ async function getReviews(restaurantId: string) {
   return data ?? []
 }
 
+// Sprint 2026-04-20: promos activas en la página pública del restaurant.
+// Solo las que tienen channel_chapi o channel_mesa activo (las que apuntan
+// solo a lista de espera no corresponde mostrarlas acá).
+async function getActivePromotions(restaurantId: string) {
+  const supabase = getSupabase()
+  const { data } = await supabase
+    .from('promotions')
+    .select('id, name, description, kind, value, time_start, time_end, days_of_week, valid_from, valid_until, channel_mesa, channel_espera, channel_chapi, menu_item_ids, active')
+    .eq('restaurant_id', restaurantId)
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+
+  const { isPromoActiveNow } = await import('@/lib/promotions')
+  type Promo = import('@/lib/promotions').PromotionRow
+  return ((data ?? []) as Promo[]).filter(p =>
+    (p.channel_chapi || p.channel_mesa) && isPromoActiveNow(p)
+  )
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const formatPrice = (clp: number) => formatCurrency(clp)
@@ -457,6 +476,7 @@ export default async function RestaurantPage({
   }
 
   const reviews = await getReviews(restaurant.id)
+  const activePromos = await getActivePromotions(restaurant.id)
   const availableItems = restaurant.menu_items.filter(i => i.available !== false)
   const groups     = groupByCategory(availableItems)
   const categories = sortedCategories(groups)
@@ -524,6 +544,47 @@ export default async function RestaurantPage({
             </div>
           </div>
         </section>
+
+        {/* ── Promociones activas ── */}
+        {activePromos.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
+              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF6B35] animate-pulse" />
+              Promociones activas ahora
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {activePromos.map(p => (
+                <div
+                  key={p.id}
+                  className="relative rounded-xl border-2 border-[#FF6B35]/40 bg-gradient-to-br from-[#FF6B35]/10 to-[#FFD4C2]/10 p-4 flex items-start gap-3"
+                >
+                  <div className="w-11 h-11 rounded-xl bg-[#FF6B35] text-white flex items-center justify-center shrink-0 font-bold text-sm shadow-md shadow-[#FF6B35]/30">
+                    {p.kind === 'discount_pct' && p.value != null
+                      ? `${p.value}%`
+                      : p.kind === '2x1'
+                      ? '2×1'
+                      : p.kind === 'combo'
+                      ? 'COMBO'
+                      : p.kind === 'happy_hour'
+                      ? 'HH'
+                      : '★'}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-[#1A1A2E] text-sm">{p.name}</p>
+                    {p.description && (
+                      <p className="text-neutral-500 text-xs mt-0.5 leading-relaxed">{p.description}</p>
+                    )}
+                    {p.time_start && p.time_end && (
+                      <p className="text-[#FF6B35] text-[11px] font-semibold mt-1.5">
+                        Hoy de {p.time_start} a {p.time_end}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* ── Gallery ── */}
         {restaurant.gallery_urls && restaurant.gallery_urls.length > 0 && (

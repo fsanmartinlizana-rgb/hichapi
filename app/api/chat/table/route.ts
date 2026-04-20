@@ -75,6 +75,13 @@ function formatIngredients(ingredients: unknown): string {
   return names.length > 0 ? ` · ingredientes: ${names.join(', ')}` : ''
 }
 
+interface ActivePromo {
+  name:        string
+  label:       string
+  description: string | null
+  schedule:    string
+}
+
 interface MenuRow {
   id: string
   name: string
@@ -91,7 +98,8 @@ function buildSystemPrompt(
   restaurantName: string,
   tableLabel: string,
   menu: MenuRow[],
-  cart: z.infer<typeof CartItemSchema>[]
+  cart: z.infer<typeof CartItemSchema>[],
+  activePromotions: ActivePromo[] = [],
 ) {
   const available = menu.filter(m => m.available)
 
@@ -113,6 +121,16 @@ function buildSystemPrompt(
     ? `\nPLATOS ESPECIALES HOY (recomiéndalos activamente a cada mesa, en el momento oportuno):\n${featuredItems.map(i => `  - ${i.name} · ${formatCLP(i.price)}`).join('\n')}\n`
     : ''
 
+  // ── Promociones activas para el canal "mesa" (Sprint 2026-04-20) ────
+  // Chapi debe ofrecerlas proactivamente cuando son relevantes al pedido
+  // del cliente (ej: happy hour a las 16h, combo cuando pide un plato,
+  // 2x1 cuando pide una bebida).
+  const promosText = activePromotions.length > 0
+    ? `\nPROMOCIONES ACTIVAS AHORA (ofreceselas al cliente cuando sean relevantes):\n${activePromotions.map(p =>
+        `  - ${p.name} — ${p.label}${p.description ? `: ${p.description}` : ''}${p.schedule ? ` · Vigencia: ${p.schedule}` : ''}`
+      ).join('\n')}\n`
+    : ''
+
   const cartText = cart.length > 0
     ? `\nPEDIDO ACTUAL DEL CLIENTE:\n${cart.map(c => `  - ${c.quantity}× ${c.name} ${formatCLP(c.unit_price)}${c.note ? ` (${c.note})` : ''}`).join('\n')}\nTotal actual: ${formatCLP(cart.reduce((s,c) => s + c.unit_price * c.quantity, 0))}\n`
     : '\nEl cliente aún no ha pedido nada.\n'
@@ -123,7 +141,7 @@ Eres cercano, conoces la carta de memoria, y haces la experiencia deliciosa.
 
 CARTA DISPONIBLE HOY:
 ${menuText}
-${featuredText}${cartText}
+${featuredText}${promosText}${cartText}
 REGLAS:
 1. Si el cliente pide algo concreto → acción "add_items" con los items del menú (usa los IDs exactos).
 2. "Para compartir", "para la mesa", "para todos" NO multiplica la cantidad. quantity = 1 siempre, salvo que el cliente diga explícitamente un número ("2 porciones", "dos", "x3", etc.). Un plato compartido sigue siendo 1 unidad.
@@ -169,6 +187,31 @@ export async function POST(req: NextRequest) {
       .eq('slug', restaurant_slug)
       .single()
 
+    // ── Fetch promociones activas para este restaurant + canal "mesa" ───
+    // Sprint 2026-04-20: el chat Chapi debe conocer las promos vigentes
+    // y ofrecerlas proactivamente.
+    let activePromotions: ActivePromo[] = []
+    if (restaurant?.id) {
+      const { data: promoRows } = await supabase
+        .from('promotions')
+        .select('id, name, description, kind, value, time_start, time_end, days_of_week, valid_from, valid_until, channel_mesa, channel_espera, channel_chapi, menu_item_ids, active')
+        .eq('restaurant_id', restaurant.id)
+        .eq('active', true)
+        .eq('channel_mesa', true)
+
+      const { isPromoActiveNow, promoValueLabel, promoScheduleLabel } =
+        await import('@/lib/promotions')
+
+      activePromotions = ((promoRows ?? []) as import('@/lib/promotions').PromotionRow[])
+        .filter(p => isPromoActiveNow(p))
+        .map(p => ({
+          name:        p.name,
+          label:       promoValueLabel(p),
+          description: p.description,
+          schedule:    promoScheduleLabel(p),
+        }))
+    }
+
     // ── Fetch table label (supports qr_token or UUID) ───────────────────────
     const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(table_id)
     const { data: table } = await supabase
@@ -202,7 +245,7 @@ export async function POST(req: NextRequest) {
         const claudeStream = anthropic.messages.stream({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 500,
-          system: buildSystemPrompt(resName, tableLabel, menu, cart),
+          system: buildSystemPrompt(resName, tableLabel, menu, cart, activePromotions),
           messages,
         })
 

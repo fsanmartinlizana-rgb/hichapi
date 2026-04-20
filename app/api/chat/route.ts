@@ -232,6 +232,35 @@ async function searchRestaurants(intent: Intent) {
     results = await fetchAndFilter(resolvedIntent, false, false)
   }
 
+  // ── Enriquecer con promociones activas para channel_chapi ──────────
+  // Sprint 2026-04-20: cada restaurant resultante trae sus promos que
+  // están corriendo AHORA y habilitadas para Chapi. El frontend las
+  // puede mostrar como chips junto al card del restaurant.
+  if (results.length > 0) {
+    const restIds = results.map(r => r!.restaurant.id)
+    const { data: promoRows } = await supabase
+      .from('promotions')
+      .select('id, restaurant_id, name, description, kind, value, time_start, time_end, days_of_week, valid_from, valid_until, channel_mesa, channel_espera, channel_chapi, menu_item_ids, active')
+      .in('restaurant_id', restIds)
+      .eq('active', true)
+      .eq('channel_chapi', true)
+
+    const { isPromoActiveNow, promoValueLabel } = await import('@/lib/promotions')
+    type Promo = import('@/lib/promotions').PromotionRow & { restaurant_id: string }
+    const byRest = new Map<string, { name: string; label: string; description: string | null }[]>()
+    for (const p of ((promoRows ?? []) as Promo[])) {
+      if (!isPromoActiveNow(p)) continue
+      const arr = byRest.get(p.restaurant_id) ?? []
+      arr.push({ name: p.name, label: promoValueLabel(p), description: p.description })
+      byRest.set(p.restaurant_id, arr)
+    }
+
+    for (const r of results) {
+      if (!r) continue
+      (r as unknown as { active_promotions?: unknown }).active_promotions = byRest.get(r.restaurant.id) ?? []
+    }
+  }
+
   queryCache.set(cacheKey, results)
   return results
 }

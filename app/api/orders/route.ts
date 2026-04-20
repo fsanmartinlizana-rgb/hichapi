@@ -135,18 +135,64 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // 5. Resolve destination for each cart item from menu_items (snapshot)
+    // 5. Resolve destination + station_id for each cart item.
+    // Sprint 2026-04-20: en escenarios multi-local (enterprise), un plato
+    // puede rutear a una station que vive en OTRO restaurant de la misma
+    // marca. Si no resolvemos station_id al crear el order_item, la
+    // comanda se "pierde" — no aparece en /comandas ni /garzon del local
+    // donde debería prepararse.
+    //
+    // Orden de resolución:
+    //   1. menu_item_station_override  (override puntual por plato)
+    //   2. menu_category_station        (ruteo default por categoría)
+    //   3. destination                  (fallback legacy: cocina/barra)
     const menuItemIds = cart.map(c => c.menu_item_id)
     const { data: menuRows } = await supabase
       .from('menu_items')
-      .select('id, destination')
+      .select('id, destination, category_id')
       .in('id', menuItemIds)
+    type MenuRow = { id: string; destination: string | null; category_id: string | null }
+    const menuRowsTyped = (menuRows ?? []) as MenuRow[]
 
-    const destByItem = new Map<string, string>(
-      (menuRows ?? []).map((r: { id: string; destination: string | null }) => [r.id, r.destination || 'cocina'])
+    // Override por plato (con location_id=null == global)
+    const { data: overridesRows } = await supabase
+      .from('menu_item_station_override')
+      .select('menu_item_id, station_id, location_id')
+      .in('menu_item_id', menuItemIds)
+      .is('location_id', null)
+    const overrideByItem = new Map<string, string>(
+      ((overridesRows ?? []) as { menu_item_id: string; station_id: string }[])
+        .map(o => [o.menu_item_id, o.station_id]),
     )
 
-    // 6. Create order items with destination snapshot
+    // Ruteo por categoría — solo traemos la station primary
+    const categoryIds = [...new Set(menuRowsTyped.map(r => r.category_id).filter((c): c is string => !!c))]
+    const stationByCategory = new Map<string, string>()
+    if (categoryIds.length > 0) {
+      const { data: catRouting } = await supabase
+        .from('menu_category_station')
+        .select('category_id, station_id, is_primary')
+        .in('category_id', categoryIds)
+      // Preferir la station marcada is_primary; si no, la primera encontrada.
+      for (const r of ((catRouting ?? []) as { category_id: string; station_id: string; is_primary: boolean }[])) {
+        if (r.is_primary || !stationByCategory.has(r.category_id)) {
+          stationByCategory.set(r.category_id, r.station_id)
+        }
+      }
+    }
+
+    const destByItem    = new Map<string, string>()
+    const stationByItem = new Map<string, string | null>()
+    for (const r of menuRowsTyped) {
+      destByItem.set(r.id, r.destination || 'cocina')
+      const station =
+        overrideByItem.get(r.id) ??
+        (r.category_id ? stationByCategory.get(r.category_id) : undefined) ??
+        null
+      stationByItem.set(r.id, station)
+    }
+
+    // 6. Create order items with destination + station_id snapshot
     const { error: itemsErr } = await supabase
       .from('order_items')
       .insert(
@@ -159,6 +205,7 @@ export async function POST(req: NextRequest) {
           notes:       item.note ?? null,
           status:      'pending',
           destination: destByItem.get(item.menu_item_id) || 'cocina',
+          station_id:  stationByItem.get(item.menu_item_id) ?? null,
         }))
       )
 
