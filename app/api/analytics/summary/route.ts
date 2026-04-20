@@ -142,6 +142,33 @@ export async function GET(req: NextRequest) {
     byHour[h].revenue += o.total || 0
   }
 
+  // ── Heatmap ocupación: day-of-week (0=Dom..6=Sab) × hour (0-23) ─────
+  // Usa TODOS los pedidos pagados del período (no solo paidOrders del rango
+  // corto) para que el heatmap muestre patrones significativos. Por cada
+  // celda guarda cantidad de órdenes y cantidad de "días únicos con data"
+  // para calcular el promedio por día de la semana en la UI.
+  const heatmap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0))
+  const heatmapDaysSeen: Set<string>[][] = Array.from(
+    { length: 7 },
+    () => Array.from({ length: 24 }, () => new Set<string>()),
+  )
+  for (const o of paidOrders) {
+    const d = new Date(o.created_at)
+    const dow = d.getDay()
+    const hr  = d.getHours()
+    heatmap[dow][hr] += 1
+    heatmapDaysSeen[dow][hr].add(o.created_at.slice(0, 10))
+  }
+  // Convertir a promedio por día observado: si un (lunes 13:00) tiene 5
+  // órdenes y vimos 2 lunes en el período, promedio = 2.5. Esto da una
+  // lectura estable independiente de cuántas semanas tenga el período.
+  const heatmapAvg: number[][] = heatmap.map((row, dow) =>
+    row.map((orders, hr) => {
+      const seen = heatmapDaysSeen[dow][hr].size || 1
+      return Math.round((orders / seen) * 10) / 10
+    }),
+  )
+
   // ── By day (últimos 30 días) ───────────────────────────────────────────
   const byDay = new Map<string, { orders: number; revenue: number }>()
   const last30 = new Date(); last30.setDate(last30.getDate() - 30)
@@ -219,6 +246,7 @@ export async function GET(req: NextRequest) {
     top_items:    topItems,
     by_hour:      byHour,
     by_day:       byDayArr,
+    heatmap:      heatmapAvg, // 7×24 matriz de avg orders por (dow, hour)
     stock_alerts: stockAlerts,
     open_tables:  openTables ?? 0,
     waste: {

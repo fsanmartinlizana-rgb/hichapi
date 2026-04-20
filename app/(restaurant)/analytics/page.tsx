@@ -236,10 +236,10 @@ function ResumenTab({ summary }: { summary: AnalyticsSummary | null }) {
       <DashboardWidget type="open_tables_now"      summary={summary} />
       <DashboardWidget type="inventory_low_stock"  summary={summary} />
       <DashboardWidget type="waste_cost"           summary={summary} />
-      <div className="lg:col-span-3">
-        <div className="h-80">
-          <DashboardWidget type="orders_by_hour" summary={summary} />
-        </div>
+      {/* Heatmap full-width — el valor central del dashboard: muestra
+          ocupación por día×hora y detecta horas valle para promociones. */}
+      <div className="lg:col-span-3 min-h-[380px]">
+        <DashboardWidget type="occupancy_heatmap" summary={summary} />
       </div>
     </div>
   )
@@ -251,8 +251,8 @@ function MetricasTab({ summary }: { summary: AnalyticsSummary | null }) {
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
       <DashboardWidget type="revenue_week" summary={summary} />
       <DashboardWidget type="avg_ticket"   summary={summary} />
-      <div className="h-96 lg:col-span-2">
-        <DashboardWidget type="orders_by_hour" summary={summary} />
+      <div className="min-h-[420px] lg:col-span-2">
+        <DashboardWidget type="occupancy_heatmap" summary={summary} />
       </div>
       <div className="h-96 lg:col-span-2">
         <DashboardWidget type="top_items_week" summary={summary} />

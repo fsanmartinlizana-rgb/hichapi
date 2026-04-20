@@ -39,6 +39,8 @@ export function DashboardWidget({ type, summary }: { type: string; summary: Anal
     case 'top_items_week':
       return <TopItems summary={summary} />
     case 'peak_hours_heatmap':
+    case 'occupancy_heatmap':
+      return <OccupancyHeatmap summary={summary} />
     case 'orders_by_hour':
       return <HourlyOrders summary={summary} />
     case 'chapi_tip_of_the_day':
@@ -152,6 +154,141 @@ function TopItems({ summary }: { summary: AnalyticsSummary }) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Heatmap de ocupación (día de la semana × hora) ───────────────────────
+// Reemplaza al gráfico de barras horario que era poco legible. Muestra una
+// grilla de 7 filas × 12 columnas (horas operativas) con intensidad naranja
+// proporcional al promedio de órdenes por celda. Las celdas con <35% del
+// pico se marcan como "hora valle" — candidatas a promociones.
+
+const DAYS_ES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as const
+// Horas visibles por default. Si hay data fuera, el componente expande
+// el rango automáticamente.
+const DEFAULT_HOURS = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
+
+function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
+  const rawHeatmap = summary.heatmap
+  if (!rawHeatmap || rawHeatmap.length !== 7) {
+    return (
+      <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex items-center justify-center">
+        <p className="text-white/30 text-xs italic">Sin datos de ocupación en el período</p>
+      </div>
+    )
+  }
+
+  // Re-index: en JS Date.getDay() devuelve 0=Dom..6=Sab. Queremos mostrar
+  // Lun..Dom. heatmapByDayEs[0]=Lunes .. [6]=Domingo.
+  const heatmapByDayEs: number[][] = [1, 2, 3, 4, 5, 6, 0].map(dow => rawHeatmap[dow])
+
+  // Determinar rango de horas con actividad para expandir si es necesario
+  let minHour = 24
+  let maxHour = 0
+  let hasAnyData = false
+  for (const row of rawHeatmap) {
+    for (let h = 0; h < 24; h++) {
+      if (row[h] > 0) {
+        hasAnyData = true
+        if (h < minHour) minHour = h
+        if (h > maxHour) maxHour = h
+      }
+    }
+  }
+  const hours = hasAnyData
+    ? Array.from(
+        { length: Math.max(maxHour - minHour + 1, 8) },
+        (_, i) => Math.min(minHour + i, 23),
+      )
+    : DEFAULT_HOURS
+
+  // Max global para escalar intensidades
+  let max = 0
+  for (const row of heatmapByDayEs) for (const h of hours) if (row[h] > max) max = row[h]
+  if (max === 0) max = 1
+
+  // "Hora valle" = celda con actividad entre 5% y 35% del pico (no 0 para
+  // no marcar horarios cerrados como si fueran una oportunidad de promoción)
+  const isValley = (v: number) => {
+    const pct = v / max
+    return pct > 0.05 && pct < 0.35
+  }
+
+  // Conteo total de horas valle para el insight-texto
+  let valleyCount = 0
+  for (const row of heatmapByDayEs) for (const h of hours) if (isValley(row[h])) valleyCount++
+
+  return (
+    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
+      <div className="flex items-start justify-between mb-3 gap-2">
+        <div>
+          <p className="text-white font-semibold text-sm">Ocupación por día y hora</p>
+          <p className="text-white/35 text-[10px]">
+            Promedio de órdenes · {summary.period}
+            {valleyCount > 0 && ` · ${valleyCount} horas valle detectadas`}
+          </p>
+        </div>
+        <div className="flex items-center gap-1.5 text-[9px] text-white/40 shrink-0 flex-wrap">
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: 'rgba(255,107,53,0.08)' }} />0</span>
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#FF6B35]/60 inline-block" /></span>
+          <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#FF6B35] inline-block" />pico</span>
+          <span className="flex items-center gap-1 ml-1"><span className="w-3 h-2 rounded-sm ring-1 ring-red-500/50 inline-block" />valle</span>
+        </div>
+      </div>
+
+      {/* Grid */}
+      <div className="flex-1 overflow-x-auto">
+        <div className="min-w-full">
+          {/* Header row con horas */}
+          <div className="flex gap-[3px] mb-1 pl-10">
+            {hours.map(h => (
+              <div key={h} className="flex-1 text-center text-[9px] text-white/30 font-mono min-w-[22px]">
+                {h}h
+              </div>
+            ))}
+          </div>
+          {/* Day rows */}
+          {heatmapByDayEs.map((row, dayIdx) => (
+            <div key={dayIdx} className="flex items-center gap-[3px] mb-[3px]">
+              <span className="w-9 text-[10px] text-white/40 shrink-0 font-semibold">{DAYS_ES[dayIdx]}</span>
+              {hours.map(h => {
+                const v = row[h] ?? 0
+                const intensity = v / max
+                const valley = isValley(v)
+                return (
+                  <div
+                    key={h}
+                    title={`${DAYS_ES[dayIdx]} ${String(h).padStart(2, '0')}:00 — ${v.toFixed(1)} pedidos promedio`}
+                    className={`flex-1 h-7 rounded transition-all cursor-default flex items-center justify-center min-w-[22px] group relative
+                      ${valley ? 'ring-1 ring-red-500/40' : ''}`}
+                    style={{
+                      backgroundColor: v === 0
+                        ? 'rgba(255,255,255,0.03)'
+                        : `rgba(255,107,53,${0.1 + intensity * 0.8})`,
+                    }}
+                  >
+                    {intensity > 0.4 && (
+                      <span className="text-[9px] font-mono text-white/90">{Math.round(v)}</span>
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Insight footer */}
+      {valleyCount > 0 && (
+        <div className="mt-3 pt-3 border-t border-white/5 flex items-start gap-2">
+          <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
+          <p className="text-white/50 text-[11px] leading-relaxed">
+            Las celdas con borde rojo son <span className="text-red-300">horas valle</span> (5-35% del pico).
+            Son oportunidades para activar promociones y balancear la demanda.
+          </p>
         </div>
       )}
     </div>
