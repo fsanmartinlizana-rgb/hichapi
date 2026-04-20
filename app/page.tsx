@@ -157,21 +157,23 @@ const TESTIMONIALS = [
 
 // ZONES removido 2026-04-19 junto con ZonesSection.
 
+// ── Planes — matriz oficial rebalanceada Sprint 2 ────────────────────────
+// Source of truth coincide con lib/plans.ts. Cualquier cambio acá replicarlo allá.
 const PLANS = [
   {
     name: 'Free',
     badge: 'Para empezar',
     price: '$0',
     period: 'siempre gratis',
-    description: 'Tu pagina en hichapi.com/tu-nombre lista en 5 minutos',
+    description: 'Tu presencia digital: pagina, carta y perfil publico.',
     features: [
-      'Tu propia URL publica',
+      'Pagina web publica (hichapi.com/tu-resto)',
       'Carta digital con fotos',
-      'Apareces en Chapi',
-      'Lista de espera digital',
-      'Link para Instagram y Google Maps',
+      'Perfil publico con ubicacion y horarios',
+      'Apareces en busquedas de Chapi',
+      'Configuracion del restaurante',
     ],
-    cta: 'Crear mi pagina gratis',
+    cta: 'Crear cuenta gratis',
     href: '/unete',
     highlighted: false,
   },
@@ -180,14 +182,14 @@ const PLANS = [
     badge: 'Para operar',
     price: '$29.990',
     period: '/ mes',
-    description: 'Tus clientes piden desde la mesa. Sin papeles, sin errores.',
+    description: 'Digitaliza el salon: mesas, comandas, caja y turnos.',
     features: [
       'Todo lo de Free',
-      'Pedidos QR con Chapi',
-      'Panel garzon en tiempo real',
-      'Comandas de cocina',
-      'Division de cuenta',
-      'Control de caja',
+      'Mesas + QR por mesa',
+      'Comandas (cocina + garzon en vivo)',
+      'Caja con cierre de turno',
+      'Lista de espera digital',
+      'Turnos del personal',
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
@@ -199,18 +201,37 @@ const PLANS = [
     badge: 'Mas popular',
     price: '$59.990',
     period: '/ mes',
-    description: 'Inteligencia de negocio y control total de operaciones.',
+    description: 'Inteligencia operativa: stock, reportes IA y fidelizacion.',
     features: [
       'Todo lo de Starter',
-      'Reportes IA diarios',
-      'Inventario y mermas',
-      'Analytics avanzados',
-      'Carga de inventario por foto o Excel',
+      'Stock + control de mermas',
+      'Analytics unificado con IA',
+      'Dashboards configurables',
+      'Fidelizacion y promociones',
+      'Chapi Insights con datos reales',
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
     href: '/unete?plan=pro',
     highlighted: true,
+  },
+  {
+    name: 'Enterprise',
+    badge: 'Multi-local',
+    price: '$149.990',
+    period: '/ mes',
+    description: 'Multi-local, API publica, geofencing y soporte 24/7.',
+    features: [
+      'Todo lo de Pro',
+      'Multi-local sin limite',
+      'Geofencing y check-in automatico',
+      'API publica con keys y scopes',
+      'Agente IA de soporte 24/7',
+      'Sin comision sobre ventas digitales',
+    ],
+    cta: 'Contactar ventas',
+    href: '/contacto',
+    highlighted: false,
   },
 ]
 
@@ -250,15 +271,15 @@ function Navbar() {
         >
           hi<span style={{ color: '#FF6B35' }}>chapi</span>
         </Link>
-        <div className="hidden sm:flex items-center gap-8 text-sm text-neutral-500">
-          <a href="#como-funciona" className="hover:text-[#FF6B35] transition-colors">Como funciona</a>
-          <a href="#para-ti" className="hover:text-[#FF6B35] transition-colors">Para ti</a>
-          <a href="#restaurantes" className="hover:text-[#FF6B35] transition-colors">Restaurantes</a>
-          <a href="#planes" className="hover:text-[#FF6B35] transition-colors">Planes</a>
+        <div className="hidden sm:flex items-center gap-7 text-sm text-neutral-500">
+          <a href="#comensales"   className="hover:text-[#FF6B35] transition-colors font-medium">Comensales</a>
+          <a href="#restaurantes" className="hover:text-[#FF6B35] transition-colors font-medium">Restaurantes</a>
+          <a href="#planes"       className="hover:text-[#FF6B35] transition-colors">Planes</a>
+          <a href="#faq"          className="hover:text-[#FF6B35] transition-colors">FAQ</a>
         </div>
         <div className="flex items-center gap-3">
           <Link
-            href="/"
+            href="/buscar"
             className="hidden sm:inline-flex items-center gap-2 text-sm font-semibold px-5 py-2.5 rounded-full
                        bg-[#FF6B35] text-white hover:bg-[#e55a2b] transition-colors shadow-sm"
           >
@@ -319,7 +340,7 @@ function HeroSection() {
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
             <Link
-              href="/"
+              href="/buscar"
               className="group flex items-center gap-3 px-8 py-4 rounded-2xl
                          bg-[#FF6B35] text-white font-bold text-base
                          hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/25
@@ -807,16 +828,18 @@ function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6 max-w-7xl mx-auto">
           {PLANS.map(({ name, badge, price, period, description, features, note, cta, href, highlighted }) => (
             <div
               key={name}
-              className={`relative rounded-3xl p-8 flex flex-col ${
+              className={`relative rounded-3xl p-6 lg:p-7 flex flex-col ${
                 highlighted
                   ? 'border-2 border-[#FF6B35] bg-white shadow-xl shadow-[#FF6B35]/10'
                   : 'border border-neutral-200 bg-white shadow-sm'
               }`}
             >
+              {/* Plan name */}
+              <p className="text-sm font-bold text-[#1A1A2E] mb-1">{name}</p>
               {/* Badge */}
               {highlighted ? (
                 <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF6B35] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
@@ -952,6 +975,45 @@ function FAQSection() {
   )
 }
 
+// ── SectionDivider ──────────────────────────────────────────────────────
+// Separador visual entre los bloques "Para comensales" y "Para restaurantes".
+// Marca el cambio de audiencia en la narrativa de la landing con un eyebrow
+// badge + título grande + subtítulo. El `anchor` deja un id para que los
+// links del navbar scrolleen acá.
+
+function SectionDivider({ eyebrow, title, subtitle, anchor }: {
+  eyebrow:  string
+  title:    string
+  subtitle: string
+  anchor:   string
+}) {
+  return (
+    <section id={anchor} className="relative pt-20 pb-8 lg:pt-28 lg:pb-10 scroll-mt-16 bg-[#FAFAF8]">
+      <div className="max-w-5xl mx-auto px-6 text-center">
+        <div
+          className="inline-flex items-center gap-2 text-[11px] font-bold px-3 py-1.5
+                     rounded-full border mb-5 uppercase tracking-wider"
+          style={{ background: '#FFF4EF', borderColor: '#FFD4C2', color: '#FF6B35' }}
+        >
+          {eyebrow}
+        </div>
+        <h2 className="text-3xl lg:text-5xl font-extrabold text-[#1A1A2E] leading-[1.1] mb-4">
+          {title}
+        </h2>
+        <p className="text-neutral-500 text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
+          {subtitle}
+        </p>
+        {/* Línea decorativa inferior */}
+        <div className="mt-8 flex items-center justify-center gap-3">
+          <div className="h-px w-12 bg-neutral-200" />
+          <div className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]" />
+          <div className="h-px w-12 bg-neutral-200" />
+        </div>
+      </div>
+    </section>
+  )
+}
+
 function FinalCTA() {
   return (
     <section className="py-20 lg:py-28">
@@ -974,7 +1036,7 @@ function FinalCTA() {
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Link
-                href="/"
+                href="/buscar"
                 className="group flex items-center gap-3 px-8 py-4 rounded-2xl
                            bg-[#FF6B35] text-white font-bold text-base
                            hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/30"
@@ -1019,7 +1081,7 @@ function Footer() {
           <div>
             <p className="text-sm font-semibold text-[#1A1A2E] mb-3">Producto</p>
             <ul className="space-y-2 text-sm text-neutral-400">
-              <li><Link href="/" className="hover:text-[#FF6B35] transition-colors">Probar Chapi</Link></li>
+              <li><Link href="/buscar" className="hover:text-[#FF6B35] transition-colors">Probar Chapi</Link></li>
               <li><Link href="/unete" className="hover:text-[#FF6B35] transition-colors">Sumar restaurante</Link></li>
               <li><Link href="/login" className="hover:text-[#FF6B35] transition-colors">Iniciar sesion</Link></li>
             </ul>
@@ -1056,13 +1118,27 @@ export default function LandingPage() {
       <Navbar />
       <HeroSection />
       <StatsBar />
+      {/* ─── Sección comensales ─── */}
+      <SectionDivider
+        eyebrow="Para comensales"
+        title="Encuentra dónde comer"
+        subtitle="Chapi te recomienda platos reales según tu presupuesto, dieta y barrio."
+        anchor="comensales"
+      />
       <HowItWorks />
       <DinerFeatures />
+      <Testimonials />
+      {/* ─── Sección restaurantes ─── */}
+      <SectionDivider
+        eyebrow="Para restaurantes"
+        title="Opera y crece con inteligencia"
+        subtitle="Desde tu página gratuita hasta multi-local con API pública. Paga solo cuando vendes."
+        anchor="restaurantes"
+      />
       <RestaurantShowcase />
       <RestaurantNumbers />
       <RestaurantFeatures />
       <PricingSection />
-      <Testimonials />
       <FAQSection />
       <FinalCTA />
       <Footer />
