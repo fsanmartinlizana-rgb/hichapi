@@ -8,6 +8,7 @@ import {
   Utensils, Trash2, Split, MoreVertical, Merge, AlertCircle,
   Move, Lock, Settings, LayoutGrid, PanelRightClose, PanelRightOpen,
 } from 'lucide-react'
+import Link from 'next/link'
 import { EmptyState } from '@/components/ui/EmptyState'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
 import { useRestaurant } from '@/lib/restaurant-context'
@@ -1579,6 +1580,14 @@ export default function MesasPage() {
               {editingLayout ? <Lock size={12} /> : <Move size={12} />}
               {editingLayout ? 'Listo' : 'Editar plano'}
             </button>
+            <Link
+              href="/mesas/qrs"
+              target="_blank"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-white/60 text-xs font-medium hover:text-white hover:border-white/25 transition-colors"
+              title="Imprimir o descargar todos los QR de mesas"
+            >
+              <QrCode size={12} /> Imprimir QRs
+            </Link>
             <button
               onClick={() => setShowNuevaMesa(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"

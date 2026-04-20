@@ -164,15 +164,15 @@ const PLANS = [
     badge: 'Para empezar',
     price: '$0',
     period: 'siempre gratis',
-    description: 'Tu pagina en hichapi.com/tu-nombre lista en 5 minutos',
+    description: 'Tu presencia digital lista: pagina, carta, perfil.',
     features: [
-      'Tu propia URL publica',
+      'Tu URL publica en hichapi.com/tu-resto',
       'Carta digital con fotos',
+      'Perfil publico con ubicacion y horarios',
       'Apareces en Chapi',
-      'Lista de espera digital',
-      'Link para Instagram y Google Maps',
+      'Configuracion del restaurante',
     ],
-    cta: 'Crear mi pagina gratis',
+    cta: 'Crear cuenta gratis',
     href: '/unete',
     highlighted: false,
   },
@@ -181,14 +181,14 @@ const PLANS = [
     badge: 'Mas popular',
     price: '$29.990',
     period: '/ mes',
-    description: 'Tus clientes piden desde la mesa. Sin papeles, sin errores.',
+    description: 'Digitaliza el salon: pedidos, caja, lista de espera y turnos.',
     features: [
       'Todo lo de Free',
-      'Pedidos QR con Chapi',
-      'Panel garzon en tiempo real',
-      'Comandas de cocina',
-      'Division de cuenta',
-      'Control de caja',
+      'Mesas + QR por mesa',
+      'Comandas (cocina + garzon en tiempo real)',
+      'Caja con cierre de turno',
+      'Lista de espera digital',
+      'Turnos del personal',
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
@@ -200,17 +200,36 @@ const PLANS = [
     badge: 'Para crecer',
     price: '$59.990',
     period: '/ mes',
-    description: 'Inteligencia de negocio y control total de operaciones.',
+    description: 'Inteligencia operativa: stock, reportes IA y fidelizacion.',
     features: [
       'Todo lo de Starter',
-      'Reportes IA diarios',
-      'Inventario y mermas',
-      'Analytics avanzados',
-      'Carga de inventario por foto o Excel',
+      'Stock + control de mermas',
+      'Analytics unificado con IA',
+      'Dashboards configurables',
+      'Fidelizacion y promociones',
+      'Chapi Insights con datos reales',
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
     href: '/unete?plan=pro',
+    highlighted: false,
+  },
+  {
+    name: 'Enterprise',
+    badge: 'Multi-local',
+    price: '$149.990',
+    period: '/ mes',
+    description: 'Multi-local, API publica, geofencing y soporte 24/7.',
+    features: [
+      'Todo lo de Pro',
+      'Multi-local sin limite',
+      'Geofencing y check-in automatico',
+      'API publica con keys y scopes',
+      'Agente IA de soporte 24/7',
+      'Sin comision sobre ventas digitales',
+    ],
+    cta: 'Contactar ventas',
+    href: '/contacto',
     highlighted: false,
   },
 ]
@@ -683,11 +702,11 @@ function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 lg:gap-8 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6 max-w-7xl mx-auto">
           {PLANS.map(({ name, badge, price, period, description, features, note, cta, href, highlighted }) => (
             <div
               key={name}
-              className={`relative rounded-3xl p-8 flex flex-col ${
+              className={`relative rounded-3xl p-7 flex flex-col ${
                 highlighted
                   ? 'border-2 border-[#FF6B35] bg-white shadow-xl shadow-[#FF6B35]/10'
                   : 'border border-neutral-200 bg-white shadow-sm'

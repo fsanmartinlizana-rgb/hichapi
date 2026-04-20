@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
-import { requireUser } from '@/lib/supabase/auth-guard'
+import { requireUser, requirePlan } from '@/lib/supabase/auth-guard'
 import { z } from 'zod'
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -58,6 +58,17 @@ export async function POST(req: NextRequest) {
         },
         { status: 403 },
       )
+    }
+
+    // ── Plan gating (Sprint 2) ─────────────────────────────────────────────
+    // Multi-local es feature enterprise. Cualquiera de los restaurants del
+    // user que sea plan enterprise desbloquea la creación de sucursales
+    // (se decide con el parent_restaurant_id si vino, o cualquiera si no).
+    const planGateRestaurant =
+      data.parent_restaurant_id ?? data.copy_menu_from_id ?? existing[0]?.restaurant_id
+    if (planGateRestaurant) {
+      const { error: planErr } = await requirePlan(planGateRestaurant, 'enterprise')
+      if (planErr) return planErr
     }
 
     // Si pidió copiar menú: verificar que es de un restaurant donde es owner/admin

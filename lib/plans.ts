@@ -1,10 +1,24 @@
 // ── Plan definitions & pricing ──────────────────────────────────────────────
+//
+// Rebalanced 2026-04-19 (Sprint 2). Cambios clave vs versión previa:
+//   • Free: solo presencia digital (página pública + carta + perfil). Sin
+//     módulos operacionales.
+//   • Starter: toda la operación del salón (mesas, comandas, caja, lista de
+//     espera, turnos).
+//   • Pro: todo Starter + inteligencia operativa (stock/mermas, analytics,
+//     fidelización).
+//   • Enterprise: todo Pro + escala (multi-local, geofencing, API pública,
+//     soporte 24/7 con agente IA).
+//
+// Nota: las ventas digitales (pedidos procesados por la plataforma) tienen
+// comisión de 1% en Starter/Pro, incluida en Enterprise.
 
 export interface PlanInfo {
   id: string
   name: string
   price: number          // CLP/month, 0 = free
   priceLabel: string
+  transactionFeeLabel?: string  // "+ 1% sobre ventas digitales" u otro extra
   description: string
   features: string[]
   modules: string[]      // module keys included
@@ -15,74 +29,106 @@ export interface PlanInfo {
 export const PLAN_HIERARCHY = ['free', 'starter', 'pro', 'enterprise'] as const
 export type PlanId = typeof PLAN_HIERARCHY[number]
 
+// Módulos base disponibles en TODOS los planes (incluso free):
+// página pública, carta digital, perfil, configuración básica.
+const BASE_MODULES = ['public_page', 'menu_digital', 'public_profile', 'config_basic']
+
+// Starter agrega operación del salón
+const STARTER_MODULES = [
+  'tables',          // Mesas + QR
+  'kitchen_display', // Comandas
+  'cash_register',   // Caja
+  'waitlist',        // Lista de espera
+  'staff_schedule',  // Turnos
+]
+
+// Pro agrega inteligencia operativa
+const PRO_MODULES = [
+  'inventory',       // Stock + Mermas
+  'loyalty',         // Fidelización y promos
+  'analytics',       // Analytics + Reporte IA unificado
+  // 'daily_reports' queda como alias histórico; nueva key canonical = 'analytics'
+  'daily_reports',
+]
+
+// Enterprise agrega escala
+const ENTERPRISE_MODULES = [
+  'multi_location',  // Multi-sucursal
+  'geofencing',      // Geofencing
+  'public_api',      // API pública con keys
+  'support_24_7',    // Soporte 24/7 con agente IA
+]
+
 export const PLANS: Record<string, PlanInfo> = {
   free: {
     id: 'free',
     name: 'Gratis',
     price: 0,
     priceLabel: 'Gratis para siempre',
-    description: 'Perfil en HiChapi Discovery + herramientas básicas',
-    cta: 'Plan actual',
+    description: 'Presencia digital sin costo: tu página, tu carta, tu perfil público.',
+    cta: 'Crear cuenta gratis',
     features: [
-      'Perfil público en HiChapi',
-      'Carta digital con QR',
-      'Gestión de mesas',
-      'Pantalla de cocina',
-      'Caja básica',
-      'Lista de espera',
+      'Página web pública en hichapi.com/tu-resto',
+      'Carta digital con fotos y tags',
+      'Perfil público con ubicación y horarios',
+      'Apareces en búsquedas de Chapi',
+      'Configuración del restaurante',
     ],
-    modules: ['tables', 'kitchen_display', 'cash_register', 'waitlist'],
+    modules: [...BASE_MODULES],
   },
   starter: {
     id: 'starter',
     name: 'Starter',
     price: 29990,
-    priceLabel: '$29.990/mes',
-    description: 'Control operacional completo para tu negocio',
+    priceLabel: '$29.990',
+    transactionFeeLabel: '+ 1% sobre ventas digitales procesadas',
+    description: 'Digitalizá el salón: pedidos desde la mesa, caja y turnos.',
     cta: 'Activar Starter',
     features: [
-      'Todo lo del plan Gratis',
-      'Control de inventario',
-      'Turnos de personal',
-      'Importación de stock con IA',
-      'Alertas de stock bajo',
+      'Todo lo de Gratis',
+      'Mesas + código QR por mesa',
+      'Comandas (cocina + garzón en tiempo real)',
+      'Caja (abrir/cerrar + reporte de turno)',
+      'Lista de espera digital',
+      'Turnos del personal',
     ],
-    modules: ['tables', 'kitchen_display', 'cash_register', 'waitlist', 'inventory', 'staff_schedule'],
+    modules: [...BASE_MODULES, ...STARTER_MODULES],
   },
   pro: {
     id: 'pro',
     name: 'Pro',
     price: 59990,
-    priceLabel: '$59.990/mes',
-    description: 'Inteligencia y fidelización para crecer',
+    priceLabel: '$59.990',
+    transactionFeeLabel: '+ 1% sobre ventas digitales procesadas',
+    description: 'Inteligencia operativa: stock, reportes IA y fidelización.',
     highlighted: true,
     cta: 'Activar Pro',
     features: [
-      'Todo lo del plan Starter',
-      'Reportes diarios automáticos',
-      'Programa de fidelización',
-      'Analytics avanzados',
-      'Chapi Insights con IA',
-      'Soporte prioritario',
+      'Todo lo de Starter',
+      'Stock + control de mermas',
+      'Analytics unificado (reporte del día + métricas con IA)',
+      'Dashboards configurables',
+      'Fidelización y promociones',
+      'Chapi Insights con datos reales',
     ],
-    modules: ['tables', 'kitchen_display', 'cash_register', 'waitlist', 'inventory', 'staff_schedule', 'loyalty', 'daily_reports'],
+    modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES],
   },
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
     price: 149990,
-    priceLabel: '$149.990/mes',
-    description: 'Multi-local, geofencing y soporte dedicado',
+    priceLabel: '$149.990',
+    description: 'Multi-local, API pública, geofencing y soporte 24/7.',
     cta: 'Contactar ventas',
     features: [
-      'Todo lo del plan Pro',
-      'Multi-restaurante (hasta 10)',
-      'Geofencing y zonas',
-      'Dashboard corporativo',
-      'API personalizada',
-      'Soporte dedicado 24/7',
+      'Todo lo de Pro',
+      'Multi-local sin límite',
+      'Geofencing y check-in automático',
+      'API pública con keys y scopes',
+      'Agente IA de soporte 24/7',
+      'Sin comisión sobre ventas digitales',
     ],
-    modules: ['tables', 'kitchen_display', 'cash_register', 'waitlist', 'inventory', 'staff_schedule', 'loyalty', 'daily_reports', 'geofencing'],
+    modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES, ...ENTERPRISE_MODULES],
   },
 }
 

@@ -97,15 +97,42 @@ const ALL_NAV: NavSection[] = [
 ]
 
 // ── Plan-based route gating ──────────────────────────────────────────────────
-// Routes not listed here default to 'free' (always accessible).
+// Rebalanceado Sprint 2 (2026-04-19). Matriz: ver lib/plans.ts.
+// Rutas no listadas abajo son accesibles con el plan base ('free' o todos).
 
 const NAV_PLAN_REQUIRED: Record<string, string> = {
-  '/stock':     'starter',
-  '/mermas':    'starter',
+  // Operación del salón → starter+
+  '/mesas':     'starter',
+  '/comandas':  'starter',
+  '/garzon':    'starter',
+  '/caja':      'starter',
+  '/espera':    'starter',
   '/turnos':    'starter',
-  '/reporte':   'pro',
-  '/analytics': 'pro',
-  '/insights':  'pro',
+  '/reservas':  'starter',
+
+  // Inteligencia operativa → pro+
+  '/stock':        'pro',
+  '/mermas':       'pro',
+  '/reporte':      'pro',
+  '/analytics':    'pro',
+  '/insights':     'pro',
+  '/fidelizacion': 'pro',
+
+  // Locales (single o multi) → starter+
+  // Enterprise desbloquea AGREGAR locales; planes inferiores solo ven/editan
+  // el local único. La UI de "+ Agregar local" checkea plan por su cuenta.
+  '/configuracion/locations':  'starter',
+  '/configuracion/estaciones': 'starter',
+  '/configuracion/categorias': 'starter',
+
+  // Escala → enterprise
+  '/agregar-sucursal':         'enterprise',
+  '/configuracion/api-keys':   'enterprise',
+  '/configuracion/geofencing': 'enterprise',
+
+  // Nota: /carta, /restaurante, /modulos, /equipo, /dashboard, /perfil-publico
+  // quedan abiertos a todos los planes (incluye free) porque son la presencia
+  // digital base.
 }
 
 // PLAN_LABEL removido: los módulos bloqueados ya no se renderizan en el sidebar,
