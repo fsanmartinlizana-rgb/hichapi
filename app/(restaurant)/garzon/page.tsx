@@ -306,7 +306,9 @@ export default function GarzonPage() {
         .order('created_at', { ascending: false }),
     ])
 
-    if (!tablesRes.error && tablesRes.data) {
+    if (tablesRes.error) {
+      console.error('[garzon] tables query error:', tablesRes.error)
+    } else if (tablesRes.data) {
       const mapped: Table[] = (tablesRes.data as Array<{ id: string; label: string; seats: number; status: string; zone: string | null; pos_x?: number | null; pos_y?: number | null }>).map(t => ({
         id: t.id,
         label: t.label,
@@ -318,7 +320,19 @@ export default function GarzonPage() {
       }))
       setTables(mapped)
     }
-    if (!ordersRes.error && ordersRes.data) setOrders(ordersRes.data as Order[])
+    if (ordersRes.error) {
+      // Log estructurado para diagnostico en DevTools. Antes se tragaba el
+      // error silenciosamente y el panel quedaba vacio sin explicacion.
+      console.error('[garzon] orders query error:', {
+        code:    ordersRes.error.code,
+        message: ordersRes.error.message,
+        details: ordersRes.error.details,
+        hint:    ordersRes.error.hint,
+      })
+    } else if (ordersRes.data) {
+      console.info(`[garzon] loaded ${ordersRes.data.length} active orders for restaurant ${restId}`)
+      setOrders(ordersRes.data as Order[])
+    }
     setLastRefresh(new Date())
     setLoading(false)
     setOnline(true)
