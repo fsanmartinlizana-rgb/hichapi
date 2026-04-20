@@ -1490,6 +1490,13 @@ function ComandasPageInner() {
         return
       }
       const data = await res.json()
+      // Update the order's status in local state using the server response
+      if (data.order_status) {
+        setOrders(prev => prev.map(o => o.id !== orderId ? o : {
+          ...o,
+          status: data.order_status,
+        }))
+      }
       pushToast(
         data.order_status === 'ready'
           ? `${DEST_META[dest].label} lista · pedido completo`
