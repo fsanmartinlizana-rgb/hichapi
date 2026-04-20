@@ -807,22 +807,39 @@ function OrderCard({
         </button>
       )}
 
-      {/* Action — station mode shows "Marcar listo (cocina/barra)", todo mode shows the column action */}
+      {/* Action — station mode: paso 1 "Iniciar preparación" (recibida→preparando),
+          paso 2 "Marcar lista" (preparando→ready). Antes faltaba el paso 1 y
+          la orden saltaba directo de recibida a listo, confundiendo al flow. */}
       {actionAllowed && order.status !== 'entregada' && (
         station !== 'todo' ? (
-          stationHasItems(station) && !stationAllReady(station) && order.status !== 'lista' && (
-            <button
-              onClick={() => onMarkStationReady(order.id, station)}
-              className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
-              style={{
-                backgroundColor: DEST_META[station].color + '18',
-                color:           DEST_META[station].color,
-                border: `1px solid ${DEST_META[station].color}30`,
-              }}
-            >
-              <CheckCircle2 size={13} />
-              Marcar {DEST_META[station].label.toLowerCase()} lista
-            </button>
+          stationHasItems(station) && order.status !== 'lista' && (
+            order.status === 'recibida' ? (
+              <button
+                onClick={() => onAdvance(order.id, 'preparando')}
+                className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: '#FBBF24' + '18',
+                  color:           '#FBBF24',
+                  border: `1px solid ${'#FBBF24'}30`,
+                }}
+              >
+                <ChefHat size={13} />
+                Iniciar preparación
+              </button>
+            ) : !stationAllReady(station) && (
+              <button
+                onClick={() => onMarkStationReady(order.id, station)}
+                className="w-full py-1.5 rounded-lg text-[11px] font-medium transition-colors flex items-center justify-center gap-1.5"
+                style={{
+                  backgroundColor: DEST_META[station].color + '18',
+                  color:           DEST_META[station].color,
+                  border: `1px solid ${DEST_META[station].color}30`,
+                }}
+              >
+                <CheckCircle2 size={13} />
+                Marcar {DEST_META[station].label.toLowerCase()} lista
+              </button>
+            )
           )
         ) : (
           col.next && (
@@ -1161,6 +1178,10 @@ function ComandasPageInner() {
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel: string } | null>(null)
   const [chargingOrder, setChargingOrder] = useState<{ id: string; amount: number; tableLabel: string } | null>(null)
   const [realMenuItems, setRealMenuItems] = useState<import('@/components/nueva-comanda/types').MenuItemOption[]>([])
+  // Stations LOCALES del restaurant actual (id + kind). Necesarias para
+  // enviar station_ids al RPC mark_station_ready_by_stations y evitar
+  // marcar items de otros locales (fix cross-local sync bug 2026-04-21).
+  const [myStations, setMyStations] = useState<{ id: string; kind: string }[]>([])
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -1187,10 +1208,12 @@ function ComandasPageInner() {
     try {
       const stationIdsRes = await supabase
         .from('stations')
-        .select('id')
+        .select('id, kind')
         .eq('restaurant_id', restId)
       if (!stationIdsRes.error) {
-        myStationIds = ((stationIdsRes.data ?? []) as { id: string }[]).map(s => s.id)
+        const rows = (stationIdsRes.data ?? []) as { id: string; kind: string }[]
+        myStationIds = rows.map(s => s.id)
+        setMyStations(rows)
       }
 
       if (myStationIds.length > 0) {
@@ -1432,11 +1455,34 @@ function ComandasPageInner() {
       ),
     }))
     if (orderId.startsWith('ord-')) return // local mock
+
+    // Multi-local (2026-04-21): enviar solo las station_ids de MI restaurant
+    // que matchean el destination clickeado. Asi el RPC
+    // mark_station_ready_by_stations NO marca items de otros locales.
+    // Mapeo kind → destination:
+    //   cocina → cocina, cocina_caliente, cocina_fria, parrilla, horno, postres, panaderia, otro
+    //   barra  → barra
+    const KIND_TO_DEST: Record<string, 'cocina' | 'barra'> = {
+      cocina: 'cocina', cocina_caliente: 'cocina', cocina_fria: 'cocina',
+      parrilla: 'cocina', horno: 'cocina', postres: 'cocina',
+      panaderia: 'cocina', otro: 'cocina', barra: 'barra',
+    }
+    const myMatchingStationIds = myStations
+      .filter(s => KIND_TO_DEST[s.kind] === dest)
+      .map(s => s.id)
+
     try {
+      // Si tenemos stations propias del kind pedido, usar el RPC nuevo.
+      // Si no (restaurant sin stations creadas), fallback al legacy por
+      // destination — comportamiento original pre-multi-local.
+      const body = myMatchingStationIds.length > 0
+        ? { order_id: orderId, station_ids: myMatchingStationIds }
+        : { order_id: orderId, destination: dest }
+
       const res = await fetch('/api/orders/station', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order_id: orderId, destination: dest }),
+        body: JSON.stringify(body),
       })
       if (!res.ok) {
         pushToast('No se pudo marcar listo. Intenta nuevamente.', 'break')
