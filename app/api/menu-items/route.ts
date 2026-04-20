@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       available:     data.available,
       photo_url:     data.photo_url || null,
     }
+    if (data.cost_price !== undefined) insertPayload.cost_price = data.cost_price
     if (data.ingredients) insertPayload.ingredients = data.ingredients
 
     const { data: item, error } = await supabase
@@ -127,7 +128,7 @@ export async function PATCH(req: NextRequest) {
 
     // Clean undefined values + drop fields not present in current schema
     // Note: 'ingredients' column exists (added in 20260408_015 migration)
-    const SCHEMA_DROPPED = new Set(['cost_price', 'display_order', 'destination'])
+    const SCHEMA_DROPPED = new Set(['display_order', 'destination'])
     const payload: Record<string, unknown> = {}
     for (const [k, v] of Object.entries(updates)) {
       if (v !== undefined && !SCHEMA_DROPPED.has(k)) payload[k] = v
