@@ -1169,42 +1169,64 @@ function ComandasPageInner() {
   const loadData = useCallback(async () => {
     if (!restId) return
 
-    // Sprint 2026-04-20: multi-local. Además de las órdenes propias del
-    // restaurant, traemos las orders cuyos order_items estén ruteados a
-    // stations de ESTE restaurant (aunque la order viva en otro local de
-    // la misma brand). Esto evita que las comandas "se pierdan" cuando
-    // un plato de un menú compartido se prepara en la cocina/barra de
-    // otro local.
-    const stationIdsRes = await supabase
-      .from('stations')
-      .select('id')
-      .eq('restaurant_id', restId)
-    const myStationIds = ((stationIdsRes.data ?? []) as { id: string }[]).map(s => s.id)
+    // ── Defensive query (2026-04-20) ─────────────────────────────────────
+    // Intentamos con station_id (schema completo, migration 048). Si la
+    // columna no existe (DBs sin la migration), caemos a query legacy sin
+    // station_id — NO queremos que el panel se quede vacío solo porque
+    // la feature multi-local no está habilitada todavía.
+    const FULL_ITEMS_SELECT   = 'id, name, quantity, notes, destination, station_status, station_id'
+    const LEGACY_ITEMS_SELECT = 'id, name, quantity, notes, destination, station_status'
 
-    // Query extra: order_items ruteados a mis stations. Agrupamos por
-    // order_id y después mergeamos con las órdenes propias. Solo activas.
-    let crossOrderIds: string[] = []
-    if (myStationIds.length > 0) {
-      const { data: crossItems } = await supabase
-        .from('order_items')
-        .select('order_id')
-        .in('station_id', myStationIds)
-        .not('status', 'in', '("paid","cancelled")')
-      crossOrderIds = [...new Set(((crossItems ?? []) as { order_id: string }[]).map(i => i.order_id))]
+    // Paso 1: intentar cargar stations + cross-orders SOLO si la columna
+    // station_id existe. Si falla, simplemente saltamos el bloque
+    // cross-local y dejamos crossOrderIds=[].
+    let myStationIds: string[]   = []
+    let crossOrderIds: string[]  = []
+    let fullSchemaOK             = true
+
+    try {
+      const stationIdsRes = await supabase
+        .from('stations')
+        .select('id')
+        .eq('restaurant_id', restId)
+      if (!stationIdsRes.error) {
+        myStationIds = ((stationIdsRes.data ?? []) as { id: string }[]).map(s => s.id)
+      }
+
+      if (myStationIds.length > 0) {
+        const crossRes = await supabase
+          .from('order_items')
+          .select('order_id')
+          .in('station_id', myStationIds)
+          .not('status', 'in', '("paid","cancelled")')
+        if (crossRes.error) {
+          // Si el error es por columna faltante, bajamos fullSchemaOK
+          // para que las próximas queries también usen el select legacy.
+          console.warn('[comandas] station_id query failed, fallback legacy:', crossRes.error.message)
+          fullSchemaOK = false
+        } else {
+          crossOrderIds = [...new Set(((crossRes.data ?? []) as { order_id: string }[]).map(i => i.order_id))]
+        }
+      }
+    } catch (err) {
+      console.warn('[comandas] stations/cross precheck failed, fallback legacy:', err)
+      fullSchemaOK = false
     }
+
+    const itemsSelect = fullSchemaOK ? FULL_ITEMS_SELECT : LEGACY_ITEMS_SELECT
 
     const [tablesRes, ownOrdersRes, crossOrdersRes, menuRes] = await Promise.all([
       supabase.from('tables').select('id, label, status, zone, seats').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
-        .select('id, table_id, restaurant_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status, station_id)')
+        .select(`id, table_id, restaurant_id, status, total, created_at, bill_requested_at, order_items(${itemsSelect})`)
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
-      crossOrderIds.length > 0
+      crossOrderIds.length > 0 && fullSchemaOK
         ? supabase
             .from('orders')
-            .select('id, table_id, restaurant_id, status, total, created_at, bill_requested_at, order_items(id, name, quantity, notes, destination, station_status, station_id), restaurants(name)')
+            .select(`id, table_id, restaurant_id, status, total, created_at, bill_requested_at, order_items(${itemsSelect}), restaurants(name)`)
             .in('id', crossOrderIds)
             .not('status', 'in', '("paid","cancelled")')
         : Promise.resolve({ data: [], error: null }),
@@ -1216,7 +1238,10 @@ function ComandasPageInner() {
         .order('name'),
     ])
 
-    if (ownOrdersRes.error) { setOnline(false); setLoading(false); return }
+    if (ownOrdersRes.error) {
+      console.error('[comandas] own orders query failed:', ownOrdersRes.error)
+      setOnline(false); setLoading(false); return
+    }
     setOnline(true)
 
     const tables: DbTable[]  = tablesRes.data  ?? []
