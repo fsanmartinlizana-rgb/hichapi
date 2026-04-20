@@ -10,7 +10,7 @@ import {
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
   ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
   Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit,
-  Gift, MapPin, ChefHat,
+  Gift, MapPin, ChefHat, Tag,
 } from 'lucide-react'
 import { canAccessModule } from '@/lib/plans'
 import SupportModal from '@/components/SupportModal'
@@ -85,6 +85,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Tono de Chapi',  href: '/tono',          icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
       { label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] },
       { label: 'Fidelización',   href: '/fidelizacion',  icon: Gift,              roles: ['admin','owner','super_admin'] },
+      { label: 'Promociones',    href: '/promociones',   icon: Tag,               roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },
   {
@@ -120,6 +121,7 @@ const NAV_PLAN_REQUIRED: Record<string, string> = {
   '/analytics':    'pro',
   '/insights':     'pro',
   '/fidelizacion': 'pro',
+  '/promociones':  'pro',
 
   // Locales (single o multi) → starter+
   // Enterprise desbloquea AGREGAR locales; planes inferiores solo ven/editan

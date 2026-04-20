@@ -10,7 +10,9 @@
 import {
   DollarSign, TrendingUp, TrendingDown, Receipt, Grid3x3,
   AlertTriangle, BarChart2, Clock, Sparkles, Trash2,
+  Lightbulb, Target, AlertCircle, Tag, ArrowRight,
 } from 'lucide-react'
+import Link from 'next/link'
 import type { AnalyticsSummary } from './types'
 
 function clp(n: number) {
@@ -45,6 +47,8 @@ export function DashboardWidget({ type, summary }: { type: string; summary: Anal
       return <HourlyOrders summary={summary} />
     case 'chapi_tip_of_the_day':
       return <ChapiTip summary={summary} />
+    case 'chapi_recommendations':
+      return <ChapiRecommendations summary={summary} />
     case 'waste_cost':
       return <WasteCost summary={summary} />
     case 'waste_breakdown':
@@ -160,20 +164,27 @@ function TopItems({ summary }: { summary: AnalyticsSummary }) {
   )
 }
 
-// ── Heatmap de ocupación (día de la semana × hora) ───────────────────────
-// Reemplaza al gráfico de barras horario que era poco legible. Muestra una
-// grilla de 7 filas × 12 columnas (horas operativas) con intensidad naranja
-// proporcional al promedio de órdenes por celda. Las celdas con <35% del
-// pico se marcan como "hora valle" — candidatas a promociones.
+// ── Heatmap de ocupación (fecha calendario × hora) ─────────────────────
+// Dinámico según período: 1 fila si es "hoy", 7 si es "semana", 30+ si es
+// "mes"/"30d". Cada celda es una hora específica de un día específico.
+// Las celdas bajo 35% del pico se marcan como "valle" (oportunidad promo).
 
-const DAYS_ES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'] as const
-// Horas visibles por default. Si hay data fuera, el componente expande
-// el rango automáticamente.
+const DAYS_ES_SHORT = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'] as const
 const DEFAULT_HOURS = [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22]
 
+function formatDateLabel(iso: string): string {
+  // "2026-04-19" → "Sáb 19 abr"
+  const [y, m, d] = iso.split('-').map(Number)
+  const dt = new Date(Date.UTC(y, m - 1, d, 12)) // UTC noon para evitar shifts
+  const day = DAYS_ES_SHORT[dt.getUTCDay()]
+  const mon = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][dt.getUTCMonth()]
+  return `${day} ${String(d).padStart(2, '0')} ${mon}`
+}
+
 function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
-  const rawHeatmap = summary.heatmap
-  if (!rawHeatmap || rawHeatmap.length !== 7) {
+  const rows = summary.heatmap_daily ?? []
+
+  if (rows.length === 0) {
     return (
       <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex items-center justify-center">
         <p className="text-white/30 text-xs italic">Sin datos de ocupación en el período</p>
@@ -181,54 +192,53 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
     )
   }
 
-  // Re-index: en JS Date.getDay() devuelve 0=Dom..6=Sab. Queremos mostrar
-  // Lun..Dom. heatmapByDayEs[0]=Lunes .. [6]=Domingo.
-  const heatmapByDayEs: number[][] = [1, 2, 3, 4, 5, 6, 0].map(dow => rawHeatmap[dow])
-
-  // Determinar rango de horas con actividad para expandir si es necesario
-  let minHour = 24
-  let maxHour = 0
-  let hasAnyData = false
-  for (const row of rawHeatmap) {
+  // Rango de horas: siempre arranca desde la hora operativa default (10h) y
+  // expande si hay data antes de las 10 o después de las 23. Esto evita que
+  // con solo 1h de actividad muestre solo 1 columna como antes.
+  let minHour = 10
+  let maxHour = 23
+  for (const r of rows) {
     for (let h = 0; h < 24; h++) {
-      if (row[h] > 0) {
-        hasAnyData = true
+      if (r.cells[h] > 0) {
         if (h < minHour) minHour = h
         if (h > maxHour) maxHour = h
       }
     }
   }
-  const hours = hasAnyData
-    ? Array.from(
-        { length: Math.max(maxHour - minHour + 1, 8) },
-        (_, i) => Math.min(minHour + i, 23),
-      )
+  // Fallback conservador si nada de nada: usar DEFAULT_HOURS
+  const anyData = rows.some(r => r.cells.some(c => c > 0))
+  const hours = anyData
+    ? Array.from({ length: maxHour - minHour + 1 }, (_, i) => minHour + i)
     : DEFAULT_HOURS
 
-  // Max global para escalar intensidades
+  // Pico global
   let max = 0
-  for (const row of heatmapByDayEs) for (const h of hours) if (row[h] > max) max = row[h]
+  for (const r of rows) for (const h of hours) if (r.cells[h] > max) max = r.cells[h]
+  const hasActivity = max > 0
   if (max === 0) max = 1
 
-  // "Hora valle" = celda con actividad entre 5% y 35% del pico (no 0 para
-  // no marcar horarios cerrados como si fueran una oportunidad de promoción)
   const isValley = (v: number) => {
+    if (!hasActivity) return false
     const pct = v / max
     return pct > 0.05 && pct < 0.35
   }
 
-  // Conteo total de horas valle para el insight-texto
   let valleyCount = 0
-  for (const row of heatmapByDayEs) for (const h of hours) if (isValley(row[h])) valleyCount++
+  for (const r of rows) for (const h of hours) if (isValley(r.cells[h])) valleyCount++
+
+  // Con muchos días (30+), las filas se achican para que todas quepan sin scroll.
+  // Con pocos días, filas más gruesas para mejor lectura.
+  const rowHeight = rows.length > 20 ? 16 : rows.length > 10 ? 22 : 28
+  const showNumbers = rowHeight >= 22
 
   return (
     <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
       <div className="flex items-start justify-between mb-3 gap-2">
         <div>
-          <p className="text-white font-semibold text-sm">Ocupación por día y hora</p>
+          <p className="text-white font-semibold text-sm">Ocupación por fecha y hora</p>
           <p className="text-white/35 text-[10px]">
-            Promedio de órdenes · {summary.period}
-            {valleyCount > 0 && ` · ${valleyCount} horas valle detectadas`}
+            {rows.length} día{rows.length === 1 ? '' : 's'} · período: {summary.period}
+            {valleyCount > 0 && ` · ${valleyCount} horas valle`}
           </p>
         </div>
         <div className="flex items-center gap-1.5 text-[9px] text-white/40 shrink-0 flex-wrap">
@@ -239,11 +249,10 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
         </div>
       </div>
 
-      {/* Grid */}
-      <div className="flex-1 overflow-x-auto">
+      <div className="flex-1 overflow-auto">
         <div className="min-w-full">
           {/* Header row con horas */}
-          <div className="flex gap-[3px] mb-1 pl-10">
+          <div className="flex gap-[3px] mb-1 pl-[88px] sticky top-0 bg-[#161622] z-10 pb-1">
             {hours.map(h => (
               <div key={h} className="flex-1 text-center text-[9px] text-white/30 font-mono min-w-[22px]">
                 {h}h
@@ -251,27 +260,30 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
             ))}
           </div>
           {/* Day rows */}
-          {heatmapByDayEs.map((row, dayIdx) => (
-            <div key={dayIdx} className="flex items-center gap-[3px] mb-[3px]">
-              <span className="w-9 text-[10px] text-white/40 shrink-0 font-semibold">{DAYS_ES[dayIdx]}</span>
+          {rows.map(r => (
+            <div key={r.date} className="flex items-center gap-[3px] mb-[3px]">
+              <span className="w-[84px] text-[10px] text-white/50 shrink-0 font-medium truncate pr-1">
+                {formatDateLabel(r.date)}
+              </span>
               {hours.map(h => {
-                const v = row[h] ?? 0
+                const v = r.cells[h] ?? 0
                 const intensity = v / max
                 const valley = isValley(v)
                 return (
                   <div
                     key={h}
-                    title={`${DAYS_ES[dayIdx]} ${String(h).padStart(2, '0')}:00 — ${v.toFixed(1)} pedidos promedio`}
-                    className={`flex-1 h-7 rounded transition-all cursor-default flex items-center justify-center min-w-[22px] group relative
+                    title={`${formatDateLabel(r.date)} ${String(h).padStart(2, '0')}:00 — ${v} pedido${v === 1 ? '' : 's'}`}
+                    className={`flex-1 rounded transition-all cursor-default flex items-center justify-center min-w-[22px]
                       ${valley ? 'ring-1 ring-red-500/40' : ''}`}
                     style={{
+                      height: `${rowHeight}px`,
                       backgroundColor: v === 0
                         ? 'rgba(255,255,255,0.03)'
                         : `rgba(255,107,53,${0.1 + intensity * 0.8})`,
                     }}
                   >
-                    {intensity > 0.4 && (
-                      <span className="text-[9px] font-mono text-white/90">{Math.round(v)}</span>
+                    {showNumbers && intensity > 0.4 && (
+                      <span className="text-[9px] font-mono text-white/90">{v}</span>
                     )}
                   </div>
                 )
@@ -281,7 +293,6 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
         </div>
       </div>
 
-      {/* Insight footer */}
       {valleyCount > 0 && (
         <div className="mt-3 pt-3 border-t border-white/5 flex items-start gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
@@ -489,6 +500,204 @@ function ChapiTip({ summary }: { summary: AnalyticsSummary }) {
       </div>
       <p className="text-white/80 text-sm leading-relaxed">{tip}</p>
       <p className="text-white/30 text-[10px]">Actualizado ahora</p>
+    </div>
+  )
+}
+
+// ── Chapi Recommendations ───────────────────────────────────────────────
+// Genera recomendaciones accionables derivadas del summary real:
+// • Plato estrella + oportunidad de subir precio
+// • Hora pico y día más fuerte
+// • Horarios muertos candidatos a promoción
+// • Alertas de stock/mermas cuando aplica
+// Cada card tiene un CTA que lleva al módulo correspondiente.
+
+interface Recommendation {
+  type:   'opportunity' | 'warning' | 'insight'
+  icon:   React.ReactNode
+  color:  string
+  bg:     string
+  title:  string
+  body:   string
+  cta?:   { label: string; href: string }
+}
+
+function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
+  const recs: Recommendation[] = []
+  const { revenue, top_items, by_hour, comparison, heatmap_daily, waste, stock_alerts } = summary
+
+  // ── 1. Plato estrella → subir precio si margen es medio ─────────────
+  if (top_items.length > 0 && revenue.orders_count >= 10) {
+    const star = top_items[0]
+    const totalRev = top_items.reduce((s, i) => s + i.revenue, 0)
+    const pct = totalRev > 0 ? Math.round((star.revenue / totalRev) * 100) : 0
+    recs.push({
+      type:  'opportunity',
+      icon:  <Target size={14} />,
+      color: 'text-emerald-400',
+      bg:    'bg-emerald-500/10 border-emerald-500/20',
+      title: `${star.name} es tu plato estrella`,
+      body: `Representa ${pct}% del revenue del período (${star.qty} unidades). Si tiene alto pedido y margen, podés probar una subida de $500-$1000 sin impactar ventas.`,
+      cta:   { label: 'Editar precio en la carta', href: '/carta' },
+    })
+  }
+
+  // ── 2. Hora pico identificada ───────────────────────────────────────
+  const peakHour = by_hour.reduce<{ hour: number; orders: number } | null>(
+    (acc, h) => (acc && acc.orders >= h.orders ? acc : h),
+    null,
+  )
+  if (peakHour && peakHour.orders >= 3) {
+    recs.push({
+      type:  'insight',
+      icon:  <Clock size={14} />,
+      color: 'text-blue-400',
+      bg:    'bg-blue-500/10 border-blue-500/20',
+      title: `Tu hora pico es ${String(peakHour.hour).padStart(2, '0')}:00`,
+      body: `Con ${peakHour.orders} pedidos en ese horario. Asegurate de tener suficiente personal en turno y los insumos críticos stockeados.`,
+      cta:   { label: 'Ver turnos', href: '/turnos' },
+    })
+  }
+
+  // ── 3. Horarios muertos detectados (del heatmap_daily) ─────────────
+  if (heatmap_daily && heatmap_daily.length > 0) {
+    let max = 0
+    for (const r of heatmap_daily) for (const c of r.cells) if (c > max) max = c
+    if (max > 0) {
+      // Agregar por hora: sumar todas las celdas en esa hora (cualquier día)
+      const hourTotals = new Map<number, number>()
+      const hourDays   = new Map<number, number>()
+      for (const r of heatmap_daily) {
+        for (let h = 0; h < 24; h++) {
+          if (r.cells[h] > 0) {
+            hourTotals.set(h, (hourTotals.get(h) ?? 0) + r.cells[h])
+            hourDays.set(h, (hourDays.get(h) ?? 0) + 1)
+          }
+        }
+      }
+      // Hora valle operativa: entre 10-23h, con actividad pero menos del 30% del pico.
+      let worstHour: number | null = null
+      let worstAvg = Infinity
+      for (const [h, total] of hourTotals) {
+        if (h < 10 || h > 23) continue
+        const avg = total / (hourDays.get(h) ?? 1)
+        if (avg > 0 && avg < max * 0.3 && avg < worstAvg) {
+          worstAvg = avg
+          worstHour = h
+        }
+      }
+      if (worstHour !== null) {
+        recs.push({
+          type:  'warning',
+          icon:  <AlertCircle size={14} />,
+          color: 'text-yellow-400',
+          bg:    'bg-yellow-500/10 border-yellow-500/20',
+          title: `Horario muerto: ${String(worstHour).padStart(2, '0')}:00`,
+          body: `Tenés en promedio ${worstAvg.toFixed(1)} pedidos a esa hora — muy por debajo del pico. Activá una promoción happy-hour para llenar el salón.`,
+          cta:   { label: 'Crear promoción', href: '/promociones' },
+        })
+      }
+    }
+  }
+
+  // ── 4. Alertas de stock ────────────────────────────────────────────
+  if (stock_alerts > 0) {
+    recs.push({
+      type:  'warning',
+      icon:  <AlertTriangle size={14} />,
+      color: 'text-amber-400',
+      bg:    'bg-amber-500/10 border-amber-500/20',
+      title: `${stock_alerts} insumo${stock_alerts === 1 ? '' : 's'} bajo el umbral mínimo`,
+      body: 'Revisá stock antes del próximo servicio. Faltante de ingredientes = pedidos perdidos + clientes molestos.',
+      cta:   { label: 'Ver stock', href: '/stock' },
+    })
+  }
+
+  // ── 5. Mermas altas (>5% del revenue) ─────────────────────────────
+  if (waste && waste.total_cost > 0 && revenue.total_paid > 0) {
+    const wastePct = (waste.total_cost / revenue.total_paid) * 100
+    if (wastePct > 5) {
+      recs.push({
+        type:  'warning',
+        icon:  <Trash2 size={14} />,
+        color: 'text-red-400',
+        bg:    'bg-red-500/10 border-red-500/20',
+        title: `Mermas representan ${wastePct.toFixed(1)}% del revenue`,
+        body: `${clp(waste.total_cost)} perdidos en el período. Revisá la razón principal y ajustá procesos.`,
+        cta:   { label: 'Ver mermas', href: '/mermas' },
+      })
+    }
+  }
+
+  // ── 6. Crecimiento / caída vs período anterior ────────────────────
+  if (Math.abs(comparison.delta_pct) >= 15 && comparison.prev_total_paid > 0) {
+    const up = comparison.delta_pct >= 0
+    recs.push({
+      type:  up ? 'insight' : 'warning',
+      icon:  up ? <TrendingUp size={14} /> : <TrendingDown size={14} />,
+      color: up ? 'text-emerald-400' : 'text-red-400',
+      bg:    up ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20',
+      title: up
+        ? `Vas +${comparison.delta_pct}% vs período anterior`
+        : `Bajaste ${comparison.delta_pct}% vs período anterior`,
+      body: up
+        ? `${clp(revenue.total_paid - comparison.prev_total_paid)} más que el período anterior. Es el momento ideal para probar un nuevo plato o menú.`
+        : `${clp(comparison.prev_total_paid - revenue.total_paid)} menos que el período anterior. Revisá tiempos de cocina, tickets cancelados y top items.`,
+    })
+  }
+
+  // ── 7. Promoción genérica (siempre útil si no hay warnings) ───────
+  if (recs.length === 0 && revenue.orders_count > 0) {
+    recs.push({
+      type:  'opportunity',
+      icon:  <Tag size={14} />,
+      color: 'text-[#FF6B35]',
+      bg:    'bg-[#FF6B35]/10 border-[#FF6B35]/20',
+      title: 'Probá un combo para subir el ticket promedio',
+      body: `Tu ticket promedio es ${clp(revenue.avg_ticket)}. Un combo plato+bebida o plato+postre con 10% de descuento puede aumentarlo 15-20%.`,
+      cta:   { label: 'Crear promoción', href: '/promociones' },
+    })
+  }
+
+  if (recs.length === 0) {
+    return (
+      <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex items-center justify-center">
+        <p className="text-white/30 text-xs italic text-center">
+          Sin recomendaciones todavía. Seguí registrando pedidos y Chapi te dirá qué mejorar.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-2">
+          <Sparkles size={14} className="text-[#FF6B35]" />
+          <p className="text-white font-semibold text-sm">Chapi recomienda</p>
+        </div>
+        <span className="text-white/30 text-[10px]">{recs.length} insight{recs.length === 1 ? '' : 's'}</span>
+      </div>
+
+      <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
+        {recs.map((r, i) => (
+          <div key={i} className={`border rounded-xl p-3 space-y-1.5 ${r.bg}`}>
+            <div className="flex items-center gap-2">
+              <span className={r.color}>{r.icon}</span>
+              <p className="text-white text-xs font-semibold flex-1">{r.title}</p>
+            </div>
+            <p className="text-white/70 text-[11px] leading-relaxed">{r.body}</p>
+            {r.cta && (
+              <Link
+                href={r.cta.href}
+                className={`inline-flex items-center gap-1 text-[10px] font-semibold mt-1 ${r.color} hover:opacity-80 transition-opacity`}
+              >
+                <Lightbulb size={9} /> {r.cta.label} <ArrowRight size={9} />
+              </Link>
+            )}
+          </div>
+        ))}
+      </div>
     </div>
   )
 }

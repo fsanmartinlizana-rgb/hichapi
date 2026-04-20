@@ -230,16 +230,19 @@ function ResumenTab({ summary }: { summary: AnalyticsSummary | null }) {
   if (!summary) return null
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-      <DashboardWidget type="chapi_tip_of_the_day" summary={summary} />
       <DashboardWidget type="revenue_today"        summary={summary} />
       <DashboardWidget type="avg_ticket"           summary={summary} />
       <DashboardWidget type="open_tables_now"      summary={summary} />
       <DashboardWidget type="inventory_low_stock"  summary={summary} />
       <DashboardWidget type="waste_cost"           summary={summary} />
-      {/* Heatmap full-width — el valor central del dashboard: muestra
-          ocupación por día×hora y detecta horas valle para promociones. */}
+      <DashboardWidget type="chapi_tip_of_the_day" summary={summary} />
+      {/* Heatmap full-width — ocupación por fecha × hora */}
       <div className="lg:col-span-3 min-h-[380px]">
         <DashboardWidget type="occupancy_heatmap" summary={summary} />
+      </div>
+      {/* Recomendaciones de Chapi — insights accionables */}
+      <div className="lg:col-span-3 min-h-[300px]">
+        <DashboardWidget type="chapi_recommendations" summary={summary} />
       </div>
     </div>
   )

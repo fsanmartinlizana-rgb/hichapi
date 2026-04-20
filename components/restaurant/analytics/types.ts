@@ -14,8 +14,8 @@ export interface AnalyticsSummary {
   top_items:    { name: string; qty: number; revenue: number }[]
   by_hour:      { hour: number; orders: number; revenue: number }[]
   by_day:       { date: string; orders: number; revenue: number }[]
-  /** 7×24 matriz — heatmap[dow][hour] = promedio de órdenes. dow 0=Dom..6=Sab */
-  heatmap?:     number[][]
+  /** Heatmap por fecha calendario × hora. Array de filas, una por día del período. */
+  heatmap_daily?: { date: string; cells: number[] }[]
   stock_alerts: number
   open_tables:  number
   waste?: {

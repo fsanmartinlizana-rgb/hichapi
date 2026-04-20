@@ -88,6 +88,14 @@ export const WIDGET_CATALOG: WidgetDef[] = [
     planRequired: 'pro',
   },
   {
+    type:         'chapi_recommendations',
+    label:        'Chapi recomienda',
+    description:  'Recomendaciones accionables: plato estrella, hora pico, promociones, pricing',
+    icon:         'Lightbulb',
+    defaultSize:  { w: 6, h: 5 },
+    planRequired: 'pro',
+  },
+  {
     type:         'waste_cost',
     label:        'Pérdidas por mermas',
     description:  'Costo total y top razones',

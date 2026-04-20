@@ -142,32 +142,39 @@ export async function GET(req: NextRequest) {
     byHour[h].revenue += o.total || 0
   }
 
-  // ── Heatmap ocupación: day-of-week (0=Dom..6=Sab) × hour (0-23) ─────
-  // Usa TODOS los pedidos pagados del período (no solo paidOrders del rango
-  // corto) para que el heatmap muestre patrones significativos. Por cada
-  // celda guarda cantidad de órdenes y cantidad de "días únicos con data"
-  // para calcular el promedio por día de la semana en la UI.
-  const heatmap: number[][] = Array.from({ length: 7 }, () => Array(24).fill(0))
-  const heatmapDaysSeen: Set<string>[][] = Array.from(
-    { length: 7 },
-    () => Array.from({ length: 24 }, () => new Set<string>()),
-  )
+  // ── Heatmap ocupación: date × hour (dinámico según el período) ───────
+  // Antes: agregaba por day-of-week (7 filas fijas). Problema: al cambiar
+  // de 7d a 30d el heatmap no reflejaba más días, solo re-promediaba los
+  // mismos 7 labels (Lun..Dom).
+  // Ahora: una fila por FECHA CALENDARIO dentro del período. Si el usuario
+  // elige 30d, ve 30 filas. Si elige hoy, ve 1 fila. Dinámico y útil.
+  //
+  // heatmapDaily: Array de { date: 'YYYY-MM-DD', cells: number[24] }
+  // ordenado de más reciente a más antiguo.
+  const dailyMap = new Map<string, number[]>()
+
+  // Sembrar todas las fechas del rango (aunque no tengan órdenes, para que
+  // el grid no tenga "huecos" visuales de días sin data).
+  const dayCursor = new Date(start)
+  dayCursor.setHours(0, 0, 0, 0)
+  const endClamp  = new Date(end)
+  endClamp.setHours(23, 59, 59, 999)
+  while (dayCursor <= endClamp) {
+    dailyMap.set(dayCursor.toISOString().slice(0, 10), Array(24).fill(0))
+    dayCursor.setDate(dayCursor.getDate() + 1)
+  }
+
   for (const o of paidOrders) {
     const d = new Date(o.created_at)
-    const dow = d.getDay()
-    const hr  = d.getHours()
-    heatmap[dow][hr] += 1
-    heatmapDaysSeen[dow][hr].add(o.created_at.slice(0, 10))
+    const dateKey = o.created_at.slice(0, 10)
+    const hr = d.getHours()
+    const row = dailyMap.get(dateKey)
+    if (row) row[hr] += 1
   }
-  // Convertir a promedio por día observado: si un (lunes 13:00) tiene 5
-  // órdenes y vimos 2 lunes en el período, promedio = 2.5. Esto da una
-  // lectura estable independiente de cuántas semanas tenga el período.
-  const heatmapAvg: number[][] = heatmap.map((row, dow) =>
-    row.map((orders, hr) => {
-      const seen = heatmapDaysSeen[dow][hr].size || 1
-      return Math.round((orders / seen) * 10) / 10
-    }),
-  )
+
+  const heatmapDaily = [...dailyMap.entries()]
+    .map(([date, cells]) => ({ date, cells }))
+    .sort((a, b) => b.date.localeCompare(a.date)) // más reciente arriba
 
   // ── By day (últimos 30 días) ───────────────────────────────────────────
   const byDay = new Map<string, { orders: number; revenue: number }>()
@@ -246,7 +253,8 @@ export async function GET(req: NextRequest) {
     top_items:    topItems,
     by_hour:      byHour,
     by_day:       byDayArr,
-    heatmap:      heatmapAvg, // 7×24 matriz de avg orders por (dow, hour)
+    // Heatmap por fecha calendaria × hora. Cantidad de filas = días del período.
+    heatmap_daily: heatmapDaily,
     stock_alerts: stockAlerts,
     open_tables:  openTables ?? 0,
     waste: {

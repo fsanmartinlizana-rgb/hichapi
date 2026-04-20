@@ -102,6 +102,11 @@ function ItemForm({
   const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? [])
   const [saving, setSaving]           = useState(false)
   const [photoPreview, setPhotoPreview] = useState<string | null>(initial?.photo_url ?? null)
+  // Si es un blob: local (recién seleccionado), guardamos el File para
+  // upload al momento del save. Si es una URL remota ya guardada, no hay
+  // nada que subir.
+  const [pendingPhoto, setPendingPhoto] = useState<File | null>(null)
+  const [uploadError, setUploadError] = useState<string | null>(null)
   const [stationOverrideId, setStationOverrideId] = useState<string>(initialOverrideId ?? '')
 
   function addIngredient() {
@@ -130,19 +135,65 @@ function ItemForm({
   function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    setUploadError(null)
+    // Preview local INMEDIATO para que el usuario vea la imagen antes del
+    // upload. El upload real se dispara en handleSave para no bloquear
+    // mientras el usuario sigue completando el formulario.
     const url = URL.createObjectURL(file)
     setPhotoPreview(url)
+    setPendingPhoto(file)
   }
 
   function removePhoto() {
     setPhotoPreview(null)
+    setPendingPhoto(null)
+    setUploadError(null)
     if (fileRef.current) fileRef.current.value = ''
+  }
+
+  /**
+   * Sube la foto a Supabase Storage via /api/upload y devuelve la URL
+   * pública. Si falla, graba el error para mostrar en UI y devuelve null.
+   */
+  async function uploadPhotoIfNeeded(): Promise<string | null | undefined> {
+    // Si no hay archivo nuevo: conservar la URL remota existente (o undefined).
+    if (!pendingPhoto) {
+      // Si el preview actual es blob: local pero no hay File, algo raro.
+      if (photoPreview?.startsWith('blob:')) return undefined
+      return photoPreview ?? undefined
+    }
+    const fd = new FormData()
+    fd.append('file', pendingPhoto)
+    fd.append('bucket', 'restaurant-photos')
+    fd.append('folder', 'menu-items')
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      const data = await res.json()
+      if (!res.ok || !data.url) {
+        setUploadError(data.error ?? 'No se pudo subir la foto')
+        return null
+      }
+      return data.url as string
+    } catch {
+      setUploadError('Error de conexión al subir la foto')
+      return null
+    }
   }
 
   async function handleSave() {
     if (!name || !price) return
     setSaving(true)
+    setUploadError(null)
     try {
+      // Subir la foto ANTES de guardar el plato, para que el photo_url
+      // persistido en DB sea una URL pública permanente (no un blob: local
+      // que muere al cerrar la pestaña).
+      const finalPhotoUrl = await uploadPhotoIfNeeded()
+      if (finalPhotoUrl === null) {
+        // Upload falló — abortar save para que el usuario decida si reintentar
+        setSaving(false)
+        return
+      }
       await onSave({
         name,
         description: desc,
@@ -152,10 +203,11 @@ function ItemForm({
         available,
         destination,
         cost_price: cost ? parseInt(cost) : undefined,
-        photo_url: photoPreview ?? undefined,
+        photo_url: finalPhotoUrl ?? undefined,
         ingredients: ingredients.filter(i => i.qty > 0 && i.stock_item_id),
         station_override_id: stationOverrideId || null,
       })
+      setPendingPhoto(null)
     } finally {
       setSaving(false)
     }
@@ -200,6 +252,13 @@ function ItemForm({
           </span>
           <span className="text-white/20 text-[10px]">Max 5MB · JPG, PNG, WebP</span>
         </button>
+      )}
+
+      {uploadError && (
+        <div className="flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/5 px-3 py-2">
+          <AlertCircle size={12} className="text-red-400 shrink-0" />
+          <p className="text-red-300 text-xs flex-1">{uploadError}</p>
+        </div>
       )}
 
       <div className="grid grid-cols-2 gap-4">

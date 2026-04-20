@@ -130,8 +130,8 @@ export default function QrsImprimiblesPage() {
         )}
       </div>
 
-      {/* Grid de QR */}
-      <div ref={containerRef} className="max-w-5xl mx-auto px-6 py-8 print:px-0 print:py-0">
+      {/* Grid de QR — 2 cols en pantalla, 2 cols x 3 rows = 6 por pagina A4 al imprimir */}
+      <div ref={containerRef} className="qrs-print-area max-w-5xl mx-auto px-6 py-8 print:px-0 print:py-0 print:max-w-none">
         {loading ? (
           <div className="flex items-center justify-center py-20">
             <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
@@ -141,45 +141,44 @@ export default function QrsImprimiblesPage() {
             No hay mesas con QR generado.
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-6 print:grid-cols-2 print:gap-4">
+          <div className="grid grid-cols-2 gap-6 print:grid-cols-2 print:gap-3">
             {mesas.map(m => {
               const url = `${origin}/${slug}/${m.qr_token}`
               return (
                 <div
                   key={m.id}
-                  className="qr-card rounded-2xl border border-white/10 bg-white/[0.02] p-6 break-inside-avoid flex flex-col items-center gap-3 print:border-neutral-300 print:bg-white print:shadow-none"
+                  className="qr-card rounded-2xl border border-white/10 bg-white/[0.02] p-6 flex flex-col items-center gap-3 print:border-neutral-300 print:bg-white print:shadow-none print:p-3 print:rounded-none print:gap-1.5"
                 >
                   {/* Encabezado */}
                   <div className="text-center print:text-black">
-                    <p className="text-white/40 text-[10px] uppercase tracking-widest print:text-neutral-500">Chapi · Mesa</p>
-                    <p className="text-white text-3xl font-bold leading-none mt-1 print:text-black" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                    <p className="text-white/40 text-[10px] uppercase tracking-widest print:text-neutral-500 print:text-[8px]">Chapi · Mesa</p>
+                    <p className="text-white text-3xl font-bold leading-none mt-1 print:text-black print:text-xl" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                       {m.label}
                     </p>
                     {m.zone && (
-                      <p className="text-white/30 text-[10px] mt-1 print:text-neutral-500">{m.zone} · {m.seats} pax</p>
+                      <p className="text-white/30 text-[10px] mt-1 print:text-neutral-500 print:text-[8px]">{m.zone} · {m.seats} pax</p>
                     )}
                   </div>
 
                   {/* QR */}
-                  <div className="bg-white rounded-2xl p-3 print:p-2 print:border print:border-neutral-200">
+                  <div className="bg-white rounded-2xl p-3 print:p-1 print:border print:border-neutral-200 print:rounded-md">
                     <QRCodeCanvas
                       value={url}
-                      size={200}
+                      size={180}
                       level="M"
                       className="qr-canvas"
                       imageSettings={{
                         src:       '/favicon.ico',
-                        width:     32,
-                        height:    32,
+                        width:     28,
+                        height:    28,
                         excavate:  true,
                       }}
                     />
-                    {/* Canvas attribute data-label para download bulk */}
                     <DataLabelAttacher label={m.label} />
                   </div>
 
-                  {/* URL de referencia (small) */}
-                  <p className="text-white/25 text-[9px] font-mono break-all text-center print:text-neutral-400">
+                  {/* URL de referencia — oculta en print para ahorrar espacio vertical */}
+                  <p className="text-white/25 text-[9px] font-mono break-all text-center print:hidden">
                     {url}
                   </p>
                 </div>
@@ -189,18 +188,39 @@ export default function QrsImprimiblesPage() {
         )}
       </div>
 
-      {/* Print styles */}
+      {/* Print styles — configuración defensiva:
+          1. page-break-inside: avoid → ningún QR se corta a la mitad entre páginas.
+          2. Disable sticky header al imprimir para que el grid arranque desde arriba.
+          3. Override max-height/overflow del contenedor principal que suele cortar
+             el flujo al imprimir.
+          4. Tamaño A4 con margen 1cm da ~19×27cm utilizables; 6 QRs entran
+             cómodos (tarjeta ~7×8cm con label y URL corta). */}
       <style jsx global>{`
         @media print {
-          @page {
-            size: A4;
-            margin: 1cm;
-          }
-          body {
+          @page { size: A4; margin: 1cm; }
+          html, body {
             background: white !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          /* Asegurar que ningún ancestro tenga overflow hidden que corte el flujo */
+          body * {
+            overflow: visible !important;
           }
           .qr-card {
-            page-break-inside: avoid;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
+            -webkit-column-break-inside: avoid;
+          }
+          .qrs-print-area {
+            display: block !important;
+            height: auto !important;
+            overflow: visible !important;
+          }
+          /* Fuerza colores exactos en impresión (algunos browsers convierten a gris) */
+          .qr-canvas {
+            print-color-adjust: exact;
+            -webkit-print-color-adjust: exact;
           }
         }
       `}</style>
