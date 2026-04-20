@@ -471,15 +471,160 @@ function ItemForm({
   )
 }
 
+// ── RecipeModal ───────────────────────────────────────────────────────────────
+
+interface StockItemOption {
+  id: string
+  name: string
+  unit: string
+  cost_per_unit: number
+}
+
+function RecipeModal({
+  item,
+  restaurantId,
+  onClose,
+}: {
+  item: MenuItem
+  restaurantId: string
+  onClose: () => void
+}) {
+  const [stockItems, setStockItems] = useState<StockItemOption[]>([])
+  const [ingredients, setIngredients] = useState<{ stock_item_id: string; qty: number }[]>(
+    item.ingredients ?? []
+  )
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+  const [deleting, setDeleting] = useState(false)
+
+  useEffect(() => {
+    fetch(`/api/stock?restaurant_id=${restaurantId}`)
+      .then(r => r.json())
+      .then(data => {
+        const all: StockItemOption[] = []
+        for (const cat of Object.values(data.categories ?? {})) {
+          for (const si of (cat as { items: StockItemOption[] }).items) all.push(si)
+        }
+        setStockItems(all)
+      })
+  }, [restaurantId])
+
+  const costo_estimado = ingredients.reduce((sum, ing) => {
+    const si = stockItems.find(s => s.id === ing.stock_item_id)
+    return sum + (si ? ing.qty * si.cost_per_unit : 0)
+  }, 0)
+
+  function addIngredient() {
+    setIngredients(prev => [...prev, { stock_item_id: '', qty: 1 }])
+  }
+
+  function removeIngredient(idx: number) {
+    setIngredients(prev => prev.filter((_, i) => i !== idx))
+  }
+
+  function updateIngredient(idx: number, field: 'stock_item_id' | 'qty', value: string | number) {
+    setIngredients(prev => prev.map((ing, i) => i === idx ? { ...ing, [field]: value } : ing))
+  }
+
+  async function handleSave() {
+    const valid = ingredients.filter(i => i.stock_item_id && i.qty > 0)
+    if (valid.length === 0) { setError('Agrega al menos un ingrediente'); return }
+    setSaving(true); setError('')
+    try {
+      const res = await fetch('/api/stock/recipes', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ menu_item_id: item.id, restaurant_id: restaurantId, ingredients: valid }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        setError(d.error ?? 'Error al guardar receta')
+        return
+      }
+      onClose()
+    } catch { setError('Error de red') } finally { setSaving(false) }
+  }
+
+  async function handleDelete() {
+    setDeleting(true)
+    try {
+      await fetch(`/api/stock/recipes?menu_item_id=${item.id}`, { method: 'DELETE' })
+      onClose()
+    } catch { /* ignore */ } finally { setDeleting(false) }
+  }
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
+      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+          <div>
+            <h2 className="text-white font-semibold text-sm">Receta — {item.name}</h2>
+            {costo_estimado > 0 && (
+              <p className="text-white/40 text-xs mt-0.5">Costo estimado: <span className="text-[#FF6B35]">${(costo_estimado / 1000).toFixed(1)}k</span></p>
+            )}
+          </div>
+          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={16} /></button>
+        </div>
+        <div className="p-5 overflow-y-auto flex-1 space-y-3">
+          {ingredients.map((ing, idx) => (
+            <div key={idx} className="flex items-center gap-2">
+              <select
+                value={ing.stock_item_id}
+                onChange={e => updateIngredient(idx, 'stock_item_id', e.target.value)}
+                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
+              >
+                <option value="">Seleccionar producto…</option>
+                {stockItems.map(s => <option key={s.id} value={s.id}>{s.name} ({s.unit})</option>)}
+              </select>
+              <input
+                type="number"
+                step="0.001"
+                min="0.001"
+                value={ing.qty}
+                onChange={e => updateIngredient(idx, 'qty', parseFloat(e.target.value) || 0)}
+                className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-[#FF6B35]/50"
+              />
+              <span className="text-white/30 text-xs w-10 shrink-0">
+                {stockItems.find(s => s.id === ing.stock_item_id)?.unit ?? '—'}
+              </span>
+              <button onClick={() => removeIngredient(idx)} className="text-white/30 hover:text-red-400 transition-colors"><X size={14} /></button>
+            </div>
+          ))}
+          <button onClick={addIngredient} className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition-colors">
+            <Plus size={12} />Agregar ingrediente
+          </button>
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+        </div>
+        <div className="flex items-center justify-between px-5 py-4 border-t border-white/10 shrink-0">
+          {(item.ingredients?.length ?? 0) > 0 ? (
+            <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-400/70 hover:text-red-400 transition-colors">
+              {deleting ? 'Eliminando…' : 'Eliminar receta'}
+            </button>
+          ) : <div />}
+          <div className="flex gap-2">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-white/50 hover:text-white transition-colors">Cancelar</button>
+            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/80 disabled:opacity-50 transition-colors">
+              {saving ? 'Guardando…' : 'Guardar receta'}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 // ── ItemRow ───────────────────────────────────────────────────────────────────
 
-function ItemRow({ item, onEdit, onDelete, onToggle }: {
+function ItemRow({ item, onEdit, onDelete, onToggle, onRecipe, restaurantId }: {
   item: MenuItem
   onEdit: () => void
   onDelete: () => void
   onToggle: () => void
+  onRecipe: () => void
+  restaurantId: string
 }) {
   const margin = item.cost_price ? Math.round((1 - item.cost_price / item.price) * 100) : null
+  const hasRecipe = (item.ingredients?.length ?? 0) > 0
 
   return (
     <div className={`flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all
@@ -505,6 +650,15 @@ function ItemRow({ item, onEdit, onDelete, onToggle }: {
               {item.destination === 'barra' ? 'barra' : 'sin prep'}
             </span>
           )}
+          {hasRecipe ? (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-300/90 border-emerald-500/25">
+              <BookOpen size={9} />receta
+            </span>
+          ) : (
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-white/5 text-white/30 border-white/10">
+              sin receta
+            </span>
+          )}
           {item.tags.map(t => (
             <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#FF6B35]/80 border border-[#FF6B35]/20 shrink-0">
               {t}
@@ -527,6 +681,9 @@ function ItemRow({ item, onEdit, onDelete, onToggle }: {
         <button onClick={onToggle}
           className={`p-1.5 rounded-lg transition-colors ${item.available ? 'text-emerald-400 hover:bg-emerald-400/10' : 'text-white/20 hover:bg-white/5'}`}>
           {item.available ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+        </button>
+        <button onClick={onRecipe} title="Configurar receta" className={`p-1.5 rounded-lg transition-colors ${hasRecipe ? 'text-emerald-400/70 hover:text-emerald-400 hover:bg-emerald-400/10' : 'text-white/25 hover:text-white/60 hover:bg-white/5'}`}>
+          <BookOpen size={13} />
         </button>
         <button onClick={onEdit} className="p-1.5 rounded-lg text-white/25 hover:text-white/60 hover:bg-white/5 transition-colors">
           <Edit2 size={13} />
@@ -570,6 +727,7 @@ export default function CartaPage() {
   const [editing, setEditing]     = useState<string | null>(null)
   const [deleting, setDeleting]   = useState<string | null>(null)
   const [importing, setImporting] = useState(false)
+  const [recipeItem, setRecipeItem] = useState<MenuItem | null>(null)
 
   // ── Load stock items (for ingredient association) ────────────────────────
   useEffect(() => {
@@ -577,13 +735,21 @@ export default function CartaPage() {
     fetch(`/api/stock?restaurant_id=${restId}`)
       .then(r => r.json())
       .then(d => {
-        if (Array.isArray(d.items)) {
-          setStockItems(d.items.map((s: Record<string, unknown>) => ({
-            id:   s.id as string,
-            name: s.name as string,
-            unit: (s.unit as string) || 'unidad',
-          })))
+        // GET /api/stock now returns { categories: { [cat]: { items: [] } }, ... }
+        const all: { id: string; name: string; unit: string }[] = []
+        if (d.categories && typeof d.categories === 'object') {
+          for (const cat of Object.values(d.categories) as { items: Record<string, unknown>[] }[]) {
+            for (const s of cat.items ?? []) {
+              all.push({ id: s.id as string, name: s.name as string, unit: (s.unit as string) || 'unidad' })
+            }
+          }
+        } else if (Array.isArray(d.items)) {
+          // fallback for old shape
+          for (const s of d.items) {
+            all.push({ id: s.id as string, name: s.name as string, unit: (s.unit as string) || 'unidad' })
+          }
         }
+        setStockItems(all)
       })
       .catch(err => console.error('Error loading stock items:', err))
   }, [restId])
@@ -870,7 +1036,9 @@ export default function CartaPage() {
                     : <ItemRow key={item.id} item={item}
                         onEdit={() => setEditing(item.id)}
                         onDelete={() => setDeleting(item.id)}
-                        onToggle={() => toggleItem(item.id)} />
+                        onToggle={() => toggleItem(item.id)}
+                        onRecipe={() => setRecipeItem(item)}
+                        restaurantId={restId ?? ''} />
                 ))}
               </div>
             </div>
@@ -929,6 +1097,15 @@ export default function CartaPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Recipe modal */}
+      {recipeItem && restId && (
+        <RecipeModal
+          item={recipeItem}
+          restaurantId={restId}
+          onClose={() => { setRecipeItem(null); loadItems() }}
+        />
       )}
     </div>
   )

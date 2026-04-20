@@ -87,11 +87,18 @@ export default function MermasPage() {
   const [reason,       setReason]       = useState('deterioro')
   const [notes,        setNotes]        = useState('')
 
+  // Weekly summary state
+  const [weeklySummary, setWeeklySummary] = useState<{
+    total_products_affected: number
+    total_cost: number
+    by_product: { name: string; unit: string; qty_total: number; cost_total: number }[]
+  } | null>(null)
+
   // ── Load data ──────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
     if (!restId) return
-    const [stockRes, menuRes, wasteRes] = await Promise.all([
+    const [stockRes, menuRes, wasteRes, mermasRes] = await Promise.all([
       supabase
         .from('stock_items')
         .select('id, name, unit, current_qty, min_qty, cost_per_unit, category')
@@ -110,6 +117,7 @@ export default function MermasPage() {
         .eq('restaurant_id', restId)
         .order('logged_at', { ascending: false })
         .limit(100),
+      fetch(`/api/mermas?restaurant_id=${restId}`).then(r => r.ok ? r.json() : null),
     ])
 
     setStockItems(stockRes.data ?? [])
@@ -126,6 +134,7 @@ export default function MermasPage() {
         return { ...entry, stock_items: si, menu_items: mi } as WasteEntry
       })
     )
+    if (mermasRes?.summary) setWeeklySummary(mermasRes.summary)
     setLoading(false)
   }, [restId, supabase])
 
@@ -250,26 +259,24 @@ export default function MermasPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white/5 rounded-2xl p-4 border border-white/8">
           <p className="text-white/40 text-xs mb-1">Pérdida esta semana</p>
-          <p className="text-white text-2xl font-bold">{CLP(weeklyLoss)}</p>
+          <p className="text-white text-2xl font-bold">{CLP(weeklySummary?.total_cost ?? weeklyLoss)}</p>
           <p className="text-white/30 text-xs mt-1">{weeklyWaste.length} registros</p>
         </div>
         <div className={`rounded-2xl p-4 border ${lowStockItems.length > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/8'}`}>
-          <p className="text-white/40 text-xs mb-1">Bajo mínimo</p>
-          <p className={`text-2xl font-bold ${lowStockItems.length > 0 ? 'text-red-400' : 'text-white'}`}>
-            {lowStockItems.length}
+          <p className="text-white/40 text-xs mb-1">Productos afectados</p>
+          <p className={`text-2xl font-bold ${(weeklySummary?.total_products_affected ?? 0) > 0 ? 'text-amber-400' : 'text-white'}`}>
+            {weeklySummary?.total_products_affected ?? Object.keys(topItems).length}
           </p>
-          <p className="text-white/30 text-xs mt-1">
-            {lowStockItems.length > 0 ? lowStockItems.map(i => i.name).join(', ').slice(0, 40) : 'Todo en orden'}
-          </p>
+          <p className="text-white/30 text-xs mt-1">esta semana</p>
         </div>
         <div className="bg-white/5 rounded-2xl p-4 border border-white/8">
           <p className="text-white/40 text-xs mb-1">Top pérdida (semana)</p>
-          {topItems.length > 0 ? (
+          {(weeklySummary?.by_product ?? topItems.map(([name, cost_total]) => ({ name, cost_total, qty_total: 0, unit: '' }))).slice(0, 3).length > 0 ? (
             <div className="space-y-1 mt-1">
-              {topItems.map(([name, loss]) => (
-                <div key={name} className="flex justify-between text-xs">
-                  <span className="text-white/70 truncate mr-2">{name}</span>
-                  <span className="text-amber-400 font-medium shrink-0">{CLP(loss)}</span>
+              {(weeklySummary?.by_product ?? topItems.map(([name, cost_total]) => ({ name, cost_total, qty_total: 0, unit: '' }))).slice(0, 3).map((item) => (
+                <div key={item.name} className="flex justify-between text-xs">
+                  <span className="text-white/70 truncate mr-2">{item.name}</span>
+                  <span className="text-amber-400 font-medium shrink-0">{CLP(item.cost_total)}</span>
                 </div>
               ))}
             </div>
