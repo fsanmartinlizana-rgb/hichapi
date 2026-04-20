@@ -91,7 +91,9 @@ const ALL_NAV: NavSection[] = [
     label: 'Plataforma',
     icon: Crown,
     items: [
-      { label: 'Super Admin', href: '/plataforma', icon: Crown, roles: ['super_admin'] },
+      { label: 'Overview',      href: '/plataforma',              icon: Crown,          roles: ['super_admin'] },
+      { label: 'Restaurantes',  href: '/plataforma/restaurantes', icon: Store,          roles: ['super_admin'] },
+      { label: 'Tickets',       href: '/plataforma/tickets',      icon: MessageSquare,  roles: ['super_admin'] },
     ],
   },
 ]

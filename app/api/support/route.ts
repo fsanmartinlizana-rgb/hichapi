@@ -29,12 +29,31 @@ export async function POST(req: NextRequest) {
       ? 'critical'
       : data.severity
 
+    // Derivar priority desde el plan del restaurant (enterprise=urgent, etc.)
+    // Sprint 4: tickets de enterprise aparecen al tope de la cola del admin.
+    let priority: 'low' | 'normal' | 'high' | 'urgent' = 'normal'
+    let plan_at_open: string | null = null
+    if (data.restaurant_id) {
+      const restRes = await supabase
+        .from('restaurants')
+        .select('plan')
+        .eq('id', data.restaurant_id)
+        .maybeSingle()
+      const rest = restRes.data as { plan: string | null } | null
+      plan_at_open = rest?.plan ?? null
+      priority = planToPriority(plan_at_open, finalSeverity)
+    } else {
+      priority = planToPriority(null, finalSeverity)
+    }
+
     const { data: ticket, error } = await supabase
       .from('support_tickets')
       .insert({
         subject:        data.subject,
         description:    data.description,
         severity:       finalSeverity,
+        priority,
+        plan_at_open,
         restaurant_id:  data.restaurant_id || null,
         user_id:        data.user_id || null,
         page_url:       data.page_url || null,
@@ -42,7 +61,7 @@ export async function POST(req: NextRequest) {
         ai_analysis:    aiAnalysis,
         status:         'open',
       })
-      .select('id, severity')
+      .select('id, severity, priority')
       .single()
 
     if (error) {
@@ -69,6 +88,33 @@ export async function POST(req: NextRequest) {
     console.error('Support route error:', err)
     return NextResponse.json({ error: 'Error interno' }, { status: 500 })
   }
+}
+
+// ── Priority derivation from plan + severity ───────────────────────────────
+// Sprint 4: matriz simple para que tickets de clientes pagos suban en la
+// cola. Severidad "critical" del bug analyzer siempre sube la prioridad
+// al menos un nivel.
+
+function planToPriority(
+  plan: string | null,
+  severity: 'critical' | 'medium' | 'low',
+): 'low' | 'normal' | 'high' | 'urgent' {
+  // Plan → baseline priority
+  let base: 'low' | 'normal' | 'high' | 'urgent'
+  switch (plan) {
+    case 'enterprise': base = 'high';   break
+    case 'pro':        base = 'normal'; break
+    case 'starter':    base = 'normal'; break
+    default:           base = 'low'
+  }
+  // Severity boost
+  if (severity === 'critical') {
+    if (base === 'high')   return 'urgent'
+    if (base === 'normal') return 'high'
+    return 'normal'
+  }
+  if (severity === 'medium' && base === 'low') return 'normal'
+  return base
 }
 
 // ── AI Triage (keyword-based, can be replaced with LLM later) ───────────────

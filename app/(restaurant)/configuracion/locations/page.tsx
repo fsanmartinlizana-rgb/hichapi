@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
+import { canAccessModule } from '@/lib/plans'
 import { createClient } from '@/lib/supabase/client'
 import {
   MapPin, Plus, Save, Trash2, Loader2, Store, Share2, Package, BarChart2,
@@ -186,12 +187,22 @@ export default function LocationsConfigPage() {
             Gestiona tus sucursales y decide qué compartir entre ellas
           </p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35]/90 transition-colors"
-        >
-          <Plus size={14} /> Agregar local
-        </button>
+        {canAccessModule(restaurant?.plan ?? 'free', 'enterprise') ? (
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35]/90 transition-colors"
+          >
+            <Plus size={14} /> Agregar local
+          </button>
+        ) : (
+          <a
+            href="/modulos"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold bg-[#FF6B35]/5 hover:bg-[#FF6B35]/15 transition-colors"
+            title="Multi-local requiere plan Enterprise"
+          >
+            <Plus size={14} /> Agregar local · Plan Enterprise
+          </a>
+        )}
       </div>
 
       {/* Toast */}
