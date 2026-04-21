@@ -139,6 +139,7 @@ export default function RestaurantePage() {
   const [giro, setGiro]             = useState('')
   const [direccion, setDireccion]   = useState('')
   const [comuna, setComuna]         = useState('')
+  const [acteco, setActeco]         = useState('')
 
   // Score (from API)
   const [score, setScore] = useState<ProfileScore | null>(null)
@@ -194,6 +195,7 @@ export default function RestaurantePage() {
           setGiro(profileJson.restaurant.giro ?? '')
           setDireccion(profileJson.restaurant.direccion ?? '')
           setComuna(profileJson.restaurant.comuna ?? '')
+          setActeco(profileJson.restaurant.acteco ?? '')
         }
 
         if (modsRes.data?.modules_config) {
@@ -258,6 +260,7 @@ export default function RestaurantePage() {
           giro:         giro || null,
           direccion:    direccion || null,
           comuna:       comuna || null,
+          acteco:       acteco || null,
         }),
       })
       const data = await res.json()
@@ -511,6 +514,9 @@ export default function RestaurantePage() {
           </div>
           <Field label="Giro" hint="Giro comercial tal como aparece en el SII">
             <TextInput value={giro} onChange={setGiro} placeholder="RESTAURANTES Y SIMILARES" />
+          </Field>
+          <Field label="Código ACTECO" hint="Ej: 561010 — código de actividad económica del SII">
+            <TextInput value={acteco} onChange={setActeco} placeholder="561010" />
           </Field>
           <div className="grid grid-cols-2 gap-4">
             <Field label="Dirección (SII)">
