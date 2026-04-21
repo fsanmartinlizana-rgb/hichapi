@@ -228,7 +228,7 @@ end_time time
 |---|---|---|
 | `/` | Landing page HiChapi | ✅ Real |
 | `/r/[slug]` | Perfil público del restaurante | ✅ Real |
-| `/unete` | Waitlist restaurantes | ✅ Real |
+| `/unete` | Redirects to `/register` | ✅ Real |
 | `/espera/[slug]` | Lista de espera pública (QR entrada) | ✅ Real |
 
 ### Cliente en mesa

@@ -658,7 +658,7 @@ export default async function RestaurantPage({
         <p className="font-medium text-neutral-400">HiChapi · Santiago, Chile</p>
         <p>
           <Link
-            href="/unete"
+            href="/register"
             className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2"
           >
             Eres dueño de un restaurante? Sumate a Chapi

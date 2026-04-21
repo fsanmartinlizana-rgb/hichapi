@@ -56,7 +56,7 @@ const AUDIENCES = {
     ),
     subtitle:
       'HiChapi gestiona pedidos, cocina, mesas, equipo, inventario, caja y reportes — todo conectado y con IA. Solo 1 % sobre ventas digitales.',
-    cta: { label: 'Registrar mi restaurante', href: '/unete', icon: Utensils },
+    cta: { label: 'Registrar mi restaurante', href: '/register', icon: Utensils },
     secondaryCta: { label: 'Ya tengo cuenta', href: '/login' },
     image:
       'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1600&q=80',

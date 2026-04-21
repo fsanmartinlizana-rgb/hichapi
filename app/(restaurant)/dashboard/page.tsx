@@ -303,7 +303,7 @@ export default function DashboardPage() {
           Tu cuenta aún no está vinculada a un restaurante. Pide al administrador que te agregue al equipo o registra tu restaurante.
         </p>
         <Link
-          href="/unete"
+          href="/register"
           className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e55a2b] transition-colors"
         >
           Registrar mi restaurante

@@ -174,7 +174,7 @@ const PLANS = [
       'Configuracion del restaurante',
     ],
     cta: 'Crear cuenta gratis',
-    href: '/unete',
+    href: '/register',
     highlighted: false,
   },
   {
@@ -193,7 +193,7 @@ const PLANS = [
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
-    href: '/unete?plan=starter',
+    href: '/register',
     highlighted: false,
   },
   {
@@ -212,7 +212,7 @@ const PLANS = [
     ],
     note: '+ 1% sobre ventas digitales procesadas',
     cta: 'Empezar gratis 30 dias',
-    href: '/unete?plan=pro',
+    href: '/register',
     highlighted: true,
   },
   {
@@ -286,7 +286,7 @@ function Navbar() {
             Probar Chapi <ArrowRight size={14} />
           </Link>
           <Link
-            href="/unete"
+            href="/register"
             className="text-sm font-medium text-neutral-500 hover:text-[#FF6B35] transition-colors"
           >
             Sumate
@@ -351,7 +351,7 @@ function HeroSection() {
               <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
             </Link>
             <Link
-              href="/unete"
+              href="/register"
               className="flex items-center gap-2 px-8 py-4 rounded-2xl
                          border-2 border-neutral-200 text-[#1A1A2E] font-semibold text-base
                          hover:border-[#FF6B35] hover:text-[#FF6B35] transition-all"
@@ -784,7 +784,7 @@ function RestaurantFeatures() {
 
             <div className="flex flex-col sm:flex-row gap-3">
               <Link
-                href="/unete"
+                href="/register"
                 className="inline-flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl
                            bg-[#FF6B35] text-white font-semibold text-sm
                            hover:bg-[#e55a2b] transition-colors shadow-lg shadow-[#FF6B35]/25"
@@ -1046,7 +1046,7 @@ function FinalCTA() {
                 <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
               </Link>
               <Link
-                href="/unete"
+                href="/register"
                 className="flex items-center gap-2 px-8 py-4 rounded-2xl
                            border-2 border-white/20 text-white font-semibold text-base
                            hover:border-[#FF6B35] hover:text-[#FF6B35] transition-all"
@@ -1082,7 +1082,7 @@ function Footer() {
             <p className="text-sm font-semibold text-[#1A1A2E] mb-3">Producto</p>
             <ul className="space-y-2 text-sm text-neutral-400">
               <li><Link href="/buscar" className="hover:text-[#FF6B35] transition-colors">Probar Chapi</Link></li>
-              <li><Link href="/unete" className="hover:text-[#FF6B35] transition-colors">Sumar restaurante</Link></li>
+              <li><Link href="/register" className="hover:text-[#FF6B35] transition-colors">Sumar restaurante</Link></li>
               <li><Link href="/login" className="hover:text-[#FF6B35] transition-colors">Iniciar sesion</Link></li>
             </ul>
           </div>

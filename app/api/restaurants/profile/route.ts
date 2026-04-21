@@ -47,6 +47,7 @@ const ProfilePatchSchema = z.object({
   giro:         z.string().max(200).nullable().optional(),
   direccion:    z.string().max(200).nullable().optional(),
   comuna:       z.string().max(80).nullable().optional(),
+  acteco:       z.string().max(20).nullable().optional(),
 })
 
 // ── Profile completion score ─────────────────────────────────────────────────
@@ -104,7 +105,7 @@ export async function GET(req: NextRequest) {
       profile_score, profile_updated_at, claimed,
       reservations_enabled, reservation_timeout_min, reservation_slot_duration,
       reservation_max_party, reservation_advance_days,
-      rut, razon_social, giro, direccion, comuna
+      rut, razon_social, giro, direccion, comuna, acteco
     `)
     .eq('id', restaurantId)
     .single()
@@ -163,12 +164,17 @@ export async function PATCH(req: NextRequest) {
       profile_score, profile_updated_at, claimed,
       reservations_enabled, reservation_timeout_min, reservation_slot_duration,
       reservation_max_party, reservation_advance_days,
-      rut, razon_social, giro, direccion, comuna
+      rut, razon_social, giro, direccion, comuna, acteco
     `)
     .single()
 
   if (error || !data) {
-    return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 })
+    console.error('Error updating restaurant profile:', error)
+    return NextResponse.json({ 
+      error: 'No se pudo guardar', 
+      details: error?.message || 'Unknown error',
+      code: error?.code || 'UNKNOWN'
+    }, { status: 500 })
   }
 
   return NextResponse.json({ restaurant: data, score })

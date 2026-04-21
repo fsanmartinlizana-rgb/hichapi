@@ -313,7 +313,7 @@ export default function Home() {
       <footer className="text-center pb-8 text-xs text-neutral-300 space-y-1.5">
         <p>HiChapi · Santiago, Chile</p>
         <p>
-          <Link href="/unete" className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2">
+          <Link href="/register" className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2">
             ¿Eres dueño de un restaurante? Súmate a Chapi →
           </Link>
         </p>

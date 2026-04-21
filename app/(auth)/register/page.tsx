@@ -6,6 +6,33 @@ import { useRouter } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield, Check, X, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 
+// ── Rate limiting (client-side guard) ─────────────────────────────────────────
+
+const attempts: { count: number; since: number } = { count: 0, since: Date.now() }
+
+function checkRateLimit(): boolean {
+  const now = Date.now()
+  if (now - attempts.since > 15 * 60 * 1000) {
+    attempts.count = 0
+    attempts.since = now
+  }
+  attempts.count++
+  return attempts.count <= 5
+}
+
+// ── Slug generation (mirrors server-side logic) ──────────────────────────────
+
+function toSlug(name: string): string {
+  return name
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '') // Remove accents
+    .replace(/\s+/g, '-')             // Spaces to hyphens
+    .replace(/[^a-z0-9-]/g, '')       // Remove special chars
+    .replace(/-+/g, '-')              // Collapse multiple hyphens
+    .replace(/^-|-$/g, '')            // Trim hyphens
+}
+
 // ── Password strength rules ───────────────────────────────────────────────────
 
 const RULES = [
@@ -68,6 +95,7 @@ export default function RegisterPage() {
 
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
+  const [blocked, setBlocked]     = useState(false)
 
   const passwordOk = RULES.every(r => r.test(password))
   const passwordsMatch = password === confirm && confirm.length > 0
@@ -83,6 +111,13 @@ export default function RegisterPage() {
   async function handleStep1(e: React.FormEvent) {
     e.preventDefault()
     setError('')
+
+    if (!checkRateLimit()) {
+      setBlocked(true)
+      setError('Demasiados intentos. Espera 15 minutos antes de volver a intentar.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -127,6 +162,8 @@ export default function RegisterPage() {
       }
 
       setStep(2)
+      // Reset attempts on success
+      attempts.count = 0
       // Redirigir al panel después de mostrar el éxito
       setTimeout(() => router.replace('/dashboard'), 1500)
 
@@ -243,6 +280,14 @@ export default function RegisterPage() {
               <input type="text" value={restName} onChange={e => setRestName(e.target.value)} required
                 placeholder="El Rincón de Don José"
                 className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+              {restName.length >= 2 && (
+                <div className="flex items-center gap-1.5 mt-2">
+                  <span className="text-white/30 text-xs">Tu URL será:</span>
+                  <span className="text-[#FF6B35] text-xs font-mono">
+                    hichapi.cl/{toSlug(restName)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -272,7 +317,7 @@ export default function RegisterPage() {
                 className="px-4 py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors">
                 ← Volver
               </button>
-              <button type="submit" disabled={loading || !restName || !restAddr || !restBarrio || !restCocina}
+              <button type="submit" disabled={loading || blocked || !restName || !restAddr || !restBarrio || !restCocina}
                 className="flex-1 py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2">
                 {loading ? <><Loader2 size={15} className="animate-spin" /> Creando cuenta...</> : 'Crear cuenta'}
               </button>
