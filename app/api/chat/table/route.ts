@@ -143,18 +143,19 @@ CARTA DISPONIBLE HOY:
 ${menuText}
 ${featuredText}${promosText}${cartText}
 REGLAS:
-1. Si el cliente pide algo concreto → acción "add_items" con los items del menú (usa los IDs exactos).
-2. "Para compartir", "para la mesa", "para todos" NO multiplica la cantidad. quantity = 1 siempre, salvo que el cliente diga explícitamente un número ("2 porciones", "dos", "x3", etc.). Un plato compartido sigue siendo 1 unidad.
-3. Si pide algo que no existe → sugiere la alternativa más parecida disponible.
-4. Si pide restricciones (sin gluten, vegano, etc.) → filtra por tags y recomienda lo correcto.
-5. Si dice "la cuenta" o "quiero pagar" → acción "request_bill".
-6. Si pide dividir la cuenta → acción "request_split" con split_count.
-7. Si recomienda sin pedir → acción "recommend", sugiere 2-3 platos con descripción breve y precio.
-8. Si es saludo o pregunta general → acción "chat", responde amigablemente.
-9. Si pide "ver la carta", "el menú", "qué tienen", "qué puedo pedir" → acción "show_menu".
-10. Si pregunta por ingredientes de un plato ("¿qué lleva el...?", "con qué viene...") → usa la lista de ingredientes de la CARTA DISPONIBLE de arriba para responder.
-11. Máximo 2-3 oraciones por mensaje. Tono: cálido, como un amigo que trabaja ahí.
-12. NUNCA inventes precios, platos ni ingredientes que no estén en la carta.
+1. Si el cliente pide algo concreto → acción "add_items" con los items del menú (usa los IDs exactos de la CARTA DISPONIBLE).
+2. CRÍTICO: Cuando agregues items, SIEMPRE usa el ID exacto [uuid] que aparece en la CARTA DISPONIBLE. NUNCA inventes IDs ni nombres. Si el cliente pide "Sprite", buscá "[id] Sprite" en la carta y usá ese ID exacto.
+3. "Para compartir", "para la mesa", "para todos" NO multiplica la cantidad. quantity = 1 siempre, salvo que el cliente diga explícitamente un número ("2 porciones", "dos", "x3", etc.). Un plato compartido sigue siendo 1 unidad.
+4. Si pide algo que no existe en la carta → sugiere la alternativa más parecida disponible, pero NO lo agregues automáticamente.
+5. Si pide restricciones (sin gluten, vegano, etc.) → filtra por tags y recomienda lo correcto.
+6. Si dice "la cuenta" o "quiero pagar" → acción "request_bill".
+7. Si pide dividir la cuenta → acción "request_split" con split_count.
+8. Si recomienda sin pedir → acción "recommend", sugiere 2-3 platos con descripción breve y precio.
+9. Si es saludo o pregunta general → acción "chat", responde amigablemente.
+10. Si pide "ver la carta", "el menú", "qué tienen", "qué puedo pedir" → acción "show_menu".
+11. Si pregunta por ingredientes de un plato ("¿qué lleva el...?", "con qué viene...") → usa la lista de ingredientes de la CARTA DISPONIBLE de arriba para responder.
+12. Máximo 2-3 oraciones por mensaje. Tono: cálido, como un amigo que trabaja ahí.
+13. NUNCA inventes precios, platos ni ingredientes que no estén en la carta.
 
 FORMATO DE PRECIOS (crítico): SIEMPRE escribí los precios completos en pesos chilenos, con separador de miles. Ejemplo: "$18.000" o "$18000". NUNCA uses la forma "18k" o "18.5k" — eso confunde al cliente.
 
@@ -239,9 +240,9 @@ export async function POST(req: NextRequest) {
       writer.write(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`))
 
     ;(async () => {
+      let fullText = ''
+      let sentDone = false
       try {
-        let fullText = ''
-
         const claudeStream = anthropic.messages.stream({
           model: 'claude-haiku-4-5-20251001',
           max_tokens: 500,
@@ -274,21 +275,40 @@ export async function POST(req: NextRequest) {
         const parsed  = JSON.parse(cleaned)
 
         // ── Resolve menu_item prices for new items ────────────────────────────
-        // First try matching by id, then fall back to case-insensitive name match
-        // (Claude may hallucinate IDs — name match keeps prices correct).
-        const resolvedItems = (parsed.items_to_add ?? []).map((item: { menu_item_id: string; name: string; quantity: number; note?: string }) => {
+        // First try matching by id, then fall back to EXACT case-insensitive name match.
+        // NO fuzzy matching — si Claude devuelve un nombre incorrecto, mejor rechazarlo
+        // que agregar el item equivocado (ej: Sprite → Fanta).
+        type ResolvedItem = { menu_item_id: string; name: string; quantity: number; unit_price: number; note?: string }
+        const resolvedItems = (parsed.items_to_add ?? []).map((item: { menu_item_id: string; name: string; quantity: number; note?: string }): ResolvedItem | null => {
           let menuItem = menu.find((m: { id: string }) => m.id === item.menu_item_id) as { id: string; name: string; price: number } | undefined
+          
+          // Log para debugging: qué está devolviendo Claude
+          console.log(`[chat/table] Claude returned: id="${item.menu_item_id}", name="${item.name}"`)
+          
           if (!menuItem && item.name) {
             const lower = item.name.toLowerCase().trim()
+            // SOLO match exacto por nombre (no fuzzy)
             menuItem = menu.find((m: { name: string }) => m.name.toLowerCase().trim() === lower) as { id: string; name: string; price: number } | undefined
+            
+            if (!menuItem) {
+              console.error(`[chat/table] ❌ Item NO encontrado en menú: id="${item.menu_item_id}", name="${item.name}"`)
+              console.error(`[chat/table] Items disponibles en menú: ${menu.map((m: { name: string }) => m.name).join(', ')}`)
+              // NO agregar el item si no existe — mejor que agregue el incorrecto
+              return null
+            } else {
+              console.warn(`[chat/table] ⚠️ ID incorrecto pero nombre match: "${menuItem.name}" (id correcto: ${menuItem.id})`)
+            }
+          } else if (menuItem) {
+            console.log(`[chat/table] ✅ Match exacto por ID: "${menuItem.name}"`)
           }
+          
           return {
             ...item,
             menu_item_id: menuItem?.id ?? item.menu_item_id,
             unit_price: menuItem?.price ?? 0,
             name: menuItem?.name ?? item.name,
           }
-        })
+        }).filter((item: ResolvedItem | null): item is ResolvedItem => item !== null)
 
         await send('done', {
           message: parsed.message,
@@ -296,10 +316,14 @@ export async function POST(req: NextRequest) {
           items_to_add: resolvedItems,
           split_count: parsed.split_count ?? null,
         })
+        sentDone = true
 
       } catch (err) {
         console.error('Table chat error:', err)
-        await send('error', { message: 'Ups, no entendí bien. ¿Me lo dices de otra forma?' })
+        // Solo enviar error si no enviamos 'done' exitosamente
+        if (!sentDone) {
+          await send('error', { message: 'Ups, no entendí bien. ¿Me lo dices de otra forma?' })
+        }
       } finally {
         await writer.close()
       }

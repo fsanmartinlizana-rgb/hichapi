@@ -1009,14 +1009,14 @@ export default function TablePage() {
   const showMenu = useCallback(() => {
     if (menu.length === 0) {
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random()}`,
         role: 'chapi',
         text: 'La carta aún se está preparando 🧑‍🍳 Puedes preguntarme qué recomiendo.',
       }])
       return
     }
     setMessages(prev => [...prev, {
-      id: Date.now().toString(),
+      id: `${Date.now()}-${Math.random()}`,
       role: 'chapi',
       text: '¡Aquí tienes la carta! 📋 Toca el + para agregar al pedido:',
       menuItems: menu,
@@ -1068,15 +1068,16 @@ export default function TablePage() {
 
             setMessages(prev => {
               if (prev.some(m => m.npsSurvey?.orderId === oid)) return prev
+              const timestamp = Date.now()
               return [
                 ...prev,
                 {
-                  id: `paid-${oid}-${Date.now()}`,
+                  id: `paid-${oid}-${timestamp}-${Math.random()}`,
                   role: 'chapi',
                   text: '¡Gracias por tu visita! 🎉 Antes de irte, ¿nos ayudás con un feedback rápido? Tu opinión hace la diferencia.',
                 },
                 {
-                  id: `survey-${oid}-${Date.now()}`,
+                  id: `survey-${oid}-${timestamp}-${Math.random()}`,
                   role: 'chapi',
                   text: '',
                   npsSurvey: { orderId: oid, restaurantSlug: slug },
@@ -1139,7 +1140,7 @@ export default function TablePage() {
     // Intercept "Ver carta" chip — render the menu inline instead of hitting the LLM
     const normalized = text.trim().toLowerCase().replace(/[📋⭐🌱🍽️➕🧾✂️🍰]/g, '').trim()
     if (normalized === 'ver la carta' || normalized === 'ver carta' || normalized === 'menu' || normalized === 'menú') {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: text.trim() }])
+      setMessages(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, role: 'user', text: text.trim() }])
       setInput('')
       showMenu()
       return
@@ -1156,8 +1157,14 @@ export default function TablePage() {
       /\bpedir\s+(la\s+)?cuenta\b/i.test(cleaned)
 
     if (isBillingIntent) {
-      setMessages(prev => [...prev, { id: Date.now().toString(), role: 'user', text: text.trim() }])
+      setMessages(prev => [...prev, { id: `${Date.now()}-${Math.random()}`, role: 'user', text: text.trim() }])
       setInput('')
+      
+      // IMPORTANTE: Marcar que ya procesamos la intención de pagar para evitar
+      // que el LLM también ejecute confirmOrder() cuando devuelva action='request_bill'.
+      // Esto previene la duplicación de items en la cuenta.
+      const alreadyHandled = true
+      
       // Usamos refs para garantizar el valor más reciente
       const currentCart = cartRef.current
       const currentOrderId = orderIdRef.current
@@ -1174,7 +1181,7 @@ export default function TablePage() {
 
       // Mensaje empático en el chat
       setMessages(prev => [...prev, {
-        id: Date.now().toString() + '-c',
+        id: `${Date.now()}-${Math.random()}-c`,
         role: 'chapi',
         text: pendingId
           ? '¡Listo! Le aviso al garzón que vas a pagar 🙌 Acá está tu cuenta.'
@@ -1183,10 +1190,13 @@ export default function TablePage() {
             : 'Acá está tu cuenta. Mostrásela al garzón cuando llegue 🙌',
       }])
       setBillOpen(true)
-      return
+      
+      // Retornar early para que el LLM no procese el mensaje
+      // (ya manejamos la intención localmente)
+      if (alreadyHandled) return
     }
 
-    const userMsg: Message = { id: Date.now().toString(), role: 'user', text: text.trim() }
+    const userMsg: Message = { id: `${Date.now()}-${Math.random()}`, role: 'user', text: text.trim() }
     setMessages(prev => [...prev, userMsg])
     setInput('')
     setLoading(true)
@@ -1211,7 +1221,7 @@ export default function TablePage() {
 
       const reader  = res.body!.getReader()
       const decoder = new TextDecoder()
-      const chapiMsgId = (Date.now() + 1).toString()
+      const chapiMsgId = `${Date.now()}-${Math.random()}-chapi`
       let buffer = ''
 
       while (true) {
@@ -1272,14 +1282,22 @@ export default function TablePage() {
 
             } else if (event === 'error') {
               setWaiting(false)
-              setMessages(prev => [...prev, { id: chapiMsgId, role: 'chapi', text: data.message }])
+              setMessages(prev => {
+                // Si ya existe el mensaje de Chapi, reemplazarlo con el error
+                const existing = prev.find(m => m.id === chapiMsgId)
+                if (existing) {
+                  return prev.map(m => m.id === chapiMsgId ? { ...m, text: data.message } : m)
+                }
+                // Si no existe, agregarlo
+                return [...prev, { id: chapiMsgId, role: 'chapi', text: data.message }]
+              })
             }
           }
         }
       }
     } catch {
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random()}`,
         role: 'chapi',
         text: 'Ups, algo salió mal. ¿Me lo dices de nuevo?',
       }])
@@ -1325,7 +1343,7 @@ export default function TablePage() {
         console.error('[table] confirmOrder rejected:', { status: res.status, data })
         setOrderStatus('idle')
         setMessages(prev => [...prev, {
-          id: Date.now().toString(),
+          id: `${Date.now()}-${Math.random()}`,
           role: 'chapi',
           text: chatMsg,
         }])
@@ -1339,7 +1357,7 @@ export default function TablePage() {
       setOrderStatus('sent')
       const orderSummary = cartSnapshot.map(c => `${c.quantity}× ${c.name}`).join(', ')
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random()}`,
         role: 'chapi',
         text: `¡Perfecto! Tu pedido ya está en cocina 🔥 ${orderSummary}. ¿Algo más mientras esperas?`,
       }])
@@ -1355,7 +1373,7 @@ export default function TablePage() {
       setOrderStatus('idle')
       const msg = err instanceof Error ? err.message : 'Error desconocido'
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random()}`,
         role: 'chapi',
         text: `❌ No pudimos enviar tu pedido (${msg}). Intentá de nuevo o avisá al garzón.`,
       }])
@@ -1407,7 +1425,7 @@ export default function TablePage() {
 
     if (mode === 'equal' && n) {
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random()}`,
         role: 'chapi',
         text: `¡Listo! Cuenta dividida en ${n} partes iguales: ${clp(Math.round(cartTotal / n))} por persona. Le aviso al garzón 🙌`,
       }])
@@ -1417,7 +1435,7 @@ export default function TablePage() {
       const totalB = cart.filter(c => assignments[c.menu_item_id] === 'B')
         .reduce((s, c) => s + c.unit_price * c.quantity, 0)
       setMessages(prev => [...prev, {
-        id: Date.now().toString(),
+        id: `${Date.now()}-${Math.random()}`,
         role: 'chapi',
         text: `¡Perfecto! Cuenta A: ${clp(totalA)} · Cuenta B: ${clp(totalB)}. Le aviso al garzón para que traiga las cuentas por separado 🙌`,
       }])

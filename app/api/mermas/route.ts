@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/supabase/auth-guard'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}
 
 const MermaSchema = z.object({
   restaurant_id: z.string().uuid(),
@@ -31,6 +33,7 @@ export async function GET(req: NextRequest) {
   const from_date = searchParams.get('from_date') ?? new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
   const to_date = searchParams.get('to_date') ?? new Date().toISOString()
 
+  const supabase = getSupabaseClient()
   const { data: entries, error } = await supabase
     .from('waste_log')
     .select('id, stock_item_id, qty_lost, reason, cost_lost, logged_at, stock_items(name, unit)')
@@ -80,6 +83,7 @@ export async function POST(req: NextRequest) {
 
   const { restaurant_id, stock_item_id, qty_lost, reason, notes } = body
 
+  const supabase = getSupabaseClient()
   // Verify the stock item belongs to this restaurant
   const { data: item, error: itemErr } = await supabase
     .from('stock_items')

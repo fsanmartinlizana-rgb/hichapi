@@ -3,10 +3,12 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/supabase/auth-guard'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!,
-)
+function getSupabaseClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+  )
+}
 
 const ItemSchema = z.object({
   restaurant_id:    z.string().uuid(),
@@ -29,6 +31,7 @@ export async function GET(req: NextRequest) {
   const restaurant_id = req.nextUrl.searchParams.get('restaurant_id')
   if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id requerido' }, { status: 400 })
 
+  const supabase = getSupabaseClient()
   const { data, error } = await supabase
     .from('stock_items')
     .select('*')
@@ -68,6 +71,7 @@ export async function POST(req: NextRequest) {
   if (authErr) return authErr
   try {
     const body = ItemSchema.parse(await req.json())
+    const supabase = getSupabaseClient()
     const { data, error } = await supabase.from('stock_items').insert(body).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
@@ -99,6 +103,7 @@ export async function PATCH(req: NextRequest) {
     // Never allow updating the id field
     delete fields.id
 
+    const supabase = getSupabaseClient()
     // Fetch current product to compare current_qty
     const { data: current } = await supabase
       .from('stock_items')
@@ -141,6 +146,7 @@ export async function DELETE(req: NextRequest) {
   const id = req.nextUrl.searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'id requerido' }, { status: 400 })
 
+  const supabase = getSupabaseClient()
   const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
   const { count, error: countError } = await supabase
     .from('stock_movements')
