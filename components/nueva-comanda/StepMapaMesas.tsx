@@ -6,26 +6,31 @@ import Link from 'next/link'
 
 const STATUS_CLASSES: Record<TableOption['status'], string> = {
   libre:     'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25',
-  ocupada:   'bg-amber-500/10  border-amber-500/30  text-amber-400/50  pointer-events-none opacity-50',
+  ocupada:   'bg-amber-500/15  border-amber-500/50  text-amber-300   hover:bg-amber-500/25',
   reservada: 'bg-blue-500/10   border-blue-500/30   text-blue-400/50   pointer-events-none opacity-50',
   bloqueada: 'bg-white/5       border-white/10      text-white/25      pointer-events-none opacity-50',
 }
 
 function TableCard({ table, selected, onSelect }: { table: TableOption; selected: boolean; onSelect: (t: TableOption) => void }) {
-  const isSelected = selected && table.status === 'libre'
+  const isSelectable = table.status === 'libre' || table.status === 'ocupada'
+  const isSelected = selected && isSelectable
   return (
     <button
       type="button"
-      onClick={() => table.status === 'libre' && onSelect(table)}
+      onClick={() => isSelectable && onSelect(table)}
       className={[
-        'flex items-center justify-center rounded-xl border-2 p-4 text-sm font-semibold transition-all',
+        'flex flex-col items-center justify-center rounded-xl border-2 p-4 text-sm font-semibold transition-all',
         STATUS_CLASSES[table.status],
-        isSelected ? 'ring-2 ring-emerald-400 ring-offset-2 ring-offset-[#0D0D1A]' : '',
+        isSelected ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-[#0D0D1A]' : '',
+        !isSelectable ? 'cursor-not-allowed' : 'cursor-pointer',
       ].join(' ')}
       aria-pressed={isSelected}
       aria-label={`${table.label} — ${table.status}`}
     >
       {table.label}
+      {table.status === 'ocupada' && (
+        <span className="mt-1 text-[10px] font-normal text-amber-400/70">ocupada</span>
+      )}
     </button>
   )
 }
@@ -70,6 +75,7 @@ export default function StepMapaMesas({ tables, selectedTable, pax, onSelectTabl
   const grouped = groupByZone(tables)
   const keys = Object.keys(grouped)
   const hasZones = !(keys.length === 1 && keys[0] === '')
+  const isOcupada = selectedTable?.status === 'ocupada'
 
   return (
     <div className="flex flex-col gap-6">
@@ -86,15 +92,26 @@ export default function StepMapaMesas({ tables, selectedTable, pax, onSelectTabl
         </div>
       ))}
 
-      {selectedTable !== null && <PaxSelector pax={pax} onChange={onChangePax} />}
+      {selectedTable !== null && !isOcupada && <PaxSelector pax={pax} onChange={onChangePax} />}
+
+      {isOcupada && (
+        <p className="text-xs text-amber-400/70 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2">
+          Esta mesa tiene una comanda activa. Los productos se agregarán a esa comanda.
+        </p>
+      )}
 
       <button
         type="button"
         onClick={onConfirm}
-        disabled={selectedTable === null || pax < 1}
-        className="mt-2 w-full sm:w-auto sm:self-end rounded-xl bg-emerald-600 px-6 py-3 text-sm font-semibold text-white shadow-sm hover:bg-emerald-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+        disabled={selectedTable === null || (!isOcupada && pax < 1)}
+        className={[
+          'mt-2 w-full sm:w-auto sm:self-end rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors',
+          isOcupada
+            ? 'bg-amber-600 hover:bg-amber-500'
+            : 'bg-emerald-600 hover:bg-emerald-500',
+        ].join(' ')}
       >
-        Confirmar mesa
+        {isOcupada ? 'Agregar a comanda' : 'Confirmar mesa'}
       </button>
     </div>
   )

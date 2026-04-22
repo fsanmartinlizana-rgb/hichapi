@@ -5,7 +5,7 @@ import { useParams, useRouter } from 'next/navigation'
 import {
   Send, ShoppingCart, X, Plus, Minus, CheckCircle2,
   Loader2, Utensils, SplitSquareHorizontal, Receipt,
-  Trash2, Bell, BookOpen, Star,
+  Trash2, Bell, BookOpen,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { formatCurrency } from '@/lib/i18n'
@@ -38,10 +38,6 @@ interface Message {
   loading?: boolean
   /** When present, render an inline menu grid after the bubble */
   menuItems?: MenuItem[]
-  /** Cuando se pagó la mesa: render encuesta de feedback inline */
-  npsSurvey?: { orderId: string; restaurantSlug: string }
-  /** Estado del survey post-submit (para mostrar "gracias" en lugar del form) */
-  npsSubmitted?: boolean
 }
 
 type OrderStatus = 'idle' | 'confirming' | 'sent' | 'splitting'
@@ -331,147 +327,7 @@ function ChevronDownIcon({ open }: { open: boolean }) {
   )
 }
 
-// ── NPS Survey card (inline en el chat) ─────────────────────────────────────
-function NpsSurveyCard({
-  orderId,
-  restaurantSlug,
-  submitted,
-  onSubmitted,
-}: {
-  orderId:        string
-  restaurantSlug: string
-  submitted?:     boolean
-  onSubmitted:    () => void
-}) {
-  const [rating,      setRating]      = useState(0)
-  const [hover,       setHover]       = useState(0)
-  const [comment,     setComment]     = useState('')
-  const [saving,      setSaving]      = useState(false)
-  const [error,       setError]       = useState<string | null>(null)
-  const [doneInline,  setDoneInline]  = useState(false)
 
-  const isDone = submitted || doneInline
-
-  async function handleSubmit() {
-    if (rating === 0 || saving) return
-    setSaving(true)
-    setError(null)
-    try {
-      const res = await fetch('/api/reviews/post-order', {
-        method:  'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          order_id:        orderId,
-          restaurant_slug: restaurantSlug,
-          rating,
-          comment,
-        }),
-      })
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({}))
-        setError(j.error ?? 'No pudimos enviar tu opinión.')
-        return
-      }
-      setDoneInline(true)
-      onSubmitted()
-    } catch {
-      setError('Sin conexión. Intentá de nuevo.')
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  if (isDone) {
-    return (
-      <div className="mt-2 bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-4 flex items-start gap-3">
-        <div className="w-9 h-9 rounded-full bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-          <CheckCircle2 size={18} className="text-emerald-400" />
-        </div>
-        <div>
-          <p className="text-emerald-300 font-bold text-sm">¡Gracias por tu opinión! 💚</p>
-          <p className="text-emerald-200/70 text-xs mt-1">
-            Tu feedback ayuda al restaurante a mejorar y a otros comensales a descubrirlo.
-          </p>
-        </div>
-      </div>
-    )
-  }
-
-  return (
-    <div className="mt-2 bg-[#161622] border border-[#FF6B35]/25 rounded-2xl p-4 space-y-3">
-      <div>
-        <p className="text-white font-bold text-sm">¿Cómo estuvo todo?</p>
-        <p className="text-white/40 text-xs mt-0.5">
-          Tu opinión ayuda al restaurante a mejorar.
-        </p>
-      </div>
-
-      {/* Rating */}
-      <div className="flex items-center justify-center gap-1.5 py-2">
-        {[1, 2, 3, 4, 5].map(n => {
-          const filled = (hover || rating) >= n
-          return (
-            <button
-              key={n}
-              type="button"
-              onClick={() => setRating(n)}
-              onMouseEnter={() => setHover(n)}
-              onMouseLeave={() => setHover(0)}
-              className="p-1 transition-transform active:scale-90"
-              aria-label={`Calificar con ${n} estrella${n === 1 ? '' : 's'}`}
-            >
-              <Star
-                size={32}
-                className={filled ? 'text-amber-400' : 'text-white/15'}
-                fill={filled ? '#FBBF24' : 'transparent'}
-                strokeWidth={1.5}
-              />
-            </button>
-          )
-        })}
-      </div>
-
-      {rating > 0 && (
-        <p className="text-center text-xs font-semibold" style={{
-          color: rating >= 4 ? '#34D399' : rating === 3 ? '#FBBF24' : '#F87171',
-        }}>
-          {rating === 5 && '¡Excelente! Lo amamos'}
-          {rating === 4 && 'Muy bueno'}
-          {rating === 3 && 'Estuvo bien'}
-          {rating === 2 && 'Podría mejorar'}
-          {rating === 1 && 'No nos gustó'}
-        </p>
-      )}
-
-      {/* Comment (opcional) */}
-      <textarea
-        value={comment}
-        onChange={e => setComment(e.target.value)}
-        placeholder="¿Qué tal la comida, el servicio, el ambiente? (opcional)"
-        rows={3}
-        maxLength={1000}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/50 resize-none"
-      />
-
-      {error && (
-        <div className="bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2 text-red-300 text-xs">
-          {error}
-        </div>
-      )}
-
-      <button
-        onClick={handleSubmit}
-        disabled={rating === 0 || saving}
-        className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
-      >
-        {saving
-          ? <><Loader2 size={14} className="animate-spin" /> Enviando…</>
-          : 'Enviar opinión'
-        }
-      </button>
-    </div>
-  )
-}
 
 // ── Cart drawer ───────────────────────────────────────────────────────────────
 
@@ -962,31 +818,21 @@ export default function TablePage() {
       if (rest.name) setRestaurantName(rest.name)
       if (rest.photo_url) setRestaurantPhoto(rest.photo_url)
 
-      // Intento 1: con display_order si existe; intento 2: por categoría/nombre
+      // Cargar menú ordenado por categoría y nombre
       type MenuRow = MenuItem & { available?: boolean; ingredients?: unknown }
-      let menuItems: MenuRow[] = []
-      const withOrder = await supabase
+      const { data: menuData, error: menuError } = await supabase
         .from('menu_items')
-        .select('id, name, description, price, category, photo_url, tags, available, ingredients, display_order')
+        .select('id, name, description, price, category, photo_url, tags, available, ingredients')
         .eq('restaurant_id', rest.id)
         .eq('available', true)
-        .order('display_order', { ascending: true })
-      if (!withOrder.error && withOrder.data) {
-        menuItems = withOrder.data as unknown as MenuRow[]
-      } else {
-        const fallback = await supabase
-          .from('menu_items')
-          .select('id, name, description, price, category, photo_url, tags, available, ingredients')
-          .eq('restaurant_id', rest.id)
-          .eq('available', true)
-          .order('category', { ascending: true })
-          .order('name',     { ascending: true })
-        if (fallback.error) {
-          console.error('[table] menu fetch fallback also failed:', fallback.error.message)
-        } else if (fallback.data) {
-          menuItems = fallback.data as unknown as MenuRow[]
-        }
+        .order('category', { ascending: true })
+        .order('name', { ascending: true })
+
+      if (menuError) {
+        console.error('[table] menu fetch error:', menuError.message)
       }
+
+      const menuItems = (menuData || []) as unknown as MenuRow[]
 
       if (cancelled) return
       if (menuItems.length > 0) {
@@ -1023,22 +869,19 @@ export default function TablePage() {
     }])
   }, [menu])
 
-  // Subscribe to order status changes — cuando admin marca 'paid', mostrar
-  // la encuesta NPS inline en el chat (no navegamos a /review).
+  // Subscribe to order status changes — cuando admin marca 'paid', redirigir
+  // a la página de review para que el cliente deje su evaluación.
   //
-  // IMPORTANTE: nos suscribimos POR MESA, no por orderId. Motivos:
-  //   1. Puede haber múltiples orders en la misma mesa (agregás después)
-  //   2. Si el garzón cobra desde /caja, el orderId local puede estar stale
-  //   3. Si el cliente recargó la tab, el state arranca vacío
-  // Resolvemos el qr_token → UUID real de la mesa, y escuchamos cualquier
-  // UPDATE en orders con table_id = esa UUID. Filtramos status='paid' a mano.
+  // IMPORTANTE: La reseña solo se muestra cuando la MESA vuelve a 'libre',
+  // no cuando se pagan las órdenes individuales. Esto permite que el garzón
+  // cobre múltiples órdenes de la misma mesa antes de cerrarla.
   useEffect(() => {
     if (!tableId) return
     let cancelled = false
     const supabase = createClient()
 
-    // Set para no mostrar la encuesta dos veces por el mismo order
-    const shownForOrders = new Set<string>()
+    // Set para trackear órdenes pagadas en esta sesión
+    const paidOrdersInSession = new Set<string>()
 
     async function run() {
       // Resolver el qr_token (puede ser UUID ya, o token legible)
@@ -1054,39 +897,79 @@ export default function TablePage() {
       }
       if (cancelled) return
 
+      console.log('[TablePage] Setting up realtime subscription for table:', realTableUuid)
+      
       const ch = supabase
         .channel(`table-orders-${realTableUuid}`)
         .on(
           'postgres_changes',
-          { event: 'UPDATE', schema: 'public', table: 'orders', filter: `table_id=eq.${realTableUuid}` },
+          { event: 'UPDATE', schema: 'public', table: 'orders' },
           payload => {
-            const row = (payload.new as { id?: string; status?: string } | null)
-            if (!row?.id || row.status !== 'paid') return
-            const oid = row.id
-            if (shownForOrders.has(oid)) return
-            shownForOrders.add(oid)
-
-            setMessages(prev => {
-              if (prev.some(m => m.npsSurvey?.orderId === oid)) return prev
-              const timestamp = Date.now()
-              return [
-                ...prev,
-                {
-                  id: `paid-${oid}-${timestamp}-${Math.random()}`,
-                  role: 'chapi',
-                  text: '¡Gracias por tu visita! 🎉 Antes de irte, ¿nos ayudás con un feedback rápido? Tu opinión hace la diferencia.',
-                },
-                {
-                  id: `survey-${oid}-${timestamp}-${Math.random()}`,
-                  role: 'chapi',
-                  text: '',
-                  npsSurvey: { orderId: oid, restaurantSlug: slug },
-                },
-              ]
+            const row = (payload.new as { id?: string; status?: string; table_id?: string } | null)
+            console.log('[TablePage] Received order update:', { 
+              orderId: row?.id, 
+              status: row?.status, 
+              tableId: row?.table_id
             })
+            
+            // Filtrar solo órdenes de esta mesa
+            if (!row?.id || row.table_id !== realTableUuid) {
+              return
+            }
+            
+            const oid = row.id
+
+            // Handle paying status — show message to client
+            if (row.status === 'paying') {
+              setMessages(prev => [...prev, {
+                id: `paying-${oid}-${Date.now()}`,
+                role: 'chapi' as const,
+                text: '¡El garzón ya está procesando tu cuenta! 🧾 En un momento te confirma el total.',
+              }])
+              return
+            }
+
+            // Handle paid status — redirect to review immediately
+            if (row.status === 'paid') {
+              console.log('[TablePage] Order marked as paid, redirecting to review:', oid)
+              // Redirigir inmediatamente cuando la orden se marca como pagada
+              router.push(`/${slug}/review?order=${oid}`)
+              return
+            }
           }
         )
-        .subscribe()
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'tables' },
+          payload => {
+            const row = payload.new as { id?: string; status?: string; updated_at?: string } | null
+            console.log('[TablePage] Received table update:', { 
+              tableId: row?.id,
+              status: row?.status 
+            })
+            
+            // Filtrar solo esta mesa
+            if (row?.id !== realTableUuid) {
+              return
+            }
+            
+            // Si la mesa vuelve a libre, también podemos redirigir
+            if (row?.status === 'libre') {
+              console.log('[TablePage] Table closed, checking for paid orders')
+              if (paidOrdersInSession.size > 0) {
+                const firstPaidOrder = Array.from(paidOrdersInSession)[0]
+                console.log('[TablePage] Redirecting to review page for order:', firstPaidOrder)
+                router.push(`/${slug}/review?order=${firstPaidOrder}`)
+              }
+            }
+          }
+        )
+        .subscribe((status) => {
+          console.log('[TablePage] Realtime subscription status:', status)
+          if (status === 'SUBSCRIBED') {
+            console.log('[TablePage] Successfully subscribed to realtime channel')
+          }
+        })
 
       return () => { supabase.removeChannel(ch) }
     }
@@ -1097,6 +980,56 @@ export default function TablePage() {
       cleanup.then(fn => fn && fn())
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tableId, slug, router])
+
+  // ── Initialize table state on mount ──────────────────────────────────────────
+  // Fix: if the client scans the QR when the table already has active orders,
+  // the UI should reflect that state instead of starting from scratch.
+  useEffect(() => {
+    if (!tableId || !slug) return
+    let cancelled = false
+    const supabase = createClient()
+
+    async function initTableState() {
+      // 1. Resolve qr_token → real table UUID
+      let realTableUuid = tableId
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(tableId)
+      if (!isUUID) {
+        const { data } = await supabase
+          .from('tables')
+          .select('id, status')
+          .eq('qr_token', tableId)
+          .maybeSingle()
+        if (cancelled) return
+        if (data?.id) realTableUuid = data.id
+      }
+
+      // 2. Load active orders for this table
+      const { data: orders } = await supabase
+        .from('orders')
+        .select('id, status, total, order_items(id, name, quantity, unit_price)')
+        .eq('table_id', realTableUuid)
+        .not('status', 'in', '("paid","cancelled")')
+        .order('created_at', { ascending: false })
+
+      if (cancelled || !orders || orders.length === 0) return
+
+      // 3. Update state: mark that there's an active order
+      const activeOrder = orders[0] as { id: string; status: string; total: number }
+      setOrderId(activeOrder.id)
+      setOrderStatus('sent')
+
+      // 4. Show contextual message in chat
+      setMessages(prev => [...prev, {
+        id: `existing-order-${Date.now()}`,
+        role: 'chapi' as const,
+        text: '¡Hola! Ya hay un pedido abierto en esta mesa 🍽️ Puedes agregar más cosas o pedir la cuenta cuando quieras.',
+      }])
+      setChips(ORDERING_CHIPS)
+    }
+
+    initTableState()
+    return () => { cancelled = true }
   }, [tableId, slug])
 
   const cartTotal = cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
@@ -1529,18 +1462,6 @@ export default function TablePage() {
                   onRemove={(id) => changeQty(id, -1)}
                   onConfirm={() => { void confirmOrder() }}
                   confirming={orderStatus === 'confirming'}
-                />
-              </div>
-            )}
-            {msg.npsSurvey && (
-              <div className="w-full pl-8 pr-2">
-                <NpsSurveyCard
-                  orderId={msg.npsSurvey.orderId}
-                  restaurantSlug={msg.npsSurvey.restaurantSlug}
-                  submitted={msg.npsSubmitted}
-                  onSubmitted={() => {
-                    setMessages(prev => prev.map(m => m.id === msg.id ? { ...m, npsSubmitted: true } : m))
-                  }}
                 />
               </div>
             )}

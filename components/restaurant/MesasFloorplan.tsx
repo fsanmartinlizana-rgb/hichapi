@@ -80,14 +80,25 @@ export function MesasFloorplan<M extends MesaPosLike>({
   const [overrides, setOverrides] = useState<Record<string, { x: number; y: number }>>({})
 
   // ── Resolve coordinates for every mesa ────────────────────────────────────
-  // Mesas with no saved position get an auto-arranged grid spot so the canvas
-  // never looks empty for new restaurants.
   const resolved = useMemo(() => {
+    // Detectar si hay colisiones entre mesas con posición guardada
+    const withPos = mesas.filter(m => m.posX != null && m.posY != null)
+    let hasCollisions = false
+    for (let i = 0; i < withPos.length && !hasCollisions; i++) {
+      for (let j = i + 1; j < withPos.length && !hasCollisions; j++) {
+        const a = withPos[i], b = withPos[j]
+        const dx = Math.abs((a.posX ?? 0) - (b.posX ?? 0))
+        const dy = Math.abs((a.posY ?? 0) - (b.posY ?? 0))
+        if (dx < cardSize.w * 0.8 && dy < cardSize.h * 0.8) hasCollisions = true
+      }
+    }
+
     let autoIndex = 0
     return mesas.map(m => {
       const override = overrides[m.id]
       if (override) return { mesa: m, x: override.x, y: override.y, isAuto: false }
-      if (m.posX != null && m.posY != null) {
+      // Usar posición guardada solo si no hay colisiones
+      if (!hasCollisions && m.posX != null && m.posY != null) {
         return { mesa: m, x: m.posX, y: m.posY, isAuto: false }
       }
       // Auto grid

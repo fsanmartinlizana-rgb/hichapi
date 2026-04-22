@@ -46,11 +46,47 @@ export async function GET(req: NextRequest) {
     .gte('updated_at', today.toISOString())
 
   type SummaryRow = { payment_method: string; total: number; cash_amount: number | null; digital_amount: number | null; hichapi_commission: number | null }
+
+  // Propinas del día desde bill_split_payments
+  // tip = amount - sum(order totals del split)
+  const { data: splitPayments } = await supabase
+    .from('bill_split_payments')
+    .select('amount, cash_amount, digital_amount, bill_split_id, bill_splits(total_amount, num_splits)')
+    .gte('paid_at', today.toISOString())
+
+  type SplitPaymentRow = {
+    amount: number
+    cash_amount: number
+    digital_amount: number
+    bill_split_id: string
+    bill_splits: { total_amount: number; num_splits: number } | null
+  }
+  const splitRows = (splitPayments ?? []) as SplitPaymentRow[]
+
+  // Propina por pago = amount - (total_amount / num_splits)
+  const total_tips = splitRows.reduce((sum, p) => {
+    if (!p.bill_splits) return sum
+    const basePerSplit = Math.floor(p.bill_splits.total_amount / p.bill_splits.num_splits)
+    const tip = Math.max(0, p.amount - basePerSplit)
+    return sum + tip
+  }, 0)
+  const tips_cash    = splitRows.reduce((sum, p) => {
+    if (!p.bill_splits) return sum
+    const basePerSplit = Math.floor(p.bill_splits.total_amount / p.bill_splits.num_splits)
+    const tip = Math.max(0, p.amount - basePerSplit)
+    if (tip <= 0) return sum
+    // Proporcionar la propina entre efectivo y digital según el ratio del pago
+    const ratio = p.amount > 0 ? (p.cash_amount / p.amount) : 1
+    return sum + Math.round(tip * ratio)
+  }, 0)
+  const tips_digital = total_tips - tips_cash
+
   const summary = {
-    total_cash:        (todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + (o.cash_amount ?? 0), 0),
-    total_digital:     (todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + (o.digital_amount ?? 0), 0),
+    total_cash:        (todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + (o.cash_amount ?? 0), 0) + tips_cash,
+    total_digital:     (todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + (o.digital_amount ?? 0), 0) + tips_digital,
     total_orders:      (todaySummary ?? []).length,
     total_revenue:     (todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + o.total, 0),
+    total_tips,
     hichapi_commission:(todaySummary ?? [] as SummaryRow[]).reduce((s: number, o: SummaryRow) => s + (o.hichapi_commission ?? 0), 0),
   }
 

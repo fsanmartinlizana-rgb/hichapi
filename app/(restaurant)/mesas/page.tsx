@@ -1306,11 +1306,25 @@ export default function MesasPage() {
     if (!restId) return
     loadData()
     loadZones()
+    
     const ch = supabase
       .channel('mesas-alerts')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'orders' }, loadData)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'tables' }, loadData)
-      .subscribe(s => setOnline(s === 'SUBSCRIBED'))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        console.log('[mesas] Realtime event - orders INSERT')
+        loadData()
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
+        console.log('[mesas] Realtime event - orders UPDATE')
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        console.log('[mesas] Realtime event - order_items')
+        loadData()
+      })
+      .subscribe(s => {
+        console.log('[mesas] Realtime subscription status:', s)
+        setOnline(s === 'SUBSCRIBED')
+      })
     return () => { supabase.removeChannel(ch) }
   }, [restId, loadData, loadZones, supabase])
 

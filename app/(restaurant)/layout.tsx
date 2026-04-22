@@ -105,10 +105,10 @@ const ALL_NAV: NavSection[] = [
 // Rutas no listadas abajo son accesibles con el plan base ('free' o todos).
 
 const NAV_PLAN_REQUIRED: Record<string, string> = {
-  // Operación del salón → starter+ (temporalmente free para testing)
-  '/mesas':     'free',  // Cambiado de 'starter' a 'free' para testing
+  // Operación del salón → starter (módulo tables)
+  '/mesas':     'free',
   '/comandas':  'starter',
-  '/garzon':    'starter',
+  '/garzon':    'free',
   '/caja':      'starter',
   '/espera':    'starter',
   '/turnos':    'starter',

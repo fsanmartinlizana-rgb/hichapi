@@ -30,6 +30,7 @@ interface DaySummary {
   total_digital: number
   total_orders: number
   total_revenue: number
+  total_tips: number
   hichapi_commission: number
 }
 
@@ -272,9 +273,10 @@ export default function CajaPage() {
       {summary && (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
-            { icon: DollarSign, label: 'Total del día', value: clp(summary.total_revenue), color: 'text-white' },
+            { icon: DollarSign, label: 'Total del día', value: clp(summary.total_revenue + (summary.total_tips || 0)), color: 'text-white' },
             { icon: Banknote,   label: 'Efectivo',       value: clp(summary.total_cash),    color: 'text-green-400' },
             { icon: CreditCard, label: 'Digital',         value: clp(summary.total_digital), color: 'text-blue-400' },
+            { icon: TrendingUp, label: 'Propinas',        value: clp(summary.total_tips || 0), color: 'text-emerald-400' },
             { icon: TrendingUp, label: 'Comisión HiChapi',value: clp(summary.hichapi_commission), color: 'text-orange-400' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="bg-[#1a1a2e] rounded-xl p-4 border border-white/5">
@@ -433,6 +435,15 @@ export default function CajaPage() {
                 </span>
                 <span className="text-green-400">{summary ? clp(summary.total_cash) : '—'}</span>
               </div>
+              {summary && (summary.total_tips || 0) > 0 && (
+                <div className="flex justify-between text-gray-400">
+                  <span className="flex items-center gap-2">
+                    <ArrowUpCircle size={12} className="text-emerald-400" />
+                    Propinas
+                  </span>
+                  <span className="text-emerald-400">{clp(summary.total_tips || 0)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-gray-400">
                 <span className="flex items-center gap-2">
                   <ArrowDownCircle size={12} className="text-red-400" />

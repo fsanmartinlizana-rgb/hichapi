@@ -34,11 +34,11 @@ export const MODULE_LABELS: Record<keyof ModulesConfig, string> = {
 
 export const MODULE_PLAN_REQUIRED: Record<keyof ModulesConfig, string> = {
   tables:          'free',
-  kitchen_display: 'free',
-  inventory:       'starter',
-  cash_register:   'free',
+  kitchen_display: 'starter',
+  inventory:       'pro',
+  cash_register:   'starter',
   loyalty:         'pro',
-  waitlist:        'free',
+  waitlist:        'starter',
   daily_reports:   'pro',
   geofencing:      'enterprise',
   staff_schedule:  'starter',

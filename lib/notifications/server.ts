@@ -42,7 +42,6 @@ export async function createNotification(input: CreateNotificationInput): Promis
           severity: input.severity ?? 'info',
           metadata: input.metadata ?? {},
           is_read: false,
-          read_at: null,
           created_at: new Date().toISOString(),
           expires_at: new Date(Date.now() + 10 * 24 * 3600_000).toISOString(),
         })
@@ -50,8 +49,27 @@ export async function createNotification(input: CreateNotificationInput): Promis
         .select('*')
         .single()
       if (upErr) {
-        console.error('[notifications] dedupe update failed', upErr)
-        return null
+        // Si falla por columna faltante, intentar sin read_at
+        console.warn('[notifications] dedupe update failed, retrying without read_at:', upErr.message)
+        const { data: retried, error: retryErr } = await supabase
+          .from('notifications')
+          .update({
+            title: input.title,
+            message: input.message ?? null,
+            severity: input.severity ?? 'info',
+            metadata: input.metadata ?? {},
+            is_read: false,
+            created_at: new Date().toISOString(),
+            expires_at: new Date(Date.now() + 10 * 24 * 3600_000).toISOString(),
+          })
+          .eq('id', existing.id)
+          .select('*')
+          .single()
+        if (retryErr) {
+          console.error('[notifications] dedupe update failed', retryErr)
+          return null
+        }
+        return retried as NotificationRow
       }
       return updated as NotificationRow
     }

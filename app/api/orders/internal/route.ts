@@ -32,6 +32,7 @@ const CreateSchema = z.object({
   cart:          z.array(CartItemSchema).min(1),
   client_name:   z.string().optional(),
   notes:         z.string().optional(),
+  pax:           z.number().int().min(1).optional(),
 })
 
 export async function POST(req: NextRequest) {
@@ -53,6 +54,41 @@ export async function POST(req: NextRequest) {
 
   const supabase = createAdminClient()
 
+  // Validar que la caja esté abierta (mismo gate que /api/orders)
+  // El admin puede deshabilitar este gate via restaurants.cash_required = false.
+  let cashRequired = true
+  try {
+    const { data: restConfig } = await supabase
+      .from('restaurants')
+      .select('cash_required')
+      .eq('id', body.restaurant_id)
+      .maybeSingle()
+    if (restConfig && (restConfig as { cash_required?: boolean | null }).cash_required === false) {
+      cashRequired = false
+    }
+  } catch { /* columna no existe — gating ON por default */ }
+
+  if (cashRequired) {
+    const { data: openSession } = await supabase
+      .from('cash_register_sessions')
+      .select('id')
+      .eq('restaurant_id', body.restaurant_id)
+      .eq('status', 'open')
+      .limit(1)
+      .maybeSingle()
+
+    if (!openSession) {
+      return NextResponse.json(
+        {
+          error: 'La caja está cerrada. No se pueden tomar pedidos en este momento.',
+          reason: 'cash_register_closed',
+          hint:   'Abre la caja desde /caja para reanudar el servicio.',
+        },
+        { status: 409 }
+      )
+    }
+  }
+
   // 1. Verificar que la mesa pertenece al restaurant y está disponible
   const { data: table, error: tableErr } = await supabase
     .from('tables')
@@ -69,30 +105,94 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `${t.label ?? 'Esta mesa'} está dividida. Elegí una sub-mesa.` }, { status: 409 })
   }
 
-  // 2. Calcular total
-  const total = body.cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
+  // 2. Calcular total parcial del carrito
+  const cartTotal = body.cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
 
-  // 3. Crear order
-  const { data: order, error: orderErr } = await supabase
-    .from('orders')
-    .insert({
-      restaurant_id: body.restaurant_id,
-      table_id:      body.table_id,
-      status:        'pending',
-      total,
-      client_name:   body.client_name ?? null,
-      notes:         body.notes ?? null,
-    })
-    .select('id')
-    .single()
+  // 3. Si la mesa está ocupada, buscar la orden activa y agregar ítems a ella.
+  //    Si está libre (o cualquier otro estado), crear una orden nueva.
+  let orderId: string
+  let isAddingToExisting = false
 
-  if (orderErr || !order) {
-    console.error('[orders/internal] order insert failed:', orderErr)
-    return NextResponse.json(
-      { error: 'No se pudo crear la comanda', details: orderErr?.message },
-      { status: 500 },
-    )
+  if (t.status === 'ocupada') {
+    // Buscar la orden activa más reciente de esta mesa (pending o en_proceso)
+    const { data: activeOrder, error: activeOrderErr } = await supabase
+      .from('orders')
+      .select('id, total')
+      .eq('table_id', body.table_id)
+      .eq('restaurant_id', body.restaurant_id)
+      .in('status', ['pending', 'en_proceso', 'preparing'])
+      .order('created_at', { ascending: false })
+      .limit(1)
+      .maybeSingle()
+
+    if (activeOrderErr) {
+      console.error('[orders/internal] active order lookup failed:', activeOrderErr)
+      return NextResponse.json(
+        { error: 'No se pudo obtener la comanda activa', details: activeOrderErr.message },
+        { status: 500 },
+      )
+    }
+
+    if (activeOrder) {
+      orderId = (activeOrder as { id: string; total: number }).id
+      isAddingToExisting = true
+      // Actualizar el total de la orden existente
+      const newTotal = ((activeOrder as { id: string; total: number }).total ?? 0) + cartTotal
+      await supabase.from('orders').update({ total: newTotal }).eq('id', orderId)
+    } else {
+      // Mesa ocupada pero sin orden activa encontrada — crear una nueva igual
+      const { data: newOrder, error: newOrderErr } = await supabase
+        .from('orders')
+        .insert({
+          restaurant_id: body.restaurant_id,
+          table_id:      body.table_id,
+          status:        'pending',
+          total:         cartTotal,
+          client_name:   body.client_name ?? null,
+          notes:         body.notes ?? null,
+          pax:           body.pax ?? null,
+        })
+        .select('id')
+        .single()
+
+      if (newOrderErr || !newOrder) {
+        console.error('[orders/internal] order insert failed (occupied fallback):', newOrderErr)
+        return NextResponse.json(
+          { error: 'No se pudo crear la comanda', details: newOrderErr?.message },
+          { status: 500 },
+        )
+      }
+      orderId = (newOrder as { id: string }).id
+    }
+  } else {
+    // Mesa libre — crear orden nueva
+    const { data: newOrder, error: newOrderErr } = await supabase
+      .from('orders')
+      .insert({
+        restaurant_id: body.restaurant_id,
+        table_id:      body.table_id,
+        status:        'pending',
+        total:         cartTotal,
+        client_name:   body.client_name ?? null,
+        notes:         body.notes ?? null,
+        pax:           body.pax ?? null,
+      })
+      .select('id')
+      .single()
+
+    if (newOrderErr || !newOrder) {
+      console.error('[orders/internal] order insert failed:', newOrderErr)
+      return NextResponse.json(
+        { error: 'No se pudo crear la comanda', details: newOrderErr?.message },
+        { status: 500 },
+      )
+    }
+    orderId = (newOrder as { id: string }).id
   }
+
+  // Alias para compatibilidad con el resto del código
+  const order = { id: orderId }
+  const total = cartTotal
 
   // 4. Resolver station_id por cada item (misma lógica que /api/orders).
   //    Orden: override puntual → category routing → null (fallback legacy
@@ -166,8 +266,11 @@ export async function POST(req: NextRequest) {
     console.error('[orders/internal] items insert (with station_id) failed:', itemsErr)
     itemsErr = (await supabase.from('order_items').insert(body.cart.map(baseRow))).error
     if (itemsErr) {
-      // Rollback del order padre para no dejar mesa ocupada con pedido fantasma.
-      await supabase.from('orders').delete().eq('id', order.id)
+      // Rollback: solo borrar la orden si fue creada nueva en este request.
+      // Si estamos agregando a una orden existente, no tocar nada.
+      if (!isAddingToExisting) {
+        await supabase.from('orders').delete().eq('id', order.id)
+      }
       return NextResponse.json(
         { error: 'No se pudieron guardar los productos', details: itemsErr.message },
         { status: 500 },
@@ -175,13 +278,16 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // 6. Marcar mesa ocupada (solo después del insert exitoso de items)
-  await supabase.from('tables').update({ status: 'ocupada' }).eq('id', body.table_id)
+  // 6. Marcar mesa ocupada (solo si no lo estaba ya)
+  if (!isAddingToExisting) {
+    await supabase.from('tables').update({ status: 'ocupada' }).eq('id', body.table_id)
+  }
 
   return NextResponse.json({
-    ok:      true,
-    orderId: order.id,
+    ok:                true,
+    orderId:           order.id,
     total,
-    status:  'pending',
+    status:            'pending',
+    addedToExisting:   isAddingToExisting,
   })
 }

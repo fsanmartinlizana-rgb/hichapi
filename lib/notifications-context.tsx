@@ -82,6 +82,12 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       setNotifications(data.notifications ?? [])
       setUnreadCount(data.unread_count ?? 0)
     } catch (err) {
+      // Silenciar errores de red temporales (servidor reiniciando, pérdida de conexión)
+      // Solo loguear si es un error HTTP real (no TypeError: Failed to fetch)
+      if (err instanceof TypeError && err.message.includes('fetch')) {
+        // Error de red - silencioso, el polling reintentará
+        return
+      }
       console.error('[notifications] fetch error', err)
     } finally {
       if (token === fetchTokenRef.current) setLoading(false)
@@ -118,6 +124,15 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       supabase.removeChannel(channel)
     }
   }, [restaurant?.id, supabase, refresh])
+
+  // Polling de respaldo — el service role no dispara realtime en Supabase,
+  // así que hacemos polling cada 8s para garantizar que las notificaciones
+  // (bill_requested, stock_low, etc.) lleguen aunque el realtime falle.
+  useEffect(() => {
+    if (!restaurant?.id) return
+    const interval = setInterval(() => { refresh() }, 8_000)
+    return () => clearInterval(interval)
+  }, [restaurant?.id, refresh])
 
   // ── Mutators ───────────────────────────────────────────────────────────────
   const markRead = useCallback(async (id: string) => {

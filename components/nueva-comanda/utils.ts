@@ -1,4 +1,4 @@
-import type { MenuItemOption, OrderLine, TableOption } from './types'
+import type { Destination, MenuItemOption, OrderLine, TableOption } from './types'
 
 export function calculateTotal(lines: OrderLine[]): number {
   return lines.reduce((sum, line) => sum + line.unitPrice * line.qty, 0)
@@ -28,4 +28,16 @@ export function groupByZone(tables: TableOption[]): Record<string, TableOption[]
 
 export function getDefaultDestination(item: MenuItemOption): 'cocina' | 'barra' | 'ninguno' {
   return (item.destination as 'cocina' | 'barra' | 'ninguno') ?? 'cocina'
+}
+
+export function groupByDestination(lines: OrderLine[]): Record<Destination, OrderLine[]> {
+  return lines.reduce<Record<Destination, OrderLine[]>>(
+    (acc, line) => {
+      const dest = line.destination
+      if (!acc[dest]) acc[dest] = []
+      acc[dest].push(line)
+      return acc
+    },
+    {} as Record<Destination, OrderLine[]>
+  )
 }

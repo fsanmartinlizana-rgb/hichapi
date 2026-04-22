@@ -4,15 +4,22 @@ import { useEffect, useState, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
-  RefreshCw, Wifi, WifiOff, AlertCircle, Plus, XCircle, Ticket,
+  RefreshCw, Wifi, WifiOff, AlertCircle, Ticket,
 } from 'lucide-react'
-import Link from 'next/link'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
 import { CouponRedeemModal } from '@/components/restaurant/CouponRedeemModal'
 import { PaymentMethodModal, type DteSelection } from '@/components/PaymentMethodModal'
+import { BillSplitModal } from '@/components/bills/BillSplitModal'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency } from '@/lib/i18n'
 import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
+import { MesaDetailPanel } from '@/components/restaurant/MesaDetailPanel'
+import type { StationStatus } from '@/components/restaurant/MesaDetailPanel'
+import type { MenuItemOption, OrderLine } from '@/components/nueva-comanda/types'
+import StepPax from '@/components/nueva-comanda/StepPax'
+import StepCatalogoVisual from '@/components/nueva-comanda/StepCatalogoVisual'
+import StepConfirmacion from '@/components/nueva-comanda/StepConfirmacion'
+import { getDefaultDestination } from '@/components/nueva-comanda/utils'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -36,6 +43,7 @@ interface OrderItem {
   unit_price: number
   notes: string | null
   status: string
+  destination: string | null
 }
 
 interface Order {
@@ -43,12 +51,20 @@ interface Order {
   table_id: string
   status: OrderStatus
   total: number
+  pax: number | null
   client_name: string | null
   notes: string | null
   created_at: string
   updated_at: string
   order_items: OrderItem[]
 }
+
+type GarzonUIMode =
+  | { type: 'map' }
+  | { type: 'new-pax'; table: Table }
+  | { type: 'new-catalog'; table: Table; pax: number }
+  | { type: 'new-confirm'; table: Table; pax: number; lines: OrderLine[] }
+  | { type: 'open'; table: Table }
 
 // ── Constants ─────────────────────────────────────────────────────────────────
 
@@ -60,9 +76,9 @@ const TABLE_STATUS_STYLES: Record<TableStatus, { bg: string; border: string; tex
 }
 
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string; icon: React.ReactNode; next: OrderStatus | null; nextLabel: string }> = {
-  pending:   { label: 'Nuevo pedido',  color: '#60A5FA', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,        next: 'preparing', nextLabel: 'Enviar a cocina' },
-  confirmed: { label: 'Confirmado',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar a cocina' },
-  preparing: { label: 'En cocina',     color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,     next: 'ready',     nextLabel: 'Marcar listo'    },
+  pending:   { label: 'Nuevo pedido',  color: '#60A5FA', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,        next: 'preparing', nextLabel: 'Enviar pedido' },
+  confirmed: { label: 'Confirmado',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar pedido' },
+  preparing: { label: 'Preparando',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,     next: 'ready',     nextLabel: 'Marcar listo'    },
   ready:     { label: '¡Listo!',       color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'delivered', nextLabel: 'Entregar'        },
   delivered: { label: 'Entregado',     color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',    nextLabel: 'Cobrar'          },
   paying:    { label: 'Cobrando',      color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <Banknote size={13} />,    next: 'paid',      nextLabel: 'Pagado ✓'        },
@@ -127,7 +143,7 @@ function TableCell({
       )}
 
       <p className="text-white font-bold text-base leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-        {table.label.replace('Mesa ', '')}
+        {table.label.replace(/^Mesa\s+/i, '')}
       </p>
       <span className={`text-[9px] font-medium ${s.text}`}>
         {table.status}
@@ -148,126 +164,6 @@ function TableCell({
   )
 }
 
-function OrderPanel({
-  table,
-  order,
-  onAdvance,
-  onCancel,
-  onClose,
-  advancing,
-}: {
-  table: Table
-  order: Order | null
-  onAdvance: (orderId: string, next: OrderStatus) => void
-  onCancel: (orderId: string) => void
-  onClose: () => void
-  advancing: boolean
-}) {
-  if (!order) {
-    return (
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-5 flex flex-col items-center justify-center gap-2 min-h-32">
-        <p className="text-white/25 text-sm">Sin pedidos activos en {table.label}</p>
-        <button onClick={onClose} className="text-[#FF6B35]/60 text-xs hover:text-[#FF6B35] transition-colors">
-          Cerrar
-        </button>
-      </div>
-    )
-  }
-
-  const cfg = getOrderStatusCfg(order.status)
-  const elapsed = elapsedMin(order.created_at)
-
-  return (
-    <div className="bg-[#161622] border border-white/8 rounded-2xl overflow-hidden">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-white/6">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
-            {cfg.icon}
-          </div>
-          <div>
-            <p className="text-white font-semibold text-sm">{table.label}</p>
-            <p className="text-white/35 text-xs">
-              #{order.id.slice(-4).toUpperCase()} · hace {elapsed} min
-            </p>
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          <span
-            className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg}`}
-            style={{ color: cfg.color }}
-          >
-            {cfg.label}
-          </span>
-          <button onClick={onClose} className="text-white/20 hover:text-white/50 text-xs transition-colors ml-1">
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {/* Items */}
-      <div className="px-4 py-3 space-y-2">
-        {order.order_items.map((item, i) => (
-          <div key={item.id ?? i} className="flex items-start justify-between gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="text-white text-sm">
-                <span className="text-[#FF6B35] font-semibold">{item.quantity}×</span>{' '}
-                {item.name}
-              </p>
-              {item.notes && (
-                <p className="text-white/30 text-xs italic mt-0.5">{item.notes}</p>
-              )}
-            </div>
-            <p className="text-white/50 text-xs font-mono shrink-0">
-              {clp(item.unit_price * item.quantity)}
-            </p>
-          </div>
-        ))}
-      </div>
-
-      {/* Total */}
-      <div className="flex items-center justify-between px-4 py-2 border-t border-white/6">
-        <span className="text-white/40 text-sm">Total</span>
-        <span className="text-white font-bold text-base" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-          {clp(order.total)}
-        </span>
-      </div>
-
-      {/* Notes */}
-      {order.notes && (
-        <div className="px-4 pb-3">
-          <p className="text-white/30 text-xs italic">📝 {order.notes}</p>
-        </div>
-      )}
-
-      {/* Action button */}
-      {cfg.next && (
-        <div className="px-4 pb-4 space-y-2">
-          <button
-            onClick={() => onAdvance(order.id, cfg.next!)}
-            disabled={advancing}
-            className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
-            style={{ backgroundColor: cfg.color }}
-          >
-            {advancing ? (
-              <><RefreshCw size={14} className="animate-spin" /> Actualizando…</>
-            ) : (
-              cfg.nextLabel
-            )}
-          </button>
-          <button
-            onClick={() => onCancel(order.id)}
-            disabled={advancing}
-            className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/15 transition-colors flex items-center justify-center gap-2"
-          >
-            <XCircle size={12} /> Cancelar pedido
-          </button>
-        </div>
-      )}
-    </div>
-  )
-}
-
 // ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function GarzonPage() {
@@ -276,14 +172,22 @@ export default function GarzonPage() {
 
   const [tables, setTables]       = useState<Table[]>([])
   const [orders, setOrders]       = useState<Order[]>([])
-  const [selected, setSelected]   = useState<string | null>(null)
+  const [menuItems, setMenuItems] = useState<MenuItemOption[]>([])
+  const [mode, setMode]           = useState<GarzonUIMode>({ type: 'map' })
   const [loading, setLoading]     = useState(true)
   const [advancing, setAdvancing] = useState(false)
   const [online, setOnline]       = useState(true)
   const [lastRefresh, setLastRefresh] = useState(new Date())
   const [payingOrder, setPayingOrder] = useState<{ id: string; total: number } | null>(null)
+  const [billSplitTable, setBillSplitTable] = useState<{ tableId: string; tableLabel: string; orders: Order[]; totalAmount: number; pax: number } | null>(null)
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel?: string } | null>(null)
   const [showCoupon, setShowCoupon] = useState(false)
+
+  // ── New order flow state ──────────────────────────────────────────────────
+  const [newPax, setNewPax]           = useState(1)
+  const [catalogLines, setCatalogLines] = useState<OrderLine[]>([])
+  const [confirmSaving, setConfirmSaving] = useState(false)
+  const [confirmError, setConfirmError]   = useState<string | null>(null)
 
   const supabase = useMemo(() => createClient(), [])
 
@@ -291,7 +195,7 @@ export default function GarzonPage() {
 
   const loadData = useCallback(async () => {
     if (!restId) return
-    const [tablesRes, ordersRes] = await Promise.all([
+    const [tablesRes, ordersRes, menuRes] = await Promise.all([
       // select('*') tolera bases sin pos_x/pos_y aún migradas
       supabase
         .from('tables')
@@ -300,10 +204,16 @@ export default function GarzonPage() {
         .order('label'),
       supabase
         .from('orders')
-        .select('id, table_id, status, total, client_name, notes, created_at, updated_at, order_items(id, name, quantity, unit_price, notes, status)')
+        .select('id, table_id, status, total, pax, client_name, notes, created_at, updated_at, order_items(id, name, quantity, unit_price, notes, status, destination)')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
+      supabase
+        .from('menu_items')
+        .select('id, name, price, destination, menu_categories(name)')
+        .eq('restaurant_id', restId)
+        .eq('available', true)
+        .order('name'),
     ])
 
     if (tablesRes.error) {
@@ -333,6 +243,17 @@ export default function GarzonPage() {
       console.info(`[garzon] loaded ${ordersRes.data.length} active orders for restaurant ${restId}`)
       setOrders(ordersRes.data as Order[])
     }
+    if (menuRes.data) {
+      type RawMenuItem = { id: string; name: string; price: number; destination: string | null; menu_categories: { name: string } | { name: string }[] | null }
+      const mapped: MenuItemOption[] = (menuRes.data as RawMenuItem[]).map(m => ({
+        id:          m.id,
+        name:        m.name,
+        price:       m.price,
+        category:    (Array.isArray(m.menu_categories) ? m.menu_categories[0]?.name : m.menu_categories?.name) ?? 'Sin categoría',
+        destination: m.destination ?? undefined,
+      }))
+      setMenuItems(mapped)
+    }
     setLastRefresh(new Date())
     setLoading(false)
     setOnline(true)
@@ -345,17 +266,20 @@ export default function GarzonPage() {
 
     const channel = supabase
       .channel('garzon-realtime')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'orders' },
-        () => loadData()
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'tables' },
-        () => loadData()
-      )
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
+        console.log('[garzon] Realtime event - orders INSERT')
+        loadData()
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
+        console.log('[garzon] Realtime event - orders UPDATE')
+        loadData()
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
+        console.log('[garzon] Realtime event - order_items')
+        loadData()
+      })
       .subscribe(status => {
+        console.log('[garzon] Realtime subscription status:', status)
         setOnline(status === 'SUBSCRIBED')
       })
 
@@ -371,6 +295,32 @@ export default function GarzonPage() {
       if (order) {
         setPayingOrder({ id: orderId, total: order.total })
         return
+      }
+    }
+
+    // If advancing to 'paying' (from delivered), show bill split modal for the entire table
+    if (nextStatus === 'paying') {
+      const order = orders.find(o => o.id === orderId)
+      if (order) {
+        const table = tables.find(t => t.id === order.table_id)
+        if (table) {
+          // Get all orders for this table that are delivered or paying
+          const tableOrders = orders.filter(o => 
+            o.table_id === order.table_id && 
+            (o.status === 'delivered' || o.status === 'paying')
+          )
+          const totalAmount = tableOrders.reduce((sum, o) => sum + o.total, 0)
+          const maxPax = tableOrders.reduce((max, o) => Math.max(max, o.pax || 0), 0)
+
+          setBillSplitTable({
+            tableId: table.id,
+            tableLabel: table.label,
+            orders: tableOrders,
+            totalAmount,
+            pax: maxPax || 2
+          })
+          return
+        }
       }
     }
 
@@ -459,7 +409,7 @@ export default function GarzonPage() {
       }
 
       setPayingOrder(null)
-      setSelected(null)
+      setMode({ type: 'map' })
       await loadData()
     } finally {
       setAdvancing(false)
@@ -473,8 +423,127 @@ export default function GarzonPage() {
   const readyCount     = orders.filter(o => o.status === 'ready').length
   const payingCount    = orders.filter(o => o.status === 'paying').length
 
-  const selectedTable = tables.find(t => t.id === selected) ?? null
-  const selectedOrder = selected ? orders.find(o => o.table_id === selected) ?? null : null
+  const selectedTable = 'table' in mode ? mode.table : null
+  const selectedOrder = 'table' in mode ? orders.find(o => o.table_id === mode.table.id) ?? null : null
+
+  // ── Navigation handlers ───────────────────────────────────────────────────
+
+  function handleTableClick(table: Table) {
+    if (table.status === 'libre') {
+      setNewPax(1)
+      setMode({ type: 'new-pax', table })
+    } else if (table.status === 'ocupada') {
+      setMode({ type: 'open', table })
+    }
+    // reservada/bloqueada → no effect
+  }
+
+  function handlePaxConfirm(pax: number) {
+    if (mode.type !== 'new-pax') return
+    setMode({ type: 'new-catalog', table: mode.table, pax })
+  }
+
+  function handleCatalogContinue(lines: OrderLine[]) {
+    if (mode.type !== 'new-catalog') return
+    setMode({ type: 'new-confirm', table: mode.table, pax: mode.pax, lines })
+  }
+
+  function handleBack() {
+    if (mode.type === 'new-catalog') {
+      setMode({ type: 'new-pax', table: mode.table })
+    } else if (mode.type === 'new-confirm') {
+      setMode({ type: 'new-catalog', table: mode.table, pax: mode.pax })
+    } else {
+      setMode({ type: 'map' })
+    }
+  }
+
+  function handleOrderConfirmed() {
+    if ('table' in mode) {
+      setMode({ type: 'open', table: mode.table })
+    }
+  }
+
+  function handleClosePanel() {
+    setMode({ type: 'map' })
+  }
+
+  // ── Catalog handlers ──────────────────────────────────────────────────────
+
+  function handleAddItem(item: MenuItemOption) {
+    setCatalogLines(prev => {
+      const existing = prev.find(l => l.menuItemId === item.id)
+      if (existing) return prev.map(l => l.menuItemId === item.id ? { ...l, qty: l.qty + 1 } : l)
+      return [...prev, { menuItemId: item.id, name: item.name, unitPrice: item.price, qty: 1, note: '', destination: getDefaultDestination(item) }]
+    })
+  }
+
+  function handleUpdateLine(menuItemId: string, patch: Partial<OrderLine>) {
+    setCatalogLines(prev => prev.map(l => l.menuItemId === menuItemId ? { ...l, ...patch } : l))
+  }
+
+  function handleRemoveLine(menuItemId: string) {
+    setCatalogLines(prev => prev.filter(l => l.menuItemId !== menuItemId))
+  }
+
+  // ── Confirm order handler ─────────────────────────────────────────────────
+
+  async function handleConfirmOrder() {
+    if (mode.type !== 'new-confirm') return
+    setConfirmSaving(true)
+    setConfirmError(null)
+    try {
+      const res = await fetch('/api/orders/internal', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restId,
+          table_id: mode.table.id,
+          pax: mode.pax,
+          cart: mode.lines.map(l => ({
+            menu_item_id: l.menuItemId,
+            name: l.name,
+            quantity: l.qty,
+            unit_price: l.unitPrice,
+            note: l.note || null,
+            destination: l.destination,
+          })),
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setConfirmError(data.error ?? 'No se pudo crear la comanda')
+        return
+      }
+      setCatalogLines([])
+      setNewPax(1)
+      handleOrderConfirmed()
+      await loadData()
+    } catch {
+      setConfirmError('Sin conexión. Intenta de nuevo.')
+    } finally {
+      setConfirmSaving(false)
+    }
+  }
+
+  // ── Station statuses ──────────────────────────────────────────────────────
+
+  function computeStationStatuses(items: Array<{ destination: string | null; status: string }>): StationStatus[] {
+    const destinations = [...new Set(
+      items
+        .filter(i => i.destination && i.destination !== 'ninguno')
+        .map(i => i.destination as string)
+    )]
+    return destinations.map(dest => {
+      const destItems = items.filter(i => i.destination === dest)
+      const allReady = destItems.every(i => i.status === 'ready')
+      return {
+        destination: dest as 'cocina' | 'barra' | 'ninguno',
+        label: dest.charAt(0).toUpperCase() + dest.slice(1),
+        ready: allReady,
+      }
+    })
+  }
 
   if (loading) {
     return (
@@ -509,12 +578,6 @@ export default function GarzonPage() {
           >
             <Ticket size={13} className="text-[#FF6B35]" /> Cupón
           </button>
-          <Link
-            href="/comandas?nueva=1"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#ff8255] transition-colors"
-          >
-            <Plus size={13} /> Nueva comanda
-          </Link>
           <button
             onClick={loadData}
             className="p-2 rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors"
@@ -528,7 +591,7 @@ export default function GarzonPage() {
       <div className="grid grid-cols-3 gap-3">
         {[
           { label: 'Nuevos',     count: pendingCount,   color: '#60A5FA' },
-          { label: 'En cocina',  count: preparingCount, color: '#FBBF24' },
+          { label: 'Preparando',  count: preparingCount, color: '#FBBF24' },
           { label: 'Listos',     count: readyCount,     color: '#34D399' },
         ].map(({ label, count, color }) => (
           <div key={label} className="bg-[#161622] border border-white/5 rounded-xl p-3 text-center">
@@ -575,8 +638,8 @@ export default function GarzonPage() {
               <TableCell
                 table={t}
                 order={orders.find(o => o.table_id === t.id) ?? null}
-                selected={selected === t.id}
-                onClick={() => setSelected(selected === t.id ? null : t.id)}
+                selected={mode.type !== 'map' && 'table' in mode && mode.table.id === t.id}
+                onClick={() => handleTableClick(t)}
               />
             )}
           />
@@ -593,66 +656,237 @@ export default function GarzonPage() {
         </div>
       </div>
 
-      {/* Selected table order panel */}
-      {selected && selectedTable && (
-        <OrderPanel
-          table={selectedTable}
-          order={selectedOrder}
-          onAdvance={advanceOrder}
-          onCancel={(orderId) => setCancellingOrder({ id: orderId, tableLabel: selectedTable.label })}
-          onClose={() => setSelected(null)}
-          advancing={advancing}
-        />
-      )}
-
-      {/* Active orders list (when no table selected) */}
-      {!selected && orders.length > 0 && (
-        <div className="space-y-2">
-          <p className="text-white/40 text-xs uppercase tracking-widest font-semibold px-0.5">
-            Pedidos activos ({orders.length})
-          </p>
-          {orders.map(order => {
-            const table = tables.find(t => t.id === order.table_id)
-            const cfg = getOrderStatusCfg(order.status)
-            const elapsed = elapsedMin(order.created_at)
-
-            return (
-              <button
-                key={order.id}
-                onClick={() => setSelected(order.table_id)}
-                className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#161622] border border-white/5 hover:border-[#FF6B35]/30 transition-colors text-left"
-              >
-                <div
-                  className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
-                  style={{ backgroundColor: cfg.color + '20', color: cfg.color }}
-                >
-                  {cfg.icon}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-semibold">
-                    {table?.label ?? 'Mesa'} — {order.order_items.length} ítem{order.order_items.length !== 1 ? 's' : ''}
-                  </p>
-                  <p className="text-white/30 text-xs truncate">
-                    {order.order_items.map(i => `${i.quantity}× ${i.name}`).join(', ')}
-                  </p>
-                </div>
-                <div className="text-right shrink-0">
-                  <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-                    {clp(order.total)}
-                  </p>
-                  <div className="flex items-center gap-1 justify-end mt-0.5">
-                    <Clock size={9} className="text-white/25" />
-                    <span className="text-white/25 text-[10px]">{elapsed}m</span>
-                  </div>
-                </div>
-              </button>
-            )
-          })}
+      {/* New order flow — StepPax */}
+      {mode.type === 'new-pax' && (
+        <div className="bg-[#161622] border border-white/5 rounded-2xl p-4">
+          <StepPax
+            table={mode.table}
+            pax={newPax}
+            onChangePax={setNewPax}
+            onConfirm={() => handlePaxConfirm(newPax)}
+            onBack={handleClosePanel}
+          />
         </div>
       )}
 
+      {/* New order flow — StepCatalogoVisual */}
+      {mode.type === 'new-catalog' && (
+        <StepCatalogoVisual
+          menuItems={menuItems}
+          lines={catalogLines}
+          onAddItem={handleAddItem}
+          onUpdateLine={handleUpdateLine}
+          onRemoveLine={handleRemoveLine}
+          onContinue={() => handleCatalogContinue(catalogLines)}
+          onBack={handleBack}
+        />
+      )}
+
+      {/* New order flow — StepConfirmacion */}
+      {mode.type === 'new-confirm' && (
+        <StepConfirmacion
+          selectedTable={{
+            id: mode.table.id,
+            label: mode.table.label,
+            status: mode.table.status,
+            zone: mode.table.zone ?? undefined,
+            seats: mode.table.seats ?? undefined
+          }}
+          pax={mode.pax}
+          lines={mode.lines}
+          saving={confirmSaving}
+          error={confirmError}
+          onConfirm={handleConfirmOrder}
+          onBack={handleBack}
+        />
+      )}
+
+      {/* Selected table order panel */}
+      {mode.type === 'open' && selectedTable && (
+        <MesaDetailPanel
+          key={selectedTable.id}
+          tableId={selectedTable.id}
+          tableLabel={selectedTable.label}
+          order={selectedOrder}
+          menuItems={menuItems}
+          restaurantId={restId ?? ''}
+          onClose={handleClosePanel}
+          onAdvance={advanceOrder}
+          onCancel={(orderId) => setCancellingOrder({ id: orderId, tableLabel: selectedTable.label })}
+          onRefresh={loadData}
+          advancing={advancing}
+          pax={selectedOrder?.pax ?? undefined}
+          onUpdatePax={async (newPaxVal) => { await supabase.from('orders').update({ pax: newPaxVal }).eq('id', selectedOrder!.id); await loadData() }}
+          stationStatuses={selectedOrder ? computeStationStatuses(selectedOrder.order_items) : []}
+        />
+      )}
+
+      {/* Active orders list (when no table selected) — grouped by table */}
+      {mode.type === 'map' && orders.length > 0 && (() => {
+        // Agrupar órdenes por table_id
+        const groupOrder: string[] = []
+        const groups: Record<string, Order[]> = {}
+        for (const o of orders) {
+          if (!groups[o.table_id]) {
+            groups[o.table_id] = []
+            groupOrder.push(o.table_id)
+          }
+          groups[o.table_id].push(o)
+        }
+
+        return (
+          <div className="space-y-2">
+            <p className="text-white/40 text-xs uppercase tracking-widest font-semibold px-0.5">
+              Pedidos activos ({orders.length})
+            </p>
+
+            {groupOrder.map(tableId => {
+              const group = groups[tableId]
+              const table = tables.find(t => t.id === tableId)
+              const totalAmount = group.reduce((s, o) => s + o.total, 0)
+              const totalItems  = group.reduce((s, o) => s + o.order_items.length, 0)
+              const allDelivered = group.every(o => o.status === 'delivered' || o.status === 'paying')
+
+              // Status más relevante del grupo para el ícono
+              const dominantOrder = group.find(o => o.status === 'pending')
+                ?? group.find(o => o.status === 'ready')
+                ?? group.find(o => o.status === 'preparing')
+                ?? group[0]
+              const cfg = getOrderStatusCfg(dominantOrder.status)
+
+              // Una sola comanda → fila simple
+              if (group.length === 1) {
+                const order = group[0]
+                const elapsed = elapsedMin(order.created_at)
+                return (
+                  <button
+                    key={order.id}
+                    onClick={() => { if (table) setMode({ type: 'open', table }) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#161622] border border-white/5 hover:border-[#FF6B35]/30 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                         style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
+                      {cfg.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-white text-sm font-semibold">
+                        {table?.label ?? 'Mesa'} — {order.order_items.length} ítem{order.order_items.length !== 1 ? 's' : ''}
+                      </p>
+                      <p className="text-white/30 text-xs truncate">
+                        {order.order_items.map(i => `${i.quantity}× ${i.name}`).join(', ')}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                        {clp(order.total)}
+                      </p>
+                      <div className="flex items-center gap-1 justify-end mt-0.5">
+                        <Clock size={9} className="text-white/25" />
+                        <span className="text-white/25 text-[10px]">{elapsedMin(order.created_at)}m</span>
+                      </div>
+                    </div>
+                  </button>
+                )
+              }
+
+              // Múltiples comandas → tarjeta agrupada
+              return (
+                <div
+                  key={tableId}
+                  className="rounded-xl border border-[#FF6B35]/25 bg-[#161622] overflow-hidden"
+                >
+                  {/* Header del grupo — click abre el panel de la mesa */}
+                  <button
+                    onClick={() => { if (table) setMode({ type: 'open', table }) }}
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-colors text-left"
+                  >
+                    <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                         style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
+                      {cfg.icon}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-white text-sm font-semibold">
+                          {table?.label ?? 'Mesa'}
+                        </p>
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#FF6B35]">
+                          {group.length} comandas
+                        </span>
+                      </div>
+                      <p className="text-white/30 text-xs mt-0.5">
+                        {totalItems} ítems · {group.map(o => getOrderStatusCfg(o.status).label).join(', ')}
+                      </p>
+                    </div>
+                    <div className="text-right shrink-0">
+                      <p className="text-white font-bold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                        {clp(totalAmount)}
+                      </p>
+                      <p className="text-white/25 text-[10px]">total mesa</p>
+                    </div>
+                  </button>
+
+                  {/* Filas individuales de cada comanda */}
+                  {group.map((order, idx) => {
+                    const elapsed = elapsedMin(order.created_at)
+                    const oc = getOrderStatusCfg(order.status)
+                    return (
+                      <button
+                        key={order.id}
+                        onClick={() => { if (table) setMode({ type: 'open', table }) }}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/3 transition-colors text-left ${idx < group.length - 1 ? 'border-b border-white/5' : ''}`}
+                        style={{ paddingLeft: '3.5rem' }}
+                      >
+                        <span
+                          className="text-[9px] font-bold px-1.5 py-0.5 rounded shrink-0"
+                          style={{ backgroundColor: oc.color + '20', color: oc.color }}
+                        >
+                          {oc.label}
+                        </span>
+                        <p className="flex-1 text-white/50 text-xs truncate">
+                          {order.order_items.map(i => `${i.quantity}× ${i.name}`).join(', ')}
+                        </p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <span className="text-white/30 text-[10px] flex items-center gap-0.5">
+                            <Clock size={8} />{elapsed}m
+                          </span>
+                          <span className="text-white/60 text-xs font-semibold tabular-nums" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                            {clp(order.total)}
+                          </span>
+                        </div>
+                      </button>
+                    )
+                  })}
+
+                  {/* Botón cobrar mesa — solo si todas están entregadas */}
+                  {allDelivered && (
+                    <div className="px-3 pb-3 pt-1">
+                      <button
+                        onClick={() => {
+                          const maxPax = group.reduce((max, o) => Math.max(max, o.pax || 0), 0)
+                          setBillSplitTable({
+                            tableId,
+                            tableLabel: table?.label ?? 'Mesa',
+                            orders: group,
+                            totalAmount,
+                            pax: maxPax || 2
+                          })
+                        }}
+                        className="w-full py-2 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 bg-[#FF6B35]/18 text-[#FF6B35] border border-[#FF6B35]/30 hover:bg-[#FF6B35]/28"
+                      >
+                        <Banknote size={13} />
+                        Cobrar mesa · {clp(totalAmount)}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      })()}
+
       {/* Empty state */}
-      {!selected && orders.length === 0 && (
+      {mode.type === 'map' && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
           <div className="w-14 h-14 rounded-2xl bg-white/3 border border-white/8 flex items-center justify-center">
             <CheckCircle2 size={24} className="text-white/15" />
@@ -673,13 +907,31 @@ export default function GarzonPage() {
         />
       )}
 
+      {/* Bill split modal */}
+      {billSplitTable && (
+        <BillSplitModal
+          tableId={billSplitTable.tableId}
+          tableLabel={billSplitTable.tableLabel}
+          orders={billSplitTable.orders}
+          totalAmount={billSplitTable.totalAmount}
+          pax={billSplitTable.pax}
+          restaurantId={restaurant?.id ?? ''}
+          onComplete={async () => {
+            setBillSplitTable(null)
+            setMode({ type: 'map' })
+            await loadData()
+          }}
+          onClose={() => setBillSplitTable(null)}
+        />
+      )}
+
       {/* Cancel order modal */}
       {cancellingOrder && (
         <CancelOrderModal
           orderId={cancellingOrder.id}
           tableLabel={cancellingOrder.tableLabel}
           onClose={() => setCancellingOrder(null)}
-          onCancelled={async () => { setSelected(null); await loadData() }}
+          onCancelled={async () => { setMode({ type: 'map' }); await loadData() }}
         />
       )}
 

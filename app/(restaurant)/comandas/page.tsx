@@ -7,6 +7,7 @@ import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, 
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
+import { BillSplitModal } from '@/components/bills/BillSplitModal'
 import NuevaComandaFlow from '@/components/nueva-comanda/NuevaComandaFlow'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
@@ -22,6 +23,7 @@ type StationFilter   = 'todo' | 'cocina' | 'barra'
 interface OrderItem {
   name: string
   qty: number
+  unit_price: number
   note?: string
   destination?: Destination
   stationStatus?: StationStatus
@@ -31,9 +33,11 @@ interface Order {
   id: string
   tableId: string
   tableLabel: string
+  realTableId?: string // UUID real de la tabla para cobro
   pax: number
   status: OrderStatus
   items: OrderItem[]
+  order_items: DbOrderItem[] // Items originales de DB para BillSplitModal
   amount: number
   mins: number        // elapsed minutes
   viaChapi: boolean
@@ -51,6 +55,7 @@ interface DbOrderItem {
   id: string
   name: string
   quantity: number
+  unit_price: number
   notes: string | null
   destination?: string | null
   station_status?: string | null
@@ -100,16 +105,19 @@ function mapDbOrder(o: DbOrder, tables: DbTable[]): Order | null {
     id:         o.id,
     tableId:    table?.label?.replace('Mesa ', 'M-') ?? o.table_id.slice(-4).toUpperCase(),
     tableLabel: table?.label ?? crossLabel ?? 'Mesa',
+    realTableId: o.table_id, // UUID real para cobro
     pax:        2,
     status:     uiStatus,
     crossFrom:  o._cross_from,
     items:      o.order_items.map(item => ({
       name: item.name,
       qty:  item.quantity,
+      unit_price: item.unit_price ?? 0,
       note: item.notes ?? undefined,
       destination:   ((item.destination as Destination) || 'cocina'),
       stationStatus: ((item.station_status as StationStatus) || 'pending'),
     })),
+    order_items: o.order_items, // Items originales para BillSplitModal
     amount:        o.total,
     mins:          Math.floor((Date.now() - new Date(o.created_at).getTime()) / 60_000),
     viaChapi:      false,
@@ -149,69 +157,77 @@ const ORDERS: Order[] = [
     id: 'ord-001', tableId: 'M-4', tableLabel: 'Mesa 4', pax: 3,
     status: 'recibida', viaChapi: true, mins: 2, amount: 54200,
     items: [
-      { name: 'Lomo vetado', qty: 1 },
-      { name: 'Ensalada César', qty: 1 },
-      { name: 'Pasta arrabiata', qty: 1, note: 'sin ajo' },
+      { name: 'Lomo vetado', qty: 1, unit_price: 15900 },
+      { name: 'Ensalada César', qty: 1, unit_price: 9800 },
+      { name: 'Pasta arrabiata', qty: 1, unit_price: 12900, note: 'sin ajo' },
     ],
+    order_items: [],
   },
   {
     id: 'ord-002', tableId: 'M-9', tableLabel: 'Mesa 9', pax: 2,
     status: 'recibida', viaChapi: true, mins: 5, amount: 29800,
     items: [
-      { name: 'Ceviche', qty: 1 },
-      { name: 'Pan de ajo', qty: 1 },
-      { name: 'Pisco sour', qty: 2 },
+      { name: 'Ceviche', qty: 1, unit_price: 14900 },
+      { name: 'Pan de ajo', qty: 1, unit_price: 4500 },
+      { name: 'Pisco sour', qty: 2, unit_price: 6500 },
     ],
+    order_items: [],
   },
   {
     id: 'ord-003', tableId: 'M-7', tableLabel: 'Mesa 7', pax: 2,
     status: 'preparando', viaChapi: true, mins: 14, amount: 38900,
     items: [
-      { name: 'Salmón grillado', qty: 1, note: 'sin gluten' },
-      { name: 'Gazpacho', qty: 1 },
+      { name: 'Salmón grillado', qty: 1, unit_price: 16900, note: 'sin gluten' },
+      { name: 'Gazpacho', qty: 1, unit_price: 7500 },
     ],
+    order_items: [],
   },
   {
     id: 'ord-004', tableId: 'M-2', tableLabel: 'Mesa 2', pax: 4,
     status: 'preparando', viaChapi: false, mins: 22, amount: 71600,
     items: [
-      { name: 'Pizza napolitana', qty: 2 },
-      { name: 'Risotto', qty: 1 },
-      { name: 'Tiramisú', qty: 1 },
+      { name: 'Pizza napolitana', qty: 2, unit_price: 13900 },
+      { name: 'Risotto', qty: 1, unit_price: 14900 },
+      { name: 'Tiramisú', qty: 1, unit_price: 6500 },
     ],
+    order_items: [],
   },
   {
     id: 'ord-005', tableId: 'M-1', tableLabel: 'Mesa 1', pax: 2,
     status: 'preparando', viaChapi: true, mins: 18, amount: 22500,
     items: [
-      { name: 'Tagliatelle bolognesa', qty: 1 },
-      { name: 'Agua con gas', qty: 2 },
+      { name: 'Tagliatelle bolognesa', qty: 1, unit_price: 13900 },
+      { name: 'Agua con gas', qty: 2, unit_price: 2500 },
     ],
+    order_items: [],
   },
   {
     id: 'ord-006', tableId: 'M-6', tableLabel: 'Mesa 6', pax: 3,
     status: 'lista', viaChapi: true, mins: 28, amount: 47100,
     items: [
-      { name: 'Salmón grillado', qty: 2 },
-      { name: 'Ensalada niçoise', qty: 1 },
+      { name: 'Salmón grillado', qty: 2, unit_price: 16900 },
+      { name: 'Ensalada niçoise', qty: 1, unit_price: 9800 },
     ],
+    order_items: [],
   },
   {
     id: 'ord-007', tableId: 'M-3', tableLabel: 'Mesa 3', pax: 5,
     status: 'lista', viaChapi: false, mins: 35, amount: 93400,
     items: [
-      { name: 'Lomo vetado', qty: 3 },
-      { name: 'Papas fritas', qty: 2 },
-      { name: 'Vino tinto copa', qty: 4 },
+      { name: 'Lomo vetado', qty: 3, unit_price: 15900 },
+      { name: 'Papas fritas', qty: 2, unit_price: 4900 },
+      { name: 'Vino tinto copa', qty: 4, unit_price: 5500 },
     ],
+    order_items: [],
   },
   {
     id: 'ord-008', tableId: 'M-5', tableLabel: 'Mesa 5', pax: 2,
     status: 'entregada', viaChapi: true, mins: 51, amount: 31200,
     items: [
-      { name: 'Carpaccio', qty: 1 },
-      { name: 'Pasta arrabiata', qty: 1 },
+      { name: 'Carpaccio', qty: 1, unit_price: 12900 },
+      { name: 'Pasta arrabiata', qty: 1, unit_price: 12900 },
     ],
+    order_items: [],
   },
 ]
 
@@ -235,11 +251,11 @@ const COLUMNS: {
   },
   {
     status: 'preparando',
-    label: 'En cocina',
+    label: 'Preparando',
     icon: <ChefHat size={13} />,
     color: '#FBBF24',
     next: 'lista',
-    nextLabel: 'Cocina lista',
+    nextLabel: 'Marcar listo',
   },
   {
     status: 'lista',
@@ -1176,7 +1192,14 @@ function ComandasPageInner() {
   const [showNueva, setShowNueva]     = useState(() => searchParams.get('nueva') === '1')
   const [realTables, setRealTables]   = useState<import('@/components/nueva-comanda/types').TableOption[]>([])
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel: string } | null>(null)
-  const [chargingOrder, setChargingOrder] = useState<{ id: string; amount: number; tableLabel: string } | null>(null)
+  const [chargingOrder, setChargingOrder] = useState<{ id: string; amount: number; tableLabel: string; realTableId?: string } | null>(null)
+  const [billSplitGroup, setBillSplitGroup] = useState<{ 
+    tableId: string; 
+    tableLabel: string; 
+    orders: Array<{ id: string; total: number; order_items: DbOrderItem[] }>; 
+    totalAmount: number; 
+    pax: number 
+  } | null>(null)
   const [realMenuItems, setRealMenuItems] = useState<import('@/components/nueva-comanda/types').MenuItemOption[]>([])
   // Stations LOCALES del restaurant actual (id + kind). Necesarias para
   // enviar station_ids al RPC mark_station_ready_by_stations y evitar
@@ -1195,8 +1218,8 @@ function ComandasPageInner() {
     // columna no existe (DBs sin la migration), caemos a query legacy sin
     // station_id — NO queremos que el panel se quede vacío solo porque
     // la feature multi-local no está habilitada todavía.
-    const FULL_ITEMS_SELECT   = 'id, name, quantity, notes, destination, station_status, station_id'
-    const LEGACY_ITEMS_SELECT = 'id, name, quantity, notes, destination, station_status'
+    const FULL_ITEMS_SELECT   = 'id, name, quantity, unit_price, notes, destination, station_status, station_id'
+    const LEGACY_ITEMS_SELECT = 'id, name, quantity, unit_price, notes, destination, station_status'
 
     // Paso 1: intentar cargar stations + cross-orders SOLO si la columna
     // station_id existe. Si falla, simplemente saltamos el bloque
@@ -1798,7 +1821,10 @@ function ComandasPageInner() {
                               onMarkLow={markLow}
                               onDevolucion={handleDevolucion}
                               onCancel={(id, lbl) => setCancellingOrder({ id, tableLabel: lbl })}
-                              onCharge={(id, amount, lbl) => setChargingOrder({ id, amount, tableLabel: lbl })}
+                              onCharge={(id, amount, lbl) => {
+                                const order = orders.find(o => o.id === id)
+                                setChargingOrder({ id, amount, tableLabel: lbl, realTableId: order?.realTableId })
+                              }}
                             />
                           )
                         }
@@ -1814,6 +1840,18 @@ function ComandasPageInner() {
                         const barraItems  = allItems.filter(it => (it.destination ?? 'cocina') === 'barra')
                         const cocinaReady = cocinaItems.filter(it => it.stationStatus === 'ready').length
                         const barraReady  = barraItems.filter(it => it.stationStatus === 'ready').length
+
+                        // Para cobrar: necesitamos tableId y pax
+                        const firstOrder = group[0]
+                        const maxPax = group.reduce((max, o) => Math.max(max, o.pax || 0), 0)
+
+                        // Convertir Order[] de comandas a formato esperado por BillSplitModal
+                        // Usar order_items originales de DB en lugar de items transformados
+                        const ordersForBill = group.map(o => ({
+                          id: o.id,
+                          total: o.amount,
+                          order_items: o.order_items, // Usar los items originales de DB
+                        }))
 
                         return (
                           <div
@@ -1886,9 +1924,31 @@ function ComandasPageInner() {
                                 onMarkLow={markLow}
                                 onDevolucion={handleDevolucion}
                                 onCancel={(id, lbl) => setCancellingOrder({ id, tableLabel: lbl })}
-                                onCharge={(id, amount, lbl) => setChargingOrder({ id, amount, tableLabel: lbl })}
+                                onCharge={(id, amount, lbl) => {
+                                  const order = orders.find(o => o.id === id)
+                                  setChargingOrder({ id, amount, tableLabel: lbl, realTableId: order?.realTableId })
+                                }}
                               />
                             ))}
+
+                            {/* Botón cobrar mesa (solo en columna entregada y para garzón/admin) */}
+                            {col.status === 'entregada' && (role === 'garzon' || role === 'admin') && (
+                              <button
+                                onClick={() => {
+                                  setBillSplitGroup({
+                                    tableId: firstOrder.realTableId || firstOrder.id,
+                                    tableLabel: label,
+                                    orders: ordersForBill,
+                                    totalAmount,
+                                    pax: maxPax || 2
+                                  })
+                                }}
+                                className="w-full py-2 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 bg-[#FF6B35]/18 text-[#FF6B35] border border-[#FF6B35]/30 hover:bg-[#FF6B35]/28"
+                              >
+                                <CheckCircle2 size={13} />
+                                Cobrar mesa · ${totalAmount.toLocaleString('es-CL')}
+                              </button>
+                            )}
                           </div>
                         )
                       })
@@ -1931,14 +1991,41 @@ function ComandasPageInner() {
         />
       )}
 
-      {/* Charge (cobrar) modal */}
-      {chargingOrder && (
-        <ChargeOrderModal
-          orderId={chargingOrder.id}
-          amount={chargingOrder.amount}
+      {/* Charge (cobrar) modal — usar BillSplitModal para consistencia */}
+      {chargingOrder && restId && chargingOrder.realTableId && (
+        <BillSplitModal
+          tableId={chargingOrder.realTableId}
           tableLabel={chargingOrder.tableLabel}
+          orders={[{
+            id: chargingOrder.id,
+            total: chargingOrder.amount,
+            order_items: orders.find(o => o.id === chargingOrder.id)?.order_items ?? []
+          }] as Array<{ id: string; total: number; order_items: DbOrderItem[] }>}
+          totalAmount={chargingOrder.amount}
+          pax={2}
+          restaurantId={restId}
+          onComplete={async () => {
+            setChargingOrder(null)
+            await loadData()
+          }}
           onClose={() => setChargingOrder(null)}
-          onCharged={async () => { setChargingOrder(null); await loadData() }}
+        />
+      )}
+
+      {/* Bill split modal (cobrar mesa con división) */}
+      {billSplitGroup && restId && (
+        <BillSplitModal
+          tableId={billSplitGroup.tableId}
+          tableLabel={billSplitGroup.tableLabel}
+          orders={billSplitGroup.orders}
+          totalAmount={billSplitGroup.totalAmount}
+          pax={billSplitGroup.pax}
+          restaurantId={restId}
+          onComplete={async () => {
+            setBillSplitGroup(null)
+            await loadData()
+          }}
+          onClose={() => setBillSplitGroup(null)}
         />
       )}
     </div>

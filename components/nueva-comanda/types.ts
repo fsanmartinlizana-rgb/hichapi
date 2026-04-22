@@ -14,13 +14,15 @@ export interface MenuItemOption {
   destination?: string
 }
 
+export type Destination = 'cocina' | 'barra' | 'ninguno'
+
 export interface OrderLine {
   menuItemId: string
   name: string
   unitPrice: number
   qty: number
   note: string
-  destination: 'cocina' | 'barra' | 'ninguno'
+  destination: Destination
 }
 
 export type FlowStep = 0 | 1 | 2
