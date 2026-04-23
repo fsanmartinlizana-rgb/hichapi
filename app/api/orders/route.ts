@@ -496,13 +496,32 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ orders: [], table_resolved: false })
   }
 
-  const { data: orders, error } = await supabase
+  // 2026-04-22: ?include_recent_paid=1 incluye ordenes pagadas en los
+  // ultimos 10 minutos. Necesario para que el polling del cliente QR en
+  // /<slug>/<tableId>/page.tsx detecte la transicion 'paying' → 'paid'
+  // y dispare la redireccion a /review. Sin este flag, la orden
+  // desaparece del fetch cuando admin marca paid y el cliente nunca se
+  // entera.
+  const includeRecentPaid = searchParams.get('include_recent_paid') === '1'
+
+  let query = supabase
     .from('orders')
     .select('*, order_items(*)')
     .eq('table_id', realTableId)
-    .not('status', 'in', '("paid","cancelled")')
     .order('created_at', { ascending: false })
     .limit(5)
+
+  if (includeRecentPaid) {
+    // Excluye cancelled pero incluye paid de los ultimos 10min.
+    const tenMinAgo = new Date(Date.now() - 10 * 60_000).toISOString()
+    query = query
+      .not('status', 'eq', 'cancelled')
+      .or(`status.neq.paid,and(status.eq.paid,updated_at.gte.${tenMinAgo})`)
+  } else {
+    query = query.not('status', 'in', '("paid","cancelled")')
+  }
+
+  const { data: orders, error } = await query
 
   if (error) {
     return NextResponse.json({ error: 'Error consultando pedidos' }, { status: 500 })

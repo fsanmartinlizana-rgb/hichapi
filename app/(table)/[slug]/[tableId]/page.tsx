@@ -896,7 +896,11 @@ export default function TablePage() {
     async function pollPaidOrders() {
       pollCount++
       try {
-        const url = `/api/orders?table_id=${encodeURIComponent(tableId)}`
+        // include_recent_paid=1 es crítico: sin el flag el endpoint filtra
+        // status IN ('paid','cancelled'). Cuando admin marca paid la orden
+        // "desaparece" del fetch y el polling nunca detecta la transicion.
+        // Con el flag, las orders paid siguen visibles los ultimos 10min.
+        const url = `/api/orders?table_id=${encodeURIComponent(tableId)}&include_recent_paid=1`
         const res = await fetch(url)
         if (cancelled) return
         const j = await res.json()
