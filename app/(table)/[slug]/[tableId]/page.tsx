@@ -869,6 +869,51 @@ export default function TablePage() {
     }])
   }, [menu])
 
+  // ── Polling fallback para detectar status=paid (2026-04-22) ──────────
+  // Por defecto, Supabase Realtime filtra los eventos postgres_changes por
+  // las RLS policies de la tabla. La tabla `orders` tiene policy
+  // staff_read_orders que exige is_team_member() — los clientes QR son
+  // anon, no pasan ese check, y por tanto NUNCA reciben los eventos de
+  // UPDATE aunque la publication esté habilitada.
+  //
+  // Workaround: polling al endpoint público /api/orders?table_id=X (que usa
+  // admin client en server-side, así que siempre devuelve data). Cada 5s
+  // chequeamos si hay alguna orden con status='paid'. Si aparece una que
+  // no vimos antes → redirigimos al review.
+  //
+  // El listener Realtime de abajo sigue activo por si RLS cambia más
+  // adelante o se agrega una policy permisiva — ambos caminos redirigen.
+  useEffect(() => {
+    if (!tableId || !slug) return
+    let cancelled = false
+    const seenPaid = new Set<string>()
+
+    async function pollPaidOrders() {
+      try {
+        const res = await fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
+        if (!res.ok || cancelled) return
+        const j = await res.json()
+        const orders = (j.orders ?? []) as Array<{ id: string; status: string }>
+        for (const o of orders) {
+          if (o.status === 'paid' && !seenPaid.has(o.id)) {
+            seenPaid.add(o.id)
+            console.log('[TablePage][poll] detected paid order, redirecting:', o.id)
+            router.push(`/${slug}/review?order=${o.id}`)
+            return
+          }
+        }
+      } catch (err) {
+        // Non-blocking: el poll siguiente vuelve a intentar
+        console.warn('[TablePage][poll] fetch failed, will retry:', err)
+      }
+    }
+
+    // Primer poll inmediato + cada 5s
+    pollPaidOrders()
+    const interval = setInterval(pollPaidOrders, 5000)
+    return () => { cancelled = true; clearInterval(interval) }
+  }, [tableId, slug, router])
+
   // Subscribe to order status changes — cuando admin marca 'paid', redirigir
   // a la página de review para que el cliente deje su evaluación.
   //
