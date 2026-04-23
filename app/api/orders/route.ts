@@ -340,6 +340,32 @@ export async function PATCH(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo actualizar' }, { status: 500 })
     }
 
+    // ── Fix crítico 2026-04-22: disparar evento de Realtime ────────────────
+    // Los UPDATE hechos con service_role no siempre se emiten al canal de
+    // postgres_changes con anon_key (es comportamiento esperado de Supabase).
+    // Consecuencia: el cliente QR en /<slug>/<tableId> está suscripto a
+    // 'UPDATE on orders' para redirigir a /review cuando status=paid, pero
+    // nunca recibe el evento, y la encuesta de feedback no se gatilla.
+    //
+    // Workaround (mismo patrón que /api/bills/split/[splitId]/pay): hacemos
+    // un segundo UPDATE idempotente con el cliente autenticado SSR para
+    // que la publicación de Realtime sí emita el cambio. El UPDATE pone el
+    // mismo status que ya quedó seteado → no cambia nada en DB pero
+    // dispara el event realtime.
+    if (status === 'paid' || status === 'paying') {
+      try {
+        const { createClient: createSsrClient } = await import('@/lib/supabase/server')
+        const ssrClient = await createSsrClient()
+        await ssrClient
+          .from('orders')
+          .update({ status: updatePayload.status ?? status })
+          .eq('id', order_id)
+      } catch (realtimeErr) {
+        // Non-blocking: el status ya se persistió con admin client.
+        console.warn('[orders PATCH] No se pudo disparar evento realtime:', realtimeErr)
+      }
+    }
+
     // Notificación: cliente pidió la cuenta desde Chapi
     if (status === 'paying') {
       try {

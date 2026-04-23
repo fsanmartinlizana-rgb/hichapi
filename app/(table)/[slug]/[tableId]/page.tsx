@@ -932,6 +932,12 @@ export default function TablePage() {
             // Handle paid status — redirect to review immediately
             if (row.status === 'paid') {
               console.log('[TablePage] Order marked as paid, redirecting to review:', oid)
+              // Guardar el orderId en el Set para fallback de "mesa libre"
+              // (antes nunca se populaba, lo que hacía inútil el handler de
+              // postgres_changes sobre tables). Ahora sí: si la redirección
+              // directa falla por cualquier motivo, el handler de "mesa libre"
+              // tiene el orderId más reciente para redirigir.
+              paidOrdersInSession.add(oid)
               // Redirigir inmediatamente cuando la orden se marca como pagada
               router.push(`/${slug}/review?order=${oid}`)
               return
