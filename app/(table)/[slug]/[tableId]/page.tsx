@@ -884,20 +884,28 @@ export default function TablePage() {
   // El listener Realtime de abajo sigue activo por si RLS cambia más
   // adelante o se agrega una policy permisiva — ambos caminos redirigen.
   useEffect(() => {
-    if (!tableId || !slug) return
+    console.log('[TablePage][poll] useEffect triggered — tableId:', tableId, 'slug:', slug)
+    if (!tableId || !slug) {
+      console.warn('[TablePage][poll] ABORTED: missing tableId or slug')
+      return
+    }
     let cancelled = false
     const seenPaid = new Set<string>()
+    let pollCount = 0
 
     async function pollPaidOrders() {
+      pollCount++
       try {
-        const res = await fetch(`/api/orders?table_id=${encodeURIComponent(tableId)}`)
-        if (!res.ok || cancelled) return
+        const url = `/api/orders?table_id=${encodeURIComponent(tableId)}`
+        const res = await fetch(url)
+        if (cancelled) return
         const j = await res.json()
         const orders = (j.orders ?? []) as Array<{ id: string; status: string }>
+        console.log(`[TablePage][poll] #${pollCount} fetched — ${orders.length} orders, statuses:`, orders.map(o => `${o.id.slice(0,8)}=${o.status}`).join(', '))
         for (const o of orders) {
           if (o.status === 'paid' && !seenPaid.has(o.id)) {
             seenPaid.add(o.id)
-            console.log('[TablePage][poll] detected paid order, redirecting:', o.id)
+            console.log('[TablePage][poll] ✓ detected paid order, redirecting:', o.id)
             router.push(`/${slug}/review?order=${o.id}`)
             return
           }
@@ -908,10 +916,14 @@ export default function TablePage() {
       }
     }
 
-    // Primer poll inmediato + cada 5s
+    console.log('[TablePage][poll] ▶ starting polling loop (every 5s)')
     pollPaidOrders()
     const interval = setInterval(pollPaidOrders, 5000)
-    return () => { cancelled = true; clearInterval(interval) }
+    return () => {
+      cancelled = true
+      clearInterval(interval)
+      console.log('[TablePage][poll] ■ stopped (cleanup)')
+    }
   }, [tableId, slug, router])
 
   // Subscribe to order status changes — cuando admin marca 'paid', redirigir
