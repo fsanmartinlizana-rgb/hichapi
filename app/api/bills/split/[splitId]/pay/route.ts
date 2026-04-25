@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
+import { runEmission } from '@/lib/dte/engine'
+import { sendBoletaEmail, sendFacturaEmail } from '@/lib/email/sender'
 
 export async function POST(
   request: Request,
@@ -110,51 +112,7 @@ export async function POST(
       return NextResponse.json({ error: 'Error al registrar el pago' }, { status: 500 })
     }
 
-    // 2. Emitir DTE (fire and forget)
-    let dteResult: { folio?: number; xml?: string; status?: string } = {}
-    try {
-      const origin = new URL(request.url).origin
-      const dteResponse = await fetch(`${origin}/api/dte/emit`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant_id: billSplit.restaurant_id,
-          order_id: billSplit.order_ids[0], // Usar el primer order_id (el DTE se emite por el monto total)
-          amount,
-          document_type: dte.document_type,
-          rut_receptor: dte.rut_receptor,
-          razon_receptor: dte.razon_receptor,
-          giro_receptor: dte.giro_receptor,
-          direccion_receptor: dte.direccion_receptor,
-          comuna_receptor: dte.comuna_receptor,
-          fma_pago: dte.fma_pago || (payment_method === 'cash' ? 1 : 2),
-          email_receptor: dte.email_receptor
-        })
-      })
-      if (dteResponse.ok) {
-        const dteData = await dteResponse.json()
-        dteResult = { folio: dteData.folio, xml: dteData.xml, status: 'accepted' }
-        await adminSupabase
-          .from('bill_split_payments')
-          .update({ dte_folio: dteResult.folio, dte_xml: dteResult.xml, dte_status: 'accepted' })
-          .eq('id', payment.id)
-      } else {
-        const errorText = await dteResponse.text()
-        console.error('[pay] DTE emit failed:', dteResponse.status, errorText)
-        await adminSupabase
-          .from('bill_split_payments')
-          .update({ dte_status: 'error' })
-          .eq('id', payment.id)
-      }
-    } catch (dteError) {
-      console.error('[pay] DTE error:', dteError)
-      await adminSupabase
-        .from('bill_split_payments')
-        .update({ dte_status: 'error' })
-        .eq('id', payment.id)
-    }
-
-    // 3. Actualizar bill_split
+    // 2. Actualizar bill_split
     const newNumPaid = billSplit.num_paid + 1
     const isCompleted = newNumPaid === billSplit.num_splits
     const newStatus = isCompleted ? 'completed' : 'partial'
@@ -168,7 +126,8 @@ export async function POST(
       })
       .eq('id', splitId)
 
-    // 4. Si completado, marcar órdenes y mesa
+    // 3. Si completado, marcar órdenes y mesa ANTES de emitir DTE
+    //    (el engine requiere que la orden esté en estado 'paid')
     if (isCompleted) {
       // Usar adminSupabase para las actualizaciones (bypassa RLS)
       await adminSupabase
@@ -210,6 +169,126 @@ export async function POST(
       } catch (realtimeError) {
         console.warn('[pay] Exception triggering realtime event:', realtimeError)
       }
+    }
+
+    // 4. Emitir DTE — llamada directa a runEmission (sin fetch HTTP interno)
+    //    El fetch interno fallaba con 401 porque no tenía las cookies de sesión del usuario.
+    //    runEmission es la función que hace el trabajo real, la llamamos directamente.
+    let dteResult: { folio?: number; xml?: string; status?: string } = {}
+    try {
+      // Obtener el RUT del restaurante emisor (requerido por la tabla dte_emissions)
+      const { data: restaurant } = await adminSupabase
+        .from('restaurants')
+        .select('rut, razon_social')
+        .eq('id', billSplit.restaurant_id)
+        .single()
+
+      if (!restaurant?.rut) {
+        console.error('[pay] Restaurant RUT not found for DTE emission, skipping')
+        throw new Error('Restaurante sin RUT configurado')
+      }
+
+      // Calcular net/iva desde el monto del split
+      const IVA_RATE = 0.19
+      const net = Math.round(amount / (1 + IVA_RATE))
+      const iva = amount - net
+
+      // Insertar fila en dte_emissions antes de llamar al engine
+      const { data: emission, error: emissionInsertErr } = await adminSupabase
+        .from('dte_emissions')
+        .insert({
+          restaurant_id:      billSplit.restaurant_id,
+          order_id:           billSplit.order_ids[0],
+          document_type:      dte.document_type,
+          rut_emisor:         restaurant.rut,
+          rut_receptor:       dte.rut_receptor ?? null,
+          razon_receptor:     dte.razon_receptor ?? null,
+          giro_receptor:      dte.giro_receptor ?? null,
+          direccion_receptor: dte.direccion_receptor ?? null,
+          comuna_receptor:    dte.comuna_receptor ?? null,
+          fma_pago:           dte.fma_pago ?? (payment_method === 'cash' ? 1 : 2),
+          email_receptor:     dte.email_receptor ?? null,
+          status:             'pending',
+          emitted_by:         user.id,
+          net_amount:         net,
+          iva_amount:         iva,
+          total_amount:       amount,
+        })
+        .select('id')
+        .single()
+
+      if (emissionInsertErr || !emission) {
+        console.error('[pay] Error inserting dte_emission:', emissionInsertErr)
+        throw new Error('No se pudo crear la emisión DTE')
+      }
+
+      const emitResult = await runEmission(
+        emission.id,
+        billSplit.restaurant_id,
+        billSplit.order_ids[0],
+        dte.document_type as 33 | 39 | 41 | 56 | 61,
+        dte.rut_receptor,
+        dte.razon_receptor,
+        dte.giro_receptor,
+        dte.direccion_receptor,
+        dte.comuna_receptor,
+        dte.fma_pago ?? (payment_method === 'cash' ? 1 : 2),
+      )
+
+      if (emitResult.ok) {
+        dteResult = { folio: emitResult.folio, xml: emitResult.signed_xml, status: 'accepted' }
+        await adminSupabase
+          .from('bill_split_payments')
+          .update({ dte_folio: emitResult.folio, dte_xml: emitResult.signed_xml, dte_status: 'accepted' })
+          .eq('id', payment.id)
+
+        // Enviar email si hay email_receptor y el DTE se emitió correctamente
+        if (dte.email_receptor && emitResult.folio) {
+          const { data: orderItems } = await adminSupabase
+            .from('order_items')
+            .select('name, quantity, unit_price')
+            .eq('order_id', billSplit.order_ids[0])
+
+          const emailArgs = {
+            to:             dte.email_receptor,
+            orderId:        billSplit.order_ids[0],
+            folio:          emitResult.folio,
+            restaurantName: restaurant.razon_social ?? restaurant.rut,
+            totalAmount:    amount,
+            emittedAt:      new Date().toISOString(),
+            items:          (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
+              name:       i.name,
+              quantity:   i.quantity,
+              unit_price: i.unit_price,
+            })),
+            xmlBase64: emitResult.signed_xml
+              ? Buffer.from(emitResult.signed_xml).toString('base64')
+              : undefined,
+          }
+
+          if (dte.document_type === 33) {
+            void sendFacturaEmail({
+              ...emailArgs,
+              razonReceptor: dte.razon_receptor ?? '',
+            }).catch(err => console.error('[pay] sendFacturaEmail error:', err))
+          } else {
+            void sendBoletaEmail(emailArgs)
+              .catch(err => console.error('[pay] sendBoletaEmail error:', err))
+          }
+        }
+      } else {
+        console.error('[pay] DTE runEmission failed:', emitResult.error)
+        await adminSupabase
+          .from('bill_split_payments')
+          .update({ dte_status: 'error' })
+          .eq('id', payment.id)
+      }
+    } catch (dteError) {
+      console.error('[pay] DTE error:', dteError)
+      await adminSupabase
+        .from('bill_split_payments')
+        .update({ dte_status: 'error' })
+        .eq('id', payment.id)
     }
 
     return NextResponse.json({

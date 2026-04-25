@@ -11,6 +11,7 @@
 
 import { boletaEmail, facturaEmail, stockCriticalEmail } from './templates'
 import { createAdminClient } from '@/lib/supabase/server'
+import { generateDtePdfBase64 } from '@/lib/dte/pdf'
 
 interface Attachment {
   filename: string
@@ -180,6 +181,21 @@ export async function sendBoletaEmail(args: SendBoletaArgs): Promise<SendResult>
       content:  args.xmlBase64,
       type:     'application/xml',
     })
+
+    // Generar PDF automáticamente desde el XML si no se proporcionó uno
+    if (!args.pdfBase64) {
+      try {
+        const xmlString = Buffer.from(args.xmlBase64, 'base64').toString('utf8')
+        const pdfBase64 = await generateDtePdfBase64(xmlString)
+        attachments.push({
+          filename: `boleta-${args.folio}.pdf`,
+          content:  pdfBase64,
+          type:     'application/pdf',
+        })
+      } catch (pdfErr) {
+        console.warn(`[email] PDF generation failed for boleta ${args.folio}:`, pdfErr)
+      }
+    }
   }
   if (args.pdfBase64) {
     attachments.push({
@@ -255,6 +271,21 @@ export async function sendFacturaEmail(args: SendFacturaArgs): Promise<SendResul
       content:  args.xmlBase64,
       type:     'application/xml',
     })
+
+    // Generar PDF automáticamente desde el XML si no se proporcionó uno
+    if (!args.pdfBase64) {
+      try {
+        const xmlString = Buffer.from(args.xmlBase64, 'base64').toString('utf8')
+        const pdfBase64 = await generateDtePdfBase64(xmlString)
+        attachments.push({
+          filename: `factura-${args.folio}.pdf`,
+          content:  pdfBase64,
+          type:     'application/pdf',
+        })
+      } catch (pdfErr) {
+        console.warn(`[email] PDF generation failed for factura ${args.folio}:`, pdfErr)
+      }
+    }
   }
   if (args.pdfBase64) {
     attachments.push({

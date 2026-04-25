@@ -1,9 +1,11 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
-  // @react-pdf/renderer usa módulos que Next.js necesita transpilar
-  transpilePackages: ['@react-pdf/renderer'],
-  serverExternalPackages: ['bwip-js'],
+  // @react-pdf/renderer debe correr en Node.js puro (no en el bundle de webpack)
+  // porque su build browser falla en route handlers del servidor.
+  // Al marcarlo como serverExternalPackages, Node.js lo resuelve directamente
+  // usando el campo "main" del package.json (react-pdf.js, no react-pdf.browser.js).
+  serverExternalPackages: ['bwip-js', '@react-pdf/renderer'],
   images: {
     remotePatterns: [
       {
