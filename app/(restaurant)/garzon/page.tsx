@@ -20,6 +20,9 @@ import StepPax from '@/components/nueva-comanda/StepPax'
 import StepCatalogoVisual from '@/components/nueva-comanda/StepCatalogoVisual'
 import StepConfirmacion from '@/components/nueva-comanda/StepConfirmacion'
 import { getDefaultDestination } from '@/components/nueva-comanda/utils'
+import { usePrecuentaRequest } from '@/lib/manual-print/hooks'
+import { TicketPrinterModal, type TicketGroup } from '@/components/manual-print/TicketPrinterModal'
+import { prepareAndSendTickets, sendSelectedTickets } from '@/lib/manual-print/send-station-tickets'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -189,6 +192,11 @@ export default function GarzonPage() {
   const [confirmSaving, setConfirmSaving] = useState(false)
   const [confirmError, setConfirmError]   = useState<string | null>(null)
 
+  // ── Ticket printer selection modal ────────────────────────────────────────
+  const [ticketGroups,    setTicketGroups]    = useState<TicketGroup[]>([])
+  const [ticketCtx,       setTicketCtx]       = useState<{ restaurantId: string; tableLabel: string; orderId: string } | null>(null)
+  const [showTicketModal, setShowTicketModal] = useState(false)
+
   const supabase = useMemo(() => createClient(), [])
 
   // ── Load all data ─────────────────────────────────────────────────────────
@@ -210,9 +218,10 @@ export default function GarzonPage() {
         .order('created_at', { ascending: false }),
       supabase
         .from('menu_items')
-        .select('id, name, price, destination, menu_categories(name)')
+        .select('id, name, price, destination, category')
         .eq('restaurant_id', restId)
         .eq('available', true)
+        .order('category')
         .order('name'),
     ])
 
@@ -244,12 +253,15 @@ export default function GarzonPage() {
       setOrders(ordersRes.data as Order[])
     }
     if (menuRes.data) {
-      type RawMenuItem = { id: string; name: string; price: number; destination: string | null; menu_categories: { name: string } | { name: string }[] | null }
+      type RawMenuItem = { id: string; name: string; price: number; destination: string | null; category: string | null }
       const mapped: MenuItemOption[] = (menuRes.data as RawMenuItem[]).map(m => ({
         id:          m.id,
         name:        m.name,
         price:       m.price,
-        category:    (Array.isArray(m.menu_categories) ? m.menu_categories[0]?.name : m.menu_categories?.name) ?? 'Sin categoría',
+        // Capitalize first letter for display; fallback to 'Sin categoría'
+        category:    m.category
+          ? m.category.charAt(0).toUpperCase() + m.category.slice(1)
+          : 'Sin categoría',
         destination: m.destination ?? undefined,
       }))
       setMenuItems(mapped)
@@ -426,6 +438,35 @@ export default function GarzonPage() {
   const selectedTable = 'table' in mode ? mode.table : null
   const selectedOrder = 'table' in mode ? orders.find(o => o.table_id === mode.table.id) ?? null : null
 
+  // ── Manual print controls (precuenta) ────────────────────────────────────
+  // Build an OrderWithPrintState-compatible object from the selected order
+  const selectedOrderForPrint = selectedOrder ? {
+    id: selectedOrder.id,
+    table_id: selectedOrder.table_id,
+    status: selectedOrder.status,
+    total: selectedOrder.total,
+    pax: selectedOrder.pax,
+    client_name: selectedOrder.client_name,
+    notes: selectedOrder.notes,
+    created_at: selectedOrder.created_at,
+    updated_at: selectedOrder.updated_at,
+    order_items: selectedOrder.order_items.map(i => ({
+      id: i.id,
+      name: i.name,
+      quantity: i.quantity,
+      unit_price: i.unit_price,
+      notes: i.notes,
+      status: i.status,
+      destination: i.destination,
+    })),
+  } : null
+
+  const { printState, requestPrecuenta } = usePrecuentaRequest(
+    restId ?? '',
+    selectedTable?.id ?? '',
+    selectedOrderForPrint
+  )
+
   // ── Navigation handlers ───────────────────────────────────────────────────
 
   function handleTableClick(table: Table) {
@@ -519,6 +560,45 @@ export default function GarzonPage() {
       setNewPax(1)
       handleOrderConfirmed()
       await loadData()
+
+      // ── Enviar tickets al notifier ──────────────────────────────────────
+      // Fire-and-forget: no bloqueamos el flujo si falla
+      if (restId && data.orderId) {
+        void (async () => {
+          try {
+            // Load printers for this restaurant
+            const printersRes = await fetch(`/api/printers?restaurant_id=${restId}`)
+            const printersData = await printersRes.json()
+            const printers = (printersData.printers ?? []).filter((p: any) => p.active)
+
+            if (printers.length === 0) return  // No printers configured
+
+            const ctx = {
+              restaurantId: restId,
+              tableLabel:   mode.table.label,
+              orderId:      data.orderId,
+            }
+
+            const items = mode.lines.map(l => ({
+              name:        l.name,
+              quantity:    l.qty,
+              notes:       l.note || null,
+              destination: l.destination,
+            }))
+
+            const groupsNeedingSelection = await prepareAndSendTickets(items, ctx, printers)
+
+            if (groupsNeedingSelection.length > 0) {
+              // Show modal for groups with multiple printers
+              setTicketGroups(groupsNeedingSelection)
+              setTicketCtx(ctx)
+              setShowTicketModal(true)
+            }
+          } catch (err) {
+            console.error('[garzon] ticket dispatch error:', err)
+          }
+        })()
+      }
     } catch {
       setConfirmError('Sin conexión. Intenta de nuevo.')
     } finally {
@@ -718,6 +798,8 @@ export default function GarzonPage() {
           pax={selectedOrder?.pax ?? undefined}
           onUpdatePax={async (newPaxVal) => { await supabase.from('orders').update({ pax: newPaxVal }).eq('id', selectedOrder!.id); await loadData() }}
           stationStatuses={selectedOrder ? computeStationStatuses(selectedOrder.order_items) : []}
+          printState={printState}
+          onPrintRequest={(_type, printerName) => requestPrecuenta(printerName)}
         />
       )}
 
@@ -940,6 +1022,24 @@ export default function GarzonPage() {
         <CouponRedeemModal
           restaurantId={restId}
           onClose={() => setShowCoupon(false)}
+        />
+      )}
+
+      {/* Ticket printer selection modal — shown when multiple printers of same kind */}
+      {showTicketModal && ticketCtx && ticketGroups.length > 0 && (
+        <TicketPrinterModal
+          groups={ticketGroups}
+          onConfirm={async (selections) => {
+            setShowTicketModal(false)
+            await sendSelectedTickets(ticketGroups, selections, ticketCtx)
+            setTicketGroups([])
+            setTicketCtx(null)
+          }}
+          onCancel={() => {
+            setShowTicketModal(false)
+            setTicketGroups([])
+            setTicketCtx(null)
+          }}
         />
       )}
 

@@ -283,6 +283,19 @@ export async function POST(req: NextRequest) {
     await supabase.from('tables').update({ status: 'ocupada' }).eq('id', body.table_id)
   }
 
+  // 7. Enviar tickets al notifier de impresión agrupados por estación.
+  //    Fire-and-forget: no bloqueamos la respuesta si el notifier falla.
+  //    Cada estación con print_server configurado recibe un ticket con sus items.
+  void sendStationTickets({
+    supabase,
+    restaurantId: body.restaurant_id,
+    tableId:      body.table_id,
+    orderId:      order.id,
+    cart:         body.cart,
+    stationByItem,
+    destByItem,
+  }).catch(err => console.error('[orders/internal] station tickets error (non-blocking):', err))
+
   return NextResponse.json({
     ok:                true,
     orderId:           order.id,
@@ -290,4 +303,167 @@ export async function POST(req: NextRequest) {
     status:            'pending',
     addedToExisting:   isAddingToExisting,
   })
+}
+
+// ── sendStationTickets ────────────────────────────────────────────────────────
+// Agrupa los items del carrito por station_id (o por destination como fallback),
+// obtiene la URL del notifier para cada estación y envía un POST a
+// {notifier_url}/api/solicita_ticket por cada grupo.
+// Fire-and-forget: los errores se loguean pero no afectan la respuesta al cliente.
+
+interface SendTicketsParams {
+  supabase:     ReturnType<typeof import('@/lib/supabase/server').createAdminClient>
+  restaurantId: string
+  tableId:      string
+  orderId:      string
+  cart:         Array<{
+    menu_item_id: string
+    name:         string
+    quantity:     number
+    unit_price:   number
+    note?:        string | null
+    destination:  string
+  }>
+  stationByItem: Map<string, string | null>
+  destByItem:    Map<string, string>
+}
+
+async function sendStationTickets(params: SendTicketsParams): Promise<void> {
+  const { supabase, restaurantId, tableId, orderId, cart, stationByItem, destByItem } = params
+
+  // 1. Obtener datos del restaurante (slug = comercio)
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('slug, name, address, neighborhood')
+    .eq('id', restaurantId)
+    .maybeSingle()
+
+  const comercio = restaurant?.slug || restaurant?.name || restaurantId
+  const direccion = (restaurant as any)?.direccion || (restaurant as any)?.address || ''
+  const comuna    = (restaurant as any)?.comuna    || (restaurant as any)?.neighborhood || ''
+
+  // 2. Obtener datos de la mesa
+  const { data: table } = await supabase
+    .from('tables')
+    .select('label')
+    .eq('id', tableId)
+    .maybeSingle()
+  const mesaLabel = (table as any)?.label || tableId
+
+  // 3. Agrupar items por station_id (o por destination si no hay station)
+  //    Clave: station_id ?? `dest:${destination}`
+  const groups = new Map<string, {
+    key:         string
+    stationId:   string | null
+    destination: string
+    items:       typeof cart
+  }>()
+
+  for (const item of cart) {
+    const stationId = stationByItem.get(item.menu_item_id) ?? null
+    const dest      = destByItem.get(item.menu_item_id) || item.destination
+
+    // Solo enviar tickets para items que van a cocina o barra
+    if (dest === 'ninguno') continue
+
+    const key = stationId ?? `dest:${dest}`
+    if (!groups.has(key)) {
+      groups.set(key, { key, stationId, destination: dest, items: [] })
+    }
+    groups.get(key)!.items.push(item)
+  }
+
+  if (groups.size === 0) return
+
+  // 4. Para cada grupo, obtener la URL del notifier desde print_servers
+  const stationIds = [...groups.values()]
+    .map(g => g.stationId)
+    .filter((id): id is string => !!id)
+
+  // Obtener stations con su print_server
+  let stationPrinterMap = new Map<string, { notifierUrl: string; printerName: string }>()
+
+  if (stationIds.length > 0) {
+    const { data: stations } = await supabase
+      .from('stations')
+      .select('id, name, print_server_id, print_servers(id, name, printer_addr)')
+      .in('id', stationIds)
+
+    for (const st of (stations ?? []) as any[]) {
+      const ps = st.print_servers
+      if (!ps?.printer_addr) continue
+
+      // printer_addr puede ser "192.168.1.100:9100" o "https://realdev.cl"
+      // Normalizamos a URL base
+      let baseUrl = ps.printer_addr as string
+      if (!baseUrl.startsWith('http')) {
+        baseUrl = `http://${baseUrl}`
+      }
+      // Quitar trailing slash
+      baseUrl = baseUrl.replace(/\/$/, '')
+
+      stationPrinterMap.set(st.id, {
+        notifierUrl: baseUrl,
+        printerName: ps.name || st.name,
+      })
+    }
+  }
+
+  // 5. Enviar un ticket por cada grupo
+  const sendPromises: Promise<void>[] = []
+
+  for (const group of groups.values()) {
+    let notifierUrl: string | null = null
+    let printerName = group.destination
+
+    if (group.stationId && stationPrinterMap.has(group.stationId)) {
+      const info = stationPrinterMap.get(group.stationId)!
+      notifierUrl = info.notifierUrl
+      printerName = info.printerName
+    }
+
+    // Si no hay notifier configurado para esta estación, skip
+    if (!notifierUrl) {
+      console.info(`[orders/internal] No hay print_server para estación ${group.stationId ?? group.destination} — ticket omitido`)
+      continue
+    }
+
+    const payload = {
+      comercio,
+      impresora:  printerName,
+      mesa:       mesaLabel,
+      movimiento: orderId,
+      mesero:     '',  // no tenemos el nombre del mesero en este contexto
+      items:      group.items.map(i => ({
+        nombre:    i.name,
+        cantidad:  i.quantity,
+        precio:    i.unit_price,
+        nota:      i.note || '',
+      })),
+    }
+
+    const url = `${notifierUrl}/api/solicita_ticket`
+
+    sendPromises.push(
+      fetch(url, {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify(payload),
+        signal:  AbortSignal.timeout(10_000),
+      })
+        .then(async res => {
+          if (!res.ok) {
+            const text = await res.text().catch(() => '')
+            console.warn(`[orders/internal] solicita_ticket ${url} → ${res.status}: ${text}`)
+          } else {
+            console.info(`[orders/internal] solicita_ticket enviado a ${url} (${group.destination})`)
+          }
+        })
+        .catch(err => {
+          console.error(`[orders/internal] solicita_ticket ${url} falló:`, err?.message ?? err)
+        })
+    )
+  }
+
+  await Promise.allSettled(sendPromises)
 }

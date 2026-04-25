@@ -3,77 +3,63 @@
 import { useEffect, useState } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import {
-  Printer, Plus, Wifi, Usb, Cable, Loader2, Check, Clock, AlertCircle,
-  Copy, Play,
+  Printer, Plus, Loader2, AlertCircle, Trash2, ChefHat, Wine, CreditCard, Package,
+  Pencil, Check, X,
 } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
-import { Modal } from '@/components/ui/Modal'
-import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 
-// ── Types ────────────────────────────────────────────────────────────────────
+// ── Types ─────────────────────────────────────────────────────────────────────
 
-interface PrintServer {
-  id:           string
-  name:         string
-  printer_kind: 'network' | 'usb' | 'serial'
-  printer_addr: string | null
-  paper_width:  number
-  active:       boolean
-  last_seen_at: string | null
-  created_at:   string
-}
+type PrinterKind = 'cocina' | 'barra' | 'caja' | 'otro'
 
-interface PrintJob {
+interface PrinterRow {
   id:            string
-  job_type:      string
-  status:        string
+  name:          string
+  description:   string | null
+  kind:          PrinterKind
+  active:        boolean
   created_at:    string
-  printed_at:    string | null
-  error_message: string | null
-  print_servers: { name: string } | null
 }
 
-const KIND_ICONS = {
-  network: Wifi,
-  usb:     Usb,
-  serial:  Cable,
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const KIND_CONFIG: Record<PrinterKind, { label: string; icon: typeof ChefHat; color: string }> = {
+  cocina: { label: 'Cocina',  icon: ChefHat,     color: '#FBBF24' },
+  barra:  { label: 'Barra',   icon: Wine,        color: '#60A5FA' },
+  caja:   { label: 'Caja',    icon: CreditCard,  color: '#34D399' },
+  otro:   { label: 'Otro',    icon: Package,     color: '#A78BFA' },
 }
 
-const STATUS_TONE: Record<string, Tone> = {
-  pending:   'warning',
-  printing:  'info',
-  completed: 'success',
-  failed:    'danger',
-}
-
-// ── Page ─────────────────────────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default function ImpresorasPage() {
   const { restaurant } = useRestaurant()
-  const [servers, setServers] = useState<PrintServer[]>([])
-  const [jobs,    setJobs]    = useState<PrintJob[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error,   setError]   = useState<string | null>(null)
+  const [printers, setPrinters] = useState<PrinterRow[]>([])
+  const [loading,  setLoading]  = useState(true)
+  const [error,    setError]    = useState<string | null>(null)
 
   // Add form
-  const [showAdd,    setShowAdd]    = useState(false)
-  const [newName,    setNewName]    = useState('')
-  const [newKind,    setNewKind]    = useState<'network' | 'usb' | 'serial'>('network')
-  const [newAddr,    setNewAddr]    = useState('')
-  const [newWidth,   setNewWidth]   = useState('32')
-  const [creating,   setCreating]   = useState(false)
-  const [issuedToken, setIssuedToken] = useState<{ name: string; token: string } | null>(null)
+  const [showAdd,   setShowAdd]   = useState(false)
+  const [newName,   setNewName]   = useState('')
+  const [newDesc,   setNewDesc]   = useState('')
+  const [newKind,   setNewKind]   = useState<PrinterKind>('cocina')
+  const [creating,  setCreating]  = useState(false)
+  const [addError,  setAddError]  = useState<string | null>(null)
+
+  // Edit inline
+  const [editId,    setEditId]    = useState<string | null>(null)
+  const [editName,  setEditName]  = useState('')
+  const [editDesc,  setEditDesc]  = useState('')
+  const [editKind,  setEditKind]  = useState<PrinterKind>('cocina')
+  const [saving,    setSaving]    = useState(false)
 
   async function load() {
     if (!restaurant) return
     setLoading(true)
     try {
-      const [srvRes, jobsRes] = await Promise.all([
-        fetch(`/api/print/servers?restaurant_id=${restaurant.id}`).then(r => r.json()),
-        fetch(`/api/print/jobs?restaurant_id=${restaurant.id}&limit=20`).then(r => r.json()),
-      ])
-      setServers(srvRes.servers ?? [])
-      setJobs(jobsRes.jobs ?? [])
+      const res  = await fetch(`/api/printers?restaurant_id=${restaurant.id}`)
+      const data = await res.json()
+      setPrinters(data.printers ?? [])
     } catch {
       setError('No se pudo cargar')
     } finally {
@@ -83,59 +69,75 @@ export default function ImpresorasPage() {
 
   useEffect(() => { void load() }, [restaurant])
 
-  async function createServer() {
+  async function createPrinter() {
     if (!restaurant || !newName.trim()) return
     setCreating(true)
-    setError(null)
+    setAddError(null)
     try {
-      const res = await fetch('/api/print/servers', {
+      const res  = await fetch('/api/printers', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurant_id: restaurant.id,
           name:          newName.trim(),
-          printer_kind:  newKind,
-          printer_addr:  newAddr.trim() || null,
-          paper_width:   parseInt(newWidth, 10) || 32,
+          description:   newDesc.trim() || undefined,
+          kind:          newKind,
         }),
       })
       const data = await res.json()
-      if (!res.ok) {
-        setError(data.error ?? 'No se pudo crear')
-        return
-      }
-      setIssuedToken({ name: data.server.name, token: data.token })
+      if (!res.ok) { setAddError(data.error ?? 'No se pudo crear'); return }
       setShowAdd(false)
-      setNewName(''); setNewAddr(''); setNewKind('network'); setNewWidth('32')
+      setNewName(''); setNewDesc(''); setNewKind('cocina')
       await load()
     } finally {
       setCreating(false)
     }
   }
 
-  async function sendTestJob(serverId: string) {
+  function startEdit(p: PrinterRow) {
+    setEditId(p.id)
+    setEditName(p.name)
+    setEditDesc(p.description ?? '')
+    setEditKind(p.kind)
+  }
+
+  async function saveEdit() {
+    if (!restaurant || !editId) return
+    setSaving(true)
+    try {
+      await fetch('/api/printers', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id:            editId,
+          restaurant_id: restaurant.id,
+          name:          editName.trim(),
+          description:   editDesc.trim() || null,
+          kind:          editKind,
+        }),
+      })
+      setEditId(null)
+      await load()
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function deletePrinter(id: string) {
     if (!restaurant) return
-    await fetch('/api/print/jobs', {
-      method:  'POST',
+    if (!confirm('¿Eliminar esta impresora?')) return
+    await fetch(`/api/printers?id=${id}&restaurant_id=${restaurant.id}`, { method: 'DELETE' })
+    await load()
+  }
+
+  async function toggleActive(p: PrinterRow) {
+    if (!restaurant) return
+    await fetch('/api/printers', {
+      method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        restaurant_id: restaurant.id,
-        server_id:     serverId,
-        job_type:      'test',
-        payload: {
-          header: 'HiChapi',
-          footer: 'Prueba de impresion',
-          copies: 1,
-          lines: [
-            { text: 'Test de impresora', align: 'center', bold: true,  size: 'large',  cut: false, feed: 1, divider: false },
-            { text: '', align: 'left', bold: false, size: 'normal', cut: false, feed: 0, divider: true },
-            { text: new Date().toLocaleString('es-CL'), align: 'center', bold: false, size: 'normal', cut: false, feed: 1, divider: false },
-            { text: 'Si lees esto, todo OK!', align: 'center', bold: false, size: 'normal', cut: false, feed: 2, divider: false },
-          ],
-        },
-      }),
+      body: JSON.stringify({ id: p.id, restaurant_id: restaurant.id, active: !p.active }),
     })
-    void load()
+    await load()
   }
 
   if (loading) {
@@ -146,8 +148,14 @@ export default function ImpresorasPage() {
     )
   }
 
+  // Group by kind for display
+  const grouped = printers.reduce<Record<PrinterKind, PrinterRow[]>>(
+    (acc, p) => { acc[p.kind] = [...(acc[p.kind] ?? []), p]; return acc },
+    {} as Record<PrinterKind, PrinterRow[]>
+  )
+
   return (
-    <div className="p-6 space-y-6 max-w-4xl">
+    <div className="p-6 space-y-6 max-w-3xl">
 
       {/* Header */}
       <div className="flex items-start justify-between">
@@ -157,16 +165,30 @@ export default function ImpresorasPage() {
             Impresoras
           </h1>
           <p className="text-white/40 text-sm mt-0.5">
-            Servidores de impresión locales conectados via print-server
+            Nombres de impresoras registradas en el notifier de impresión
           </p>
         </div>
         <button
-          onClick={() => setShowAdd(v => !v)}
+          onClick={() => { setShowAdd(v => !v); setAddError(null) }}
           className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e85d2a] transition-colors"
         >
           <Plus size={13} />
           Agregar impresora
         </button>
+      </div>
+
+      {/* Info banner */}
+      <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-500/8 border border-blue-500/20">
+        <Printer size={14} className="text-blue-400 shrink-0 mt-0.5" />
+        <div>
+          <p className="text-blue-300 text-xs font-semibold">Cómo funciona</p>
+          <p className="text-white/40 text-xs mt-0.5">
+            Cada impresora tiene un nombre (ej: <span className="font-mono text-white/60">COCINA1</span>) que se envía al notifier{' '}
+            <span className="font-mono text-white/50">api.notifier.realdev.cl</span>.
+            El notifier enruta a la impresora física según ese nombre.
+            Los productos y categorías pueden apuntar a una impresora específica.
+          </p>
+        </div>
       </div>
 
       {error && (
@@ -176,179 +198,219 @@ export default function ImpresorasPage() {
         </div>
       )}
 
-      {/* Issued token modal */}
-      <Modal
-        open={!!issuedToken}
-        onClose={() => setIssuedToken(null)}
-        title="Token generado"
-        description={issuedToken ? `para "${issuedToken.name}"` : undefined}
-      >
-        {issuedToken && (
-          <div className="space-y-4">
-            <p className="text-white/60 text-xs">
-              Guarda este token en el archivo <span className="font-mono text-[#FF6B35]">.env</span> del print-server.
-              No volverá a aparecer.
-            </p>
-            <div className="bg-black/40 border border-white/10 rounded-lg p-3 font-mono text-[10px] text-emerald-300 break-all">
-              {issuedToken.token}
-            </div>
-            <button
-              onClick={() => navigator.clipboard.writeText(issuedToken.token)}
-              className="w-full py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-semibold hover:bg-white/10 transition-colors flex items-center justify-center gap-2"
-            >
-              <Copy size={12} /> Copiar token
-            </button>
-          </div>
-        )}
-      </Modal>
-
       {/* Add form */}
       {showAdd && (
-        <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
+        <div className="bg-[#161622] border border-white/8 rounded-2xl p-5 space-y-4">
           <p className="text-white font-semibold text-sm">Nueva impresora</p>
+
+          {addError && (
+            <p className="text-red-400 text-xs">{addError}</p>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
+            {/* Name */}
             <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Nombre</label>
+              <label className="text-white/40 text-xs font-medium">
+                Nombre <span className="text-white/20">(se enviará en mayúsculas)</span>
+              </label>
               <input
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
-                placeholder="Cocina, Caja, Barra…"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                placeholder="COCINA1, BARRA, CAJA…"
+                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono"
               />
             </div>
+
+            {/* Kind */}
             <div className="space-y-1.5">
               <label className="text-white/40 text-xs font-medium">Tipo</label>
-              <div className="flex gap-2">
-                {(['network', 'usb', 'serial'] as const).map(k => {
-                  const Icon = KIND_ICONS[k]
+              <div className="grid grid-cols-2 gap-1.5">
+                {(Object.entries(KIND_CONFIG) as [PrinterKind, typeof KIND_CONFIG[PrinterKind]][]).map(([k, cfg]) => {
+                  const Icon = cfg.icon
                   return (
                     <button
                       key={k}
                       onClick={() => setNewKind(k)}
-                      className={`flex-1 py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all
-                        ${newKind === k
-                          ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]'
-                          : 'bg-white/3 border-white/8 text-white/30'}`}
+                      className={`py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
+                        newKind === k
+                          ? 'border-opacity-50 text-white'
+                          : 'bg-white/3 border-white/8 text-white/30 hover:text-white/60'
+                      }`}
+                      style={newKind === k ? { background: cfg.color + '20', borderColor: cfg.color + '60', color: cfg.color } : {}}
                     >
                       <Icon size={11} />
-                      {k}
+                      {cfg.label}
                     </button>
                   )
                 })}
               </div>
             </div>
-            <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">
-                {newKind === 'network' ? 'IP:puerto (ej 192.168.1.50:9100)' : 'Device path (ej /dev/usb/lp0)'}
-              </label>
+
+            {/* Description */}
+            <div className="col-span-2 space-y-1.5">
+              <label className="text-white/40 text-xs font-medium">Descripción <span className="text-white/20">(opcional)</span></label>
               <input
-                value={newAddr}
-                onChange={e => setNewAddr(e.target.value)}
+                value={newDesc}
+                onChange={e => setNewDesc(e.target.value)}
+                placeholder="Ej: Impresora cocina planta baja"
                 className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Ancho de papel (caracteres)</label>
-              <input
-                type="number"
-                value={newWidth}
-                onChange={e => setNewWidth(e.target.value)}
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
-              />
-              <p className="text-white/20 text-[10px]">32 = papel 58mm · 48 = papel 80mm</p>
-            </div>
           </div>
-          <button
-            onClick={createServer}
-            disabled={creating || !newName.trim()}
-            className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
-          >
-            {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
-            Crear y generar token
-          </button>
+
+          <div className="flex gap-2">
+            <button
+              onClick={() => { setShowAdd(false); setAddError(null) }}
+              className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:bg-white/5 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={createPrinter}
+              disabled={creating || !newName.trim()}
+              className="flex-[2] py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
+            >
+              {creating ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />}
+              Agregar
+            </button>
+          </div>
         </div>
       )}
 
-      {/* Servers list */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl">
-        <div className="p-5 border-b border-white/5">
-          <p className="text-white font-semibold text-sm">Servidores registrados</p>
-        </div>
-        {servers.length === 0 ? (
+      {/* Printers list */}
+      {printers.length === 0 ? (
+        <div className="bg-[#161622] border border-white/5 rounded-2xl">
           <EmptyState
             icon={Printer}
             title="Aún no tienes impresoras registradas"
-            description="Agrega una para empezar a imprimir comandas y boletas"
+            description="Agrega las impresoras que tiene tu local (COCINA1, BARRA, CAJA…)"
             action={{ label: 'Agregar impresora', onClick: () => setShowAdd(true) }}
           />
-        ) : (
-          <div className="divide-y divide-white/5">
-            {servers.map(srv => {
-              const Icon  = KIND_ICONS[srv.printer_kind]
-              const seen  = srv.last_seen_at ? new Date(srv.last_seen_at) : null
-              const fresh = seen && Date.now() - seen.getTime() < 2 * 60_000
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {(Object.entries(KIND_CONFIG) as [PrinterKind, typeof KIND_CONFIG[PrinterKind]][])
+            .filter(([k]) => grouped[k]?.length > 0)
+            .map(([kind, cfg]) => {
+              const Icon = cfg.icon
               return (
-                <div key={srv.id} className="px-5 py-4 flex items-center gap-4">
-                  <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-white/40">
-                    <Icon size={14} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <p className="text-white text-sm font-semibold">{srv.name}</p>
-                      <StatusBadge
-                        tone={fresh ? 'success' : 'neutral'}
-                        icon={fresh ? Check : Clock}
-                        label={fresh ? 'Online' : seen ? 'Offline' : 'Sin conexión'}
-                      />
-                    </div>
-                    <p className="text-white/30 text-[11px]">
-                      {srv.printer_kind} · {srv.printer_addr ?? 'addr en .env'} · {srv.paper_width} cols
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => sendTestJob(srv.id)}
-                    className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 hover:text-[#FF6B35] hover:border-[#FF6B35]/40 transition-colors"
+                <div key={kind} className="bg-[#161622] border border-white/5 rounded-2xl overflow-hidden">
+                  {/* Kind header */}
+                  <div
+                    className="flex items-center gap-2 px-5 py-3 border-b border-white/5"
+                    style={{ background: cfg.color + '08' }}
                   >
-                    <Play size={11} /> Test
-                  </button>
+                    <Icon size={13} style={{ color: cfg.color }} />
+                    <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: cfg.color }}>
+                      {cfg.label}
+                    </p>
+                    <span className="text-[10px] text-white/25 ml-1">({grouped[kind].length})</span>
+                  </div>
+
+                  {/* Printers in this kind */}
+                  <div className="divide-y divide-white/5">
+                    {grouped[kind].map(p => (
+                      <div key={p.id} className="px-5 py-3.5 flex items-center gap-3">
+                        {editId === p.id ? (
+                          /* ── Edit mode ── */
+                          <div className="flex-1 flex items-center gap-2 flex-wrap">
+                            <input
+                              value={editName}
+                              onChange={e => setEditName(e.target.value)}
+                              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-white text-sm font-mono focus:outline-none focus:border-[#FF6B35]/50 w-36"
+                            />
+                            <input
+                              value={editDesc}
+                              onChange={e => setEditDesc(e.target.value)}
+                              placeholder="Descripción…"
+                              className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 min-w-0"
+                            />
+                            <div className="flex gap-1">
+                              {(Object.entries(KIND_CONFIG) as [PrinterKind, typeof KIND_CONFIG[PrinterKind]][]).map(([k, c]) => (
+                                <button
+                                  key={k}
+                                  onClick={() => setEditKind(k)}
+                                  className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all ${
+                                    editKind === k ? 'text-white' : 'bg-white/3 text-white/30'
+                                  }`}
+                                  style={editKind === k ? { background: c.color + '25', color: c.color } : {}}
+                                >
+                                  {c.label}
+                                </button>
+                              ))}
+                            </div>
+                            <button
+                              onClick={saveEdit}
+                              disabled={saving}
+                              className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                            >
+                              {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
+                            </button>
+                            <button
+                              onClick={() => setEditId(null)}
+                              className="p-1.5 rounded-lg bg-white/5 text-white/40 hover:bg-white/10 transition-colors"
+                            >
+                              <X size={13} />
+                            </button>
+                          </div>
+                        ) : (
+                          /* ── View mode ── */
+                          <>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono text-sm font-semibold text-white">{p.name}</span>
+                                {!p.active && (
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/8 text-white/30">
+                                    inactiva
+                                  </span>
+                                )}
+                              </div>
+                              {p.description && (
+                                <p className="text-white/35 text-xs mt-0.5">{p.description}</p>
+                              )}
+                            </div>
+
+                            {/* Actions */}
+                            <div className="flex items-center gap-1 shrink-0">
+                              {/* Toggle active */}
+                              <button
+                                onClick={() => toggleActive(p)}
+                                title={p.active ? 'Desactivar' : 'Activar'}
+                                className={`w-8 h-5 rounded-full transition-colors relative ${
+                                  p.active ? 'bg-[#FF6B35]' : 'bg-white/15'
+                                }`}
+                              >
+                                <span
+                                  className={`absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-transform ${
+                                    p.active ? 'translate-x-3' : 'translate-x-0.5'
+                                  }`}
+                                />
+                              </button>
+
+                              <button
+                                onClick={() => startEdit(p)}
+                                className="p-1.5 rounded-lg text-white/25 hover:text-white/70 hover:bg-white/5 transition-colors"
+                              >
+                                <Pencil size={13} />
+                              </button>
+
+                              <button
+                                onClick={() => deletePrinter(p.id)}
+                                className="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                              >
+                                <Trash2 size={13} />
+                              </button>
+                            </div>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )
             })}
-          </div>
-        )}
-      </div>
-
-      {/* Recent jobs */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl">
-        <div className="p-5 border-b border-white/5">
-          <p className="text-white font-semibold text-sm">Jobs recientes</p>
         </div>
-        {jobs.length === 0 ? (
-          <EmptyState
-            icon={Play}
-            title="Sin jobs aún"
-            description="Cuando envíes una comanda o boleta a una impresora, aparecerá aquí"
-          />
-        ) : (
-          <div className="divide-y divide-white/5">
-            {jobs.map(j => (
-              <div key={j.id} className="px-5 py-3 flex items-center gap-3 text-xs">
-                <div className="flex-1 min-w-0">
-                  <p className="text-white/80 font-medium">
-                    {j.job_type}
-                    {j.print_servers && <span className="text-white/30"> · {j.print_servers.name}</span>}
-                  </p>
-                  <p className="text-white/30 text-[10px]">
-                    {new Date(j.created_at).toLocaleString('es-CL')}
-                    {j.error_message && <span className="text-red-400"> — {j.error_message}</span>}
-                  </p>
-                </div>
-                <StatusBadge tone={STATUS_TONE[j.status] ?? 'neutral'} label={j.status} />
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

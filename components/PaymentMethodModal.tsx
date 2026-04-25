@@ -3,6 +3,18 @@
 import { useState, useEffect, useRef } from 'react'
 import { X, Banknote, CreditCard, Layers, Building2, Loader2, Mail } from 'lucide-react'
 import { formatCurrency } from '@/lib/i18n'
+import { ElectronicReceiptOptions } from '@/components/manual-print/ElectronicReceiptOptions'
+import {
+  getNotifierService,
+  getPrinterConfigService,
+  getRestaurantCode,
+} from '@/lib/manual-print'
+import {
+  validateRut,
+  formatRut,
+  validateFacturaData,
+  getFieldErrors,
+} from '@/lib/manual-print/dte-validation'
 
 const clp = (n: number) => formatCurrency(n)
 
@@ -42,20 +54,25 @@ interface PaymentMethodModalProps {
   onClose:    () => void
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function isValidRut(rut: string): boolean {
-  const stripped = rut.replace(/\./g, '').trim()
-  return /^\d{7,8}-[\dkK]$/.test(stripped)
-}
-
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onConfirm, onClose }: PaymentMethodModalProps) {
+export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, onClose }: PaymentMethodModalProps) {
   // Payment method
   const [method, setMethod]     = useState<'cash' | 'digital' | 'mixed' | null>(null)
   const [cashPart, setCashPart] = useState('')
   const [saving, setSaving]     = useState(false)
+
+  // Receipt step — shown after payment details are confirmed for boleta payments
+  // 'payment' = filling in payment details, 'receipt' = choosing print/email for boleta
+  const [step, setStep] = useState<'payment' | 'receipt'>('payment')
+  // Pending DTE/amounts stored while we wait for receipt choice
+  const pendingPayment = useRef<{
+    method: 'cash' | 'digital' | 'mixed'
+    dte: DteSelection
+    cashAmount: number
+    digitalAmount: number
+  } | null>(null)
+  const [receiptLoading, setReceiptLoading] = useState(false)
 
   // Propina — por defecto 10%, editable
   const [tipPct, setTipPct]       = useState(10)
@@ -90,11 +107,28 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
   // Map payment method → fma_pago
   const fmaPago: 1 | 2 | 3 = method === 'cash' ? 1 : method === 'digital' ? 2 : 1
 
-  // Factura form validation
-  const rutValid  = !needsInvoice || isValidRut(rut)
-  const facturaOk = !needsInvoice || (
-    rutValid && razon.trim() && giro.trim() && direccion.trim() && comuna.trim()
-  )
+  // Factura form validation — uses the DTE validation service (Req 7.3, 7.6)
+  const rutValidation = rut ? validateRut(rut) : null
+  const rutError = rut && rutValidation && !rutValidation.isValid ? rutValidation.error : undefined
+
+  // Build a partial FacturaData for live validation (total/items not needed for field errors)
+  const facturaValidation = needsInvoice
+    ? validateFacturaData({
+        total: total > 0 ? total : 1,          // use real total; fallback avoids false total error
+        items: [{ name: 'item', quantity: 1, unit_price: 1 }], // placeholder to skip item errors
+        rut_receptor:       rut,
+        razon_receptor:     razon,
+        giro_receptor:      giro,
+        direccion_receptor: direccion,
+        comuna_receptor:    comuna,
+        email_receptor:     email || undefined,
+      })
+    : null
+
+  const fieldErrors = facturaValidation ? getFieldErrors(facturaValidation) : {}
+
+  const rutValid  = !needsInvoice || (!!rut && !fieldErrors['rut_receptor'])
+  const facturaOk = !needsInvoice || (facturaValidation?.isValid ?? false)
 
   // ── Autocompletado por RUT ─────────────────────────────────────────────────
 
@@ -146,10 +180,16 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
 
   // ── Handlers ───────────────────────────────────────────────────────────────
 
+  /** Auto-format RUT when user leaves the field (Req 7.5) */
+  function handleRutBlur() {
+    if (rut) {
+      setRut(formatRut(rut))
+    }
+  }
+
   async function handleConfirm() {
     if (!method || !facturaOk || saving) return
     if (method === 'mixed' && !cashPart) return
-    setSaving(true)
 
     const dte: DteSelection = needsInvoice
       ? {
@@ -164,19 +204,110 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
         }
       : { document_type: 39 }
 
+    const cashAmount    = method === 'cash' ? grandTotal : method === 'mixed' ? (parseInt(cashPart) || 0) : 0
+    const digitalAmount = method === 'digital' ? grandTotal : method === 'mixed' ? Math.max(0, grandTotal - (parseInt(cashPart) || 0)) : 0
+
+    // For boleta (non-invoice) payments, show receipt options step (Req 3.1)
+    if (!needsInvoice) {
+      pendingPayment.current = { method, dte, cashAmount, digitalAmount }
+      setStep('receipt')
+      return
+    }
+
+    // For factura payments, confirm directly
+    setSaving(true)
     try {
-      if (method === 'cash') {
-        await onConfirm('cash', dte, grandTotal, 0)
-      } else if (method === 'digital') {
-        await onConfirm('digital', dte, 0, grandTotal)
-      } else {
-        const cash    = parseInt(cashPart) || 0
-        const digital = Math.max(0, grandTotal - cash)
-        await onConfirm('mixed', dte, cash, digital)
-      }
+      await onConfirm(method, dte, cashAmount, digitalAmount)
     } finally {
       setSaving(false)
     }
+  }
+
+  /** Called when the waiter selects "Imprimir boleta" in the receipt step (Req 3.2) */
+  async function handleReceiptPrint() {
+    if (!pendingPayment.current) return
+    setReceiptLoading(true)
+    try {
+      const printerConfigService = getPrinterConfigService()
+      const printer = await printerConfigService.getBoletaPrinter(restaurantId)
+      const restaurantCode = await getRestaurantCode(restaurantId)
+
+      if (!printer) {
+        throw new Error('No hay impresora configurada para boleta electrónica')
+      }
+
+      const notifierService = getNotifierService()
+      const response = await notifierService.requestBoletaElectronica({
+        comercio: restaurantCode || restaurantId,
+        impresora: printer.id,
+        movimiento: orderId,
+        total: grandTotal,
+        items: [],
+        dte: {
+          ...pendingPayment.current.dte,
+          fma_pago: pendingPayment.current.dte.fma_pago,
+        },
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || 'Error al solicitar impresión de boleta')
+      }
+
+      // Boleta sent — complete the payment (Req 3.6)
+      const { method: m, dte, cashAmount, digitalAmount } = pendingPayment.current
+      setSaving(true)
+      try {
+        await onConfirm(m, dte, cashAmount, digitalAmount)
+      } finally {
+        setSaving(false)
+      }
+    } finally {
+      setReceiptLoading(false)
+    }
+  }
+
+  /** Called when the waiter confirms email delivery in the receipt step (Req 3.5) */
+  async function handleReceiptEmail(emailAddress: string) {
+    if (!pendingPayment.current) return
+    setReceiptLoading(true)
+    try {
+      const restaurantCode = await getRestaurantCode(restaurantId)
+
+      const notifierService = getNotifierService()
+      const response = await notifierService.requestBoletaElectronica({
+        comercio: restaurantCode || restaurantId,
+        email: emailAddress,
+        movimiento: orderId,
+        total: grandTotal,
+        items: [],
+        dte: {
+          ...pendingPayment.current.dte,
+          fma_pago: pendingPayment.current.dte.fma_pago,
+          email_receptor: emailAddress,
+        },
+      })
+
+      if (!response.success) {
+        throw new Error(response.error || 'Error al enviar boleta por email')
+      }
+
+      // Boleta sent — complete the payment (Req 3.6)
+      const { method: m, dte, cashAmount, digitalAmount } = pendingPayment.current
+      setSaving(true)
+      try {
+        await onConfirm(m, dte, cashAmount, digitalAmount)
+      } finally {
+        setSaving(false)
+      }
+    } finally {
+      setReceiptLoading(false)
+    }
+  }
+
+  /** Go back from receipt step to payment details (Req 3.7) */
+  function handleReceiptCancel() {
+    pendingPayment.current = null
+    setStep('payment')
   }
 
   // ── Render ─────────────────────────────────────────────────────────────────
@@ -185,8 +316,8 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
     <div 
       className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4"
       onClick={(e) => {
-        // Prevent closing when clicking backdrop if saving
-        if (e.target === e.currentTarget && !saving) {
+        // Prevent closing when clicking backdrop if saving or in receipt step
+        if (e.target === e.currentTarget && !saving && !receiptLoading && step === 'payment') {
           onClose()
         }
       }}
@@ -196,7 +327,9 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
         {/* Header */}
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
           <div>
-            <h3 className="text-white font-semibold text-sm">Método de pago</h3>
+            <h3 className="text-white font-semibold text-sm">
+              {step === 'receipt' ? 'Boleta electrónica' : 'Método de pago'}
+            </h3>
             <p className="text-white/40 text-xs">
               Subtotal: {clp(total)}
               {tipAmount > 0 && <span className="text-emerald-400"> + {clp(tipAmount)} propina = <span className="text-white font-semibold">{clp(grandTotal)}</span></span>}
@@ -204,14 +337,28 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
             </p>
           </div>
           <button 
-            onClick={onClose} 
-            disabled={saving}
+            onClick={step === 'receipt' ? handleReceiptCancel : onClose}
+            disabled={saving || receiptLoading}
             className="text-white/30 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <X size={16} />
           </button>
         </div>
 
+        {/* Receipt step — shown after payment method is confirmed for boleta (Req 3.1) */}
+        {step === 'receipt' && (
+          <ElectronicReceiptOptions
+            total={grandTotal}
+            restaurantId={restaurantId}
+            onPrintSelected={handleReceiptPrint}
+            onEmailSelected={handleReceiptEmail}
+            onCancel={handleReceiptCancel}
+            loading={receiptLoading || saving}
+          />
+        )}
+
+        {/* Payment step */}
+        {step === 'payment' && (
         <div className="p-5 max-h-[80vh] overflow-y-auto">
 
           {/* Propina */}
@@ -354,6 +501,7 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
                     type="text"
                     value={rut}
                     onChange={e => { setRut(e.target.value); setShowSuggestions(true) }}
+                    onBlur={handleRutBlur}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                     placeholder="76354771-K"
                     className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors pr-8 ${
@@ -367,7 +515,9 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
                   )}
                 </div>
                 {rut && !rutValid && (
-                  <p className="text-red-400 text-[10px] mt-1">Formato inválido. Ej: 76354771-K</p>
+                  <p className="text-red-400 text-[10px] mt-1">
+                    {rutError ?? fieldErrors['rut_receptor'] ?? 'Formato inválido. Ej: 76354771-K'}
+                  </p>
                 )}
 
                 {/* Dropdown de sugerencias */}
@@ -402,8 +552,15 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
                   value={razon}
                   onChange={e => setRazon(e.target.value)}
                   placeholder="Empresa Ejemplo SpA"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                  className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                    fieldErrors['razon_receptor']
+                      ? 'border-red-500/50 focus:border-red-500'
+                      : 'border-white/10 focus:border-[#FF6B35]/50'
+                  }`}
                 />
+                {fieldErrors['razon_receptor'] && (
+                  <p className="text-red-400 text-[10px] mt-1">{fieldErrors['razon_receptor']}</p>
+                )}
               </div>
 
               <div>
@@ -413,8 +570,15 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
                   value={giro}
                   onChange={e => setGiro(e.target.value)}
                   placeholder="Servicios de alimentación"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                  className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                    fieldErrors['giro_receptor']
+                      ? 'border-red-500/50 focus:border-red-500'
+                      : 'border-white/10 focus:border-[#FF6B35]/50'
+                  }`}
                 />
+                {fieldErrors['giro_receptor'] && (
+                  <p className="text-red-400 text-[10px] mt-1">{fieldErrors['giro_receptor']}</p>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-2">
@@ -425,8 +589,15 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
                     value={direccion}
                     onChange={e => setDireccion(e.target.value)}
                     placeholder="Av. Providencia 1234"
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                      fieldErrors['direccion_receptor']
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                    }`}
                   />
+                  {fieldErrors['direccion_receptor'] && (
+                    <p className="text-red-400 text-[10px] mt-1">{fieldErrors['direccion_receptor']}</p>
+                  )}
                 </div>
                 <div>
                   <label className="text-white/40 text-xs mb-1 block">Comuna *</label>
@@ -435,8 +606,15 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
                     value={comuna}
                     onChange={e => setComuna(e.target.value)}
                     placeholder="Providencia"
-                    className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                      fieldErrors['comuna_receptor']
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                    }`}
                   />
+                  {fieldErrors['comuna_receptor'] && (
+                    <p className="text-red-400 text-[10px] mt-1">{fieldErrors['comuna_receptor']}</p>
+                  )}
                 </div>
               </div>
 
@@ -478,6 +656,7 @@ export function PaymentMethodModal({ orderId: _orderId, total, restaurantId, onC
           </div>
 
         </div>
+        )}
       </div>
     </div>
   )

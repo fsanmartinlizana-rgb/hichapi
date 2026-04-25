@@ -4,12 +4,16 @@ import { useState, useCallback } from 'react'
 import { createPortal } from 'react-dom'
 import {
   X, Plus, Minus, Trash2, ChefHat, CheckCircle2, Banknote,
-  Bell, AlertCircle, RefreshCw, ShoppingBag, Clock,
+  Bell, AlertCircle, RefreshCw, ShoppingBag, Clock, Printer,
 } from 'lucide-react'
 import { formatCurrency } from '@/lib/i18n'
 import type { MenuItemOption, OrderLine } from '@/components/nueva-comanda/types'
 import { getDefaultDestination, filterByName, groupByCategory } from '@/components/nueva-comanda/utils'
 import { StationStatusBadge, type StationStatus } from './StationStatusBadge'
+import { ManualPrintControls } from '@/components/manual-print/ManualPrintControls'
+import { DocumentHistoryPanel } from '@/components/manual-print/DocumentHistoryPanel'
+import { useDocumentHistory } from '@/lib/manual-print/hooks'
+import type { PrintRequestState } from '@/lib/manual-print/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -49,6 +53,10 @@ export interface MesaDetailPanelProps {
   pax?: number
   onUpdatePax?: (pax: number) => void
   stationStatuses?: StationStatus[]
+  /** Print state for manual precuenta control (Req 6.1) */
+  printState?: PrintRequestState
+  /** Callback to request precuenta printing (Req 1.1) */
+  onPrintRequest?: (type: 'precuenta', printerName?: string) => Promise<void>
 }
 
 export type { StationStatus }
@@ -286,12 +294,21 @@ export function MesaDetailPanel({
   pax,
   onUpdatePax,
   stationStatuses,
+  printState,
+  onPrintRequest,
 }: MesaDetailPanelProps) {
   const [busyItemId, setBusyItemId]   = useState<string | null>(null)
   const [showAddProducts, setShowAddProducts] = useState(false)
   const [pendingLines, setPendingLines]       = useState<OrderLine[]>([])
   const [savingAdd, setSavingAdd]             = useState(false)
   const [addError, setAddError]               = useState<string | null>(null)
+
+  // Document history for the current order (Req 6.3)
+  const {
+    history: documentHistory,
+    loading: historyLoading,
+    refreshHistory,
+  } = useDocumentHistory(order?.id ?? '')
 
   // ── Item qty / delete ─────────────────────────────────────────────────────
 
@@ -422,6 +439,32 @@ export function MesaDetailPanel({
           </div>
         </div>
 
+        {/* "Cuenta solicitada" banner — shown when order is in paying state (Req 2.2, 6.1) */}
+        {order.status === 'paying' && (
+          <div
+            className="flex items-center gap-3 px-4 py-2.5 border-b"
+            style={{ borderColor: 'rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.08)' }}
+          >
+            <Banknote size={15} className="text-[#FBBF24] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[#FBBF24] text-xs font-semibold">Cuenta solicitada</p>
+              {printState?.precuentaRequested ? (
+                <p className="text-emerald-400/70 text-[10px] flex items-center gap-1 mt-0.5">
+                  <Printer size={9} className="shrink-0" />
+                  Precuenta impresa
+                  {printState.precuentaTimestamp && (
+                    <span className="text-white/30">
+                      · {printState.precuentaTimestamp.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
+                    </span>
+                  )}
+                </p>
+              ) : (
+                <p className="text-amber-300/50 text-[10px] mt-0.5">Precuenta pendiente de imprimir</p>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Pax inline edit */}
         {onUpdatePax && pax != null && (
           <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
@@ -505,6 +548,43 @@ export function MesaDetailPanel({
             {formatCurrency(order.total)}
           </span>
         </div>
+
+        {/* Manual print controls — precuenta (Req 1.1, 6.1) */}
+        {printState && onPrintRequest && (
+          <ManualPrintControls
+            tableId={tableId}
+            order={{
+              id: order.id,
+              table_id: order.table_id,
+              status: order.status,
+              total: order.total,
+              pax: pax ?? null,
+              client_name: order.client_name,
+              notes: order.notes,
+              created_at: order.created_at,
+              updated_at: order.created_at,
+              order_items: order.order_items.map(i => ({
+                id: i.id,
+                name: i.name,
+                quantity: i.quantity,
+                unit_price: i.unit_price,
+                notes: i.notes,
+                status: i.status,
+                destination: null,
+              })),
+            }}
+            restaurantId={restaurantId}
+            onPrintRequest={onPrintRequest}
+            printState={printState}
+          />
+        )}
+
+        {/* Document history panel — shows all requested documents with status (Req 6.2, 6.3) */}
+        <DocumentHistoryPanel
+          history={documentHistory}
+          loading={historyLoading}
+          onRefresh={refreshHistory}
+        />
 
         {/* Action buttons */}
         {cfg.next && (
