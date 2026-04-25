@@ -207,7 +207,7 @@ export async function runEmission(
   } else {
     const { data: orderItems, error: itemsErr } = await supabase
       .from('order_items')
-      .select('name, quantity, unit_price')
+      .select('name, quantity, unit_price, tax_exempt')
       .eq('order_id', orderId)
       .neq('status', 'cancelled')
 
@@ -221,6 +221,8 @@ export async function runEmission(
       name:       item.name,
       quantity:   item.quantity,
       unit_price: item.unit_price,
+      // Propagar exención de IVA desde order_items (heredado de menu_items.tax_exempt)
+      ...(item.tax_exempt ? { ind_exe: 1 as const } : {}),
     }))
 
     // If no items, use a single summary line from the order total

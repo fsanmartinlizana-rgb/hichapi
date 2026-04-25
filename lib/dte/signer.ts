@@ -338,8 +338,8 @@ export function buildDteXml(input: DteInput): string {
         return (
           `\n    <Detalle>\n` +
           `      <NroLinDet>${idx + 1}</NroLinDet>\n` +
-          `      <NmbItem>${escapeXml(toIso88591Safe(item.name))}</NmbItem>\n` +
           indExeXml +
+          `      <NmbItem>${escapeXml(toIso88591Safe(item.name))}</NmbItem>\n` +
           `      <QtyItem>${item.quantity}</QtyItem>\n` +
           `      <PrcItem>${prcItem}</PrcItem>\n` +
           codImpAdicXml +

@@ -249,6 +249,20 @@ export async function POST(
             .select('name, quantity, unit_price')
             .eq('order_id', billSplit.order_ids[0])
 
+          const mappedItems = (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
+            name:       i.name,
+            quantity:   i.quantity,
+            unit_price: i.unit_price,
+          }))
+
+          // Si el monto cobrado (con propina) es mayor que la suma de ítems,
+          // agregar una línea de propina para que el total cuadre en el email
+          const itemsTotal = mappedItems.reduce((sum: number, i: { name: string; quantity: number; unit_price: number }) => sum + i.unit_price * i.quantity, 0)
+          const tipAmount  = amount - itemsTotal
+          if (tipAmount > 0) {
+            mappedItems.push({ name: 'Propina', quantity: 1, unit_price: tipAmount })
+          }
+
           const emailArgs = {
             to:             dte.email_receptor,
             orderId:        billSplit.order_ids[0],
@@ -256,11 +270,7 @@ export async function POST(
             restaurantName: restaurant.razon_social ?? restaurant.rut,
             totalAmount:    amount,
             emittedAt:      new Date().toISOString(),
-            items:          (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
-              name:       i.name,
-              quantity:   i.quantity,
-              unit_price: i.unit_price,
-            })),
+            items:          mappedItems,
             xmlBase64: emitResult.signed_xml
               ? Buffer.from(emitResult.signed_xml).toString('base64')
               : undefined,
@@ -275,6 +285,33 @@ export async function POST(
             void sendBoletaEmail(emailArgs)
               .catch(err => console.error('[pay] sendBoletaEmail error:', err))
           }
+        }
+
+        // Guardar receptor en directorio para autocompletado futuro (solo facturas)
+        if (dte.document_type === 33 && dte.rut_receptor && dte.razon_receptor) {
+          void adminSupabase
+            .from('dte_receptores')
+            .upsert(
+              {
+                restaurant_id:  billSplit.restaurant_id,
+                rut:            dte.rut_receptor,
+                razon_social:   dte.razon_receptor,
+                giro:           dte.giro_receptor ?? null,
+                direccion:      dte.direccion_receptor ?? null,
+                comuna:         dte.comuna_receptor ?? null,
+                email:          dte.email_receptor ?? null,
+                ultima_emision: new Date().toISOString(),
+              },
+              { onConflict: 'restaurant_id,rut', ignoreDuplicates: false }
+            )
+            .then(() => {
+              // Incrementar contador de facturas emitidas
+              return adminSupabase.rpc('increment_receptor_facturas', {
+                p_restaurant_id: billSplit.restaurant_id,
+                p_rut:           dte.rut_receptor,
+              }).maybeSingle()
+            })
+            .catch(() => { /* non-critical */ })
         }
       } else {
         console.error('[pay] DTE runEmission failed:', emitResult.error)

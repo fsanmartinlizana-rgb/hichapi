@@ -231,9 +231,21 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
     const cashAmount    = method === 'cash' ? grandTotal : method === 'mixed' ? (parseInt(cashPart) || 0) : 0
     const digitalAmount = method === 'digital' ? grandTotal : method === 'mixed' ? Math.max(0, grandTotal - (parseInt(cashPart) || 0)) : 0
 
-    // For boleta (non-invoice) payments, show receipt options step (Req 3.1)
+    // For boleta (non-invoice) payments:
+    // - Si ya eligió enviar por email, confirmar directamente sin mostrar el paso receipt
+    // - Si no eligió email, mostrar el paso receipt para elegir imprimir o enviar
     if (!needsInvoice) {
       pendingPayment.current = { method, dte, cashAmount, digitalAmount }
+      if (sendByEmail && boletaEmail.trim()) {
+        // Ya tiene email — confirmar directamente sin paso intermedio
+        setSaving(true)
+        try {
+          await onConfirm(method, dte, cashAmount, digitalAmount)
+        } finally {
+          setSaving(false)
+        }
+        return
+      }
       setStep('receipt')
       return
     }

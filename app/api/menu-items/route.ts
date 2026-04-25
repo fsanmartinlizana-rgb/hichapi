@@ -25,6 +25,7 @@ const CreateItemSchema = z.object({
   display_order: z.number().int().optional(),
   destination:   DestinationEnum.default('cocina'),
   ingredients:   z.array(IngredientSchema).optional(),
+  tax_exempt:    z.boolean().default(false),  // true = exento de IVA (cigarros, etc.)
 })
 
 const UpdateItemSchema = z.object({
@@ -41,6 +42,7 @@ const UpdateItemSchema = z.object({
   display_order: z.number().int().optional(),
   destination:   DestinationEnum.optional(),
   ingredients:   z.array(IngredientSchema).optional(),
+  tax_exempt:    z.boolean().optional(),      // true = exento de IVA
 })
 
 const DeleteItemSchema = z.object({
@@ -92,6 +94,7 @@ export async function POST(req: NextRequest) {
       available:     data.available,
       photo_url:     data.photo_url || null,
       destination:   data.destination,
+      tax_exempt:    data.tax_exempt ?? false,
     }
     if (data.cost_price !== undefined) insertPayload.cost_price = data.cost_price
     if (data.ingredients) insertPayload.ingredients = data.ingredients

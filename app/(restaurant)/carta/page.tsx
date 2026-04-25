@@ -34,6 +34,7 @@ interface MenuItem {
   cost_price?: number
   destination: Destination
   ingredients?: Ingredient[]
+  tax_exempt?: boolean
 }
 
 // ── Constants ────────────────────────────────────────────────────────────────
@@ -98,6 +99,7 @@ function ItemForm({
   const [category, setCategory]       = useState(initial?.category ?? 'principal')
   const [tags, setTags]               = useState<string[]>(initial?.tags ?? [])
   const [available, setAvailable]     = useState(initial?.available ?? true)
+  const [taxExempt, setTaxExempt]     = useState(initial?.tax_exempt ?? false)
   const [destination, setDestination] = useState<Destination>(initial?.destination ?? 'cocina')
   const [ingredients, setIngredients] = useState<Ingredient[]>(initial?.ingredients ?? [])
   const [saving, setSaving]           = useState(false)
@@ -202,6 +204,7 @@ function ItemForm({
         tags,
         available,
         destination,
+        tax_exempt: taxExempt,
         cost_price: cost ? parseInt(cost) : undefined,
         photo_url: finalPhotoUrl ?? undefined,
         ingredients: ingredients.filter(i => i.qty > 0 && i.stock_item_id),
@@ -326,6 +329,27 @@ function ItemForm({
             {available ? 'Disponible' : 'No disponible'}
           </button>
         </div>
+      </div>
+      {/* Exento de IVA */}
+      <div className="space-y-1.5">
+        <button
+          type="button"
+          onClick={() => setTaxExempt(v => !v)}
+          className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all w-full text-left
+            ${taxExempt
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
+              : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20'}`}
+        >
+          {taxExempt ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
+          <div>
+            <p className="font-medium text-xs">Exento de IVA</p>
+            <p className="text-[10px] opacity-70 mt-0.5">
+              {taxExempt
+                ? 'Este producto no genera IVA en la boleta/factura (ind_exe=1)'
+                : 'Activar para productos exentos de IVA (ej: cigarros, medicamentos)'}
+            </p>
+          </div>
+        </button>
       </div>
       <div className="space-y-1.5">
         <label className="text-white/50 text-xs">Tags · ayuda a que Chapi y los buscadores de IA recomienden este producto</label>
@@ -810,6 +834,7 @@ export default function CartaPage() {
           photo_url:   (i.photo_url as string) || undefined,
           cost_price:  (i.cost_price as number) || undefined,
           destination: ((i.destination as Destination) || 'cocina'),
+          tax_exempt:  (i.tax_exempt as boolean) ?? false,
           // Defensive filter: data legacy puede venir como string[] (nombres
           // sueltos) en vez de {stock_item_id, qty}[]. Si accedemos a .qty o
           // .stock_item_id sobre un string, la página entera se cae al

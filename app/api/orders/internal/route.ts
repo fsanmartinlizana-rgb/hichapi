@@ -200,9 +200,9 @@ export async function POST(req: NextRequest) {
   const menuItemIds = body.cart.map(c => c.menu_item_id)
   const { data: menuRows } = await supabase
     .from('menu_items')
-    .select('id, destination, category_id')
+    .select('id, destination, category_id, tax_exempt')
     .in('id', menuItemIds)
-  type MenuRow = { id: string; destination: string | null; category_id: string | null }
+  type MenuRow = { id: string; destination: string | null; category_id: string | null; tax_exempt: boolean | null }
   const menuRowsTyped = (menuRows ?? []) as MenuRow[]
 
   const { data: overridesRows } = await supabase
@@ -231,8 +231,10 @@ export async function POST(req: NextRequest) {
 
   const destByItem    = new Map<string, string>()
   const stationByItem = new Map<string, string | null>()
+  const taxExemptByItem = new Map<string, boolean>()
   for (const r of menuRowsTyped) {
     destByItem.set(r.id, r.destination || 'cocina')
+    taxExemptByItem.set(r.id, r.tax_exempt ?? false)
     const station =
       overrideByItem.get(r.id) ??
       (r.category_id ? stationByCategory.get(r.category_id) : undefined) ??
@@ -252,6 +254,7 @@ export async function POST(req: NextRequest) {
     notes:       item.note ?? null,
     status:      'pending' as const,
     destination: destByItem.get(item.menu_item_id) || item.destination,
+    tax_exempt:  taxExemptByItem.get(item.menu_item_id) ?? false,
   })
 
   let itemsErr = (await supabase

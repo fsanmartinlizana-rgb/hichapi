@@ -436,8 +436,9 @@ export default function StepCatalogoVisual({
           />
         </div>
 
-        {/* Scrollable product list */}
-        <div className="flex-1 overflow-y-auto px-4 pb-4">
+        {/* Scrollable product list — pb-32 en mobile para que el bottom bar fijo no tape los últimos ítems */}
+        <div className="flex-1 overflow-y-auto px-4 pb-4 lg:pb-4" style={{ paddingBottom: 'max(1rem, env(safe-area-inset-bottom))' }}>
+          <div className="pb-28 lg:pb-0">
           {categories.length === 0 ? (
             <p className="py-8 text-center text-sm text-white/35">
               No hay productos que coincidan con &lsquo;{query}&rsquo;
@@ -456,6 +457,7 @@ export default function StepCatalogoVisual({
               />
             ))
           )}
+          </div>
         </div>
       </div>
 
