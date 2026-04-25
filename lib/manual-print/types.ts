@@ -334,6 +334,8 @@ export interface ElectronicReceiptOptionsProps {
   onCancel: () => void
   /** Whether operation is in progress */
   loading: boolean
+  /** Pre-filled email from payment form */
+  prefilledEmail?: string
 }
 
 export interface EmailValidationState {

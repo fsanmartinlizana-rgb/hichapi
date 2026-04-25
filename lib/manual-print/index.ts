@@ -13,6 +13,14 @@
  * - Integration with existing notifier endpoints
  */
 
+// ── Internal type imports (for lazy-loaded singleton declarations) ────────────
+
+import type { NotifierServiceImpl } from './notifier-service'
+import type { PrinterConfigServiceImpl } from './printer-config'
+import type { DocumentHistoryService } from './document-history'
+import type { ErrorRecoveryService } from './errors'
+import type { PrintRequestState, DocumentType, PrintContext } from './types'
+
 // ── Core Types ───────────────────────────────────────────────────────────────
 
 export type {
@@ -134,7 +142,7 @@ export function getNotifierService(): NotifierServiceImpl {
     const { NotifierServiceImpl } = require('./notifier-service')
     _notifierService = new NotifierServiceImpl()
   }
-  return _notifierService
+  return _notifierService!
 }
 
 export function getPrinterConfigService(): PrinterConfigServiceImpl {
@@ -142,7 +150,7 @@ export function getPrinterConfigService(): PrinterConfigServiceImpl {
     const { PrinterConfigServiceImpl } = require('./printer-config')
     _printerConfigService = new PrinterConfigServiceImpl()
   }
-  return _printerConfigService
+  return _printerConfigService!
 }
 
 export function getDocumentHistoryService(): DocumentHistoryService {
@@ -150,7 +158,7 @@ export function getDocumentHistoryService(): DocumentHistoryService {
     const { DocumentHistoryService } = require('./document-history')
     _documentHistoryService = new DocumentHistoryService()
   }
-  return _documentHistoryService
+  return _documentHistoryService!
 }
 
 export function getErrorRecoveryService(): ErrorRecoveryService {
@@ -158,7 +166,7 @@ export function getErrorRecoveryService(): ErrorRecoveryService {
     const { ErrorRecoveryService } = require('./errors')
     _errorRecoveryService = new ErrorRecoveryService()
   }
-  return _errorRecoveryService
+  return _errorRecoveryService!
 }
 
 // ── Utility Functions ────────────────────────────────────────────────────────

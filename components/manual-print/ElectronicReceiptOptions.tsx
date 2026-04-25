@@ -39,9 +39,12 @@ export function ElectronicReceiptOptions({
   onEmailSelected,
   onCancel,
   loading,
+  prefilledEmail,
 }: ElectronicReceiptOptionsProps) {
-  // 'none' | 'print' | 'email'
-  const [selectedOption, setSelectedOption] = useState<'none' | 'print' | 'email'>('none')
+  // Auto-select email option if prefilled email is provided
+  const [selectedOption, setSelectedOption] = useState<'none' | 'print' | 'email'>(
+    prefilledEmail ? 'email' : 'none'
+  )
   const [submitStatus, setSubmitStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [submitError, setSubmitError] = useState<string | undefined>(undefined)
 
@@ -50,6 +53,13 @@ export function ElectronicReceiptOptions({
     '', // orderId not needed for validation
     total
   )
+
+  // Pre-fill email on mount if provided
+  const [initialized, setInitialized] = useState(false)
+  if (!initialized && prefilledEmail) {
+    validateEmail(prefilledEmail)
+    setInitialized(true)
+  }
 
   const isProcessing = loading
   const isSuccess = submitStatus === 'success'

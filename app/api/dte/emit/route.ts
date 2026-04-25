@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
 import { runEmission } from '@/lib/dte/engine'
+import { sendBoletaEmail, sendFacturaEmail } from '@/lib/email/sender'
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  POST /api/dte/emit  — emit a boleta/factura for a paid order
@@ -226,6 +227,82 @@ export async function POST(req: NextRequest) {
       { error: errorCode, emission_id: emission.id },
       { status: emissionErrorStatus(errorCode) }
     )
+  }
+
+  // ── Fire-and-forget email sending ─────────────────────────────────────────
+  // Requisitos: 4.1, 4.2, 4.3, 4.5
+  // The email is sent asynchronously after the response is returned.
+  // Errors in email sending never propagate to the HTTP response.
+  if (body.email_receptor && result.folio !== undefined) {
+    const emittedAt = new Date().toISOString()
+    const documentType = body.document_type
+
+    if (documentType === 39 || documentType === 41) {
+      // Boleta electrónica — query order_items for detail
+      void (async () => {
+        try {
+          const { data: orderItems } = await supabase
+            .from('order_items')
+            .select('name, quantity, unit_price')
+            .eq('order_id', body.order_id)
+
+          const boletaItems: Array<{ name: string; quantity: number; unit_price: number }> =
+            (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
+              name:       i.name,
+              quantity:   i.quantity,
+              unit_price: i.unit_price,
+            }))
+
+          await sendBoletaEmail({
+            to:             body.email_receptor!,
+            orderId:        body.order_id,
+            folio:          result.folio!,
+            restaurantName: rest.razon_social,
+            totalAmount:    order.total,
+            emittedAt,
+            items:          boletaItems,
+            xmlBase64: result.signed_xml
+              ? Buffer.from(result.signed_xml).toString('base64')
+              : undefined,
+          })
+        } catch (err) {
+          console.error('[email] Unhandled error in sendBoletaEmail:', err)
+        }
+      })()
+    } else if (documentType === 33) {
+      // Factura electrónica — query order_items for detail
+      void (async () => {
+        try {
+          const { data: orderItems } = await supabase
+            .from('order_items')
+            .select('name, quantity, unit_price')
+            .eq('order_id', body.order_id)
+
+          const facturaItems: Array<{ name: string; quantity: number; unit_price: number }> =
+            (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
+              name:       i.name,
+              quantity:   i.quantity,
+              unit_price: i.unit_price,
+            }))
+
+          await sendFacturaEmail({
+            to:             body.email_receptor!,
+            orderId:        body.order_id,
+            folio:          result.folio!,
+            restaurantName: rest.razon_social,
+            razonReceptor:  body.razon_receptor ?? '',
+            totalAmount:    order.total,
+            emittedAt,
+            items:          facturaItems,
+            xmlBase64: result.signed_xml
+              ? Buffer.from(result.signed_xml).toString('base64')
+              : undefined,
+          })
+        } catch (err) {
+          console.error('[email] Unhandled error in sendFacturaEmail:', err)
+        }
+      })()
+    }
   }
 
   return NextResponse.json({

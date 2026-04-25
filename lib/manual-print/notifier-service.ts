@@ -131,10 +131,9 @@ class NotifierServiceImpl implements NotifierService {
    */
   async requestBoletaElectronica(params: BoletaRequest): Promise<BoletaResponse> {
     try {
-      // Validate request data
-      const validation = validatePrintRequest(params)
-      if (!validation.isValid) {
-        const error = new Error(`Datos inválidos: ${validation.errors.join(', ')}`)
+      // Only validate comercio and movimiento — items are not required for boleta
+      if (!params.comercio || !params.movimiento) {
+        const error = new Error('comercio y movimiento son requeridos para boleta')
         error.name = 'ValidationError'
         throw error
       }

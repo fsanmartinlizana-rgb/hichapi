@@ -573,6 +573,7 @@ interface FacturaEmailOpts {
   emittedAt:       string   // ISO date string
   hasXml:          boolean
   hasPdf:          boolean
+  items?:          Array<{ name: string; quantity: number; unit_price: number }>
 }
 
 export function facturaEmail(opts: FacturaEmailOpts): { subject: string; html: string; text: string } {
@@ -585,6 +586,32 @@ export function facturaEmail(opts: FacturaEmailOpts): { subject: string; html: s
     opts.hasPdf ? 'PDF (representación impresa)' : null,
   ].filter(Boolean).join(' y ')
 
+  // Tabla de ítems (opcional — sólo se renderiza cuando se proporcionan ítems)
+  const itemsTableHtml = opts.items && opts.items.length > 0
+    ? `
+    <!-- Detalle de ítems -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
+      <tr>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Producto</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Cant.</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:right;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">P. Unit.</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:right;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Subtotal</th>
+      </tr>
+      ${opts.items.map(item => {
+        const unitPrice = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(item.unit_price)
+        const subtotal  = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(item.unit_price * item.quantity)
+        return `
+      <tr>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.06);">${escapeHtml(item.name)}</td>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">${item.quantity}</td>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);text-align:right;border-bottom:1px solid rgba(255,255,255,0.06);">${unitPrice}</td>
+        <td style="padding:10px 12px;font-size:13px;color:#fff;font-weight:600;text-align:right;border-bottom:1px solid rgba(255,255,255,0.06);">${subtotal}</td>
+      </tr>`
+      }).join('')}
+    </table>`
+    : ''
+
   const bodyHtml = `
     <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">
       Factura Electrónica N° ${opts.folio}
@@ -593,6 +620,8 @@ export function facturaEmail(opts: FacturaEmailOpts): { subject: string; html: s
       Estimado(a) <strong style="color:#fff;">${escapeHtml(opts.razonReceptor)}</strong>,<br/>
       adjuntamos su factura electrónica emitida por <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>.
     </p>
+
+    ${itemsTableHtml}
 
     <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
            style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
@@ -620,12 +649,20 @@ export function facturaEmail(opts: FacturaEmailOpts): { subject: string; html: s
     </p>
   `
 
+  const itemLines = opts.items && opts.items.length > 0
+    ? opts.items.map(item => {
+        const subtotal = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(item.unit_price * item.quantity)
+        return `  ${item.name} x${item.quantity} — ${subtotal}`
+      }).join('\n')
+    : null
+
   const text = [
     `Factura Electrónica N° ${opts.folio}`,
     ``,
     `Estimado(a) ${opts.razonReceptor},`,
     `Adjuntamos su factura electrónica emitida por ${opts.restaurantName}.`,
     ``,
+    ...(itemLines ? [`Detalle:`, itemLines, ``] : []),
     `Folio:         ${opts.folio}`,
     `Fecha emisión: ${fecha}`,
     `Monto total:   ${monto}`,
@@ -723,6 +760,224 @@ export function aecEmail(opts: AecEmailOpts): { subject: string; html: string; t
   return {
     subject,
     html: baseLayout({ title: subject, preview: `Factura N° ${opts.folio} — ${cfg.label} por ${opts.razonReceptor}`, bodyHtml }),
+    text,
+  }
+}
+
+// ── Boleta electrónica al cliente ────────────────────────────────────────────
+
+export interface BoletaEmailOpts {
+  restaurantName: string
+  folio:          number
+  totalAmount:    number   // en CLP (entero)
+  emittedAt:      string   // ISO date string
+  items:          Array<{ name: string; quantity: number; unit_price: number }>
+  hasXml:         boolean
+  hasPdf:         boolean
+}
+
+export interface EmailResult {
+  subject: string
+  html:    string
+  text:    string
+}
+
+export function boletaEmail(opts: BoletaEmailOpts): EmailResult {
+  const subject = `Boleta Electrónica N° ${opts.folio} — ${opts.restaurantName}`
+  const fecha   = new Date(opts.emittedAt).toLocaleDateString('es-CL', { day: '2-digit', month: 'long', year: 'numeric' })
+  const monto   = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(opts.totalAmount)
+  const preview = `Boleta N° ${opts.folio} por ${monto} de ${opts.restaurantName}`
+
+  const adjuntosLine = [
+    opts.hasXml ? 'XML (DTE firmado)' : null,
+    opts.hasPdf ? 'PDF (representación impresa)' : null,
+  ].filter(Boolean).join(' y ')
+
+  const itemRows = opts.items.map(item => {
+    const unitPrice = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(item.unit_price)
+    const subtotal  = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(item.unit_price * item.quantity)
+    return `
+      <tr>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.85);border-bottom:1px solid rgba(255,255,255,0.06);">${escapeHtml(item.name)}</td>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">${item.quantity}</td>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);text-align:right;border-bottom:1px solid rgba(255,255,255,0.06);">${unitPrice}</td>
+        <td style="padding:10px 12px;font-size:13px;color:#fff;font-weight:600;text-align:right;border-bottom:1px solid rgba(255,255,255,0.06);">${subtotal}</td>
+      </tr>`
+  }).join('')
+
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">
+      Boleta Electrónica N° ${opts.folio}
+    </h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      Gracias por tu compra en <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>.
+      A continuación encontrarás el detalle de tu boleta electrónica.
+    </p>
+
+    <!-- Detalle de ítems -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
+      <tr>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Producto</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Cant.</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:right;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">P. Unit.</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:right;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Subtotal</th>
+      </tr>
+      ${itemRows}
+    </table>
+
+    <!-- Resumen -->
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.06);">Folio</td>
+        <td style="padding:12px 16px;font-size:14px;font-weight:700;color:#fff;border-bottom:1px solid rgba(255,255,255,0.06);">${opts.folio}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);border-bottom:1px solid rgba(255,255,255,0.06);">Fecha emisión</td>
+        <td style="padding:12px 16px;font-size:14px;color:#fff;border-bottom:1px solid rgba(255,255,255,0.06);">${fecha}</td>
+      </tr>
+      <tr>
+        <td style="padding:12px 16px;font-size:13px;color:rgba(255,255,255,0.5);">Total</td>
+        <td style="padding:12px 16px;font-size:18px;font-weight:800;color:${BRAND_ORANGE};">${monto}</td>
+      </tr>
+    </table>
+
+    ${adjuntosLine ? `
+    <p style="margin:0 0 20px;font-size:14px;line-height:1.6;color:rgba(255,255,255,0.6);">
+      📎 Se adjunta el documento en formato ${adjuntosLine}.
+    </p>` : ''}
+
+    <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.35);">
+      Este documento es tu comprobante de compra. Consérvalo para cualquier consulta.
+    </p>
+  `
+
+  const itemLines = opts.items.map(item => {
+    const subtotal = new Intl.NumberFormat('es-CL', { style: 'currency', currency: 'CLP' }).format(item.unit_price * item.quantity)
+    return `  ${item.name} x${item.quantity} — ${subtotal}`
+  }).join('\n')
+
+  const text = [
+    `Boleta Electrónica N° ${opts.folio}`,
+    ``,
+    `Gracias por tu compra en ${opts.restaurantName}.`,
+    ``,
+    `Detalle:`,
+    itemLines,
+    ``,
+    `Folio:         ${opts.folio}`,
+    `Fecha emisión: ${fecha}`,
+    `Total:         ${monto}`,
+    ``,
+    ...(adjuntosLine ? [`Adjuntos: ${adjuntosLine}`, ``] : []),
+    `Este documento es tu comprobante de compra.`,
+    ``,
+    `— ${opts.restaurantName}`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview, bodyHtml }),
+    text,
+  }
+}
+
+// ── Stock crítico ────────────────────────────────────────────────────────────
+
+export interface StockCriticalItem {
+  name:        string
+  current_qty: number
+  min_qty:     number
+  unit:        string
+  supplier?:   string | null
+}
+
+export interface StockCriticalEmailOpts {
+  restaurantName: string
+  items:          StockCriticalItem[]   // todos con current_qty <= min_qty
+}
+
+const STOCK_RED   = '#F87171'
+const STOCK_AMBER = '#FB923C'
+
+export function stockCriticalEmail(opts: StockCriticalEmailOpts): EmailResult {
+  const n       = opts.items.length
+  const subject = `⚠️ ${n} insumo(s) con stock crítico — ${opts.restaurantName}`
+  const preview = `${n} insumo(s) requieren reabastecimiento urgente en ${opts.restaurantName}`
+
+  const itemRows = opts.items.map(item => {
+    const color       = item.current_qty < 0 ? STOCK_RED : STOCK_AMBER
+    const supplierCell = item.supplier
+      ? `<td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);border-bottom:1px solid rgba(255,255,255,0.06);">${escapeHtml(item.supplier)}</td>`
+      : `<td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.3);border-bottom:1px solid rgba(255,255,255,0.06);">—</td>`
+    return `
+      <tr>
+        <td style="padding:10px 12px;font-size:13px;color:#fff;font-weight:600;border-bottom:1px solid rgba(255,255,255,0.06);">${escapeHtml(item.name)}</td>
+        <td style="padding:10px 12px;font-size:13px;font-weight:700;color:${color};text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">${item.current_qty}</td>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">${item.min_qty}</td>
+        <td style="padding:10px 12px;font-size:13px;color:rgba(255,255,255,0.6);text-align:center;border-bottom:1px solid rgba(255,255,255,0.06);">${escapeHtml(item.unit)}</td>
+        ${supplierCell}
+      </tr>`
+  }).join('')
+
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">⚠️ Stock crítico detectado</h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong> tiene
+      <strong style="color:#fff;">${n} insumo(s)</strong> por debajo del umbral mínimo.
+      Revisá el inventario y reabastecé a la brevedad.
+    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%"
+           style="background:rgba(255,255,255,0.04);border-radius:14px;margin-bottom:24px;">
+      <tr>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Insumo</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Actual</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Mínimo</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:center;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Unidad</th>
+        <th style="padding:10px 12px;font-size:12px;color:rgba(255,255,255,0.4);text-align:left;font-weight:600;text-transform:uppercase;letter-spacing:0.5px;border-bottom:1px solid rgba(255,255,255,0.08);">Proveedor</th>
+      </tr>
+      ${itemRows}
+    </table>
+
+    <div style="background:rgba(251,146,60,0.08);border:1px solid rgba(251,146,60,0.25);border-radius:12px;padding:14px 16px;margin-bottom:20px;">
+      <p style="margin:0;font-size:13px;line-height:1.6;color:rgba(255,255,255,0.7);">
+        <strong style="color:${STOCK_AMBER};">Ámbar</strong> = stock en cero o por debajo del mínimo &nbsp;·&nbsp;
+        <strong style="color:${STOCK_RED};">Rojo</strong> = stock negativo (requiere corrección urgente)
+      </p>
+    </div>
+
+    <p style="margin:0;font-size:12px;line-height:1.5;color:rgba(255,255,255,0.35);">
+      Este correo fue generado automáticamente por HiChapi al detectar insumos en estado crítico.
+      Podés gestionar el inventario desde el panel de stock.
+    </p>
+  `
+
+  const itemLines = opts.items.map(item => {
+    const status    = item.current_qty < 0 ? '[NEGATIVO]' : '[CRÍTICO]'
+    const supplier  = item.supplier ? ` | Proveedor: ${item.supplier}` : ''
+    return `  ${status} ${item.name}: ${item.current_qty} ${item.unit} (mín. ${item.min_qty})${supplier}`
+  }).join('\n')
+
+  const text = [
+    `⚠️ ${n} insumo(s) con stock crítico — ${opts.restaurantName}`,
+    ``,
+    `Los siguientes insumos requieren reabastecimiento urgente:`,
+    ``,
+    itemLines,
+    ``,
+    `Ámbar = stock en cero o por debajo del mínimo`,
+    `Rojo  = stock negativo (requiere corrección urgente)`,
+    ``,
+    `Gestioná el inventario desde el panel de stock de HiChapi.`,
+    ``,
+    `— Equipo HiChapi`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview, bodyHtml }),
     text,
   }
 }

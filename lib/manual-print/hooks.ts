@@ -39,30 +39,9 @@ export function usePrintState(orderId: string) {
   const [printState, setPrintState] = useState<PrintRequestState>(createInitialPrintState)
   const [loading, setLoading] = useState(false)
   
-  // Load initial state from document history
-  useEffect(() => {
-    async function loadPrintState() {
-      const documentHistoryService = getDocumentHistoryService()
-      const history = await documentHistoryService.getOrderDocumentHistory(orderId)
-      
-      // Check if precuenta was requested
-      const precuentaRequest = history.find((h: any) => h.type === 'precuenta')
-      
-      setPrintState({
-        precuentaRequested: !!precuentaRequest,
-        precuentaTimestamp: precuentaRequest?.timestamp,
-        precuentaStatus: precuentaRequest ? 
-          (precuentaRequest.status === 'completed' ? 'success' : 
-           precuentaRequest.status === 'failed' ? 'error' : 'loading') : 'idle',
-        precuentaError: precuentaRequest?.error,
-        documentHistory: history
-      })
-    }
-    
-    if (orderId) {
-      loadPrintState()
-    }
-  }, [orderId])
+  // NOTE: document_history table may not exist yet — state is managed in-memory only.
+  // When the table is created, the useEffect below can be re-enabled.
+  // useEffect(() => { loadFromDB(orderId) }, [orderId])
   
   const updatePrintState = useCallback((updates: Partial<PrintRequestState>) => {
     setPrintState(prev => ({ ...prev, ...updates }))
@@ -130,16 +109,8 @@ export function usePrecuentaRequest(
       
       // Create document request record (best-effort — doesn't block if table missing)
       const documentId = generateDocumentId()
-      const documentHistoryService = getDocumentHistoryService()
-      const createResult = await documentHistoryService.createDocumentRequest(
-        restaurantId,
-        tableId,
-        order.id,
-        'precuenta',
-        { printServer: printer.printer_addr || printer.id }
-      )
       
-      // Add to local state regardless of DB result
+      // Add to local state only (document_history table may not exist yet)
       const documentRequest: DocumentRequest = {
         id: documentId,
         type: 'precuenta',
@@ -183,10 +154,8 @@ export function usePrecuentaRequest(
         precuentaError: undefined
       })
       
-      // Update document history (best-effort)
-      if (createResult.id) {
-        await documentHistoryService.updateDocumentStatus(createResult.id, 'completed').catch(() => {})
-      }
+      // Update document history (best-effort — skipped if table doesn't exist)
+      // if (createResult.id) { ... }
       
       // Reset failure tracking on success (Req 8.5)
       consecutiveFailures.current = 0
@@ -391,33 +360,12 @@ export function usePrinterStatus(restaurantId: string) {
 }
 
 // ── Document History Hook ────────────────────────────────────────────────────
+// NOTE: document_history table may not exist yet — returns empty array.
 
-export function useDocumentHistory(orderId: string) {
-  const [history, setHistory] = useState<DocumentRequest[]>([])
-  const [loading, setLoading] = useState(false)
-  
-  const loadHistory = useCallback(async () => {
-    if (!orderId) return
-    
-    setLoading(true)
-    try {
-      const documentHistoryService = getDocumentHistoryService()
-      const documents = await documentHistoryService.getOrderDocumentHistory(orderId)
-      setHistory(documents)
-    } catch (error) {
-      console.error('Error loading document history:', error)
-    } finally {
-      setLoading(false)
-    }
-  }, [orderId])
-  
-  useEffect(() => {
-    loadHistory()
-  }, [loadHistory])
-  
+export function useDocumentHistory(_orderId: string) {
   return {
-    history,
-    loading,
-    refreshHistory: loadHistory
+    history: [] as DocumentRequest[],
+    loading: false,
+    refreshHistory: () => {},
   }
 }

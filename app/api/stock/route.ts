@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/supabase/auth-guard'
+import { sendStockCriticalReport } from '@/lib/email/sender'
 
 function getSupabaseClient() {
   return createClient(
@@ -131,6 +132,15 @@ export async function PATCH(req: NextRequest) {
         delta,
         reason: 'ajuste_manual',
       })
+    }
+
+    // Requisito 5.4: si el nuevo current_qty está en estado crítico, enviar reporte al admin
+    const newQty = fields.current_qty ?? current.current_qty
+    const minQty = data.min_qty ?? 0
+    if (newQty <= minQty) {
+      void sendStockCriticalReport(current.restaurant_id).catch(err =>
+        console.error('[email] Unhandled error in sendStockCriticalReport:', err)
+      )
     }
 
     return NextResponse.json({ item: data })

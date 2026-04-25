@@ -87,6 +87,11 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
   // Invoice toggle - visible from the start
   const [needsInvoice, setNeedsInvoice] = useState(false)
 
+  // Email boleta toggle — send boleta/factura by email
+  const [sendByEmail,    setSendByEmail]    = useState(false)
+  const [boletaEmail,    setBoletaEmail]    = useState('')
+  const [boletaEmailErr, setBoletaEmailErr] = useState('')
+
   // Factura receptor fields
   const [rut,       setRut]       = useState('')
   const [razon,     setRazon]     = useState('')
@@ -191,6 +196,22 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
     if (!method || !facturaOk || saving) return
     if (method === 'mixed' && !cashPart) return
 
+    // Validate boleta email if toggle is on
+    if (sendByEmail && !needsInvoice) {
+      const trimmed = boletaEmail.trim()
+      if (!trimmed) {
+        setBoletaEmailErr('Ingresa el correo del cliente')
+        return
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+        setBoletaEmailErr('Formato de email inválido')
+        return
+      }
+      setBoletaEmailErr('')
+    }
+
+    const boletaEmailValue = sendByEmail && !needsInvoice ? boletaEmail.trim() : undefined
+
     const dte: DteSelection = needsInvoice
       ? {
           document_type:      33,
@@ -200,9 +221,12 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
           direccion_receptor: direccion.trim(),
           comuna_receptor:    comuna.trim(),
           fma_pago:           fmaPago,
-          email_receptor:     email.trim() || undefined,
+          email_receptor:     email.trim() || boletaEmailValue || undefined,
         }
-      : { document_type: 39 }
+      : {
+          document_type:  39,
+          email_receptor: boletaEmailValue,
+        }
 
     const cashAmount    = method === 'cash' ? grandTotal : method === 'mixed' ? (parseInt(cashPart) || 0) : 0
     const digitalAmount = method === 'digital' ? grandTotal : method === 'mixed' ? Math.max(0, grandTotal - (parseInt(cashPart) || 0)) : 0
@@ -354,6 +378,7 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
             onEmailSelected={handleReceiptEmail}
             onCancel={handleReceiptCancel}
             loading={receiptLoading || saving}
+            prefilledEmail={sendByEmail ? boletaEmail.trim() : undefined}
           />
         )}
 
@@ -459,6 +484,58 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
               />
               {cashPart && (
                 <p className="text-white/30 text-xs mt-1">Digital: {clp(digitalPart)}</p>
+              )}
+            </div>
+          )}
+
+          {/* Email boleta toggle — visible for all payment methods when not invoice */}
+          {!needsInvoice && (
+            <div className="mb-5 p-3.5 rounded-xl bg-[#FF6B35]/8 border border-[#FF6B35]/20">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-[#FF6B35]/10 flex items-center justify-center shrink-0">
+                    <Mail size={18} className="text-[#FF6B35]" />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">Enviar boleta por email</p>
+                    <p className="text-white/30 text-xs">El cliente recibe la boleta en su correo</p>
+                  </div>
+                </div>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={sendByEmail}
+                    onChange={e => { setSendByEmail(e.target.checked); setBoletaEmailErr('') }}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
+                  <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+              </label>
+
+              {/* Email input — shown when toggle is on */}
+              {sendByEmail && (
+                <div className="mt-3 pt-3 border-t border-[#FF6B35]/15">
+                  <label className="text-white/40 text-xs mb-1.5 block">
+                    Correo del cliente *
+                  </label>
+                  <input
+                    type="email"
+                    inputMode="email"
+                    autoComplete="email"
+                    value={boletaEmail}
+                    onChange={e => { setBoletaEmail(e.target.value); setBoletaEmailErr('') }}
+                    placeholder="cliente@ejemplo.com"
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                      boletaEmailErr
+                        ? 'border-red-500/50 focus:border-red-500'
+                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                    }`}
+                  />
+                  {boletaEmailErr && (
+                    <p className="text-red-400 text-[10px] mt-1">{boletaEmailErr}</p>
+                  )}
+                </div>
               )}
             </div>
           )}
