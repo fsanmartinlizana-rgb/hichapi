@@ -884,17 +884,11 @@ export default function TablePage() {
   // El listener Realtime de abajo sigue activo por si RLS cambia más
   // adelante o se agrega una policy permisiva — ambos caminos redirigen.
   useEffect(() => {
-    console.log('[TablePage][poll] useEffect triggered — tableId:', tableId, 'slug:', slug)
-    if (!tableId || !slug) {
-      console.warn('[TablePage][poll] ABORTED: missing tableId or slug')
-      return
-    }
+    if (!tableId || !slug) return
     let cancelled = false
     const seenPaid = new Set<string>()
-    let pollCount = 0
 
     async function pollPaidOrders() {
-      pollCount++
       try {
         // include_recent_paid=1 es crítico: sin el flag el endpoint filtra
         // status IN ('paid','cancelled'). Cuando admin marca paid la orden
@@ -905,28 +899,23 @@ export default function TablePage() {
         if (cancelled) return
         const j = await res.json()
         const orders = (j.orders ?? []) as Array<{ id: string; status: string }>
-        console.log(`[TablePage][poll] #${pollCount} fetched — ${orders.length} orders, statuses:`, orders.map(o => `${o.id.slice(0,8)}=${o.status}`).join(', '))
         for (const o of orders) {
           if (o.status === 'paid' && !seenPaid.has(o.id)) {
             seenPaid.add(o.id)
-            console.log('[TablePage][poll] ✓ detected paid order, redirecting:', o.id)
             router.push(`/${slug}/review?order=${o.id}`)
             return
           }
         }
-      } catch (err) {
+      } catch {
         // Non-blocking: el poll siguiente vuelve a intentar
-        console.warn('[TablePage][poll] fetch failed, will retry:', err)
       }
     }
 
-    console.log('[TablePage][poll] ▶ starting polling loop (every 5s)')
     pollPaidOrders()
     const interval = setInterval(pollPaidOrders, 5000)
     return () => {
       cancelled = true
       clearInterval(interval)
-      console.log('[TablePage][poll] ■ stopped (cleanup)')
     }
   }, [tableId, slug, router])
 
@@ -958,8 +947,6 @@ export default function TablePage() {
       }
       if (cancelled) return
 
-      console.log('[TablePage] Setting up realtime subscription for table:', realTableUuid)
-      
       const ch = supabase
         .channel(`table-orders-${realTableUuid}`)
         .on(
@@ -967,17 +954,12 @@ export default function TablePage() {
           { event: 'UPDATE', schema: 'public', table: 'orders' },
           payload => {
             const row = (payload.new as { id?: string; status?: string; table_id?: string } | null)
-            console.log('[TablePage] Received order update:', { 
-              orderId: row?.id, 
-              status: row?.status, 
-              tableId: row?.table_id
-            })
-            
+
             // Filtrar solo órdenes de esta mesa
             if (!row?.id || row.table_id !== realTableUuid) {
               return
             }
-            
+
             const oid = row.id
 
             // Handle paying status — show message to client
@@ -992,7 +974,6 @@ export default function TablePage() {
 
             // Handle paid status — redirect to review immediately
             if (row.status === 'paid') {
-              console.log('[TablePage] Order marked as paid, redirecting to review:', oid)
               // Guardar el orderId en el Set para fallback de "mesa libre"
               // (antes nunca se populaba, lo que hacía inútil el handler de
               // postgres_changes sobre tables). Ahora sí: si la redirección
@@ -1010,33 +991,22 @@ export default function TablePage() {
           { event: 'UPDATE', schema: 'public', table: 'tables' },
           payload => {
             const row = payload.new as { id?: string; status?: string; updated_at?: string } | null
-            console.log('[TablePage] Received table update:', { 
-              tableId: row?.id,
-              status: row?.status 
-            })
-            
+
             // Filtrar solo esta mesa
             if (row?.id !== realTableUuid) {
               return
             }
-            
+
             // Si la mesa vuelve a libre, también podemos redirigir
             if (row?.status === 'libre') {
-              console.log('[TablePage] Table closed, checking for paid orders')
               if (paidOrdersInSession.size > 0) {
                 const firstPaidOrder = Array.from(paidOrdersInSession)[0]
-                console.log('[TablePage] Redirecting to review page for order:', firstPaidOrder)
                 router.push(`/${slug}/review?order=${firstPaidOrder}`)
               }
             }
           }
         )
-        .subscribe((status) => {
-          console.log('[TablePage] Realtime subscription status:', status)
-          if (status === 'SUBSCRIBED') {
-            console.log('[TablePage] Successfully subscribed to realtime channel')
-          }
-        })
+        .subscribe()
 
       return () => { supabase.removeChannel(ch) }
     }

@@ -1518,7 +1518,7 @@ export default function MesasPage() {
         const e = await r.json().catch(() => ({} as { error?: string }))
         // Most common cause: pos_x / pos_y columns no existen en la BD.
         const hint = e.error?.includes('pos_x') || e.error?.includes('pos_y')
-          ? 'Aplica DEPLOY_SPRINTS_26_30.sql en Supabase para habilitar el plano.'
+          ? 'Aplica docs/manual-deploys/DEPLOY_SPRINTS_26_30.sql en Supabase para habilitar el plano.'
           : (e.error ?? 'No se pudo guardar el layout')
         showToast(hint)
       }

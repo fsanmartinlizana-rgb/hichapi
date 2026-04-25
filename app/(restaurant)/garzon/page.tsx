@@ -249,7 +249,6 @@ export default function GarzonPage() {
         hint:    ordersRes.error.hint,
       })
     } else if (ordersRes.data) {
-      console.info(`[garzon] loaded ${ordersRes.data.length} active orders for restaurant ${restId}`)
       setOrders(ordersRes.data as Order[])
     }
     if (menuRes.data) {
@@ -279,19 +278,15 @@ export default function GarzonPage() {
     const channel = supabase
       .channel('garzon-realtime')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'orders' }, () => {
-        console.log('[garzon] Realtime event - orders INSERT')
         loadData()
       })
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'orders' }, () => {
-        console.log('[garzon] Realtime event - orders UPDATE')
         loadData()
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'order_items' }, () => {
-        console.log('[garzon] Realtime event - order_items')
         loadData()
       })
       .subscribe(status => {
-        console.log('[garzon] Realtime subscription status:', status)
         setOnline(status === 'SUBSCRIBED')
       })
 
