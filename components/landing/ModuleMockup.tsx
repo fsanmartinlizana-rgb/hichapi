@@ -144,6 +144,120 @@ function RealScreenshot({ id }: { id: MockupId }) {
   )
 }
 
+/* ── Garzón 24/7: composición especial — phone + value props ─────────
+ *
+ * El screenshot del chat solo no comunica bien el valor del agente.
+ * Le agregamos contexto visual: badge 24/7 con pulse, status "en línea",
+ * y bullets de superpoderes (entrenado con tu carta, detecta alergias,
+ * sin esperas, etc.). Siempre cuesta menos vender un agente que
+ * "se ve" autónomo. */
+
+function Garzon24Mockup() {
+  const data = REAL_SCREENSHOTS.garzon24!
+  return (
+    <div className="w-full h-full flex gap-2.5">
+      {/* Phone con el chat real (lado izquierdo, ~45%) */}
+      <div className="flex-shrink-0" style={{ width: '42%' }}>
+        <PhoneFrame>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={data.src}
+            alt={data.alt}
+            loading="lazy"
+            className="w-full h-full object-cover object-top"
+          />
+        </PhoneFrame>
+      </div>
+
+      {/* Tarjeta de valor del agente (lado derecho, ~55%) */}
+      <div
+        className="flex-1 rounded-lg p-3 flex flex-col"
+        style={{
+          background: 'linear-gradient(155deg, rgba(255,107,53,0.18), rgba(20,20,40,0.6))',
+          border: '1px solid rgba(255,107,53,0.3)',
+          backdropFilter: 'blur(8px)',
+        }}
+      >
+        {/* Header: badge 24/7 con pulse */}
+        <div className="flex items-center gap-1.5 mb-2">
+          <span className="relative flex h-1.5 w-1.5">
+            <span
+              className="absolute inline-flex h-full w-full rounded-full opacity-75"
+              style={{ background: '#22c55e', animation: 'hcAgentPulse 2s ease-in-out infinite' }}
+            />
+            <span className="relative inline-flex rounded-full h-1.5 w-1.5" style={{ background: '#22c55e' }} />
+          </span>
+          <span className="font-bold uppercase" style={{ fontSize: 8, color: '#22c55e', letterSpacing: 1 }}>
+            En línea · 24/7
+          </span>
+        </div>
+
+        {/* Avatar + nombre del agente */}
+        <div className="flex items-center gap-2 mb-2">
+          <div
+            className="rounded-full flex items-center justify-center font-extrabold"
+            style={{
+              width: 28,
+              height: 28,
+              background: 'radial-gradient(circle at 30% 30%, #FFB590, #FF6B35)',
+              color: '#fff',
+              fontSize: 14,
+              boxShadow: '0 0 12px rgba(255,107,53,0.4)',
+            }}
+          >
+            🤖
+          </div>
+          <div>
+            <div className="font-extrabold text-white leading-tight" style={{ fontSize: 11 }}>
+              Chapi
+            </div>
+            <div className="text-white/60 leading-tight" style={{ fontSize: 9 }}>
+              Tu garzón virtual
+            </div>
+          </div>
+        </div>
+
+        {/* Value props */}
+        <div className="flex flex-col gap-1 flex-1">
+          {[
+            'Entrenado con TU carta',
+            'Detecta alergias y dietas',
+            'Toma pedidos desde el QR',
+            'Atiende sin que esperes',
+          ].map(prop => (
+            <div key={prop} className="flex items-center gap-1.5">
+              <span style={{ fontSize: 8, color: '#FF6B35' }}>✓</span>
+              <span className="text-white/85" style={{ fontSize: 9, lineHeight: 1.3 }}>
+                {prop}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        {/* Footer mini-stat */}
+        <div
+          className="mt-2 rounded text-center py-1 px-1.5"
+          style={{ background: 'rgba(255,255,255,0.05)', border: '1px solid rgba(255,255,255,0.08)' }}
+        >
+          <div className="font-extrabold font-mono" style={{ fontSize: 13, color: '#FF6B35' }}>
+            0s
+          </div>
+          <div className="text-white/55" style={{ fontSize: 7, letterSpacing: 0.5 }}>
+            TIEMPO DE ESPERA
+          </div>
+        </div>
+
+        <style>{`
+          @keyframes hcAgentPulse {
+            0%, 100% { transform: scale(1); opacity: 0.75 }
+            50% { transform: scale(2.2); opacity: 0 }
+          }
+        `}</style>
+      </div>
+    </div>
+  )
+}
+
 /* ── Fallback simulado: solo Comandas (no tenemos screenshot aún) ─── */
 
 function ComandasMockup() {
@@ -190,7 +304,11 @@ export default function ModuleMockup({ id, color }: ModuleMockupProps) {
         padding: 14,
       }}
     >
-      {id === 'comandas' ? <ComandasMockup /> : <RealScreenshot id={id} />}
+      {id === 'comandas'
+        ? <ComandasMockup />
+        : id === 'garzon24'
+        ? <Garzon24Mockup />
+        : <RealScreenshot id={id} />}
     </div>
   )
 }
