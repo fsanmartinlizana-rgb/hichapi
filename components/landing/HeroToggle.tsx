@@ -57,14 +57,10 @@ const AUDIENCES = {
       'HiChapi gestiona pedidos, cocina, mesas, equipo, inventario, caja y reportes — todo conectado y con IA. Solo 1 % por transacción registrada — sin importar el medio de pago.',
     cta: { label: 'Registrar mi restaurante', href: '/register', icon: Utensils },
     secondaryCta: { label: 'Ya tengo cuenta', href: '/login' },
-    // Video servido desde /public/landing/ para evitar bloqueos de hotlinking
-    // de Pexels/etc. Cuando tengas un video propio de HiChapi, sobrescribí
-    // este archivo manteniendo el mismo path.
-    // Origen actual: Mixkit free stock (cocina profesional operando).
-    video: '/landing/restaurant-hero.mp4',
-    image:
-      'https://images.unsplash.com/photo-1581349437898-cebbe9831942?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Equipo de cocina trabajando con tablet de comandas en tiempo real',
+    // Imagen servida desde /public/landing/ (sin hotlinking).
+    // Cuando tengas foto propia, sobrescribí el archivo manteniendo el path.
+    image: '/landing/restaurant-hero.jpg',
+    alt: 'Garzón entregando platos en un restaurante',
     features: [
       { icon: Grid3X3, label: 'Mesas + QR por mesa' },
       { icon: ClipboardList, label: 'Comandas en vivo (KDS)' },
@@ -171,31 +167,15 @@ export default function HeroToggle({ active, onChange }: HeroToggleProps) {
             </div>
           </div>
 
-          {/* Right: media card (video si la audiencia lo trae, sino imagen) */}
+          {/* Right: image card */}
           <div className="relative rounded-3xl overflow-hidden shadow-xl shadow-neutral-300/30 aspect-[4/3]">
-            {('video' in data && data.video) ? (
-              // eslint-disable-next-line jsx-a11y/media-has-caption
-              <video
-                key={data.video}
-                src={data.video}
-                poster={data.image}
-                aria-label={data.alt}
-                autoPlay
-                muted
-                loop
-                playsInline
-                preload="metadata"
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={data.image}
-                alt={data.alt}
-                className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
-                loading="eager"
-              />
-            )}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={data.image}
+              alt={data.alt}
+              className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
+              loading="eager"
+            />
             <div
               className="absolute inset-0 pointer-events-none"
               style={{
