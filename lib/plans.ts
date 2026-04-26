@@ -50,15 +50,29 @@ const PRO_MODULES = [
   'analytics',       // Analytics + Reporte IA unificado
   // 'daily_reports' queda como alias histórico; nueva key canonical = 'analytics'
   'daily_reports',
+  'menu_import_ai',  // Importación de carta por foto/PDF (con tope mensual)
 ]
 
 // Enterprise agrega escala
 const ENTERPRISE_MODULES = [
-  'multi_location',  // Multi-sucursal
-  'geofencing',      // Geofencing
-  'public_api',      // API pública con keys
-  'support_24_7',    // Soporte 24/7 con agente IA
+  'multi_location',           // Multi-sucursal
+  'geofencing',               // Geofencing
+  'public_api',               // API pública con keys
+  'support_24_7',             // Soporte 24/7 con agente IA
+  'consolidated_dashboard',   // Dashboard consolidado multi-local
+  'stock_transfer',           // Transferencia de stock entre locales
+  'menu_import_ai_unlimited', // Importación carta sin tope mensual
 ]
+
+// ── Topes de importación de carta por IA (foto/PDF) ──────────────────
+// Starter: 40 análisis/mes. Pro: 200/mes. Enterprise: ilimitado.
+// Lectura desde código: lookup por plan → MENU_IMPORT_AI_LIMIT[plan]
+export const MENU_IMPORT_AI_LIMIT: Record<string, number> = {
+  free:       0,
+  starter:    40,
+  pro:        200,
+  enterprise: Infinity,
+}
 
 export const PLANS: Record<string, PlanInfo> = {
   free: {
@@ -117,20 +131,124 @@ export const PLANS: Record<string, PlanInfo> = {
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
-    price: 149990,
-    priceLabel: '$149.990',
-    description: 'Multi-local, API pública, geofencing y soporte 24/7.',
+    // Precio "desde" — el real depende del tramo (ver ENTERPRISE_TIERS).
+    price: 29990,
+    priceLabel: 'Desde $29.990',
+    transactionFeeLabel: 'Comisión escalonada según volumen del holding',
+    description: 'Multi-local con precio que baja según cantidad de locales. Negociado.',
     cta: 'Contactar ventas',
     features: [
       'Todo lo de Pro',
-      'Multi-local sin límite',
-      'Geofencing y check-in automático',
+      'Multi-local sin límite — precio por local que baja con escala',
+      'Dashboard consolidado de todos los locales',
+      'Transferencia de stock entre locales',
+      'Importación de carta por IA sin tope',
       'API pública con keys y scopes',
+      'Geofencing y check-in automático',
       'Agente IA de soporte 24/7',
-      'Sin comisión por transacción',
+      'Comisión escalonada (1% / 0.7% / 0.5%) según volumen',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES, ...ENTERPRISE_MODULES],
   },
+}
+
+// ── Enterprise: tramos de precio por local ──────────────────────────────────
+//
+// El precio del plan Enterprise NO es fijo. Depende de cuántos locales activos
+// tiene el holding del cliente. Todos los locales del holding pagan el precio
+// del tramo en que están — si suben de tramo, todos bajan al precio nuevo
+// ese mismo mes.
+//
+// Tramos no se muestran en la landing; se conversan en venta. Se exponen acá
+// para uso interno (CRM, billing, simulador).
+
+export interface EnterpriseTier {
+  id:         'duo' | 'chain' | 'scale' | 'holding'
+  name:       string
+  minLocals:  number
+  maxLocals:  number | null  // null = sin límite
+  pricePerLocal: number      // CLP/mes por local
+  platformFee:   number      // CLP/mes flat de plataforma
+  negotiable:    boolean     // si el precio se negocia caso a caso
+}
+
+export const ENTERPRISE_TIERS: EnterpriseTier[] = [
+  { id: 'duo',     name: 'Duo',     minLocals: 2,  maxLocals: 4,    pricePerLocal: 49990, platformFee: 0,      negotiable: false },
+  { id: 'chain',   name: 'Chain',   minLocals: 5,  maxLocals: 14,   pricePerLocal: 39990, platformFee: 150000, negotiable: false },
+  { id: 'scale',   name: 'Scale',   minLocals: 15, maxLocals: 49,   pricePerLocal: 29990, platformFee: 150000, negotiable: false },
+  { id: 'holding', name: 'Holding', minLocals: 50, maxLocals: null, pricePerLocal: 18000, platformFee: 300000, negotiable: true  },
+]
+
+/**
+ * Devuelve el tramo Enterprise correspondiente a una cantidad de locales.
+ * Devuelve null si la cantidad es < 2 (Enterprise requiere mínimo 2 locales).
+ */
+export function getEnterpriseTier(localCount: number): EnterpriseTier | null {
+  if (localCount < 2) return null
+  return ENTERPRISE_TIERS.find(
+    t => localCount >= t.minLocals && (t.maxLocals === null || localCount <= t.maxLocals),
+  ) ?? null
+}
+
+/**
+ * Calcula el costo total mensual de Enterprise para una cantidad de locales.
+ * Devuelve { perLocal, platformFee, total } en CLP/mes.
+ */
+export function computeEnterpriseMonthly(localCount: number): {
+  tier: EnterpriseTier | null
+  perLocal: number
+  platformFee: number
+  locals: number
+  total: number
+} {
+  const tier = getEnterpriseTier(localCount)
+  if (!tier) return { tier: null, perLocal: 0, platformFee: 0, locals: localCount, total: 0 }
+  return {
+    tier,
+    perLocal:    tier.pricePerLocal,
+    platformFee: tier.platformFee,
+    locals:      localCount,
+    total:       tier.pricePerLocal * localCount + tier.platformFee,
+  }
+}
+
+// ── Comisión por transacción digital — escalonada para Enterprise ───────────
+//
+// Starter/Pro: flat 1% sin importar volumen.
+// Enterprise: escalonado según ventas digitales del holding completo en el mes.
+//   ≤ $30M           → 1.0%
+//   $30M–$100M       → 0.7%
+//   > $100M          → 0.5%
+
+export interface DigitalCommissionTier {
+  upToMonthlyCLP: number    // tope mensual de ventas digitales (Infinity = sin tope)
+  rate:           number    // tasa decimal (0.01 = 1%)
+  rateLabel:      string    // string para mostrar en UI
+}
+
+export const ENTERPRISE_COMMISSION_TIERS: DigitalCommissionTier[] = [
+  { upToMonthlyCLP:  30_000_000, rate: 0.010, rateLabel: '1.0%' },
+  { upToMonthlyCLP: 100_000_000, rate: 0.007, rateLabel: '0.7%' },
+  { upToMonthlyCLP: Infinity,    rate: 0.005, rateLabel: '0.5%' },
+]
+
+/**
+ * Calcula la comisión digital total para Enterprise dado un volumen mensual
+ * en CLP. Aplica las tasas escalonadas (no es un solo % sobre el total).
+ */
+export function computeEnterpriseCommission(monthlyDigitalCLP: number): number {
+  let remaining = Math.max(0, monthlyDigitalCLP)
+  let prevCap = 0
+  let total = 0
+  for (const tier of ENTERPRISE_COMMISSION_TIERS) {
+    const tierMax = tier.upToMonthlyCLP - prevCap
+    const slice   = Math.min(remaining, tierMax)
+    total    += slice * tier.rate
+    remaining -= slice
+    prevCap   = tier.upToMonthlyCLP
+    if (remaining <= 0) break
+  }
+  return Math.round(total)
 }
 
 // ── Helpers ──────────────────────────────────────────────────────────────────

@@ -27,7 +27,8 @@ No es solo un SaaS: cada restaurante aparece en el buscador conversacional. Los 
 ### Promesa 3 — **Modelo alineado al éxito**
 - **Free** sin vencimiento: presencia digital, carta, perfil, aparece en Chapi.
 - Planes pagos solo cuando necesitás operar.
-- **1% por transacción registrada en la plataforma** — sin importar el medio de pago (efectivo, tarjeta o digital). Aplica a Starter y Pro. Enterprise sin comisión.
+- **Starter / Pro**: 1% por transacción registrada en la plataforma — sin importar el medio de pago (efectivo, tarjeta o digital).
+- **Enterprise**: comisión digital escalonada según volumen del holding (1% / 0.7% / 0.5%) + precio por local que baja con la escala.
 
 ---
 
@@ -56,9 +57,39 @@ No es solo un SaaS: cada restaurante aparece en el buscador conversacional. Los 
 | **Gratis** | $0 | — | Restaurante que quiere estar en Chapi sin costo |
 | **Starter** | $29.990 | +1% | Restaurante chico que quiere digitalizar el salón |
 | **Pro** ⭐ | $59.990 | +1% | Restaurante mediano con cocina + stock + loyalty |
-| **Enterprise** | $149.990 | 0% | Cadena, multi-local o necesita API |
+| **Enterprise** | Desde $29.990 / local | Escalonada (1% / 0.7% / 0.5%) | Holdings de 2+ locales |
 
-> El 1% aplica sobre toda transacción registrada en la plataforma, **sin importar el medio de pago** (efectivo, tarjeta o digital). Es proporcional al volumen real del negocio, no al canal.
+> Starter y Pro: el 1% aplica sobre toda transacción registrada en la plataforma, **sin importar el medio de pago** (efectivo, tarjeta o digital).
+>
+> Enterprise: el precio por local baja con la cantidad de locales (ver tramos abajo) y la comisión digital baja con el volumen total del holding.
+
+### Enterprise — tramos de precio (NO se muestran en la landing)
+
+Estos tramos **no aparecen públicamente**. Solo se conversan en venta directa con holdings.
+
+| Tramo | Locales | Precio por local | Fee plataforma/mes | Total ejemplo |
+|---|---|---|---|---|
+| **Duo** | 2–4 | $49.990 | $0 | 3 locales = $149.970/mes |
+| **Chain** | 5–14 | $39.990 | $150.000 | 8 locales = $469.920/mes |
+| **Scale** | 15–49 | $29.990 | $150.000 | 20 locales = $749.800/mes |
+| **Holding** | 50+ | $18.000 base (negociable) | $300.000 | 60 locales = $1.380.000/mes |
+
+**Reglas clave**:
+- Todos los locales del holding pagan el **mismo precio del tramo en que están**.
+- Si un cliente sube de tramo (ej. de Chain a Scale al sumar el local 15), **todos sus locales bajan al precio del tramo nuevo el mismo mes**.
+- El tramo Holding es **negociable**. El precio base es referencial — se cierra caso a caso.
+
+### Enterprise — comisión digital escalonada
+
+| Volumen mensual de ventas digitales del holding | Comisión |
+|---|---|
+| Hasta $30M CLP | 1.0% |
+| $30M – $100M CLP | 0.7% |
+| Sobre $100M CLP | 0.5% |
+
+> Las tasas se aplican **por tramos** (no es una sola tasa sobre el total). Ej: holding que factura $50M digital paga 1% sobre los primeros $30M + 0.7% sobre los siguientes $20M = $300.000 + $140.000 = **$440.000 de comisión**.
+
+**Punto de negociación con holdings grandes**: no es eliminar la comisión sino el **cap mensual** ("desde $X mensuales no cobramos más comisión, sin importar cuánto facturen").
 
 ### Qué incluye cada plan
 
@@ -83,18 +114,21 @@ No es solo un SaaS: cada restaurante aparece en el buscador conversacional. Los 
 - Fidelización y promociones (cupones, wallet, rewards)
 - Chapi Insights: IA que analiza tus datos y sugiere acciones
 
-**Enterprise** (Pro + escala)
-- Multi-local sin límite (dashboard consolidado)
+**Enterprise** (Pro + escala — para holdings de 2+ locales)
+- Multi-local sin límite (precio por local que **baja con la cantidad de locales**)
+- **Dashboard consolidado** de todos los locales del holding
+- **Transferencia de stock entre locales** con registro y trazabilidad
+- **Importación de carta por IA sin tope** (Starter: 40/mes, Pro: 200/mes)
 - Geofencing + check-in automático
 - API pública con API keys y scopes
 - Agente IA de soporte 24/7
-- **Sin comisión por transacción**
+- **Comisión digital escalonada** (1% / 0.7% / 0.5% según volumen del holding)
 
 ### Cómo hablar del 1%
-- Frase canónica: **"1% por transacción registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital."**
+- Frase canónica (Starter/Pro): **"1% por transacción registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital."**
 - Compara: "Uber Eats te cobra 20–30%, Rappi lo mismo. Nosotros 1% sobre TODA tu venta, no solo el delivery."
 - Argumento: "Es justo y predecible. No te pedimos que adivines qué porcentaje será efectivo o tarjeta. Si vendiste $1M, pagas $10K. Punto."
-- Enterprise: 0% comisión, recomendado cuando facturan >$15M/mes y el ahorro vs Pro+1% supera la diferencia de plan.
+- **Enterprise**: la comisión digital es **escalonada según volumen del holding** (1% / 0.7% / 0.5%). Punto de negociación con grandes: el cap máximo mensual, no la existencia de comisión.
 
 ---
 
@@ -185,7 +219,7 @@ No es solo un SaaS: cada restaurante aparece en el buscador conversacional. Los 
 - **API pública**: endpoints REST con API keys, scopes granulares, rate limiting.
 - **Geofencing**: check-in automático del staff cuando entra al local; detección de clientes cerca.
 - **Soporte 24/7**: agente IA con acceso al contexto del restaurante + humano escalable.
-- **Sin comisión**: 0% por transacción.
+- **Comisión digital escalonada**: 1% (≤$30M) / 0.7% ($30M–$100M) / 0.5% (>$100M).
 
 ---
 
@@ -248,7 +282,7 @@ No es solo un SaaS: cada restaurante aparece en el buscador conversacional. Los 
 > "No te pido que botes tu POS. HiChapi es complementario: el cliente escanea el QR, pide desde el celular, el pedido llega a cocina sin que el garzón tenga que anotar nada. Reduces errores 80%. Además apareces en Chapi para tráfico nuevo. Arrancas gratis, validas con 2 mesas, y si funciona lo escalas."
 
 ### Escenario C — Cadena de 3+ locales
-> "Hoy cada local es una isla: inventarios separados, reportes por Excel, staff que no rota. Enterprise te da un solo panel para los 3 locales, inventario cross-local, staff que opera cualquier sucursal con su login, y API pública para conectar tu BI o contable. Sin comisión por transacción. $150K/mes, ROI en el primer trimestre."
+> "Hoy cada local es una isla: inventarios separados, reportes por Excel, staff que no rota. Enterprise te da un solo panel para tus 3 locales, transferencia de stock entre ellos, staff que opera cualquier sucursal con su login, y API pública para conectar tu BI o contable. Cuestan $49.990 cada local — total $149.970/mes, baja a $39.990 cada uno cuando llegues al 5° local. Comisión digital empieza en 1% y baja a 0.7% cuando crucen los $30M digitales. ROI en el primer trimestre."
 
 ### Escenario D — Food truck / dark kitchen
 > "No tienes salón, pero sí tienes clientes que no te encuentran. Plan gratis te da presencia en Chapi. Plan Starter te da QR virtual para que el cliente pida desde donde esté, integraciones con PedidosYa/Rappi y caja para cuadrar. Pagas 1% por cada transacción registrada — sin importar si te pagaron en efectivo, transferencia o tarjeta."

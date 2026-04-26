@@ -37,8 +37,8 @@ const PLAN_INFO: Record<PlanId, {
   enterprise: {
     name: 'Enterprise',
     trial: false,
-    description: 'Multi-local y API pública.',
-    bullets: ['Multi-local sin límite', 'API + geofencing', 'Soporte 24/7'],
+    description: 'Para holdings con 2+ locales. Precio por local baja con la escala.',
+    bullets: ['Dashboard consolidado', 'Transferencia de stock', 'Comisión desde 1% hasta 0.5%'],
   },
 }
 
