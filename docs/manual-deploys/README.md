@@ -13,6 +13,8 @@ ambientes.
 | `APPLY_MIGRATION_048.sql` | Sprint cocina · 2026-04-15 | Migration 048 unbundled para aplicar manualmente. |
 | `DEPLOY_SPRINTS_26_30.sql` | Sprints 26–30 | Cambios de mesas (pos_x, pos_y) y layout. |
 | `APPLY_MIGRATION_TAX_EXEMPT.sql` | DTE · 2026-04-25 | Agrega `tax_exempt` boolean a `menu_items` y `order_items` para items exentos de IVA. |
+| `CREAR_ADMIN_DEMO.sql` | Demo · 2026-04-25 | Linkea un usuario auth como `owner` del restaurant Demo para sacar pantallazos. |
+| `SPRINT_01_stock_v2.sql` | Sprint 1.1 · 2026-04-26 | Agrega `lot_number` y `alert_days_before` a `stock_items` + index por `expiry_date`. |
 
 ## Cómo aplicar uno
 

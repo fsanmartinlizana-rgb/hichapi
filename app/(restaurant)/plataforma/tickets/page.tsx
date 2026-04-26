@@ -8,6 +8,7 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRestaurant } from '@/lib/restaurant-context'
+import TicketContextPanel from '@/components/admin/TicketContextPanel'
 import {
   Ticket, RefreshCw, AlertTriangle, Clock, CheckCircle2, Crown,
   Sparkles, Loader2, Send, Shield, FileText, ChevronRight, Filter,
@@ -190,21 +191,25 @@ export default function SupportTicketsPage() {
         </div>
       </div>
 
-      {/* Right — detail + AI agent */}
-      <div className="flex-1 overflow-y-auto">
-        {!selected ? (
-          <div className="h-full flex items-center justify-center text-center text-white/30 text-sm">
-            <div className="space-y-2">
-              <Ticket size={24} className="mx-auto text-white/20" />
-              <p>Seleccioná un ticket a la izquierda</p>
+      {/* Right — detail + AI agent + context panel (lg+) */}
+      <div className="flex-1 flex overflow-hidden">
+        <div className="flex-1 overflow-y-auto">
+          {!selected ? (
+            <div className="h-full flex items-center justify-center text-center text-white/30 text-sm">
+              <div className="space-y-2">
+                <Ticket size={24} className="mx-auto text-white/20" />
+                <p>Seleccioná un ticket a la izquierda</p>
+              </div>
             </div>
-          </div>
-        ) : (
-          <TicketDetail ticket={selected} onUpdated={(t) => {
-            setSelected(t)
-            setTickets(prev => prev.map(x => x.id === t.id ? t : x))
-          }} />
-        )}
+          ) : (
+            <TicketDetail ticket={selected} onUpdated={(t) => {
+              setSelected(t)
+              setTickets(prev => prev.map(x => x.id === t.id ? t : x))
+            }} />
+          )}
+        </div>
+        {/* Context panel — solo cuando hay ticket seleccionado y en >=lg */}
+        {selected && <TicketContextPanel ticketId={selected.id} />}
       </div>
     </div>
   )

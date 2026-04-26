@@ -21,6 +21,10 @@ export interface StockItem {
   active: boolean
   expiry_date?: string | null
   shelf_life_days?: number | null
+  /** Numero de lote para FIFO simple. Migration 060. */
+  lot_number?: string | null
+  /** Dias antes del vencimiento que Chapi alerta. Default 3. Migration 060. */
+  alert_days_before?: number | null
   created_at?: string
   updated_at?: string
 }

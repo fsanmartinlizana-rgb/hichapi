@@ -400,13 +400,30 @@ function ProductModal({ restaurantId, item, onClose, onSaved }: { restaurantId: 
     name: item?.name ?? '', unit: (item?.unit ?? 'unidad') as Unit,
     current_qty: item?.current_qty?.toString() ?? '0', min_qty: item?.min_qty?.toString() ?? '0',
     cost_per_unit: item?.cost_per_unit?.toString() ?? '0', category: item?.category ?? '', supplier: item?.supplier ?? '',
+    expiry_date: item?.expiry_date ?? '',
+    shelf_life_days: item?.shelf_life_days?.toString() ?? '',
+    lot_number: item?.lot_number ?? '',
+    alert_days_before: item?.alert_days_before?.toString() ?? '3',
   })
   const set = (k: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => setForm(f => ({ ...f, [k]: e.target.value }))
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setError('')
     try {
-      const payload = { ...(isEdit ? { id: item!.id } : { restaurant_id: restaurantId }), name: form.name, unit: form.unit, current_qty: parseFloat(form.current_qty) || 0, min_qty: parseFloat(form.min_qty) || 0, cost_per_unit: parseInt(form.cost_per_unit) || 0, category: form.category || undefined, supplier: form.supplier || undefined }
+      const payload = {
+        ...(isEdit ? { id: item!.id } : { restaurant_id: restaurantId }),
+        name: form.name,
+        unit: form.unit,
+        current_qty: parseFloat(form.current_qty) || 0,
+        min_qty: parseFloat(form.min_qty) || 0,
+        cost_per_unit: parseInt(form.cost_per_unit) || 0,
+        category: form.category || undefined,
+        supplier: form.supplier || undefined,
+        expiry_date: form.expiry_date || null,
+        shelf_life_days: form.shelf_life_days ? parseInt(form.shelf_life_days) : null,
+        lot_number: form.lot_number || null,
+        alert_days_before: parseInt(form.alert_days_before) || 3,
+      }
       const res = await fetch('/api/stock', { method: isEdit ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
       if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Error al guardar'); return }
       onSaved(); onClose()
@@ -422,13 +439,27 @@ function ProductModal({ restaurantId, item, onClose, onSaved }: { restaurantId: 
           <Field label="Categoría"><input className={inputCls} value={form.category} onChange={set('category')} placeholder="Ej: Carnes" /></Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Cantidad inicial"><input className={inputCls} type="number" step="0.001" value={form.current_qty} onChange={set('current_qty')} /></Field>
-          <Field label="Cantidad mínima"><input className={inputCls} type="number" step="0.001" value={form.min_qty} onChange={set('min_qty')} /></Field>
+          <Field label="Cantidad inicial"><input className={inputCls} type="number" step="0.001" inputMode="decimal" value={form.current_qty} onChange={set('current_qty')} /></Field>
+          <Field label="Cantidad mínima"><input className={inputCls} type="number" step="0.001" inputMode="decimal" value={form.min_qty} onChange={set('min_qty')} /></Field>
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <Field label="Costo/unidad (CLP)"><input className={inputCls} type="number" step="1" value={form.cost_per_unit} onChange={set('cost_per_unit')} /></Field>
+          <Field label="Costo/unidad (CLP)"><input className={inputCls} type="number" step="1" inputMode="numeric" value={form.cost_per_unit} onChange={set('cost_per_unit')} /></Field>
           <Field label="Proveedor"><input className={inputCls} value={form.supplier} onChange={set('supplier')} placeholder="Opcional" /></Field>
         </div>
+
+        {/* Trazabilidad y vencimiento */}
+        <div className="pt-2 border-t border-white/8">
+          <p className="text-[11px] font-bold uppercase tracking-wider text-white/35 mb-2">Trazabilidad y vencimiento</p>
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Vence el"><input className={inputCls} type="date" value={form.expiry_date} onChange={set('expiry_date')} /></Field>
+            <Field label="Vida útil (días)"><input className={inputCls} type="number" inputMode="numeric" min="0" value={form.shelf_life_days} onChange={set('shelf_life_days')} placeholder="Opcional" /></Field>
+          </div>
+          <div className="grid grid-cols-2 gap-3 mt-3">
+            <Field label="Número de lote"><input className={inputCls} value={form.lot_number} onChange={set('lot_number')} placeholder="Ej: L-2026-04-A" /></Field>
+            <Field label="Aviso días antes"><input className={inputCls} type="number" inputMode="numeric" min="0" max="90" value={form.alert_days_before} onChange={set('alert_days_before')} /></Field>
+          </div>
+        </div>
+
         {error && <p className="text-red-400 text-xs">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-white/50 hover:text-white transition-colors">Cancelar</button>

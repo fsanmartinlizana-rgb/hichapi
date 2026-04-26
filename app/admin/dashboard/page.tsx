@@ -5,6 +5,7 @@ import {
   RefreshCw, LogIn, ExternalLink, TrendingUp, Store, ShoppingBag,
   DollarSign, Star, LifeBuoy, AlertTriangle,
 } from 'lucide-react'
+import ActivationFunnel from '@/components/admin/ActivationFunnel'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -204,6 +205,12 @@ export default function FounderDashboardPage() {
             </p>
           </div>
         )}
+
+        {/* Funnel de activación de restaurantes */}
+        <ActivationFunnel
+          adminSecret={secret}
+          days={period === '7d' ? 7 : period === '90d' ? 90 : period === 'all' ? 365 : 30}
+        />
 
         {/* Tabs */}
         <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit">

@@ -12,16 +12,19 @@ function getSupabaseClient() {
 }
 
 const ItemSchema = z.object({
-  restaurant_id:    z.string().uuid(),
-  name:             z.string().min(1).max(100),
-  unit:             z.enum(['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja', 'onza']),
-  current_qty:      z.number().min(0),
-  min_qty:          z.number().min(0).optional().default(0),
-  cost_per_unit:    z.number().int().min(0),
-  supplier:         z.string().optional(),
-  category:         z.string().optional(),
-  expiry_date:      z.string().nullish(),          // YYYY-MM-DD
-  shelf_life_days:  z.number().int().min(0).nullish(),
+  restaurant_id:      z.string().uuid(),
+  name:               z.string().min(1).max(100),
+  unit:               z.enum(['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja', 'onza']),
+  current_qty:        z.number().min(0),
+  min_qty:            z.number().min(0).optional().default(0),
+  cost_per_unit:      z.number().int().min(0),
+  supplier:           z.string().optional(),
+  category:           z.string().optional(),
+  expiry_date:        z.string().nullish(),                                // YYYY-MM-DD
+  shelf_life_days:    z.number().int().min(0).nullish(),
+  // Campos nuevos — migration 060
+  lot_number:         z.string().max(80).nullish(),
+  alert_days_before:  z.number().int().min(0).max(90).optional().default(3),
 })
 
 // GET /api/stock?restaurant_id=xxx — list active stock items grouped by category with KPIs

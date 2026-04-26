@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
@@ -185,6 +186,10 @@ export default function GarzonPage() {
   const [billSplitTable, setBillSplitTable] = useState<{ tableId: string; tableLabel: string; orders: Order[]; totalAmount: number; pax: number } | null>(null)
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel?: string } | null>(null)
   const [showCoupon, setShowCoupon] = useState(false)
+
+  // Responsive: layout cambia en mobile (<md). Cards más chicas y menos
+  // columnas para que entren bien en celular en uso bajo presión.
+  const isMobile = useIsMobile()
 
   // ── New order flow state ──────────────────────────────────────────────────
   const [newPax, setNewPax]           = useState(1)
@@ -648,14 +653,16 @@ export default function GarzonPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setShowCoupon(true)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-colors"
+            style={{ minHeight: 44 }}
             title="Canjear cupón de fidelidad"
           >
             <Ticket size={13} className="text-[#FF6B35]" /> Cupón
           </button>
           <button
             onClick={loadData}
-            className="p-2 rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors"
+            className="rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors flex items-center justify-center"
+            style={{ minHeight: 44, minWidth: 44 }}
           >
             <RefreshCw size={14} />
           </button>
@@ -706,8 +713,8 @@ export default function GarzonPage() {
           <MesasFloorplan
             mesas={tables}
             editing={false}
-            cardSize={{ w: 110, h: 96 }}
-            defaultColumns={4}
+            cardSize={isMobile ? { w: 96, h: 88 } : { w: 110, h: 96 }}
+            defaultColumns={isMobile ? 2 : 4}
             onPositionsChange={() => { /* garzón is read-only — layout is managed in /mesas */ }}
             renderCard={(t) => (
               <TableCell

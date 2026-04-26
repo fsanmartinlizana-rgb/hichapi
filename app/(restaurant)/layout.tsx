@@ -19,6 +19,7 @@ import { ChapiAssistant } from '@/components/restaurant/ChapiAssistant'
 import { NotificationsProvider } from '@/lib/notifications-context'
 import { NotificationsBell } from '@/components/restaurant/NotificationsBell'
 import { BillRequestFloater } from '@/components/restaurant/BillRequestFloater'
+import MobileBottomNav from '@/components/restaurant/MobileBottomNav'
 
 // ── Nav definition ────────────────────────────────────────────────────────────
 //
@@ -179,7 +180,7 @@ const ROLE_LABEL: Record<string, string> = {
 
 // ── Sidebar ───────────────────────────────────────────────────────────────────
 
-function SidebarContent() {
+function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
   const pathname = usePathname()
   const { restaurant, restaurants, profile, isSuperAdmin, loading, switchTo, logout } = useRestaurant()
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -253,8 +254,15 @@ function SidebarContent() {
     })
   }
 
+  // En desktop: aside fijo con `hidden md:flex` (oculto en mobile).
+  // En drawer (mobile): aside full-flex (siempre visible — el wrapper ya
+  // está dentro del drawer fullscreen).
+  const asideCls = mode === 'drawer'
+    ? 'w-full flex flex-col bg-[#0F0F1C]'
+    : 'w-[230px] shrink-0 hidden md:flex flex-col bg-[#0F0F1C] border-r border-white/5'
+
   return (
-    <aside className="w-[230px] shrink-0 flex flex-col bg-[#0F0F1C] border-r border-white/5">
+    <aside className={asideCls}>
 
       {/* Logo + Notifications bell */}
       <div className="px-4 pt-5 pb-3 flex items-center gap-2.5">
@@ -503,21 +511,38 @@ function SidebarContent() {
 
 // ── Root layout ───────────────────────────────────────────────────────────────
 
+/**
+ * Wrapper interno que tiene acceso al RestaurantProvider para leer el rol
+ * y pasárselo al MobileBottomNav. Vive dentro del RestaurantLayout default
+ * export, que monta los providers.
+ */
+function LayoutInner({ children }: { children: React.ReactNode }) {
+  const { profile } = useRestaurant()
+  const role = profile?.role ?? 'admin'
+
+  return (
+    <div className="flex h-screen bg-[#0A0A14] text-white overflow-hidden"
+         style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+      {/* Sidebar desktop — el componente decide internamente con `hidden md:flex` */}
+      <SidebarContent />
+      <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
+        {children}
+      </main>
+      {/* Chapi flotante — disponible en todas las páginas del panel */}
+      <ChapiAssistant />
+      {/* Floating button "X mesas pidieron la cuenta" — visible en TODO el panel */}
+      <BillRequestFloater />
+      {/* Bottom nav mobile (oculto en md+) con drawer del sidebar completo */}
+      <MobileBottomNav role={role} drawerContent={<SidebarContent mode="drawer" />} />
+    </div>
+  )
+}
+
 export default function RestaurantLayout({ children }: { children: React.ReactNode }) {
   return (
     <RestaurantProvider>
       <NotificationsProvider>
-        <div className="flex h-screen bg-[#0A0A14] text-white overflow-hidden"
-             style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
-          <SidebarContent />
-          <main className="flex-1 overflow-y-auto">
-            {children}
-          </main>
-          {/* Chapi flotante — disponible en todas las páginas del panel */}
-          <ChapiAssistant />
-          {/* Floating button "X mesas pidieron la cuenta" — visible en TODO el panel */}
-          <BillRequestFloater />
-        </div>
+        <LayoutInner>{children}</LayoutInner>
       </NotificationsProvider>
     </RestaurantProvider>
   )
