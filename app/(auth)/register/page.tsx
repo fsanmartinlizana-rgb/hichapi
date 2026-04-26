@@ -1,10 +1,50 @@
 'use client'
 
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Loader2, Shield, Check, X, AlertCircle } from 'lucide-react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Eye, EyeOff, Loader2, Shield, Check, X, AlertCircle, Sparkles } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+
+// ── Plan que se va a activar tras el registro ────────────────────────────────
+
+type PlanId = 'free' | 'starter' | 'pro' | 'enterprise'
+
+const PLAN_INFO: Record<PlanId, {
+  name: string
+  trial: boolean
+  description: string
+  bullets: string[]
+}> = {
+  free: {
+    name: 'Free',
+    trial: false,
+    description: 'Tu presencia digital sin costo.',
+    bullets: ['Página pública', 'Carta digital', 'Apareces en Chapi'],
+  },
+  starter: {
+    name: 'Starter',
+    trial: true,
+    description: 'Operación del salón completa.',
+    bullets: ['Mesas + QR', 'Comandas en vivo', 'Caja con cierre de turno'],
+  },
+  pro: {
+    name: 'Pro',
+    trial: true,
+    description: 'Inteligencia operativa con IA.',
+    bullets: ['Todo lo de Starter', 'Stock + mermas', 'Reporte IA + Fidelización'],
+  },
+  enterprise: {
+    name: 'Enterprise',
+    trial: false,
+    description: 'Multi-local y API pública.',
+    bullets: ['Multi-local sin límite', 'API + geofencing', 'Soporte 24/7'],
+  },
+}
+
+function isPlanId(v: string | null): v is PlanId {
+  return v === 'free' || v === 'starter' || v === 'pro' || v === 'enterprise'
+}
 
 // ── Rate limiting (client-side guard) ─────────────────────────────────────────
 
@@ -77,7 +117,20 @@ function PasswordStrength({ password }: { password: string }) {
 const STEPS = ['Cuenta', 'Restaurante', 'Listo']
 
 export default function RegisterPage() {
+  return (
+    <Suspense fallback={<div className="text-white/40 text-sm text-center py-8">Cargando…</div>}>
+      <RegisterPageInner />
+    </Suspense>
+  )
+}
+
+function RegisterPageInner() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const planParam = searchParams.get('plan')
+  const selectedPlan: PlanId = isPlanId(planParam) ? planParam : 'free'
+  const planInfo = PLAN_INFO[selectedPlan]
+
   const [step, setStep] = useState(0)
 
   // Step 0: account
@@ -133,6 +186,7 @@ export default function RegisterPage() {
           restAddress: restAddr.trim(),
           restBarrio:  restBarrio.trim(),
           restCocina:  restCocina.trim(),
+          plan:        selectedPlan, // ← desde ?plan= en la URL
         }),
       })
 
@@ -183,8 +237,63 @@ export default function RegisterPage() {
           hi
         </div>
         <h1 className="text-white font-bold text-2xl">Registra tu restaurante</h1>
-        <p className="text-white/40 text-sm">Gratis para empezar · Sin tarjeta de crédito</p>
+        <p className="text-white/40 text-sm">
+          {planInfo.trial
+            ? 'Trial 30 días sin tarjeta de crédito'
+            : 'Gratis para empezar · Sin tarjeta de crédito'}
+        </p>
       </div>
+
+      {/* Banner del plan elegido (solo si no es free) */}
+      {selectedPlan !== 'free' && (
+        <div
+          className="rounded-2xl p-4 border"
+          style={{
+            background: 'linear-gradient(135deg, rgba(255,107,53,0.12), rgba(255,107,53,0.04))',
+            borderColor: 'rgba(255,107,53,0.3)',
+          }}
+        >
+          <div className="flex items-start gap-3">
+            <div
+              className="rounded-full flex items-center justify-center shrink-0"
+              style={{
+                width: 36,
+                height: 36,
+                background: 'rgba(255,107,53,0.18)',
+                border: '1px solid rgba(255,107,53,0.4)',
+              }}
+            >
+              <Sparkles size={16} className="text-[#FF6B35]" />
+            </div>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider">
+                  Activarás
+                </span>
+                <span className="text-white font-extrabold text-base leading-none">
+                  Plan {planInfo.name}
+                </span>
+                {planInfo.trial && (
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                    30 días gratis
+                  </span>
+                )}
+              </div>
+              <p className="text-white/55 text-xs mb-2 leading-relaxed">
+                {planInfo.description}
+              </p>
+              <ul className="flex flex-wrap gap-x-3 gap-y-1">
+                {planInfo.bullets.map(b => (
+                  <li key={b} className="flex items-center gap-1 text-[11px] text-white/65">
+                    <Check size={10} className="text-[#FF6B35] shrink-0" />
+                    {b}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Step indicator */}
       <div className="flex items-center justify-center gap-2">

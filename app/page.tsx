@@ -216,7 +216,7 @@ const PLANS = [
       'Configuracion del restaurante',
     ],
     cta: 'Crear cuenta gratis',
-    href: '/register',
+    href: '/register?plan=free',
     highlighted: false,
   },
   {
@@ -235,7 +235,7 @@ const PLANS = [
     ],
     note: '+ 1% por transacción registrada — sin importar el medio de pago (efectivo, tarjeta o digital)',
     cta: 'Empezar gratis 30 dias',
-    href: '/register',
+    href: '/register?plan=starter',
     highlighted: false,
   },
   {
@@ -254,7 +254,7 @@ const PLANS = [
     ],
     note: '+ 1% por transacción registrada — sin importar el medio de pago (efectivo, tarjeta o digital)',
     cta: 'Empezar gratis 30 dias',
-    href: '/register',
+    href: '/register?plan=pro',
     highlighted: true,
   },
   {
@@ -272,7 +272,7 @@ const PLANS = [
       'Sin comision por transaccion',
     ],
     cta: 'Contactar ventas',
-    href: '/contacto',
+    href: '/contacto?plan=enterprise',
     highlighted: false,
   },
 ]

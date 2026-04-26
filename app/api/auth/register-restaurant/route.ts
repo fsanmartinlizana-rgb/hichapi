@@ -14,6 +14,9 @@ import { resolveAppUrl } from '@/lib/app-url'
 //      cargue el restaurante automáticamente al hacer login.
 // ─────────────────────────────────────────────────────────────────────────────
 
+const PlanSchema = z.enum(['free', 'starter', 'pro', 'enterprise'])
+type PlanId = z.infer<typeof PlanSchema>
+
 const BodySchema = z.object({
   email:        z.string().email(),
   password:     z.string().min(12),
@@ -22,7 +25,18 @@ const BodySchema = z.object({
   restAddress:  z.string().min(2).max(200),
   restBarrio:   z.string().min(2).max(80),
   restCocina:   z.string().min(2).max(60),
+  /** Plan elegido en la landing. Default: free.
+   * Para starter/pro se activa trial 30 dias. Enterprise queda en free
+   * porque requiere contacto manual de ventas. */
+  plan:         PlanSchema.optional().default('free'),
 })
+
+/** Calcula fecha fin de trial 30 dias en ISO. */
+function trialEnd(): string {
+  const d = new Date()
+  d.setDate(d.getDate() + 30)
+  return d.toISOString()
+}
 
 function toSlug(name: string): string {
   return name
@@ -66,18 +80,41 @@ export async function POST(req: NextRequest) {
     const baseSlug = toSlug(body.restName)
     const slug     = `${baseSlug}-${Date.now().toString(36).slice(-4)}`
 
+    // Determinar plan inicial:
+    // - free       → free (sin trial)
+    // - starter    → starter (con trial 30 dias)
+    // - pro        → pro (con trial 30 dias)
+    // - enterprise → free (requiere contacto manual; igual marcamos interés)
+    const requestedPlan: PlanId = body.plan
+    const plan: PlanId =
+      requestedPlan === 'starter' || requestedPlan === 'pro' ? requestedPlan : 'free'
+    const isOnTrial = plan === 'starter' || plan === 'pro'
+
+    // feature_flags guarda metadata del trial e intent original.
+    // Lectura: hasFeature(restaurant.feature_flags, 'on_trial')
+    const featureFlags: Record<string, unknown> = {
+      desired_plan: requestedPlan, // intención original (incluye 'enterprise')
+    }
+    if (isOnTrial) {
+      featureFlags.on_trial = true
+      featureFlags.trial_plan = plan
+      featureFlags.trial_ends_at = trialEnd()
+      featureFlags.trial_started_at = new Date().toISOString()
+    }
+
     const { data: restData, error: restErr } = await supabase
       .from('restaurants')
       .insert({
-        name:         body.restName.trim(),
+        name:           body.restName.trim(),
         slug,
-        address:      body.restAddress.trim(),
-        neighborhood: body.restBarrio.trim(),
-        cuisine_type: body.restCocina.trim(),
-        owner_id:     userId,
-        active:       true,
-        plan:         'free',
-        claimed:      true,
+        address:        body.restAddress.trim(),
+        neighborhood:   body.restBarrio.trim(),
+        cuisine_type:   body.restCocina.trim(),
+        owner_id:       userId,
+        active:         true,
+        plan,
+        claimed:        true,
+        feature_flags:  featureFlags,
       })
       .select('id, slug')
       .single()

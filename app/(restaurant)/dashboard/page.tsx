@@ -9,6 +9,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency, formatCompactCurrency } from '@/lib/i18n'
+import TrialBanner from '@/components/restaurant/TrialBanner'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -344,6 +345,9 @@ export default function DashboardPage() {
 
   return (
     <div className="p-6 space-y-5 min-h-full">
+
+      {/* Trial banner — solo aparece si el restaurant esta en trial activo */}
+      <TrialBanner />
 
       {/* Header */}
       <div className="flex items-start justify-between">
