@@ -480,10 +480,13 @@ export default function CajaPage() {
         <label className="block text-gray-400 text-sm mb-2">Saldo inicial en efectivo (CLP)</label>
         <input
           type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={openingAmount}
           onChange={e => setOpeningAmount(e.target.value)}
           placeholder="0"
-          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-orange-500"
+          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-3 text-white text-base focus:outline-none focus:border-orange-500"
+          style={{ minHeight: 44 }}
         />
       </Modal>
 
@@ -539,10 +542,13 @@ export default function CajaPage() {
         <label className="block text-gray-400 text-xs mb-2">Monto (CLP)</label>
         <input
           type="number"
+          inputMode="numeric"
+          pattern="[0-9]*"
           value={expAmount}
           onChange={e => setExpAmount(e.target.value)}
           placeholder="0"
-          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-4 focus:outline-none focus:border-orange-500"
+          className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-3 text-white text-base mb-4 focus:outline-none focus:border-orange-500"
+          style={{ minHeight: 44 }}
         />
 
         {/* Description */}
@@ -596,10 +602,13 @@ export default function CajaPage() {
             <label className="block text-gray-400 text-sm mb-2">¿Cuánto hay físicamente en caja?</label>
             <input
               type="number"
+              inputMode="numeric"
+              pattern="[0-9]*"
               value={actualCash}
               onChange={e => setActualCash(e.target.value)}
               placeholder="0"
-              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-2 focus:outline-none focus:border-orange-500"
+              className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-3 text-white text-base mb-2 focus:outline-none focus:border-orange-500"
+              style={{ minHeight: 44 }}
             />
 
             {actualCash !== '' && diffAbs > 0 && (

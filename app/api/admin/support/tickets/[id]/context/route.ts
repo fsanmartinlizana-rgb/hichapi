@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { requireUser } from '@/lib/supabase/auth-guard'
+import { createAdminClient } from '@/lib/supabase/server'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // GET /api/admin/support/tickets/[id]/context
@@ -12,7 +14,8 @@ import { NextRequest, NextResponse } from 'next/server'
 //   • activity:   orders_total, orders_last_7d, menu_items_count
 //   • previous_tickets: array de tickets cerrados de ese restaurant (top 10)
 //
-// Sprint 1.7. La respuesta sugerida con LLM viene en Sprint 4.
+// Auth: solo super_admin (mismo patrón que /api/admin/support/tickets).
+// Sprint 1.7. La respuesta sugerida con LLM vive en /suggest-reply.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const supabase = createClient(
@@ -20,18 +23,26 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!,
 )
 
-function isAuthorized(req: NextRequest) {
-  const adminSecret = process.env.ADMIN_SECRET
-  if (!adminSecret || adminSecret.length < 20) return false
-  return req.headers.get('x-admin-secret') === adminSecret
+async function ensureSuperAdmin(userId: string) {
+  const sb = createAdminClient()
+  const { data } = await sb
+    .from('team_members')
+    .select('id')
+    .eq('user_id', userId)
+    .eq('role', 'super_admin')
+    .eq('active', true)
+    .limit(1)
+  return (data ?? []).length > 0
 }
 
 export async function GET(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  if (!isAuthorized(req)) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const { user, error: authErr } = await requireUser()
+  if (authErr || !user) return authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  if (!(await ensureSuperAdmin(user.id))) {
+    return NextResponse.json({ error: 'Solo super admin' }, { status: 403 })
   }
 
   const { id: ticketId } = await params

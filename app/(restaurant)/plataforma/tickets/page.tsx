@@ -12,6 +12,7 @@ import TicketContextPanel from '@/components/admin/TicketContextPanel'
 import {
   Ticket, RefreshCw, AlertTriangle, Clock, CheckCircle2, Crown,
   Sparkles, Loader2, Send, Shield, FileText, ChevronRight, Filter,
+  Copy, Check, MessageSquare, Code, Phone,
 } from 'lucide-react'
 
 interface SupportTicket {
@@ -224,11 +225,57 @@ function TicketDetail({ ticket, onUpdated }: {
   const [answer,     setAnswer]     = useState<string | null>(null)
   const [conversation, setConversation] = useState<ConversationTurn[]>([])
 
+  // Sprint 4.4 — Chapi sugiere respuesta lista para enviar al cliente
+  const [suggesting,    setSuggesting]    = useState(false)
+  const [suggestion,    setSuggestion]    = useState<{
+    reply: string
+    category: string
+    reasoning: string
+  } | null>(null)
+  const [copied,        setCopied]        = useState(false)
+
   useEffect(() => {
     setAnswer(null)
     setConversation([])
     setQuestion('')
+    setSuggestion(null)
+    setCopied(false)
   }, [ticket.id])
+
+  async function suggestReply() {
+    setSuggesting(true)
+    setSuggestion(null)
+    try {
+      const res = await fetch(`/api/admin/support/tickets/${ticket.id}/suggest-reply`, {
+        method:  'POST',
+      })
+      const data = await res.json()
+      if (data.error) {
+        setSuggestion({ reply: `⚠️ ${data.error}`, category: '', reasoning: '' })
+        return
+      }
+      setSuggestion({
+        reply:     data.reply ?? '',
+        category:  data.category ?? '',
+        reasoning: data.reasoning ?? '',
+      })
+    } catch {
+      setSuggestion({ reply: '⚠️ Error de red', category: '', reasoning: '' })
+    } finally {
+      setSuggesting(false)
+    }
+  }
+
+  async function copyToClipboard() {
+    if (!suggestion?.reply) return
+    try {
+      await navigator.clipboard.writeText(suggestion.reply)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {
+      // navigator.clipboard puede fallar en HTTP no seguro; fallback simple
+    }
+  }
 
   async function updateStatus(status: SupportTicket['status']) {
     const res = await fetch('/api/admin/support/tickets', {
@@ -328,6 +375,84 @@ function TicketDetail({ ticket, onUpdated }: {
               </span>
             )}
           </div>
+        )}
+      </div>
+
+      {/* Sprint 4.4 — Respuesta sugerida por Chapi (lista para copiar y enviar) */}
+      <div className="bg-gradient-to-br from-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5 space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <MessageSquare size={14} className="text-emerald-400" />
+            <p className="text-white font-semibold text-sm">Chapi sugiere respuesta</p>
+            <span className="text-white/30 text-[10px]">lista para enviar al cliente</span>
+          </div>
+          {!suggestion && (
+            <button
+              onClick={suggestReply}
+              disabled={suggesting}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 disabled:opacity-50 transition-colors"
+              style={{ minHeight: 36 }}
+            >
+              {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
+              {suggesting ? 'Generando…' : 'Generar respuesta'}
+            </button>
+          )}
+        </div>
+
+        {suggestion && (
+          <>
+            {/* Categoría + reasoning */}
+            <div className="flex items-center gap-2 flex-wrap">
+              {suggestion.category === 'resolvable_now' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                  <CheckCircle2 size={10} /> Resolvible ahora
+                </span>
+              )}
+              {suggestion.category === 'needs_code_change' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                  <Code size={10} /> Requiere código
+                </span>
+              )}
+              {suggestion.category === 'needs_call' && (
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-400">
+                  <Phone size={10} /> Requiere llamada
+                </span>
+              )}
+              {suggestion.reasoning && (
+                <span className="text-white/40 text-[10px]">{suggestion.reasoning}</span>
+              )}
+            </div>
+
+            {/* Reply text */}
+            <div className="text-white/85 text-sm whitespace-pre-wrap leading-relaxed bg-white/[0.04] border border-white/10 rounded-lg p-3">
+              {suggestion.reply}
+            </div>
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={copyToClipboard}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
+                  copied
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
+                    : 'bg-white/8 border border-white/15 text-white hover:bg-white/12'
+                }`}
+                style={{ minHeight: 36 }}
+              >
+                {copied ? <Check size={12} /> : <Copy size={12} />}
+                {copied ? '¡Copiado!' : 'Copiar respuesta'}
+              </button>
+              <button
+                onClick={suggestReply}
+                disabled={suggesting}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white/60 hover:text-white border border-white/10 hover:bg-white/5 disabled:opacity-50 transition-colors"
+                style={{ minHeight: 36 }}
+              >
+                {suggesting ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
+                Regenerar
+              </button>
+            </div>
+          </>
         )}
       </div>
 

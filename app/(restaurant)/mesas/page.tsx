@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import {
   Users, Clock, Bell, CheckCircle2, X, ChevronRight,
   QrCode, Plus, Phone, UserCheck, Ban, MessageCircle,
@@ -1227,6 +1228,7 @@ function ZonasManagerModal({
 
 export default function MesasPage() {
   const { restaurant } = useRestaurant()
+  const isMobile = useIsMobile()
   const [mesas, setMesas]         = useState<Mesa[]>(MESAS_INIT)
   const [orderAlerts, setOrderAlerts] = useState<Record<string, 'new_order' | 'bill'>>({})
   const [activeOrdersByTable, setActiveOrdersByTable] = useState<Record<string, number>>({})
@@ -1695,10 +1697,13 @@ export default function MesasPage() {
           </button>
         </div>
 
-        {/* Floorplan — drag-enabled when editingLayout is true */}
+        {/* Floorplan — drag-enabled when editingLayout is true. Responsive:
+            mobile reduce columnas y card size para que entren en celular. */}
         <MesasFloorplan
           mesas={filteredMesas}
           editing={editingLayout}
+          defaultColumns={isMobile ? 3 : 4}
+          cardSize={isMobile ? { w: 92, h: 100 } : undefined}
           onPositionsChange={persistPositions}
           renderCard={(m) => (
             <MesaCard

@@ -171,27 +171,72 @@ export default function HiChapiSolar() {
     return () => clearInterval(t)
   }, [])
 
-  // Geometría — más compacta en desktop para dejar espacio al panel lateral
-  const R = isMobile ? 130 : 180
-  const cx = isMobile ? 175 : 280
-  const cy = isMobile ? 175 : 270
-  const svgWidth = isMobile ? 350 : 560
-  const svgHeight = isMobile ? 350 : 540
-  const nodeR = isMobile ? 28 : 34
-  const centerR = isMobile ? 50 : 72
+  // Geometría — compacta en mobile (orbit + nodos cabe en 360px) y más grande
+  // en desktop para dejar espacio al panel lateral.
+  const R = isMobile ? 110 : 180
+  const cx = isMobile ? 170 : 280
+  const cy = isMobile ? 170 : 270
+  const svgWidth = isMobile ? 340 : 560
+  const svgHeight = isMobile ? 340 : 540
+  const nodeR = isMobile ? 24 : 34
+  const centerR = isMobile ? 46 : 72
 
   const activeModule = active ? MODULES.find(m => m.id === active) ?? null : null
 
-  // ── Mobile: stack vertical (cards + detail debajo) ────────────────
+  // ── Mobile: orbita compacta + detail panel full-width abajo ───────
+  // Mantenemos la magia visual del solar en celular (era cards antes).
+  // Sin labels al costado de cada nodo — solo icono + el nombre del modulo
+  // activo se resalta abajo. El usuario puede tappear cualquier nodo para
+  // explorar.
   if (isMobile) {
     return (
       <section
         aria-label="Ecosistema HiChapi"
-        className="py-12"
-        style={{ background: '#0a0a14', color: '#fff', fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif" }}
+        className="py-10 relative overflow-hidden"
+        style={{
+          background: 'radial-gradient(ellipse at center, #14142a 0%, #0a0a14 70%)',
+          color: '#fff',
+          fontFamily: "var(--font-dm-sans), 'DM Sans', sans-serif",
+        }}
       >
-        <div className="max-w-6xl mx-auto px-4">
-          <div className="text-center mb-6">
+        {/* Stars background — densidad reducida para no saturar mobile */}
+        <div className="absolute inset-0 pointer-events-none opacity-30">
+          {[...Array(20)].map((_, i) => {
+            const top = (i * 37) % 100
+            const left = (i * 53) % 100
+            const size = (i % 3) + 1
+            const delay = (i % 5) * 0.4
+            return (
+              <span
+                key={i}
+                className="absolute rounded-full"
+                style={{
+                  top: `${top}%`,
+                  left: `${left}%`,
+                  width: size,
+                  height: size,
+                  background: '#fff',
+                  opacity: 0.3 + (i % 3) * 0.2,
+                  animation: `hcStarTwinkle 3s ease-in-out infinite`,
+                  animationDelay: `${delay}s`,
+                }}
+              />
+            )
+          })}
+        </div>
+
+        <style>{`
+          @keyframes hcStarTwinkle { 0%,100% { opacity: 0.2 } 50% { opacity: 0.7 } }
+          @keyframes hcSolarFadeIn { from { opacity:0; transform:translateY(8px) } to { opacity:1; transform:translateY(0) } }
+          @keyframes hcCenterPulse {
+            0%, 100% { box-shadow: 0 0 30px rgba(255,107,53,0.5), 0 0 60px rgba(255,107,53,0.2), inset 0 0 12px rgba(255,255,255,0.12) }
+            50% { box-shadow: 0 0 45px rgba(255,107,53,0.7), 0 0 90px rgba(255,107,53,0.3), inset 0 0 18px rgba(255,255,255,0.18) }
+          }
+        `}</style>
+
+        <div className="relative px-4">
+          {/* Header */}
+          <div className="text-center mb-5">
             <div
               className="inline-block px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-[2px] mb-3"
               style={{ background: 'rgba(255,107,53,0.12)', border: '1px solid rgba(255,107,53,0.3)', color: '#FF6B35' }}
@@ -208,61 +253,223 @@ export default function HiChapiSolar() {
             >
               Todo orbita alrededor de Chapi
             </h2>
-            <p className="text-white/50 text-sm m-0">
-              Cada restaurante tiene su propio agente
+            <p className="text-white/50 text-xs m-0 px-4">
+              Cada restaurante tiene su propio agente — toca un módulo
             </p>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
-            {MODULES.map(m => (
-              <button
-                key={m.id}
-                type="button"
-                onClick={() => setActive(active === m.id ? null : m.id)}
-                aria-expanded={active === m.id}
-                className="text-left p-3 rounded-2xl transition-all"
+          {/* Solar SVG centrado */}
+          <div className="relative mx-auto" style={{ width: svgWidth, height: svgHeight }}>
+            <svg width={svgWidth} height={svgHeight} className="absolute inset-0" aria-hidden="true">
+              <defs>
+                <filter id="hcSolarGlowMobile" x="-50%" y="-50%" width="200%" height="200%">
+                  <feGaussianBlur stdDeviation="2.5" result="coloredBlur" />
+                  <feMerge>
+                    <feMergeNode in="coloredBlur" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+                <linearGradient id="hcOrbitGradMobile" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stopColor="rgba(255,107,53,0.05)" />
+                  <stop offset="50%" stopColor="rgba(255,107,53,0.4)" />
+                  <stop offset="100%" stopColor="rgba(255,107,53,0.05)" />
+                </linearGradient>
+              </defs>
+
+              {/* Outer + main orbit */}
+              <circle cx={cx} cy={cy} r={R + 14} fill="none" stroke="rgba(255,107,53,0.06)" strokeWidth={1} />
+              <circle cx={cx} cy={cy} r={R} fill="none" stroke="rgba(255,107,53,0.18)" strokeWidth={1} strokeDasharray="2 6" />
+
+              {/* Rotating accent */}
+              <circle
+                cx={cx}
+                cy={cy}
+                r={R}
+                fill="none"
+                stroke="url(#hcOrbitGradMobile)"
+                strokeWidth={1.5}
+                strokeDasharray="60 600"
                 style={{
-                  background: active === m.id ? `linear-gradient(135deg, ${m.accent}, ${m.color})` : 'rgba(255,255,255,0.04)',
-                  border: `1px solid ${active === m.id ? m.color : 'rgba(255,107,53,0.2)'}`,
+                  transformOrigin: `${cx}px ${cy}px`,
+                  transform: `rotate(${rotation}deg)`,
+                  transition: 'transform 0.06s linear',
                 }}
+              />
+
+              {/* Pulse rings */}
+              {[0, 1, 2].map(i => (
+                <circle
+                  key={i}
+                  cx={cx}
+                  cy={cy}
+                  r={centerR + 6 + ((pulse * 10 + i * 30) % 80)}
+                  fill="none"
+                  stroke="rgba(255,107,53,0.13)"
+                  strokeWidth={1}
+                  style={{ opacity: 1 - ((pulse * 10 + i * 30) % 80) / 80 }}
+                />
+              ))}
+
+              {/* Lines to nodes */}
+              {MODULES.map(m => {
+                const rad = (m.angle * Math.PI) / 180
+                const nx = cx + R * Math.cos(rad)
+                const ny = cy + R * Math.sin(rad)
+                const isActive = active === m.id
+                return (
+                  <line
+                    key={m.id}
+                    x1={cx}
+                    y1={cy}
+                    x2={nx}
+                    y2={ny}
+                    stroke={isActive ? '#FF6B35' : 'rgba(255,107,53,0.18)'}
+                    strokeWidth={isActive ? 2 : 1}
+                    strokeDasharray={isActive ? 'none' : '2 5'}
+                    filter={isActive ? 'url(#hcSolarGlowMobile)' : undefined}
+                    style={{ transition: 'all 0.3s' }}
+                  />
+                )
+              })}
+            </svg>
+
+            {/* Center node — Logo HiChapi */}
+            <div
+              aria-hidden="true"
+              className="absolute rounded-full flex flex-col items-center justify-center z-20"
+              style={{
+                left: cx - centerR,
+                top: cy - centerR,
+                width: centerR * 2,
+                height: centerR * 2,
+                background: 'radial-gradient(circle at 30% 30%, #FFB590, #FF6B35 50%, #C93D0A)',
+                border: '2px solid rgba(255,255,255,0.25)',
+                animation: 'hcCenterPulse 3s ease-in-out infinite',
+              }}
+            >
+              <HiChapiLogo size={30} flameColor="#fff" accentColor="#1A1A2E" />
+              <span
+                className="font-extrabold text-white"
+                style={{ fontSize: 8, letterSpacing: 1.2, marginTop: 1 }}
               >
-                <div className="text-2xl mb-1">{m.icon}</div>
-                <div className="font-bold text-sm leading-tight">{m.label}</div>
-                <div className="text-[11px] opacity-70 mt-0.5">{m.tagline}</div>
-                <div className="mt-2">
-                  <span
-                    className="inline-block text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{
-                      background: PLAN_COLOR[m.plan] + '22',
-                      color: PLAN_COLOR[m.plan],
-                      border: `1px solid ${PLAN_COLOR[m.plan]}44`,
-                    }}
-                  >
-                    {m.plan}
-                  </span>
-                </div>
-              </button>
-            ))}
+                CHAPI
+              </span>
+            </div>
+
+            {/* Module nodes (icon-only en mobile, sin labels al costado) */}
+            {MODULES.map(m => {
+              const rad = (m.angle * Math.PI) / 180
+              const nx = cx + R * Math.cos(rad)
+              const ny = cy + R * Math.sin(rad)
+              const isActive = active === m.id
+
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => setActive(active === m.id ? null : m.id)}
+                  aria-label={`${m.label} — ${m.tagline}`}
+                  aria-pressed={isActive}
+                  className="absolute rounded-full flex items-center justify-center z-30 cursor-pointer"
+                  style={{
+                    left: nx - nodeR,
+                    top: ny - nodeR,
+                    width: nodeR * 2,
+                    height: nodeR * 2,
+                    background: isActive
+                      ? `radial-gradient(circle at 30% 30%, ${m.accent}, ${m.color})`
+                      : 'rgba(20,20,40,0.92)',
+                    border: `2px solid ${isActive ? m.color : 'rgba(255,107,53,0.3)'}`,
+                    boxShadow: isActive
+                      ? `0 0 20px ${m.color}90, 0 0 40px ${m.color}40`
+                      : `0 4px 10px rgba(0,0,0,0.3)`,
+                    transition: 'all 0.3s cubic-bezier(.34,1.56,.64,1)',
+                    transform: isActive ? 'scale(1.18)' : 'scale(1)',
+                  }}
+                >
+                  <span style={{ fontSize: 18 }}>{m.icon}</span>
+                </button>
+              )
+            })}
           </div>
 
-          {activeModule && (
-            <div
-              className="mt-3 rounded-2xl overflow-hidden"
-              style={{ background: 'rgba(255,107,53,0.06)', border: `1px solid ${activeModule.color}40` }}
-            >
-              <div style={{ height: 200 }}>
-                <ModuleMockup
-                  id={activeModule.id as Parameters<typeof ModuleMockup>[0]['id']}
-                  color={activeModule.color}
-                />
+          {/* Detail panel full-width debajo del solar */}
+          <div className="mt-4 mx-auto" style={{ maxWidth: 460, minHeight: 80 }}>
+            {activeModule ? (
+              <div
+                key={activeModule.id}
+                className="rounded-2xl overflow-hidden"
+                style={{
+                  background: 'linear-gradient(155deg, rgba(255,107,53,0.10), rgba(20,20,40,0.6))',
+                  border: `1px solid ${activeModule.color}50`,
+                  animation: 'hcSolarFadeIn 0.3s ease',
+                  backdropFilter: 'blur(8px)',
+                }}
+              >
+                {/* Mockup */}
+                <div className="relative" style={{ height: 180 }}>
+                  <ModuleMockup
+                    id={activeModule.id as Parameters<typeof ModuleMockup>[0]['id']}
+                    color={activeModule.color}
+                  />
+                  <span
+                    className="absolute top-2 right-2 inline-flex items-center font-bold rounded-full z-10"
+                    style={{
+                      background: PLAN_COLOR[activeModule.plan] + 'cc',
+                      color: '#fff',
+                      border: `1px solid ${PLAN_COLOR[activeModule.plan]}`,
+                      backdropFilter: 'blur(6px)',
+                      fontSize: 9,
+                      padding: '3px 8px',
+                      letterSpacing: 0.3,
+                    }}
+                  >
+                    {activeModule.plan}
+                  </span>
+                </div>
+                {/* Texto */}
+                <div className="p-4">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span style={{ fontSize: 22 }}>{activeModule.icon}</span>
+                    <div className="font-extrabold" style={{ fontSize: 17 }}>
+                      {activeModule.label}
+                    </div>
+                  </div>
+                  <div
+                    className="font-semibold mb-2"
+                    style={{ color: activeModule.color, fontSize: 11 }}
+                  >
+                    {activeModule.tagline}
+                  </div>
+                  <p className="m-0 text-white/75 leading-relaxed" style={{ fontSize: 13 }}>
+                    {activeModule.desc}
+                  </p>
+                </div>
               </div>
-              <div className="p-4">
-                <p className="text-sm leading-relaxed text-white/80 m-0">
-                  {activeModule.desc}
+            ) : (
+              <div
+                className="rounded-2xl text-center px-6 py-5"
+                style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px dashed rgba(255,107,53,0.25)',
+                }}
+              >
+                <p className="text-white/60 font-semibold m-0" style={{ fontSize: 13 }}>
+                  👆 Toca un módulo para ver el detalle
                 </p>
               </div>
-            </div>
-          )}
+            )}
+          </div>
+
+          {/* Legend de planes */}
+          <div className="flex flex-wrap justify-center gap-3 mt-5">
+            {(Object.entries(PLAN_COLOR) as Array<[ModuleData['plan'], string]>).map(([plan, color]) => (
+              <div key={plan} className="flex items-center gap-1.5">
+                <div className="rounded-full" style={{ width: 7, height: 7, background: color, boxShadow: `0 0 6px ${color}80` }} />
+                <span className="text-white/55" style={{ fontSize: 11 }}>{plan}</span>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
     )

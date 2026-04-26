@@ -1752,9 +1752,10 @@ function ComandasPageInner() {
         </div>
       )}
 
-      {/* Kanban board */}
-      {!loading && <div className="flex-1 overflow-x-auto px-6 pb-6">
-        <div className="flex gap-4 h-full" style={{ minWidth: '900px' }}>
+      {/* Kanban board — mobile: stack vertical sin scroll horizontal.
+          Desktop: flex horizontal con minWidth para scroll cuando hace falta. */}
+      {!loading && <div className="flex-1 md:overflow-x-auto px-3 md:px-6 pb-6">
+        <div className="flex flex-col md:flex-row gap-4 h-full md:min-w-[900px]">
           {COLUMNS.map(col => {
             const colOrders = filtered.filter(o => o.status === col.status)
             const dimmed = role === 'cocina' && !COCINA_HIGHLIGHT.includes(col.status)
