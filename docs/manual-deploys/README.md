@@ -12,6 +12,7 @@ ambientes.
 | `APPLY_MIGRATIONS_NOW.sql` | Sprint inicial · 2026-04-15 | Bundle de migrations base aplicado al inicio. |
 | `APPLY_MIGRATION_048.sql` | Sprint cocina · 2026-04-15 | Migration 048 unbundled para aplicar manualmente. |
 | `DEPLOY_SPRINTS_26_30.sql` | Sprints 26–30 | Cambios de mesas (pos_x, pos_y) y layout. |
+| `APPLY_MIGRATION_TAX_EXEMPT.sql` | DTE · 2026-04-25 | Agrega `tax_exempt` boolean a `menu_items` y `order_items` para items exentos de IVA. |
 
 ## Cómo aplicar uno
 
