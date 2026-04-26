@@ -10,15 +10,16 @@
 //   • Enterprise: todo Pro + escala (multi-local, geofencing, API pública,
 //     soporte 24/7 con agente IA).
 //
-// Nota: las ventas digitales (pedidos procesados por la plataforma) tienen
-// comisión de 1% en Starter/Pro, incluida en Enterprise.
+// Nota: las transacciones registradas en la plataforma tienen comisión de 1%
+// en Starter/Pro (sin importar el medio de pago — efectivo, tarjeta o digital).
+// Enterprise no tiene comisión.
 
 export interface PlanInfo {
   id: string
   name: string
   price: number          // CLP/month, 0 = free
   priceLabel: string
-  transactionFeeLabel?: string  // "+ 1% sobre ventas digitales" u otro extra
+  transactionFeeLabel?: string  // "+ 1% por transacción registrada" u otro extra
   description: string
   features: string[]
   modules: string[]      // module keys included
@@ -81,7 +82,7 @@ export const PLANS: Record<string, PlanInfo> = {
     name: 'Starter',
     price: 29990,
     priceLabel: '$29.990',
-    transactionFeeLabel: '+ 1% sobre ventas digitales procesadas',
+    transactionFeeLabel: '+ 1% por transacción registrada en la plataforma',
     description: 'Digitalizá el salón: pedidos desde la mesa, caja y turnos.',
     cta: 'Activar Starter',
     features: [
@@ -99,7 +100,7 @@ export const PLANS: Record<string, PlanInfo> = {
     name: 'Pro',
     price: 59990,
     priceLabel: '$59.990',
-    transactionFeeLabel: '+ 1% sobre ventas digitales procesadas',
+    transactionFeeLabel: '+ 1% por transacción registrada en la plataforma',
     description: 'Inteligencia operativa: stock, reportes IA y fidelización.',
     highlighted: true,
     cta: 'Activar Pro',
@@ -126,7 +127,7 @@ export const PLANS: Record<string, PlanInfo> = {
       'Geofencing y check-in automático',
       'API pública con keys y scopes',
       'Agente IA de soporte 24/7',
-      'Sin comisión sobre ventas digitales',
+      'Sin comisión por transacción',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES, ...ENTERPRISE_MODULES],
   },

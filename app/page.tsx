@@ -22,11 +22,12 @@ import {
   ChevronDown,
 } from 'lucide-react'
 import { FAQAccordion } from './FAQAccordion'
+import HiChapiSolar from '@/components/landing/HiChapiSolar'
 
 export const metadata: Metadata = {
   title: 'HiChapi — Tu guia gastronomica inteligente en Santiago',
   description:
-    'Chapi es tu asistente de IA que entiende lo que quieres comer. Descubre restaurantes por barrio, presupuesto o dieta. Para restaurantes: gestión inteligente con solo 1% sobre ventas digitales.',
+    'Chapi es tu asistente de IA que entiende lo que quieres comer. Descubre restaurantes por barrio, presupuesto o dieta. Para restaurantes: gestión inteligente con solo 1% por transacción registrada.',
   openGraph: {
     title: 'HiChapi — Descubre donde comer en Santiago con IA',
     description:
@@ -41,7 +42,7 @@ const STATS = [
   { value: '50+', label: 'Restaurantes' },
   { value: '12', label: 'Barrios' },
   { value: '24/7', label: 'Disponible' },
-  { value: '1%', label: 'Comisión digital' },
+  { value: '1%', label: 'Por transacción' },
 ]
 
 const HOW_IT_WORKS = [
@@ -147,7 +148,7 @@ const TESTIMONIALS = [
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&fit=crop',
   },
   {
-    quote: 'Solo cobran 1% de lo digital y me dan visibilidad real. Recupero la inversion en el primer mes.',
+    quote: 'Solo cobran 1% por transaccion y me dan visibilidad real. Recupero la inversion en el primer mes.',
     author: 'Andrea L.',
     role: 'Chef, La Meson',
     rating: 5,
@@ -191,7 +192,7 @@ const PLANS = [
       'Lista de espera digital',
       'Turnos del personal',
     ],
-    note: '+ 1% sobre ventas digitales procesadas',
+    note: '+ 1% por transacción registrada — sin importar el medio de pago (efectivo, tarjeta o digital)',
     cta: 'Empezar gratis 30 dias',
     href: '/register',
     highlighted: false,
@@ -210,7 +211,7 @@ const PLANS = [
       'Fidelizacion y promociones',
       'Chapi Insights con datos reales',
     ],
-    note: '+ 1% sobre ventas digitales procesadas',
+    note: '+ 1% por transacción registrada — sin importar el medio de pago (efectivo, tarjeta o digital)',
     cta: 'Empezar gratis 30 dias',
     href: '/register',
     highlighted: true,
@@ -227,7 +228,7 @@ const PLANS = [
       'Geofencing y check-in automatico',
       'API publica con keys y scopes',
       'Agente IA de soporte 24/7',
-      'Sin comision sobre ventas digitales',
+      'Sin comision por transaccion',
     ],
     cta: 'Contactar ventas',
     href: '/contacto',
@@ -238,7 +239,7 @@ const PLANS = [
 const FAQ_ITEMS = [
   {
     question: 'Que es el 1% de comision?',
-    answer: 'Solo aplica sobre los pedidos que tus clientes pagan digitalmente a traves de HiChapi. Si un cliente paga en efectivo, no hay comision. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
+    answer: 'Es 1% por cada transaccion registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital. Aplica a planes Starter y Pro. Enterprise no tiene comision. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
   },
   {
     question: 'Puedo cancelar cuando quiera?',
@@ -656,7 +657,7 @@ function RestaurantNumbers() {
           {[
             { value: '$0', label: 'en web propia', sub: 'vs $200k en agencia' },
             { value: '<5 min', label: 'para publicar', sub: 'tu pagina' },
-            { value: '1%', label: 'comisión digital', sub: '(Rappi: 30%)' },
+            { value: '1%', label: 'por transacción', sub: '(Rappi: 30%)' },
             { value: '+23%', label: 'ticket promedio', sub: 'con QR' },
           ].map(({ value, label, sub }) => (
             <div key={label} className="text-center">
@@ -763,7 +764,7 @@ function RestaurantFeatures() {
             </h2>
             <p className="text-neutral-500 text-lg mb-6 leading-relaxed">
               Panel en tiempo real para gestionar pedidos, equipo, inventario y mesas.
-              Solo 1% sobre ventas digitales. El cliente llega directo a ti.
+              Solo 1% por transaccion registrada — sin importar el medio de pago.
             </p>
 
             {/* Feature grid compacto */}
@@ -1138,6 +1139,7 @@ export default function LandingPage() {
       <RestaurantShowcase />
       <RestaurantNumbers />
       <RestaurantFeatures />
+      <HiChapiSolar />
       <PricingSection />
       <FAQSection />
       <FinalCTA />
