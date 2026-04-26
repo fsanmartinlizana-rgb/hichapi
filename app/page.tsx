@@ -23,6 +23,8 @@ import {
 } from 'lucide-react'
 import { FAQAccordion } from './FAQAccordion'
 import HiChapiSolar from '@/components/landing/HiChapiSolar'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
+import AudienceLanding from '@/components/landing/AudienceLanding'
 
 export const metadata: Metadata = {
   title: 'HiChapi — Tu guia gastronomica inteligente en Santiago',
@@ -132,27 +134,66 @@ const RESTAURANT_FEATURES = [
   },
 ]
 
-const TESTIMONIALS = [
+type Audience = 'comensal' | 'restaurante'
+type Testimonial = {
+  quote: string
+  author: string
+  role: string
+  rating: number
+  avatar: string
+  audience: Audience
+}
+
+const TESTIMONIALS: Testimonial[] = [
+  // ── Comensales ─────────────────────────────────────────────────────
   {
     quote: 'Le dije "algo sin gluten cerca" y me recomendo exactamente lo que buscaba. Increible.',
     author: 'Camila R.',
     role: 'Celiaca, Providencia',
     rating: 5,
     avatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=200&q=80&fit=crop',
+    audience: 'comensal',
   },
   {
-    quote: 'Mis clientes piden desde el celular y el pedido llega directo a cocina. Cero errores.',
+    quote: 'Pedi "vegano por 15 lucas" y Chapi me dio 3 opciones reales con platos especificos. Mejor que Google Maps.',
+    author: 'Diego M.',
+    role: 'Vegano, Nunoa',
+    rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=200&q=80&fit=crop',
+    audience: 'comensal',
+  },
+  {
+    quote: 'Reservo, pido y pago todo desde el celular sin esperar al garzon. Es lo mas comodo.',
+    author: 'Valentina S.',
+    role: 'Foodie, Barrio Italia',
+    rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80&fit=crop',
+    audience: 'comensal',
+  },
+  // ── Restaurantes ───────────────────────────────────────────────────
+  {
+    quote: 'Mis clientes piden desde el celular y el pedido llega directo a cocina. Cero errores en los pedidos.',
     author: 'Felipe M.',
     role: 'Dueno, Osteria del Porto',
     rating: 5,
     avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=200&q=80&fit=crop',
+    audience: 'restaurante',
   },
   {
     quote: 'Solo cobran 1% por transaccion y me dan visibilidad real. Recupero la inversion en el primer mes.',
     author: 'Andrea L.',
     role: 'Chef, La Meson',
     rating: 5,
-    avatar: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=200&q=80&fit=crop',
+    avatar: 'https://images.unsplash.com/photo-1607631568010-a87245c0daf8?w=200&q=80&fit=crop',
+    audience: 'restaurante',
+  },
+  {
+    quote: 'Cierro caja en 3 clicks y el reporte IA me llega a las 23:59. Antes tardaba una hora con Excel.',
+    author: 'Rodrigo P.',
+    role: 'Owner, Cafe Lastarria',
+    rating: 5,
+    avatar: 'https://images.unsplash.com/photo-1560250097-0b93528c311a?w=200&q=80&fit=crop',
+    audience: 'restaurante',
   },
 ]
 
@@ -267,10 +308,14 @@ function Navbar() {
       <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
         <Link
           href="/"
-          className="font-bold text-xl tracking-tight"
+          className="flex items-center gap-2 font-bold text-xl tracking-tight"
           style={{ color: '#1A1A2E' }}
+          aria-label="HiChapi — inicio"
         >
-          hi<span style={{ color: '#FF6B35' }}>chapi</span>
+          <HiChapiLogo size={28} />
+          <span className="hidden sm:inline">
+            hi<span style={{ color: '#FF6B35' }}>chapi</span>
+          </span>
         </Link>
         <div className="hidden sm:flex items-center gap-7 text-sm text-neutral-500">
           <a href="#comensales"   className="hover:text-[#FF6B35] transition-colors font-medium">Comensales</a>
@@ -298,132 +343,6 @@ function Navbar() {
   )
 }
 
-function HeroSection() {
-  return (
-    <section className="relative pt-32 pb-20 lg:pt-40 lg:pb-28 overflow-hidden">
-      {/* Gradient orbs */}
-      <div className="absolute top-20 -left-32 w-96 h-96 bg-[#FF6B35]/10 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-0 w-80 h-80 bg-[#FF6B35]/5 rounded-full blur-3xl" />
-
-      <div className="relative max-w-6xl mx-auto px-6">
-        <div className="max-w-3xl mx-auto text-center">
-          {/* Badge */}
-          <div
-            className="inline-flex items-center gap-2 text-xs font-semibold px-4 py-2
-                       rounded-full border mb-8 animate-fade-in"
-            style={{ background: '#FFF4EF', borderColor: '#FFD4C2', color: '#FF6B35' }}
-          >
-            <Zap size={12} />
-            Potenciado por IA — Disponible en Santiago
-          </div>
-
-          <h1
-            className="font-extrabold leading-[1.1] mb-6"
-            style={{
-              fontSize: 'clamp(2.2rem, 6vw, 4rem)',
-              color: '#1A1A2E',
-            }}
-          >
-            Tu proximo restaurante,{' '}
-            <span className="relative">
-              <span style={{ color: '#FF6B35' }}>a una conversacion</span>
-              <svg className="absolute -bottom-2 left-0 w-full" viewBox="0 0 300 12" fill="none">
-                <path d="M2 8 Q75 2 150 6 Q225 10 298 4" stroke="#FF6B35" strokeWidth="3" strokeLinecap="round" opacity="0.3" />
-              </svg>
-            </span>
-          </h1>
-
-          <p className="text-lg lg:text-xl text-neutral-500 mb-10 max-w-2xl mx-auto leading-relaxed">
-            Dile a Chapi que quieres comer — por barrio, presupuesto o dieta — y recibe
-            recomendaciones reales con platos especificos. Como un amigo que sabe
-            todos los restaurantes de Santiago.
-          </p>
-
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
-            <Link
-              href="/buscar"
-              className="group flex items-center gap-3 px-8 py-4 rounded-2xl
-                         bg-[#FF6B35] text-white font-bold text-base
-                         hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/25
-                         hover:shadow-xl hover:shadow-[#FF6B35]/30 hover:-translate-y-0.5"
-            >
-              <MessageCircle size={20} />
-              Hablar con Chapi
-              <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
-            </Link>
-            <Link
-              href="/register"
-              className="flex items-center gap-2 px-8 py-4 rounded-2xl
-                         border-2 border-neutral-200 text-[#1A1A2E] font-semibold text-base
-                         hover:border-[#FF6B35] hover:text-[#FF6B35] transition-all"
-            >
-              <Utensils size={18} />
-              Soy restaurante
-            </Link>
-          </div>
-
-          {/* CAMBIO 5: Prueba social */}
-          <p className="text-sm text-neutral-400 mb-12">
-            Mas de 50 restaurantes en Santiago ya tienen su pagina en HiChapi
-          </p>
-
-          {/* Chat mockup */}
-          <div className="max-w-md mx-auto">
-            <div className="bg-white rounded-3xl shadow-2xl shadow-neutral-200/50 border border-neutral-100 p-6 text-left">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="w-10 h-10 rounded-full bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm">
-                  C
-                </div>
-                <div>
-                  <p className="text-sm font-semibold text-[#1A1A2E]">Chapi</p>
-                  <p className="text-xs text-green-500">En linea</p>
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <div className="bg-[#FAFAF8] rounded-2xl rounded-tl-md px-4 py-3 max-w-[85%]">
-                  <p className="text-sm text-[#1A1A2E]">
-                    Hola! Que tienes ganas de comer hoy? Puedo buscar por zona, tipo de comida, presupuesto o dieta.
-                  </p>
-                </div>
-
-                <div className="bg-[#FF6B35] rounded-2xl rounded-tr-md px-4 py-3 max-w-[80%] ml-auto">
-                  <p className="text-sm text-white">
-                    Algo japones en Providencia, sin gluten, por 20 lucas
-                  </p>
-                </div>
-
-                <div className="bg-[#FAFAF8] rounded-2xl rounded-tl-md px-4 py-3 max-w-[85%]">
-                  <p className="text-sm text-[#1A1A2E]">
-                    Encontre 3 opciones perfectas! Te muestro los platos que puedes comer...
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex gap-2 mt-4 flex-wrap">
-                {['Sin gluten', 'Vegano', 'Italiano', 'Sushi'].map(chip => (
-                  <span
-                    key={chip}
-                    className="text-xs px-3 py-1.5 rounded-full border border-neutral-200 text-neutral-500
-                               hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors cursor-pointer"
-                  >
-                    {chip}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* CAMBIO 5: Texto bajo chat */}
-            <p className="text-xs text-neutral-400 mt-4 text-center">
-              Sin crear cuenta · Sin tarjeta · Responde en segundos
-            </p>
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function StatsBar() {
   return (
     <section className="border-y border-neutral-100 bg-white">
@@ -443,9 +362,9 @@ function StatsBar() {
 
 function HowItWorks() {
   return (
-    <section id="como-funciona" className="py-20 lg:py-28">
+    <section id="como-funciona" className="py-14 lg:py-20">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 lg:mb-12">
           <div
             className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
                        rounded-full border mb-4"
@@ -486,9 +405,9 @@ function HowItWorks() {
 
 function DinerFeatures() {
   return (
-    <section id="para-ti" className="py-20 lg:py-28 bg-white">
+    <section id="para-ti" className="py-14 lg:py-20 bg-white">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 lg:mb-12">
           <div
             className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
                        rounded-full border mb-4"
@@ -571,7 +490,7 @@ function RestaurantShowcase() {
   ]
 
   return (
-    <section id="restaurantes-ya-dentro" className="py-20 lg:py-28 bg-white">
+    <section id="restaurantes-ya-dentro" className="py-14 lg:py-20 bg-white">
       <div className="max-w-6xl mx-auto px-6">
         <div className="text-center mb-12">
           <div
@@ -676,7 +595,7 @@ function RestaurantNumbers() {
 
 function RestaurantFeatures() {
   return (
-    <section id="restaurantes" className="py-20 lg:py-28 relative overflow-hidden">
+    <section id="restaurantes-features" className="py-14 lg:py-20 relative overflow-hidden">
       {/* Orbs decorativos */}
       <div className="absolute top-1/2 -right-40 w-96 h-96 bg-[#FF6B35]/8 rounded-full blur-3xl -translate-y-1/2" />
 
@@ -811,9 +730,9 @@ function RestaurantFeatures() {
 /* CAMBIO 1: Pricing section */
 function PricingSection() {
   return (
-    <section id="planes" className="py-20 lg:py-28 bg-white">
+    <section id="planes" className="py-14 lg:py-20 bg-white">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 lg:mb-12">
           <div
             className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
                        rounded-full border mb-4"
@@ -903,21 +822,26 @@ function PricingSection() {
   )
 }
 
-function Testimonials() {
+function Testimonials({ audience, title, subtitle }: {
+  audience: Audience
+  title: string
+  subtitle: string
+}) {
+  const filtered = TESTIMONIALS.filter(t => t.audience === audience)
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-16 lg:py-20">
       <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-16">
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
-            Lo que dicen de Chapi
+        <div className="text-center mb-12">
+          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-3">
+            {title}
           </h2>
           <p className="text-neutral-400 text-lg">
-            Comensales y restaurantes que ya usan HiChapi
+            {subtitle}
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {TESTIMONIALS.map(({ quote, author, role, rating, avatar }) => (
+          {filtered.map(({ quote, author, role, rating, avatar }) => (
             <div
               key={author}
               className="bg-white rounded-2xl p-7 border border-neutral-100 shadow-sm
@@ -959,9 +883,9 @@ function Testimonials() {
 /* CAMBIO 4: FAQ Section */
 function FAQSection() {
   return (
-    <section id="faq" className="py-20 lg:py-28">
+    <section id="faq" className="py-14 lg:py-20">
       <div className="max-w-3xl mx-auto px-6">
-        <div className="text-center mb-16">
+        <div className="text-center mb-10 lg:mb-12">
           <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
             Preguntas frecuentes
           </h2>
@@ -976,48 +900,9 @@ function FAQSection() {
   )
 }
 
-// ── SectionDivider ──────────────────────────────────────────────────────
-// Separador visual entre los bloques "Para comensales" y "Para restaurantes".
-// Marca el cambio de audiencia en la narrativa de la landing con un eyebrow
-// badge + título grande + subtítulo. El `anchor` deja un id para que los
-// links del navbar scrolleen acá.
-
-function SectionDivider({ eyebrow, title, subtitle, anchor }: {
-  eyebrow:  string
-  title:    string
-  subtitle: string
-  anchor:   string
-}) {
-  return (
-    <section id={anchor} className="relative pt-20 pb-8 lg:pt-28 lg:pb-10 scroll-mt-16 bg-[#FAFAF8]">
-      <div className="max-w-5xl mx-auto px-6 text-center">
-        <div
-          className="inline-flex items-center gap-2 text-[11px] font-bold px-3 py-1.5
-                     rounded-full border mb-5 uppercase tracking-wider"
-          style={{ background: '#FFF4EF', borderColor: '#FFD4C2', color: '#FF6B35' }}
-        >
-          {eyebrow}
-        </div>
-        <h2 className="text-3xl lg:text-5xl font-extrabold text-[#1A1A2E] leading-[1.1] mb-4">
-          {title}
-        </h2>
-        <p className="text-neutral-500 text-base lg:text-lg max-w-2xl mx-auto leading-relaxed">
-          {subtitle}
-        </p>
-        {/* Línea decorativa inferior */}
-        <div className="mt-8 flex items-center justify-center gap-3">
-          <div className="h-px w-12 bg-neutral-200" />
-          <div className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]" />
-          <div className="h-px w-12 bg-neutral-200" />
-        </div>
-      </div>
-    </section>
-  )
-}
-
 function FinalCTA() {
   return (
-    <section className="py-20 lg:py-28">
+    <section className="py-14 lg:py-20">
       <div className="max-w-4xl mx-auto px-6">
         <div
           className="relative rounded-3xl p-10 lg:p-16 text-center overflow-hidden"
@@ -1114,35 +999,52 @@ function Footer() {
 /* ─── Page ─────────────────────────────────────────────────────────── */
 
 export default function LandingPage() {
+  // ── Bloques por audiencia ─────────────────────────────────────────
+  // El AudienceLanding se encarga del toggle + de mostrar solo uno.
+  // Los componentes son server-rendered (SEO friendly).
+
+  const comensalSection = (
+    <>
+      <StatsBar />
+      <HowItWorks />
+      <DinerFeatures />
+      <Testimonials
+        audience="comensal"
+        title="Comensales que ya usan Chapi"
+        subtitle="Personas reales descubriendo restaurantes en Santiago"
+      />
+      <FinalCTA />
+    </>
+  )
+
+  const restauranteSection = (
+    <>
+      {/* 1. Wow factor: ecosistema visual + Garzón 24/7 */}
+      <HiChapiSolar />
+      {/* 2. Vitrina de restaurantes que ya operan con HiChapi */}
+      <RestaurantShowcase />
+      {/* 3. Números / ROI rápido */}
+      <RestaurantNumbers />
+      {/* 4. Pricing — momento de la decisión */}
+      <PricingSection />
+      {/* 5. Detalle de features para los que quieren más */}
+      <RestaurantFeatures />
+      <FinalCTA />
+    </>
+  )
+
   return (
     <main className="min-h-screen" style={{ background: '#FAFAF8', fontFamily: 'var(--font-dm-sans), sans-serif' }}>
       <Navbar />
-      <HeroSection />
-      <StatsBar />
-      {/* ─── Sección comensales ─── */}
-      <SectionDivider
-        eyebrow="Para comensales"
-        title="Encuentra dónde comer"
-        subtitle="Chapi te recomienda platos reales según tu presupuesto, dieta y barrio."
-        anchor="comensales"
+
+      {/* Hero + secciones segmentadas por audiencia */}
+      <AudienceLanding
+        comensalSection={comensalSection}
+        restauranteSection={restauranteSection}
       />
-      <HowItWorks />
-      <DinerFeatures />
-      <Testimonials />
-      {/* ─── Sección restaurantes ─── */}
-      <SectionDivider
-        eyebrow="Para restaurantes"
-        title="Opera y crece con inteligencia"
-        subtitle="Desde tu página gratuita hasta multi-local con API pública. Paga solo cuando vendes."
-        anchor="restaurantes"
-      />
-      <RestaurantShowcase />
-      <RestaurantNumbers />
-      <RestaurantFeatures />
-      <HiChapiSolar />
-      <PricingSection />
+
+      {/* Común a las dos audiencias */}
       <FAQSection />
-      <FinalCTA />
       <Footer />
     </main>
   )

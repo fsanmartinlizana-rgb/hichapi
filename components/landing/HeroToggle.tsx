@@ -1,6 +1,5 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
 import {
   MessageCircle,
@@ -35,8 +34,8 @@ const AUDIENCES = {
     cta: { label: 'Descubrir restaurantes', href: '/buscar', icon: MessageCircle },
     secondaryCta: { label: 'Hablar con Chapi', href: '/buscar' },
     image:
-      'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Mesa de un restaurante en la noche',
+      'https://images.unsplash.com/photo-1529566652340-2c41a1eb6d93?auto=format&fit=crop&w=1600&q=80',
+    alt: 'Cliente en un restaurante mirando recomendaciones en su celular',
     features: [
       { icon: MessageCircle, label: 'Chat con IA en lenguaje natural' },
       { icon: Leaf, label: 'Filtros: vegano, sin gluten, keto...' },
@@ -58,9 +57,14 @@ const AUDIENCES = {
       'HiChapi gestiona pedidos, cocina, mesas, equipo, inventario, caja y reportes — todo conectado y con IA. Solo 1 % por transacción registrada — sin importar el medio de pago.',
     cta: { label: 'Registrar mi restaurante', href: '/register', icon: Utensils },
     secondaryCta: { label: 'Ya tengo cuenta', href: '/login' },
+    // Video servido desde /public/landing/ para evitar bloqueos de hotlinking
+    // de Pexels/etc. Cuando tengas un video propio de HiChapi, sobrescribí
+    // este archivo manteniendo el mismo path.
+    // Origen actual: Mixkit free stock (cocina profesional operando).
+    video: '/landing/restaurant-hero.mp4',
     image:
-      'https://images.unsplash.com/photo-1556910103-1c02745aae4d?auto=format&fit=crop&w=1600&q=80',
-    alt: 'Cocina profesional trabajando con orden',
+      'https://images.unsplash.com/photo-1581349437898-cebbe9831942?auto=format&fit=crop&w=1600&q=80',
+    alt: 'Equipo de cocina trabajando con tablet de comandas en tiempo real',
     features: [
       { icon: Grid3X3, label: 'Mesas + QR por mesa' },
       { icon: ClipboardList, label: 'Comandas en vivo (KDS)' },
@@ -72,12 +76,16 @@ const AUDIENCES = {
   },
 } as const
 
-type Audience = keyof typeof AUDIENCES
+export type Audience = keyof typeof AUDIENCES
+
+interface HeroToggleProps {
+  active: Audience
+  onChange: (audience: Audience) => void
+}
 
 /* ── Component ─────────────────────────────────────────────────────── */
 
-export default function HeroToggle() {
-  const [active, setActive] = useState<Audience>('comensal')
+export default function HeroToggle({ active, onChange }: HeroToggleProps) {
   const data = AUDIENCES[active]
   const CtaIcon = data.cta.icon
 
@@ -94,7 +102,7 @@ export default function HeroToggle() {
             {(['comensal', 'restaurante'] as Audience[]).map((key) => (
               <button
                 key={key}
-                onClick={() => setActive(key)}
+                onClick={() => onChange(key)}
                 className={`px-5 py-2.5 rounded-full text-sm font-semibold transition-all duration-200 ${
                   active === key
                     ? 'bg-[#FF6B35] text-white shadow-md shadow-[#FF6B35]/25'
@@ -163,23 +171,39 @@ export default function HeroToggle() {
             </div>
           </div>
 
-          {/* Right: image card */}
+          {/* Right: media card (video si la audiencia lo trae, sino imagen) */}
           <div className="relative rounded-3xl overflow-hidden shadow-xl shadow-neutral-300/30 aspect-[4/3]">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={data.image}
-              alt={data.alt}
-              className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
-              loading="eager"
-            />
+            {('video' in data && data.video) ? (
+              // eslint-disable-next-line jsx-a11y/media-has-caption
+              <video
+                key={data.video}
+                src={data.video}
+                poster={data.image}
+                aria-label={data.alt}
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={data.image}
+                alt={data.alt}
+                className="absolute inset-0 w-full h-full object-cover transition-all duration-500"
+                loading="eager"
+              />
+            )}
             <div
-              className="absolute inset-0"
+              className="absolute inset-0 pointer-events-none"
               style={{
                 background:
                   'linear-gradient(180deg, rgba(26,26,46,0.1) 0%, rgba(26,26,46,0.45) 100%)',
               }}
             />
-            {/* Badge on image */}
+            {/* Badge on media */}
             <span
               className="absolute top-4 left-4 text-[10px] font-bold uppercase tracking-widest
                          px-3 py-1.5 rounded-full backdrop-blur-md"
