@@ -33,6 +33,7 @@ const CreateSchema = z.object({
   client_name:   z.string().optional(),
   notes:         z.string().optional(),
   pax:           z.number().int().min(1).optional(),
+  tip:           z.number().int().min(0).optional(), // Propina opcional (no va en DTE)
 })
 
 export async function POST(req: NextRequest) {
@@ -105,8 +106,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `${t.label ?? 'Esta mesa'} está dividida. Elegí una sub-mesa.` }, { status: 409 })
   }
 
-  // 2. Calcular total parcial del carrito
-  const cartTotal = body.cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
+  // 2. Calcular subtotal (sin propina) y total (con propina)
+  const subtotal = body.cart.reduce((s, c) => s + c.unit_price * c.quantity, 0)
+  const tipAmount = body.tip ?? 0
+  const cartTotal = subtotal + tipAmount
 
   // 3. Si la mesa está ocupada, buscar la orden activa y agregar ítems a ella.
   //    Si está libre (o cualquier otro estado), crear una orden nueva.
@@ -140,9 +143,12 @@ export async function POST(req: NextRequest) {
       // La check constraint orders_total_equals_subtotal_plus_tip exige
       // total = subtotal + tip. Sin tip → tip=0 → total = subtotal.
       const newTotal = ((activeOrder as { id: string; total: number }).total ?? 0) + cartTotal
-      await supabase.from('orders').update({
-        total:    newTotal,
-        subtotal: newTotal,
+      const newSubtotal = ((activeOrder as { id: string; total: number; subtotal?: number }).subtotal ?? 0) + subtotal
+      const newTip = ((activeOrder as { id: string; total: number; tip?: number }).tip ?? 0) + tipAmount
+      await supabase.from('orders').update({ 
+        subtotal: newSubtotal,
+        tip: newTip,
+        total: newTotal 
       }).eq('id', orderId)
     } else {
       // Mesa ocupada pero sin orden activa encontrada — crear una nueva igual
@@ -152,9 +158,9 @@ export async function POST(req: NextRequest) {
           restaurant_id: body.restaurant_id,
           table_id:      body.table_id,
           status:        'pending',
-          subtotal:      cartTotal,  // requerido por check constraint
-          tip:           0,
-          total:         cartTotal,  // = subtotal + tip
+          subtotal:      subtotal,
+          tip:           tipAmount,
+          total:         cartTotal,
           client_name:   body.client_name ?? null,
           notes:         body.notes ?? null,
           pax:           body.pax ?? null,
@@ -179,9 +185,9 @@ export async function POST(req: NextRequest) {
         restaurant_id: body.restaurant_id,
         table_id:      body.table_id,
         status:        'pending',
-        subtotal:      cartTotal,  // requerido por check constraint
-        tip:           0,
-        total:         cartTotal,  // = subtotal + tip
+        subtotal:      subtotal,
+        tip:           tipAmount,
+        total:         cartTotal,
         client_name:   body.client_name ?? null,
         notes:         body.notes ?? null,
         pax:           body.pax ?? null,

@@ -11,6 +11,7 @@ import type { LucideIcon } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 import { formatCurrency } from '@/lib/i18n'
+import { NotaCreditoModal } from '@/components/dte/NotaCreditoModal'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -172,6 +173,10 @@ export default function DtePage() {
 
   // Detail modal
   const [detailEmission,  setDetailEmission]   = useState<Emission | null>(null)
+
+  // Nota de crédito modal
+  const [notaCreditoModal, setNotaCreditoModal] = useState(false)
+  const [selectedEmission, setSelectedEmission] = useState<Emission | null>(null)
 
   // Facturas recibidas de proveedores
   const [incomingInvoices,    setIncomingInvoices]    = useState<IncomingInvoice[]>([])
@@ -373,6 +378,17 @@ export default function DtePage() {
   }, [])
 
   // ── Initial load ───────────────────────────────────────────────────────────
+
+  async function reloadEmissions() {
+    if (!restaurant) return
+    try {
+      const emRes = await fetch(`/api/dte/emissions?restaurant_id=${restaurant.id}`).then(r => r.json())
+      setEmissions(emRes.emissions ?? [])
+      setTotals(emRes.totals ?? { count: 0, gross: 0, accepted: 0 })
+    } catch (err) {
+      console.error('Error reloading emissions:', err)
+    }
+  }
 
   useEffect(() => {
     if (!restaurant) return
@@ -909,6 +925,13 @@ export default function DtePage() {
                             <span className="text-white text-sm font-semibold whitespace-nowrap">
                               {DOC_TYPE_LABEL[em.document_type] ?? `Tipo ${em.document_type}`} #{em.folio}
                             </span>
+                            {/* Indicador de documento anulado */}
+                            {em.status === 'cancelled' && (
+                              <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[9px] font-bold flex items-center gap-1">
+                                <XCircle size={9} />
+                                ANULADA
+                              </span>
+                            )}
                             {em.razon_receptor && (
                               <span className="text-white/40 text-xs truncate max-w-[160px]">· {em.razon_receptor}</span>
                             )}
@@ -933,6 +956,21 @@ export default function DtePage() {
                               className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-[10px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-1">
                               {polling ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
                               {polling ? 'Consultando…' : 'Consultar SII'}
+                            </button>
+                          )}
+                          {/* Botón Anular para boletas aceptadas */}
+                          {em.status === 'accepted' && (em.document_type === 39 || em.document_type === 41) && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                setSelectedEmission(em)
+                                setNotaCreditoModal(true)
+                              }}
+                              className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                              title="Anular este documento"
+                            >
+                              <XCircle size={10} />
+                              Anular
                             </button>
                           )}
                           {hasDetail && (expanded ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />)}
@@ -961,6 +999,39 @@ export default function DtePage() {
                           </div>
                         </div>
                       )}
+                      {/* Mostrar notas de crédito para boletas */}
+                      {(em.document_type === 39 || em.document_type === 41) && (
+                        (() => {
+                          const notasCredito = emissions.filter(e => 
+                            e.document_type === 61 && 
+                            (e as any).folio_ref === em.folio
+                          )
+                          return notasCredito.length > 0 ? (
+                            <div className="px-4 pb-3">
+                              <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
+                                <p className="text-red-300 text-[11px] font-semibold mb-2">
+                                  Notas de crédito ({notasCredito.length})
+                                </p>
+                                <div className="space-y-1.5">
+                                  {notasCredito.map(nc => (
+                                    <div key={nc.id} className="flex items-start justify-between gap-2 text-xs">
+                                      <div className="flex-1 min-w-0">
+                                        <span className="text-red-200/70">NC #{nc.folio}</span>
+                                        {(nc as any).razon_ref && (
+                                          <p className="text-red-200/50 text-[10px] mt-0.5 truncate">
+                                            {(nc as any).razon_ref}
+                                          </p>
+                                        )}
+                                      </div>
+                                      <span className="text-red-200/50 shrink-0">{fmtCLP(nc.total_amount)}</span>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            </div>
+                          ) : null
+                        })()
+                      )}
                     </div>
                   )
                 })}
@@ -978,6 +1049,23 @@ export default function DtePage() {
       {/* Detail modal */}
       {detailEmission && (
         <EmissionDetailModal emission={detailEmission} onClose={() => setDetailEmission(null)} />
+      )}
+
+      {/* Nota de crédito modal */}
+      {selectedEmission && restaurant && (
+        <NotaCreditoModal
+          open={notaCreditoModal}
+          onClose={() => {
+            setNotaCreditoModal(false)
+            setSelectedEmission(null)
+          }}
+          originalEmission={selectedEmission}
+          restaurantId={restaurant.id}
+          onSuccess={() => {
+            // Recargar la lista de emisiones
+            reloadEmissions()
+          }}
+        />
       )}
 
       {/* ── SECCIÓN: Facturas recibidas ─────────────────────────────── */}

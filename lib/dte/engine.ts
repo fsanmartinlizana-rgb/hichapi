@@ -164,11 +164,13 @@ export async function runEmission(
     return { ok: false, error: detail }
   }
 
-  // ── Guard 2: no duplicate active emission for this order ───────────────────
+  // ── Guard 2: no duplicate active emission for this order + document type ───
+  // Allow multiple documents for the same order if they are different types
   const { data: existing, error: dupErr } = await supabase
     .from('dte_emissions')
-    .select('id, status')
+    .select('id, status, document_type')
     .eq('order_id', orderId)
+    .eq('document_type', documentType)  // Only check same document type
     .neq('status', 'cancelled')
     .neq('id', emissionId)   // exclude the current emission row itself
     .maybeSingle()
@@ -225,12 +227,13 @@ export async function runEmission(
       ...(item.tax_exempt ? { ind_exe: 1 as const } : {}),
     }))
 
-    // If no items, use a single summary line from the order total
+    // If no items, use a single summary line from the order subtotal (excluding tip)
     if (lineItems.length === 0) {
+      const orderSubtotal = order.subtotal ?? order.total
       lineItems.push({
         name:       'Consumo',
         quantity:   1,
-        unit_price: order.total,
+        unit_price: orderSubtotal,
       })
     }
   }
@@ -280,7 +283,7 @@ export async function runEmission(
       direccion:           (restaurant as any).direccion ?? restaurant.address ?? '',
       comuna:              (restaurant as any).comuna ?? '',
       acteco:              (restaurant as any).acteco ?? '463020',  // fallback — idealmente guardar en tabla restaurants
-      total_amount:        order.total,
+      total_amount:        order.subtotal ?? order.total,  // Use subtotal to exclude tip
       items:               lineItems,
       // Receptor fields
       rut_receptor:        isFactura ? (rutReceptor ?? '') : (rutReceptor ?? '66666666-6'),
@@ -315,6 +318,35 @@ export async function runEmission(
 
   const signed_xml = signResult.signed_xml
 
+  // ── Extract MntTotal from XML to ensure DB matches what we send to SII ─────
+  // This is critical because queryEstDteFactura requires exact amount match
+  const mntTotalMatch = /<MntTotal>(\d+)<\/MntTotal>/.exec(signed_xml)
+  const orderSubtotal = order.subtotal ?? order.total
+  const xmlMntTotal = mntTotalMatch ? parseInt(mntTotalMatch[1], 10) : orderSubtotal
+
+  console.log(`🔍 [DTE Engine] Verificando montos:`, {
+    order_total: order.total,
+    order_subtotal: orderSubtotal,
+    xml_mnt_total: xmlMntTotal,
+    son_iguales: xmlMntTotal === orderSubtotal,
+  })
+
+  // ALWAYS update emission with actual XML total to ensure consistency
+  // This fixes the issue where total_amount in DB doesn't match MntTotal in XML
+  console.log(`📝 [DTE Engine] Actualizando total_amount en BD: ${xmlMntTotal}`)
+  const { error: updateTotalErr } = await supabase
+    .from('dte_emissions')
+    .update({ 
+      total_amount: xmlMntTotal,
+      net_amount: Math.round(xmlMntTotal / 1.19),
+      iva_amount: xmlMntTotal - Math.round(xmlMntTotal / 1.19),
+    })
+    .eq('id', emissionId)
+
+  if (updateTotalErr) {
+    console.error('❌ [DTE Engine] Error actualizando total:', updateTotalErr)
+  }
+
   // ── Step (c): Obtener Token y Enviar al SII ────────────────────────────────
   // Task 7.5: branch on document type for correct SII endpoints
 
@@ -340,6 +372,14 @@ export async function runEmission(
       return { ok: false, error: detail }
     }
 
+    console.log('📤 [DTE Engine] Enviando factura al SII:', {
+      folio: folio,
+      tipo: documentType,
+      monto: orderSubtotal,
+      receptor: rutReceptor,
+      environment: envSii,
+    })
+
     const sendResult = await sendFacturaToSII(
       signed_xml,
       restaurant.rut ?? '',
@@ -348,8 +388,17 @@ export async function runEmission(
       envSii
     )
 
+    console.log('📥 [DTE Engine] Respuesta del envío:', {
+      success: sendResult.success,
+      track_id: sendResult.track_id,
+      status: sendResult.status,
+      error: sendResult.error,
+      message: sendResult.message,
+    })
+
     if (!sendResult.success) {
       const detail = `SII_UPLOAD_ERROR: ${sendResult.error} - ${sendResult.message || ''}`
+      console.error('❌ [DTE Engine] Error en envío:', detail)
       await writeErrorDetail(supabase, emissionId, detail)
       return { ok: false, error: detail, signed_xml }
     }

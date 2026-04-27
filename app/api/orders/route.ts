@@ -19,6 +19,7 @@ const CreateOrderSchema = z.object({
   cart: z.array(CartItemSchema).min(1),
   client_name: z.string().optional(),
   notes: z.string().optional(),
+  tip: z.number().int().min(0).optional(), // Propina opcional (no va en DTE)
 })
 
 // ── POST /api/orders ──────────────────────────────────────────────────────────
@@ -26,7 +27,7 @@ const CreateOrderSchema = z.object({
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { restaurant_slug, table_id, cart, client_name, notes } =
+    const { restaurant_slug, table_id, cart, client_name, notes, tip } =
       CreateOrderSchema.parse(body)
 
     // Use service-role client — table clients are anonymous
@@ -110,8 +111,11 @@ export async function POST(req: NextRequest) {
 
     const realTableId = table.id
 
-    // 3. Calculate total
-    const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
+    // 3. Calculate subtotal (sin propina) y total (con propina)
+    // La propina NO debe incluirse en documentos tributarios (DTE)
+    const subtotal = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
+    const tipAmount = tip ?? 0
+    const total = subtotal + tipAmount
 
     // 4. Create order
     // La check constraint orders_total_equals_subtotal_plus_tip exige
@@ -122,9 +126,9 @@ export async function POST(req: NextRequest) {
         restaurant_id: restaurant.id,
         table_id: realTableId,
         status: 'pending',
-        subtotal: total,
-        tip: 0,
-        total,
+        subtotal,  // Monto sin propina (para DTE)
+        tip: tipAmount,  // Propina (no va en DTE)
+        total,  // subtotal + tip
         client_name: client_name ?? null,
         notes: notes ?? null,
       })
