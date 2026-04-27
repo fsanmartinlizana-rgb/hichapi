@@ -114,12 +114,16 @@ export async function POST(req: NextRequest) {
     const total = cart.reduce((sum, item) => sum + item.unit_price * item.quantity, 0)
 
     // 4. Create order
+    // La check constraint orders_total_equals_subtotal_plus_tip exige
+    // total = subtotal + tip. Sin tip → tip=0 → total = subtotal.
     const { data: order, error: orderErr } = await supabase
       .from('orders')
       .insert({
         restaurant_id: restaurant.id,
         table_id: realTableId,
         status: 'pending',
+        subtotal: total,
+        tip: 0,
         total,
         client_name: client_name ?? null,
         notes: notes ?? null,

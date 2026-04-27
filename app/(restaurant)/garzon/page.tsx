@@ -1,11 +1,12 @@
 'use client'
 
 import { useEffect, useState, useCallback, useMemo } from 'react'
+import Link from 'next/link'
 import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
-  RefreshCw, Wifi, WifiOff, AlertCircle, Ticket,
+  RefreshCw, Wifi, WifiOff, AlertCircle, Ticket, Plus,
 } from 'lucide-react'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
 import { CouponRedeemModal } from '@/components/restaurant/CouponRedeemModal'
@@ -650,7 +651,17 @@ export default function GarzonPage() {
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap justify-end">
+          {/* Nueva comanda — el más usado, más prominente */}
+          <Link
+            href="/comandas?nueva=1"
+            className="flex items-center gap-1.5 px-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors shadow-sm"
+            style={{ minHeight: 44 }}
+          >
+            <Plus size={14} />
+            <span className="hidden sm:inline">Nueva comanda</span>
+            <span className="sm:hidden">Comanda</span>
+          </Link>
           <button
             onClick={() => setShowCoupon(true)}
             className="flex items-center gap-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-colors"

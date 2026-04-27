@@ -1244,15 +1244,21 @@ export default function MesasPage() {
   const [editingLayout, setEditingLayout] = useState(false)
   const [zones, setZones] = useState<ZoneDef[]>([])
   const [showZonesManager, setShowZonesManager] = useState(false)
-  // Persistimos preferencia de lista de espera oculta en localStorage
+  // Persistimos preferencia de lista de espera oculta en localStorage.
+  // En mobile arranca SIEMPRE oculta para no tapar las mesas — el user
+  // la abre con el botón cuando la necesita.
   const [waitlistHidden, setWaitlistHidden] = useState<boolean>(() => {
     if (typeof window === 'undefined') return false
+    if (window.matchMedia('(max-width: 767px)').matches) return true
     return window.localStorage.getItem('hichapi_mesas_waitlist_hidden') === '1'
   })
 
   useEffect(() => {
     if (typeof window === 'undefined') return
-    window.localStorage.setItem('hichapi_mesas_waitlist_hidden', waitlistHidden ? '1' : '0')
+    // Solo persistir la preferencia desde desktop (en mobile siempre oculta por default)
+    if (!window.matchMedia('(max-width: 767px)').matches) {
+      window.localStorage.setItem('hichapi_mesas_waitlist_hidden', waitlistHidden ? '1' : '0')
+    }
   }, [waitlistHidden])
 
   const supabase = useMemo(() => createClient(), [])
@@ -1596,10 +1602,21 @@ export default function MesasPage() {
               {editingLayout ? <Lock size={12} /> : <Move size={12} />}
               {editingLayout ? 'Listo' : 'Editar plano'}
             </button>
+            {/* Nueva comanda — atajo prominente para garzones que llegan acá */}
+            <Link
+              href="/comandas?nueva=1"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e55a2b] transition-colors shadow-sm"
+              style={{ minHeight: 36 }}
+              title="Tomar una comanda manual"
+            >
+              <Plus size={12} />
+              <span className="hidden sm:inline">Nueva comanda</span>
+              <span className="sm:hidden">Comanda</span>
+            </Link>
             <Link
               href="/mesas/qrs"
               target="_blank"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-white/60 text-xs font-medium hover:text-white hover:border-white/25 transition-colors"
+              className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-white/60 text-xs font-medium hover:text-white hover:border-white/25 transition-colors"
               title="Imprimir o descargar todos los QR de mesas"
             >
               <QrCode size={12} /> Imprimir QRs
@@ -1607,8 +1624,11 @@ export default function MesasPage() {
             <button
               onClick={() => setShowNuevaMesa(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
+              title="Crear una mesa nueva"
             >
-              <Plus size={12} /> Agregar mesa
+              <Plus size={12} />
+              <span className="hidden sm:inline">Agregar mesa</span>
+              <span className="sm:hidden">Mesa</span>
             </button>
             <button
               onClick={() => setWaitlistHidden(v => !v)}
@@ -1775,9 +1795,26 @@ export default function MesasPage() {
         </button>
       )}
 
-      {/* ── Right: waitlist sidebar expandido ─────────────────────────── */}
+      {/* ── Right: waitlist sidebar expandido ──────────────────────────────
+          • Desktop: panel inline a la derecha (w-80 dentro del flex normal)
+          • Mobile: overlay fullscreen con backdrop oscuro + close button
+            grande para que el user pueda volver a las mesas. */}
       {!waitlistHidden && (
-      <div className="w-80 shrink-0 border-l border-white/5 flex flex-col bg-[#0D0D1A]">
+        <>
+          {/* Backdrop solo en mobile */}
+          <button
+            type="button"
+            aria-label="Cerrar lista de espera"
+            onClick={() => setWaitlistHidden(true)}
+            className="md:hidden fixed inset-0 z-30 bg-black/60 backdrop-blur-sm"
+          />
+          <div
+            className="
+              w-80 shrink-0 border-l border-white/5 flex flex-col bg-[#0D0D1A]
+              md:relative
+              fixed inset-y-0 right-0 z-40 max-w-[90vw] md:max-w-none md:z-auto
+            "
+          >
 
         {/* Sidebar header */}
         <div className="px-4 pt-5 pb-3 border-b border-white/5 shrink-0">
@@ -1789,7 +1826,17 @@ export default function MesasPage() {
                   {stats.enEspera}
                 </span>
               )}
-              <span className="text-white/20 text-[10px] italic">Gestión interna</span>
+              <span className="text-white/20 text-[10px] italic hidden md:inline">Gestión interna</span>
+              {/* Close button — visible siempre, prominente en mobile */}
+              <button
+                type="button"
+                onClick={() => setWaitlistHidden(true)}
+                aria-label="Cerrar lista de espera"
+                className="md:hidden p-2 -mr-1 rounded-lg text-white/60 hover:text-white hover:bg-white/8 transition-colors"
+                style={{ minHeight: 36, minWidth: 36 }}
+              >
+                <X size={16} />
+              </button>
             </div>
           </div>
           <p className="text-white/25 text-[10px]">
@@ -1840,7 +1887,8 @@ export default function MesasPage() {
         <div className="px-3 pb-4 shrink-0">
           <QuickAddForm onAdd={addToWaitlist} />
         </div>
-      </div>
+          </div>
+        </>
       )}
 
       {/* ── Assign modal ─────────────────────────────────────────────────── */}

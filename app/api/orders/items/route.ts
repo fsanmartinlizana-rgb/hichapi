@@ -88,9 +88,11 @@ export async function PATCH(req: NextRequest) {
   const newTotal = ((remaining ?? []) as { quantity: number; unit_price: number }[])
     .reduce((s, r) => s + r.quantity * r.unit_price, 0)
 
+  // Mantener subtotal sincronizado con total — la check constraint
+  // orders_total_equals_subtotal_plus_tip exige total = subtotal + tip.
   await supabase
     .from('orders')
-    .update({ total: newTotal })
+    .update({ total: newTotal, subtotal: newTotal })
     .eq('id', it.order_id)
 
   // Si no quedan ítems, liberar la mesa y cancelar la orden

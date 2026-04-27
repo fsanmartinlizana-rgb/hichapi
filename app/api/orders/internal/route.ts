@@ -136,9 +136,14 @@ export async function POST(req: NextRequest) {
     if (activeOrder) {
       orderId = (activeOrder as { id: string; total: number }).id
       isAddingToExisting = true
-      // Actualizar el total de la orden existente
+      // Actualizar total + subtotal de la orden existente.
+      // La check constraint orders_total_equals_subtotal_plus_tip exige
+      // total = subtotal + tip. Sin tip → tip=0 → total = subtotal.
       const newTotal = ((activeOrder as { id: string; total: number }).total ?? 0) + cartTotal
-      await supabase.from('orders').update({ total: newTotal }).eq('id', orderId)
+      await supabase.from('orders').update({
+        total:    newTotal,
+        subtotal: newTotal,
+      }).eq('id', orderId)
     } else {
       // Mesa ocupada pero sin orden activa encontrada — crear una nueva igual
       const { data: newOrder, error: newOrderErr } = await supabase
@@ -147,7 +152,9 @@ export async function POST(req: NextRequest) {
           restaurant_id: body.restaurant_id,
           table_id:      body.table_id,
           status:        'pending',
-          total:         cartTotal,
+          subtotal:      cartTotal,  // requerido por check constraint
+          tip:           0,
+          total:         cartTotal,  // = subtotal + tip
           client_name:   body.client_name ?? null,
           notes:         body.notes ?? null,
           pax:           body.pax ?? null,
@@ -172,7 +179,9 @@ export async function POST(req: NextRequest) {
         restaurant_id: body.restaurant_id,
         table_id:      body.table_id,
         status:        'pending',
-        total:         cartTotal,
+        subtotal:      cartTotal,  // requerido por check constraint
+        tip:           0,
+        total:         cartTotal,  // = subtotal + tip
         client_name:   body.client_name ?? null,
         notes:         body.notes ?? null,
         pax:           body.pax ?? null,

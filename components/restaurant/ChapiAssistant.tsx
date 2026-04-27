@@ -201,7 +201,7 @@ export function ChapiAssistant() {
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Abrir Chapi Assistant"
-        className="fixed bottom-5 right-5 z-40 group"
+        className="fixed bottom-20 md:bottom-5 right-5 z-50 group"
       >
         <span
           className="flex items-center gap-2 pl-3 pr-4 py-3 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] shadow-[0_8px_28px_-6px_rgba(255,107,53,0.55)] hover:shadow-[0_10px_36px_-4px_rgba(255,107,53,0.7)] hover:-translate-y-0.5 transition-all duration-200"
@@ -223,7 +223,7 @@ export function ChapiAssistant() {
 
   return (
     <div
-      className={`fixed bottom-5 right-5 left-5 sm:left-auto z-40 ${panelWidth} ${panelHeight}
+      className={`fixed bottom-20 md:bottom-5 right-5 left-5 sm:left-auto z-50 ${panelWidth} ${panelHeight}
                   bg-[#0F0F1C] border border-white/10 rounded-2xl shadow-2xl shadow-black/50
                   flex flex-col overflow-hidden`}
       role="dialog"
