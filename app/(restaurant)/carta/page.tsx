@@ -75,7 +75,11 @@ const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; h
 // Conversiones soportadas:
 //   • masa:    kg ↔ g  (1 kg = 1000 g)
 //   • volumen: l  ↔ ml (1 l = 1000 ml)
-//   • discretas (unidad/porcion/caja): sin conversión
+//   • discretas (unidad/porcion/caja): solo su propia unidad
+//
+// Para usar un ingrediente en otra unidad (ej: "Coca-Cola en ml" cuando el
+// stock está cargado como "unidad"), hay que crear el item de stock en la
+// unidad correcta primero (ml o l).
 
 type DisplayUnit = 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja'
 
@@ -87,6 +91,12 @@ const COMPATIBLE_UNITS: Record<string, DisplayUnit[]> = {
   unidad:  ['unidad'],
   porcion: ['porcion'],
   caja:    ['caja'],
+}
+
+const UNIT_FAMILY: Record<string, 'masa' | 'volumen' | 'discreta'> = {
+  kg: 'masa', g: 'masa',
+  l: 'volumen', ml: 'volumen',
+  unidad: 'discreta', porcion: 'discreta', caja: 'discreta',
 }
 
 /** Convierte una cantidad entre unidades compatibles. Si las unidades no son
@@ -169,7 +179,7 @@ function IngredientRow({
         <select
           value={displayUnit}
           onChange={e => handleUnitChange(e.target.value)}
-          title={`Stock guardado en ${baseUnit} — se convierte al elegir otra unidad`}
+          title={`Stock guardado en ${baseUnit} (${UNIT_FAMILY[baseUnit] ?? '—'}). Al cambiar de unidad se convierte automáticamente.`}
           className="px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white/80 text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none min-w-[60px] text-center"
         >
           {compatibleUnits.map(u => (
@@ -177,7 +187,10 @@ function IngredientRow({
           ))}
         </select>
       ) : (
-        <span className="px-2 py-2 rounded-xl bg-white/3 border border-white/6 text-white/40 text-xs min-w-[50px] text-center">
+        <span
+          className="px-2 py-2 rounded-xl bg-white/3 border border-white/6 text-white/40 text-xs min-w-[50px] text-center"
+          title={`Stock guardado como "${baseUnit}". Para usar gramos/ml registra el producto en otra unidad en /stock.`}
+        >
           {baseUnit}
         </span>
       )}
@@ -591,7 +604,10 @@ function ItemForm({
           <div>
             <label className="text-white/70 text-xs font-semibold">Ingredientes y gramaje</label>
             <p className="text-white/35 text-[10px] mt-0.5">
-              Se descuenta del stock automáticamente al confirmar pedido
+              Se descuenta del stock automáticamente al confirmar pedido.
+              Para tragos/bebidas usa items de stock en{' '}
+              <code className="text-white/55">l</code> o{' '}
+              <code className="text-white/55">ml</code>.
             </p>
           </div>
           {stockItems.length > 0 && (

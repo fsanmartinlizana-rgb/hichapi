@@ -53,39 +53,76 @@ export async function POST(req: NextRequest) {
         unit:           string | null
         category:       string | null
         cost_per_unit?: number | null
+        expiry_date?:   string | null
       }> = JSON.parse(itemsJson)
 
-      // 1. Buscar nombres existentes para evitar duplicar productos del
-      //    mismo restaurant. Hacemos esto en código en vez de ON CONFLICT
-      //    porque la tabla stock_items no tiene un UNIQUE en
-      //    (restaurant_id, name) y agregar uno romperia restaurants que
-      //    legítimamente tienen dos items con mismo nombre y unidad
-      //    distinta (ej: "Salmón" en kg vs "Salmón" en porción).
+      // 1. Buscar items existentes con el mismo nombre. Si existe → SUMAR
+      //    qty al stock actual y mantener la fecha de vencimiento más cercana
+      //    (FIFO simple). Si no existe → INSERT nuevo.
       const names = items.map(i => i.name).filter(Boolean)
       const { data: existing } = await supabase
         .from('stock_items')
-        .select('name')
+        .select('id, name, current_qty, cost_per_unit, expiry_date')
         .eq('restaurant_id', restaurant_id)
         .in('name', names)
 
-      type ExistingRow = { name: string | null }
-      const existingSet = new Set((existing ?? []).map((r: ExistingRow) => (r.name ?? '').toLowerCase().trim()))
+      type ExistingRow = {
+        id: string
+        name: string | null
+        current_qty: number | null
+        cost_per_unit: number | null
+        expiry_date: string | null
+      }
+      const existingByName = new Map<string, ExistingRow>(
+        (existing ?? []).map((r: ExistingRow) => [(r.name ?? '').toLowerCase().trim(), r]),
+      )
 
-      // 2. Filtrar solo los nuevos
-      const newItems = items.filter(i => i.name && !existingSet.has(i.name.toLowerCase().trim()))
+      // 2. Separar en 2 grupos: nuevos vs existentes-a-actualizar
+      const toInsert: Array<{
+        restaurant_id:  string
+        name:           string
+        current_qty:    number
+        unit:           'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja'
+        category:       string
+        min_qty:        number
+        cost_per_unit:  number
+        active:         boolean
+        expiry_date?:   string | null
+      }> = []
+      const toUpdate: Array<{
+        existing:     ExistingRow
+        addedQty:     number
+        newCost:      number | null
+        newExpiry:    string | null
+      }> = []
 
-      const toInsert = newItems.map(item => ({
-        restaurant_id,
-        name:          item.name,
-        current_qty:   item.quantity ?? 0,
-        unit:          (item.unit ?? 'unidad') as 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja',
-        category:      item.category ?? 'otros',
-        min_qty:       0,
-        cost_per_unit: Math.round(item.cost_per_unit ?? 0),
-        active:        true,
-      }))
+      for (const item of items) {
+        if (!item.name) continue
+        const key = item.name.toLowerCase().trim()
+        const exist = existingByName.get(key)
+        if (exist) {
+          toUpdate.push({
+            existing:  exist,
+            addedQty:  item.quantity ?? 0,
+            newCost:   item.cost_per_unit ?? null,
+            newExpiry: item.expiry_date ?? null,
+          })
+        } else {
+          toInsert.push({
+            restaurant_id,
+            name:          item.name,
+            current_qty:   item.quantity ?? 0,
+            unit:          (item.unit ?? 'unidad') as 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja',
+            category:      item.category ?? 'otros',
+            min_qty:       0,
+            cost_per_unit: Math.round(item.cost_per_unit ?? 0),
+            active:        true,
+            expiry_date:   item.expiry_date ?? null,
+          })
+        }
+      }
 
-      // 3. Insert simple (sin onConflict — los duplicados ya filtrados)
+      // 3. INSERT de los nuevos
       let insertedCount = 0
       if (toInsert.length > 0) {
         const { data: inserted, error: insertErr } = await supabase
@@ -97,8 +134,7 @@ export async function POST(req: NextRequest) {
         }
         insertedCount = inserted?.length ?? toInsert.length
 
-        // 4. Para cada item nuevo con qty > 0, registrar movimiento de compra
-        //    así el inventario tiene trazabilidad de la entrada
+        // Movimiento "compra" por cada item nuevo con qty > 0
         type InsertedRow = { id: string; current_qty: number | null }
         const movementsToInsert = (inserted ?? [])
           .filter((r: InsertedRow) => (r.current_qty ?? 0) > 0)
@@ -113,17 +149,64 @@ export async function POST(req: NextRequest) {
         }
       }
 
-      const skippedCount = items.length - newItems.length
+      // 4. UPDATE de los existentes — SUMAR qty + mantener expiry más cercana
+      let updatedCount = 0
+      for (const u of toUpdate) {
+        if (u.addedQty <= 0) {
+          updatedCount++
+          continue // nada que sumar, solo skip
+        }
+        const newTotalQty = (u.existing.current_qty ?? 0) + u.addedQty
+        // Expiry: tomar la MÁS CERCANA entre la actual y la nueva (FIFO simple)
+        let nextExpiry = u.existing.expiry_date
+        if (u.newExpiry) {
+          if (!nextExpiry || new Date(u.newExpiry) < new Date(nextExpiry)) {
+            nextExpiry = u.newExpiry
+          }
+        }
+        // Costo: si llega un costo nuevo válido, hacer promedio ponderado
+        // por cantidad (más realista que reemplazar o ignorar)
+        let nextCost = u.existing.cost_per_unit ?? 0
+        if (u.newCost && u.newCost > 0) {
+          const oldQty = u.existing.current_qty ?? 0
+          if (oldQty + u.addedQty > 0) {
+            nextCost = Math.round(
+              ((nextCost * oldQty) + (u.newCost * u.addedQty)) / (oldQty + u.addedQty),
+            )
+          }
+        }
+
+        const { error: updErr } = await supabase
+          .from('stock_items')
+          .update({
+            current_qty:   newTotalQty,
+            cost_per_unit: nextCost,
+            expiry_date:   nextExpiry,
+            updated_at:    new Date().toISOString(),
+          })
+          .eq('id', u.existing.id)
+
+        if (!updErr) {
+          updatedCount++
+          // Registrar movimiento de compra por la cantidad sumada
+          await supabase.from('stock_movements').insert({
+            stock_item_id: u.existing.id,
+            restaurant_id,
+            delta:         u.addedQty,
+            reason:        'compra',
+          })
+        }
+      }
 
       await supabase.from('inventory_imports').update({
         status: 'completed',
-        imported_items: insertedCount,
+        imported_items: insertedCount + updatedCount,
       }).eq('restaurant_id', restaurant_id).eq('status', 'processing')
 
       return NextResponse.json({
         ok:       true,
         imported: insertedCount,
-        skipped:  skippedCount,
+        updated:  updatedCount,
       })
     }
 

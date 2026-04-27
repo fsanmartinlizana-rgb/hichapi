@@ -44,26 +44,72 @@ function buildContentBlock(b64: string, mime: string): Anthropic.ContentBlockPar
 
 const EXTRACTION_PROMPT = `Eres un asistente experto que analiza cartas de restaurantes en Chile.
 
-Tu tarea: extraer todos los platos / bebidas de la carta (imagen o PDF).
+Tu tarea: extraer TODOS los platos / bebidas de la carta (imagen o PDF) y
+devolverlos via la herramienta extract_menu.
 
-Para cada ítem devuelve:
-- name: nombre del plato
-- description: descripción corta (si existe en la carta). Si no hay, omite el campo.
-- price: precio en pesos chilenos como número entero (sin $, sin puntos, sin comas). Ejemplo: 18000. Si la carta dice "18.000" o "$18.000", tú devuelves 18000.
-- category: una de ["entrada", "principal", "postre", "bebida", "para compartir"]. Infiere por contexto.
-- tags: array de tags relevantes del catálogo: ["vegano", "vegetariano", "sin gluten", "sin lactosa", "picante", "popular", "nuevo", "especialidad", "para compartir"]. Solo incluye los que apliquen.
-- ingredients: array OPCIONAL de { name, qty, unit } cuando la carta menciona explícitamente el gramaje o los ingredientes con cantidad. Ejemplo: si la carta dice "Lomo vetado 250g con papas rústicas 150g", devuelve:
-  ingredients: [{"name": "Lomo vetado", "qty": 250, "unit": "g"}, {"name": "Papas rústicas", "qty": 150, "unit": "g"}].
-  Unidades válidas: kg, g, l, ml, unidad, porcion, caja.
-  Si la carta NO menciona cantidades por ingrediente, omite el campo.
+Reglas:
+- Procesa todas las páginas si es PDF multi-página.
+- Si un ítem NO tiene precio claro visible, omítelo.
+- Incluye combos y menú del día si aparecen.
+- Usa los nombres tal como aparecen (respetando tildes).
+- Para precios chilenos: convertí "$18.000" o "18.000" a 18000 (entero, sin separadores).
+- Para ingredients: solo cuando la carta menciona EXPLÍCITAMENTE el gramaje
+  o cantidad por ingrediente. Si no hay receta visible, omitir el array.`
 
-REGLAS:
-- Devuelve SOLO JSON válido (sin markdown, sin prefacio).
-- Formato exacto: { "items": [ ... ] }
-- Si un ítem no tiene precio claro, omítelo.
-- Si ves sugerencias tipo "combos" o "menú del día", también inclúyelos.
-- Usa nombres tal como aparecen en la carta (respetando tildes).
-- Si es un PDF de varias páginas, procesa todas las páginas.`
+// Tool schema — Anthropic garantiza que la respuesta cumple este schema,
+// evitando los problemas de JSON malformado con cartas largas.
+const EXTRACT_TOOL: Anthropic.Tool = {
+  name: 'extract_menu',
+  description: 'Devuelve la lista estructurada de platos detectados en la carta.',
+  input_schema: {
+    type: 'object',
+    properties: {
+      items: {
+        type: 'array',
+        description: 'Array de platos extraídos.',
+        items: {
+          type: 'object',
+          properties: {
+            name:        { type: 'string', description: 'Nombre del plato' },
+            description: { type: 'string', description: 'Descripción corta. Vacío si no hay.' },
+            price:       { type: 'number', description: 'Precio en CLP entero, sin separadores.' },
+            category:    {
+              type: 'string',
+              enum: ['entrada', 'principal', 'postre', 'bebida', 'para compartir'],
+              description: 'Categoría inferida por contexto.',
+            },
+            tags: {
+              type: 'array',
+              items: {
+                type: 'string',
+                enum: ['vegano', 'vegetariano', 'sin gluten', 'sin lactosa', 'picante', 'popular', 'nuevo', 'especialidad', 'para compartir'],
+              },
+              description: 'Tags relevantes.',
+            },
+            ingredients: {
+              type: 'array',
+              description: 'Receta cuando la carta indica gramaje. Omitir si no hay receta visible.',
+              items: {
+                type: 'object',
+                properties: {
+                  name: { type: 'string', description: 'Nombre del ingrediente' },
+                  qty:  { type: 'number', description: 'Cantidad numérica' },
+                  unit: {
+                    type: 'string',
+                    enum: ['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja'],
+                  },
+                },
+                required: ['name', 'qty', 'unit'],
+              },
+            },
+          },
+          required: ['name', 'price', 'category'],
+        },
+      },
+    },
+    required: ['items'],
+  },
+}
 
 export async function POST(req: NextRequest) {
   const { error: authErr } = await requireUser()
@@ -82,18 +128,16 @@ export async function POST(req: NextRequest) {
       ...body.images.map(b64 => buildContentBlock(b64, body.mime)),
     ]
 
+    // Forzamos tool_use para que la respuesta sea SIEMPRE JSON válido
+    // (sin riesgo de markdown, comillas mal escapadas o truncado en medio
+    // de un string como pasaba con max_tokens=3000 + carta larga).
     const response = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 3000,
-      messages: [{ role: 'user', content }],
+      model:       'claude-sonnet-4-5-20250929',
+      max_tokens:  8000,            // Subir tope para cartas largas (PDFs)
+      tools:       [EXTRACT_TOOL],
+      tool_choice: { type: 'tool', name: EXTRACT_TOOL.name },
+      messages:    [{ role: 'user', content }],
     })
-
-    const raw = response.content
-      .filter(c => c.type === 'text')
-      .map(c => (c as { text: string }).text)
-      .join('\n')
-
-    const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
     type ExtractedIngredient = { name: string; qty: number; unit: string }
     type ExtractedItem = {
@@ -104,16 +148,28 @@ export async function POST(req: NextRequest) {
       tags?:        string[]
       ingredients?: ExtractedIngredient[]
     }
-    let parsed: { items?: ExtractedItem[] }
-    try {
-      parsed = JSON.parse(cleaned)
-    } catch {
-      // Try to find a JSON object in the text
-      const match = cleaned.match(/\{[\s\S]*\}/)
-      if (!match) {
-        return NextResponse.json({ error: 'No se pudo analizar la carta', raw: cleaned.slice(0, 400) }, { status: 422 })
-      }
-      parsed = JSON.parse(match[0])
+
+    // Buscar el tool_use block en la respuesta
+    const toolUse = response.content.find(
+      (c): c is Anthropic.ToolUseBlock => c.type === 'tool_use' && c.name === EXTRACT_TOOL.name,
+    )
+
+    if (!toolUse) {
+      // Fallback raro: el modelo no usó la tool (puede pasar si stop_reason es algo distinto)
+      console.error('[menu-items/extract] modelo no devolvió tool_use', {
+        stop_reason: response.stop_reason,
+        content:     response.content.map(c => c.type),
+      })
+      return NextResponse.json(
+        { error: 'No se pudo extraer la carta. Probá de nuevo o usa una imagen más clara.' },
+        { status: 422 },
+      )
+    }
+
+    const parsed = (toolUse.input ?? {}) as { items?: ExtractedItem[] }
+
+    if (response.stop_reason === 'max_tokens') {
+      console.warn('[menu-items/extract] respuesta truncada por max_tokens — algunos items pueden faltar')
     }
 
     const VALID_UNITS = new Set(['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja'])
@@ -144,7 +200,12 @@ export async function POST(req: NextRequest) {
           : [],
       }))
 
-    return NextResponse.json({ ok: true, items, count: items.length })
+    return NextResponse.json({
+      ok:        true,
+      items,
+      count:     items.length,
+      truncated: response.stop_reason === 'max_tokens',
+    })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Datos inválidos', details: err.issues }, { status: 400 })

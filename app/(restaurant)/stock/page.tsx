@@ -396,7 +396,7 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
   const [error, setError]       = useState('')
   const [items, setItems]       = useState<ExtractedItem[] | null>(null)
   const [confirming, setConfirming] = useState(false)
-  const [done, setDone]         = useState<{ imported: number } | null>(null)
+  const [done, setDone]         = useState<{ imported: number; updated: number } | null>(null)
 
   function validate(f: File): string {
     const ext = '.' + (f.name.split('.').pop()?.toLowerCase() ?? '')
@@ -474,7 +474,10 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
         return
       }
       const data = await res.json()
-      setDone({ imported: data.imported ?? items.length })
+      setDone({
+        imported: data.imported ?? 0,
+        updated:  data.updated ?? 0,
+      })
     } catch {
       setError('Error de red')
     } finally {
@@ -507,6 +510,7 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
 
   // Estado: importación lista
   if (done) {
+    const total = done.imported + done.updated
     return (
       <div className="space-y-4 max-w-lg">
         <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 space-y-3">
@@ -514,9 +518,17 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
             <Check size={18} className="text-green-400" />
             <h3 className="text-green-300 font-semibold text-sm">Importación completada</h3>
           </div>
-          <p className="text-white/85 text-sm">
-            {done.imported} {done.imported === 1 ? 'producto agregado' : 'productos agregados'} al inventario.
-          </p>
+          <ul className="text-white/85 text-sm space-y-1">
+            {done.imported > 0 && (
+              <li>✓ <strong>{done.imported}</strong> {done.imported === 1 ? 'producto nuevo' : 'productos nuevos'} agregados</li>
+            )}
+            {done.updated > 0 && (
+              <li>↻ <strong>{done.updated}</strong> {done.updated === 1 ? 'producto existente actualizado' : 'productos existentes actualizados'} (sumamos al stock y mantuvimos la fecha de vencimiento más cercana)</li>
+            )}
+            {total === 0 && (
+              <li className="text-amber-300">No se procesó ningún producto.</li>
+            )}
+          </ul>
         </div>
         <button onClick={reset} className="flex items-center gap-2 px-4 py-2 text-sm bg-white/10 text-white rounded-lg hover:bg-white/15 transition-colors" style={{ minHeight: 44 }}>
           <Camera size={14} /> Importar otra foto
@@ -719,9 +731,54 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
   )
 }
 
+/** Calcula días restantes hasta el vencimiento. Negativo si ya venció. */
+function daysToExpiry(expiryDate: string | null | undefined): number | null {
+  if (!expiryDate) return null
+  const ms = new Date(expiryDate).getTime() - Date.now()
+  return Math.ceil(ms / (1000 * 60 * 60 * 24))
+}
+
 function StatusBadge({ item }: { item: StockItem }) {
+  // Vencimiento: prioridad sobre stock bajo (más urgente)
+  const days = daysToExpiry(item.expiry_date)
+  const alertDays = item.alert_days_before ?? 3
+  if (days !== null) {
+    if (days < 0) {
+      return (
+        <span
+          className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/25 text-red-300"
+          title={`Vencido el ${item.expiry_date}`}
+        >
+          Vencido hace {Math.abs(days)}d
+        </span>
+      )
+    }
+    if (days <= alertDays) {
+      return (
+        <span
+          className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-orange-500/25 text-orange-300"
+          title={`Vence el ${item.expiry_date}`}
+        >
+          ⏰ Vence en {days}d
+        </span>
+      )
+    }
+  }
+
   if (item.current_qty < 0) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/20 text-red-400">Negativo</span>
   if (item.current_qty <= item.min_qty) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-400">Bajo mínimo</span>
+
+  // Si tiene fecha de vencimiento pero no está cerca, mostrar info verde discreta
+  if (days !== null && days > alertDays) {
+    return (
+      <span
+        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-400"
+        title={`Vence el ${item.expiry_date}`}
+      >
+        Vence en {days}d
+      </span>
+    )
+  }
   return null
 }
 
