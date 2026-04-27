@@ -25,6 +25,7 @@ import { FAQAccordion } from './FAQAccordion'
 import HiChapiSolar from '@/components/landing/HiChapiSolar'
 import HiChapiLogo from '@/components/landing/HiChapiLogo'
 import AudienceLanding from '@/components/landing/AudienceLanding'
+import PricingCard from '@/components/landing/PricingCard'
 
 export const metadata: Metadata = {
   title: 'HiChapi — Tu guia gastronomica inteligente en Santiago',
@@ -233,7 +234,7 @@ const PLANS = [
       'Lista de espera digital',
       'Turnos del personal',
     ],
-    note: '+ 1% por transacción registrada — sin importar el medio de pago (efectivo, tarjeta o digital)',
+    note: '+ 1% por transacción',
     cta: 'Empezar gratis 30 dias',
     href: '/register?plan=starter',
     highlighted: false,
@@ -252,7 +253,7 @@ const PLANS = [
       'Fidelizacion y promociones',
       'Chapi Insights con datos reales',
     ],
-    note: '+ 1% por transacción registrada — sin importar el medio de pago (efectivo, tarjeta o digital)',
+    note: '+ 1% por transacción',
     cta: 'Empezar gratis 30 dias',
     href: '/register?plan=pro',
     highlighted: true,
@@ -260,9 +261,9 @@ const PLANS = [
   {
     name: 'Enterprise',
     badge: 'Multi-local',
-    price: 'Desde $29.990',
-    period: '/ local / mes',
-    description: 'Para holdings con 2+ locales. El precio por local baja con la escala.',
+    price: '$129.990',
+    period: '/ 2 locales / mes',
+    description: 'Para holdings con 2+ locales. Cada local adicional $29.990.',
     features: [
       'Todo lo de Pro',
       'Dashboard consolidado de todos los locales',
@@ -273,7 +274,7 @@ const PLANS = [
       'Agente IA de soporte 24/7',
       'Comision escalonada segun volumen del holding',
     ],
-    note: 'Precio por local baja con la cantidad de locales · Comision desde 1% hasta 0.5%',
+    note: '+ $29.990 por cada local adicional',
     cta: 'Contactar ventas',
     href: '/contacto?plan=enterprise',
     highlighted: false,
@@ -579,7 +580,7 @@ function RestaurantNumbers() {
           {[
             { value: '$0', label: 'en web propia', sub: 'vs $200k en agencia' },
             { value: '<5 min', label: 'para publicar', sub: 'tu pagina' },
-            { value: '1%', label: 'por transacción', sub: '(Rappi: 30%)' },
+            { value: '1%', label: 'por transacción', sub: 'sin importar el medio de pago' },
             { value: '+23%', label: 'ticket promedio', sub: 'con QR' },
           ].map(({ value, label, sub }) => (
             <div key={label} className="text-center">
@@ -751,68 +752,9 @@ function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 lg:gap-6 max-w-7xl mx-auto">
-          {PLANS.map(({ name, badge, price, period, description, features, note, cta, href, highlighted }) => (
-            <div
-              key={name}
-              className={`relative rounded-3xl p-6 lg:p-7 flex flex-col ${
-                highlighted
-                  ? 'border-2 border-[#FF6B35] bg-white shadow-xl shadow-[#FF6B35]/10'
-                  : 'border border-neutral-200 bg-white shadow-sm'
-              }`}
-            >
-              {/* Plan name */}
-              <p className="text-sm font-bold text-[#1A1A2E] mb-1">{name}</p>
-              {/* Badge */}
-              {highlighted ? (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2 bg-[#FF6B35] text-white text-xs font-bold px-4 py-1 rounded-full whitespace-nowrap">
-                  {badge}
-                </div>
-              ) : (
-                <span className="text-xs font-semibold text-neutral-400 uppercase tracking-wider mb-2">
-                  {badge}
-                </span>
-              )}
-
-              {/* Price */}
-              <div className="mb-4 mt-2">
-                <span className="text-4xl font-extrabold text-[#1A1A2E]" style={{ fontFamily: 'var(--font-dm-mono), monospace' }}>
-                  {price}
-                </span>
-                <span className="text-sm text-neutral-400 ml-1">{period}</span>
-              </div>
-
-              <p className="text-sm text-neutral-500 mb-6 leading-relaxed">{description}</p>
-
-              {/* Features */}
-              <ul className="space-y-3 mb-6 flex-1">
-                {features.map(feat => (
-                  <li key={feat} className="flex items-start gap-2.5 text-sm text-[#1A1A2E]">
-                    <Check size={16} className="text-[#FF6B35] shrink-0 mt-0.5" />
-                    {feat}
-                  </li>
-                ))}
-              </ul>
-
-              {/* Note */}
-              {note && (
-                <p className="text-xs text-neutral-400 mb-4 px-3 py-2 bg-neutral-50 rounded-lg text-center">
-                  {note}
-                </p>
-              )}
-
-              {/* CTA */}
-              <Link
-                href={href}
-                className={`block text-center py-3.5 rounded-xl font-semibold text-sm transition-all ${
-                  highlighted
-                    ? 'bg-[#FF6B35] text-white hover:bg-[#e55a2b] shadow-sm'
-                    : 'border border-neutral-200 text-[#1A1A2E] hover:border-[#FF6B35] hover:text-[#FF6B35]'
-                }`}
-              >
-                {cta}
-              </Link>
-            </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 max-w-7xl mx-auto">
+          {PLANS.map(plan => (
+            <PricingCard key={plan.name} {...plan} />
           ))}
         </div>
 

@@ -31,6 +31,20 @@ async function ensureSuperAdmin(userId: string) {
   return (data ?? []).length > 0
 }
 
+/**
+ * Auth dual: x-admin-secret header (founder dashboard) o cookie super_admin.
+ */
+async function authorize(req: NextRequest): Promise<{ ok: true } | { ok: false; res: NextResponse }> {
+  const adminSecret = process.env.ADMIN_SECRET
+  if (adminSecret && adminSecret.length >= 20 && req.headers.get('x-admin-secret') === adminSecret) {
+    return { ok: true }
+  }
+  const { user, error: authErr } = await requireUser()
+  if (authErr || !user) return { ok: false, res: authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 }) }
+  if (!(await ensureSuperAdmin(user.id))) return { ok: false, res: NextResponse.json({ error: 'Solo super admin' }, { status: 403 }) }
+  return { ok: true }
+}
+
 export async function GET(req: NextRequest) {
   const { user, error: authErr } = await requireUser()
   if (authErr || !user) return authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
@@ -55,11 +69,8 @@ export async function GET(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
-  const { user, error: authErr } = await requireUser()
-  if (authErr || !user) return authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!(await ensureSuperAdmin(user.id))) {
-    return NextResponse.json({ error: 'Solo super admin' }, { status: 403 })
-  }
+  const auth = await authorize(req)
+  if (!auth.ok) return auth.res
 
   let body: z.infer<typeof UpdateSchema>
   try {

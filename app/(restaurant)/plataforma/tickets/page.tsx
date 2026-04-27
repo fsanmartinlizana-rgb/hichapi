@@ -94,10 +94,18 @@ export default function SupportTicketsPage() {
   if (!isSuperAdmin) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <div className="text-center space-y-3">
-          <Shield size={32} className="text-red-400 mx-auto" />
-          <p className="text-white font-semibold">Acceso restringido</p>
-          <p className="text-white/40 text-sm">Solo super admins.</p>
+        <div className="text-center space-y-3 max-w-sm px-6">
+          <Shield size={32} className="text-amber-400 mx-auto" />
+          <p className="text-white font-semibold">Esta vista se movió</p>
+          <p className="text-white/55 text-sm leading-relaxed">
+            La gestión de tickets del founder ahora vive en el panel de admin.
+          </p>
+          <a
+            href="/admin/dashboard"
+            className="inline-flex items-center justify-center px-4 py-2 rounded-lg bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors"
+          >
+            Ir al panel de admin
+          </a>
         </div>
       </div>
     )

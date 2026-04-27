@@ -6,6 +6,7 @@ import {
   DollarSign, Star, LifeBuoy, AlertTriangle,
 } from 'lucide-react'
 import ActivationFunnel from '@/components/admin/ActivationFunnel'
+import AdminTicketsTab from '@/components/admin/AdminTicketsTab'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -293,34 +294,11 @@ export default function FounderDashboardPage() {
         )}
 
         {tab === 'tickets' && (
-          <div className="space-y-2">
-            {data.recent_tickets.map(t => {
-              const sevColor = t.severity === 'critical' ? 'text-red-300 bg-red-500/10 border-red-500/30'
-                             : t.severity === 'medium'   ? 'text-amber-300 bg-amber-500/10 border-amber-500/30'
-                             : 'text-white/50 bg-white/5 border-white/10'
-              const statusColor = t.status === 'open'          ? 'text-red-300'
-                                : t.status === 'investigating' ? 'text-amber-300'
-                                : t.status === 'resolved'      ? 'text-emerald-300'
-                                : 'text-white/40'
-              return (
-                <div key={t.id} className="p-4 rounded-xl border border-white/8 bg-white/3">
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
-                      <LifeBuoy size={13} className="text-white/40" />
-                      <p className="font-medium text-sm">{t.subject}</p>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${sevColor}`}>{t.severity}</span>
-                    </div>
-                    <span className={`text-xs ${statusColor} capitalize`}>{t.status}</span>
-                  </div>
-                  <p className="text-xs text-white/50 line-clamp-2">{t.description}</p>
-                  <p className="text-[10px] text-white/25 mt-2">{new Date(t.created_at).toLocaleString('es-CL')}</p>
-                </div>
-              )
-            })}
-            {data.recent_tickets.length === 0 && (
-              <div className="text-center py-10 text-white/30">Sin tickets</div>
-            )}
-          </div>
+          <AdminTicketsTab
+            tickets={data.recent_tickets}
+            adminSecret={secret}
+            onRefresh={() => load()}
+          />
         )}
       </div>
     </main>

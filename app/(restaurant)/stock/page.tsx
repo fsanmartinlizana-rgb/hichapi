@@ -5,6 +5,7 @@ import {
   Package, AlertTriangle, ShoppingCart, Upload, List,
   Plus, Filter, Pencil, SlidersHorizontal, Trash2, FlaskConical,
   X, Check, ChevronRight, FileText, Send, RotateCcw,
+  Camera, Loader2, Sparkles,
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { useStockAlerts } from '@/lib/stock/useStockAlerts'
@@ -12,7 +13,7 @@ import { useStockRealtime } from '@/lib/stock/useStockRealtime'
 import type { StockItem } from '@/lib/stock/useStockAlerts'
 import { formatCurrency } from '@/lib/i18n'
 
-type StockTab = 'inventario' | 'movimientos' | 'importar' | 'ordenes'
+type StockTab = 'inventario' | 'movimientos' | 'importar' | 'foto' | 'ordenes'
 const UNITS = ['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja', 'onza'] as const
 type Unit = typeof UNITS[number]
 
@@ -362,6 +363,328 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// FotoTab — importación por foto/PDF de boleta o factura usando Claude Vision.
+// Llama a /api/inventory/import (que ya existe). Flow de 2 pasos:
+//   1. Upload imagen → endpoint extrae items con Vision → preview editable
+//   2. Confirmar → batch insert en stock_items
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ExtractedItem {
+  name:     string
+  quantity: number | null
+  unit:     string | null
+  category: string | null
+}
+
+const VISION_VALID_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
+const VISION_VALID_EXTS  = ['.jpg', '.jpeg', '.png', '.webp', '.pdf']
+const VISION_MAX_SIZE    = 10 * 1024 * 1024 // 10 MB
+const VISION_UNITS       = ['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja']
+
+function FotoTab({ restaurantId }: { restaurantId: string }) {
+  const [file, setFile]         = useState<File | null>(null)
+  const [preview, setPreview]   = useState<string | null>(null)
+  const [fileError, setFileError] = useState('')
+  const [extracting, setExtracting] = useState(false)
+  const [error, setError]       = useState('')
+  const [items, setItems]       = useState<ExtractedItem[] | null>(null)
+  const [confirming, setConfirming] = useState(false)
+  const [done, setDone]         = useState<{ imported: number } | null>(null)
+
+  function validate(f: File): string {
+    const ext = '.' + (f.name.split('.').pop()?.toLowerCase() ?? '')
+    if (!VISION_VALID_TYPES.includes(f.type) && !VISION_VALID_EXTS.includes(ext)) {
+      return 'Solo se aceptan imágenes (JPG, PNG, WEBP) o PDF'
+    }
+    if (f.size > VISION_MAX_SIZE) {
+      return `El archivo supera 10 MB (${(f.size / 1024 / 1024).toFixed(1)} MB)`
+    }
+    return ''
+  }
+
+  function handleSelect(f: File) {
+    const err = validate(f)
+    setFileError(err)
+    setError('')
+    setItems(null)
+    setDone(null)
+    if (err) {
+      setFile(null)
+      setPreview(null)
+      return
+    }
+    setFile(f)
+    if (f.type.startsWith('image/')) {
+      const url = URL.createObjectURL(f)
+      setPreview(url)
+    } else {
+      setPreview(null)
+    }
+  }
+
+  async function processFile() {
+    if (!file) return
+    setExtracting(true)
+    setError('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('restaurant_id', restaurantId)
+      const res = await fetch('/api/inventory/import', { method: 'POST', body: form })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setError(d.error ?? 'Error procesando archivo')
+        return
+      }
+      const data = await res.json()
+      const extracted: ExtractedItem[] = data.items ?? []
+      if (extracted.length === 0) {
+        setError('No se detectaron productos en el archivo. Probá con una imagen más clara.')
+        return
+      }
+      setItems(extracted)
+    } catch {
+      setError('Error de red')
+    } finally {
+      setExtracting(false)
+    }
+  }
+
+  async function confirmImport() {
+    if (!items || !file) return
+    setConfirming(true)
+    setError('')
+    try {
+      const form = new FormData()
+      form.append('file', file)
+      form.append('restaurant_id', restaurantId)
+      form.append('confirm', 'true')
+      form.append('items', JSON.stringify(items))
+      const res = await fetch('/api/inventory/import', { method: 'POST', body: form })
+      if (!res.ok) {
+        const d = await res.json().catch(() => ({}))
+        setError(d.error ?? 'Error confirmando importación')
+        return
+      }
+      const data = await res.json()
+      setDone({ imported: data.imported ?? items.length })
+    } catch {
+      setError('Error de red')
+    } finally {
+      setConfirming(false)
+    }
+  }
+
+  function reset() {
+    if (preview) URL.revokeObjectURL(preview)
+    setFile(null)
+    setPreview(null)
+    setFileError('')
+    setError('')
+    setItems(null)
+    setDone(null)
+  }
+
+  function updateItem(idx: number, patch: Partial<ExtractedItem>) {
+    setItems(prev => {
+      if (!prev) return prev
+      const next = [...prev]
+      next[idx] = { ...next[idx], ...patch }
+      return next
+    })
+  }
+
+  function removeItem(idx: number) {
+    setItems(prev => prev ? prev.filter((_, i) => i !== idx) : prev)
+  }
+
+  // Estado: importación lista
+  if (done) {
+    return (
+      <div className="space-y-4 max-w-lg">
+        <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 space-y-3">
+          <div className="flex items-center gap-2">
+            <Check size={18} className="text-green-400" />
+            <h3 className="text-green-300 font-semibold text-sm">Importación completada</h3>
+          </div>
+          <p className="text-white/85 text-sm">
+            {done.imported} {done.imported === 1 ? 'producto agregado' : 'productos agregados'} al inventario.
+          </p>
+        </div>
+        <button onClick={reset} className="flex items-center gap-2 px-4 py-2 text-sm bg-white/10 text-white rounded-lg hover:bg-white/15 transition-colors" style={{ minHeight: 44 }}>
+          <Camera size={14} /> Importar otra foto
+        </button>
+      </div>
+    )
+  }
+
+  // Estado: extracción lista para revisar
+  if (items) {
+    return (
+      <div className="space-y-4 max-w-4xl">
+        <div className="rounded-2xl border border-[#FF6B35]/30 bg-[#FF6B35]/5 p-4 flex items-start gap-3">
+          <Sparkles size={16} className="text-[#FF6B35] mt-0.5 shrink-0" />
+          <div className="flex-1">
+            <p className="text-white font-semibold text-sm">
+              Chapi detectó {items.length} {items.length === 1 ? 'producto' : 'productos'}
+            </p>
+            <p className="text-white/55 text-xs mt-1">
+              Revisá y editá si hace falta. Los datos se agregan al inventario al confirmar.
+            </p>
+          </div>
+        </div>
+
+        {/* Tabla editable */}
+        <div className="rounded-2xl border border-white/10 overflow-hidden">
+          <div className="grid grid-cols-[2fr_1fr_1fr_1.2fr_40px] gap-2 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white/45">
+            <div>Producto</div>
+            <div>Cantidad</div>
+            <div>Unidad</div>
+            <div>Categoría</div>
+            <div></div>
+          </div>
+          {items.map((it, i) => (
+            <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1.2fr_40px] gap-2 px-3 py-2 items-center border-t border-white/5">
+              <input
+                type="text"
+                value={it.name}
+                onChange={e => updateItem(i, { name: e.target.value })}
+                className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF6B35]/50"
+              />
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.001"
+                value={it.quantity ?? ''}
+                onChange={e => updateItem(i, { quantity: e.target.value ? parseFloat(e.target.value) : null })}
+                className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF6B35]/50"
+              />
+              <select
+                value={it.unit ?? 'unidad'}
+                onChange={e => updateItem(i, { unit: e.target.value })}
+                className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF6B35]/50"
+              >
+                {VISION_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
+              </select>
+              <input
+                type="text"
+                value={it.category ?? ''}
+                onChange={e => updateItem(i, { category: e.target.value })}
+                placeholder="(sin categoría)"
+                className="bg-white/5 border border-white/10 rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF6B35]/50"
+              />
+              <button
+                onClick={() => removeItem(i)}
+                className="text-white/30 hover:text-red-400 flex items-center justify-center"
+                style={{ minHeight: 36, minWidth: 36 }}
+                aria-label="Quitar"
+              >
+                <X size={14} />
+              </button>
+            </div>
+          ))}
+        </div>
+
+        {error && <p className="text-red-400 text-sm">{error}</p>}
+
+        <div className="flex items-center gap-2">
+          <button
+            onClick={confirmImport}
+            disabled={confirming || items.length === 0}
+            className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] disabled:opacity-50 transition-colors"
+            style={{ minHeight: 44 }}
+          >
+            {confirming ? <Loader2 size={14} className="animate-spin" /> : <Check size={14} />}
+            {confirming ? 'Importando…' : `Confirmar e importar ${items.length} ${items.length === 1 ? 'producto' : 'productos'}`}
+          </button>
+          <button
+            onClick={reset}
+            className="px-4 py-2.5 rounded-xl bg-white/8 border border-white/15 text-white text-sm font-semibold hover:bg-white/12 transition-colors"
+            style={{ minHeight: 44 }}
+          >
+            Cancelar
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  // Estado inicial: upload
+  return (
+    <div className="space-y-4 max-w-2xl">
+      <div className="rounded-2xl border border-white/10 bg-white/3 p-5 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg p-2" style={{ background: 'rgba(255,107,53,0.15)' }}>
+            <Camera size={18} className="text-[#FF6B35]" />
+          </div>
+          <div className="flex-1">
+            <p className="text-white font-semibold text-sm">Subí una foto o PDF de la boleta</p>
+            <p className="text-white/55 text-xs mt-0.5">
+              Chapi detecta los productos, cantidades y unidades automáticamente. Revisás y confirmás.
+            </p>
+          </div>
+        </div>
+
+        {/* Preview de la imagen seleccionada */}
+        {preview && (
+          /* eslint-disable-next-line @next/next/no-img-element */
+          <img
+            src={preview}
+            alt="Vista previa"
+            className="rounded-xl border border-white/10 max-h-64 mx-auto"
+          />
+        )}
+        {file && !preview && (
+          <div className="rounded-xl border border-white/10 bg-white/5 p-3 flex items-center gap-2 text-sm text-white/85">
+            <FileText size={16} className="text-white/50" />
+            {file.name}
+          </div>
+        )}
+
+        {/* Botón upload */}
+        <label className="block">
+          <input
+            type="file"
+            accept="image/*,application/pdf"
+            onChange={e => {
+              const f = e.target.files?.[0]
+              if (f) handleSelect(f)
+            }}
+            className="hidden"
+          />
+          <span
+            className="flex items-center justify-center gap-2 px-4 py-3 rounded-xl border-2 border-dashed border-white/20 hover:border-[#FF6B35]/50 cursor-pointer text-white/70 hover:text-white text-sm font-semibold transition-colors"
+            style={{ minHeight: 56 }}
+          >
+            <Upload size={14} />
+            {file ? 'Elegir otro archivo' : 'Elegir foto o PDF'}
+          </span>
+        </label>
+
+        {fileError && <p className="text-red-400 text-xs">{fileError}</p>}
+        {error && <p className="text-red-400 text-xs">{error}</p>}
+      </div>
+
+      {file && (
+        <button
+          onClick={processFile}
+          disabled={extracting}
+          className="flex items-center gap-2 px-5 py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] disabled:opacity-50 transition-colors"
+          style={{ minHeight: 44 }}
+        >
+          {extracting ? <Loader2 size={14} className="animate-spin" /> : <Sparkles size={14} />}
+          {extracting ? 'Chapi está leyendo el archivo…' : 'Extraer productos con Chapi'}
+        </button>
+      )}
+
+      <p className="text-white/35 text-[11px]">
+        Formatos: JPG, PNG, WEBP, PDF · Máx 10 MB · La imagen se sube a tu storage privado.
+      </p>
     </div>
   )
 }
@@ -1434,11 +1757,13 @@ export default function StockPage() {
       <div className="flex border-b border-white/10 gap-1">
         <TabButton active={tab === 'inventario'} icon={Package} onClick={() => setTab('inventario')} badge={alertCount}>Inventario</TabButton>
         <TabButton active={tab === 'movimientos'} icon={List} onClick={() => setTab('movimientos')}>Movimientos</TabButton>
-        <TabButton active={tab === 'importar'} icon={Upload} onClick={() => setTab('importar')}>Importar</TabButton>
+        <TabButton active={tab === 'foto'} icon={Camera} onClick={() => setTab('foto')}>Foto / PDF</TabButton>
+        <TabButton active={tab === 'importar'} icon={Upload} onClick={() => setTab('importar')}>Excel / CSV</TabButton>
         <TabButton active={tab === 'ordenes'} icon={ShoppingCart} onClick={() => setTab('ordenes')}>Órdenes de Compra</TabButton>
       </div>
 
       {tab === 'inventario' && <InventarioTab restaurantId={restId} />}
+      {tab === 'foto' && <FotoTab restaurantId={restId} />}
       {tab === 'movimientos' && <MovimientosTab restaurantId={restId} />}
       {tab === 'importar' && <ImportarTab restaurantId={restId} />}
       {tab === 'ordenes' && <OrdenesTab restaurantId={restId} />}

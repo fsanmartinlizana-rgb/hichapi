@@ -41,6 +41,22 @@ async function ensureSuperAdmin(userId: string) {
   return (data ?? []).length > 0
 }
 
+/** Auth dual — x-admin-secret O super_admin via cookie. */
+async function authorize(req: NextRequest): Promise<{ ok: true } | { ok: false; res: NextResponse }> {
+  const adminSecret = process.env.ADMIN_SECRET
+  if (adminSecret && adminSecret.length >= 20 && req.headers.get('x-admin-secret') === adminSecret) {
+    return { ok: true }
+  }
+  const { user, error: authErr } = await requireUser()
+  if (authErr || !user) {
+    return { ok: false, res: authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 }) }
+  }
+  if (!(await ensureSuperAdmin(user.id))) {
+    return { ok: false, res: NextResponse.json({ error: 'Solo super admin' }, { status: 403 }) }
+  }
+  return { ok: true }
+}
+
 const SYSTEM_PROMPT = `Eres Chapi, el asistente IA de soporte interno de HiChapi (plataforma SaaS para restaurantes en Chile).
 
 Tu trabajo: el founder revisa un ticket de soporte y vos le sugerís UNA respuesta lista para enviar al dueño del restaurant que abrió el ticket.
@@ -65,11 +81,8 @@ export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const { user, error: authErr } = await requireUser()
-  if (authErr || !user) return authErr ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-  if (!(await ensureSuperAdmin(user.id))) {
-    return NextResponse.json({ error: 'Solo super admin' }, { status: 403 })
-  }
+  const auth = await authorize(req)
+  if (!auth.ok) return auth.res
 
   if (!process.env.ANTHROPIC_API_KEY) {
     return NextResponse.json(
