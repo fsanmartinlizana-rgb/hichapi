@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
-import { ChevronDown, ChevronRight, Search, X } from 'lucide-react'
+import { useState, useRef, useCallback, useEffect } from 'react'
+import { ChevronDown, ChevronRight, ChevronUp, Search, X } from 'lucide-react'
 import type { StepCatalogoVisualProps, MenuItemOption, OrderLine } from './types'
 import { filterByName, groupByCategory, calculateTotal } from './utils'
 
@@ -374,6 +374,9 @@ export default function StepCatalogoVisual({
     Object.fromEntries(categories.map(c => [c, true]))
   )
 
+  // Mobile summary sheet — para editar líneas/cantidades sin pasar al step 2
+  const [showMobileSummary, setShowMobileSummary] = useState(false)
+
   // When categories change (e.g. after search), ensure new ones are open
   const ensureOpen = useCallback(
     (cats: string[]) => {
@@ -388,10 +391,17 @@ export default function StepCatalogoVisual({
     []
   )
 
-  // Sync open state when filtered categories change
-  if (categories.some(c => openCategories[c] === undefined)) {
+  // Sync open state when filtered categories change.
+  // ⚠️ ANTES: ejecutaba setState en el cuerpo del render → React podía
+  // entrar en loop infinito ("Maximum update depth exceeded") con cierto
+  // patrón de filtrado, especialmente notable en mobile donde la cadena
+  // de re-renders es más sensible. El error caía al error boundary y
+  // mostraba "Algo salió mal".
+  // FIX: hacer el sync en useEffect dependiente de la lista de categorías.
+  useEffect(() => {
     ensureOpen(categories)
-  }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [categories.join('|')])
 
   function toggleCategory(cat: string) {
     setOpenCategories(prev => ({ ...prev, [cat]: !prev[cat] }))
@@ -478,23 +488,41 @@ export default function StepCatalogoVisual({
       {/* ── Bottom bar — mobile ── */}
       <div
         className="fixed bottom-0 left-0 right-0 z-10 border-t lg:hidden"
-        style={{ background: '#1C1C2E', borderColor: 'rgba(255,255,255,0.08)' }}
+        style={{
+          background: '#1C1C2E',
+          borderColor: 'rgba(255,255,255,0.08)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
       >
-        <div className="flex items-center justify-between px-4 py-3">
-          <span className="text-sm text-white/50">
+        <button
+          type="button"
+          onClick={() => setShowMobileSummary(true)}
+          disabled={lines.length === 0}
+          className="w-full flex items-center justify-between px-4 py-3 disabled:opacity-60"
+          aria-label="Ver y editar productos del pedido"
+        >
+          <span className="text-sm text-white/70 flex items-center gap-1.5">
             {lines.length === 0
               ? 'Sin productos'
-              : `${lines.reduce((s, l) => s + l.qty, 0)} ítem${lines.reduce((s, l) => s + l.qty, 0) !== 1 ? 's' : ''}`}
+              : (
+                <>
+                  <span className="font-semibold text-white">
+                    {lines.reduce((s, l) => s + l.qty, 0)}
+                  </span>
+                  {' '}ítem{lines.reduce((s, l) => s + l.qty, 0) !== 1 ? 's' : ''}
+                  {lines.length > 0 && <ChevronUp size={13} className="text-[#FF6B35]" />}
+                </>
+              )}
           </span>
           <span className="text-sm font-semibold text-white">
             {calculateTotal(lines).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
           </span>
-        </div>
+        </button>
         <div className="flex gap-2 px-4 pb-4">
           <button
             onClick={onBack}
             className="flex-1 rounded-xl border py-2.5 text-sm font-medium text-white/60 hover:bg-white/6"
-            style={{ borderColor: 'rgba(255,255,255,0.12)' }}
+            style={{ borderColor: 'rgba(255,255,255,0.12)', minHeight: 44 }}
           >
             Atrás
           </button>
@@ -502,11 +530,63 @@ export default function StepCatalogoVisual({
             onClick={onContinue}
             disabled={lines.length === 0}
             className="flex-1 rounded-xl bg-[#FF6B35] py-2.5 text-sm font-semibold text-white hover:bg-[#ff8255] disabled:cursor-not-allowed disabled:opacity-30"
+            style={{ minHeight: 44 }}
           >
             Continuar
           </button>
         </div>
       </div>
+
+      {/* ── Mobile sheet — resumen del pedido para editar/quitar ítems ──
+          En lg+ el panel derecho ya muestra todo. En mobile, sin esto el
+          user no podía cambiar cantidades ni notas/destinos hasta el step
+          de confirmación (UX rota del producto principal). */}
+      {showMobileSummary && (
+        <div className="fixed inset-0 z-30 lg:hidden">
+          <button
+            type="button"
+            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            aria-label="Cerrar resumen"
+            onClick={() => setShowMobileSummary(false)}
+          />
+          <div
+            className="absolute inset-x-0 bottom-0 max-h-[85vh] flex flex-col rounded-t-2xl border-t shadow-2xl"
+            style={{
+              background: '#1C1C2E',
+              borderColor: 'rgba(255,107,53,0.3)',
+              paddingBottom: 'env(safe-area-inset-bottom)',
+            }}
+          >
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/8 shrink-0">
+              <h3 className="text-white font-semibold text-sm">Tu pedido</h3>
+              <button
+                type="button"
+                onClick={() => setShowMobileSummary(false)}
+                aria-label="Cerrar"
+                className="p-2 -mr-2 rounded-lg text-white/60 hover:text-white hover:bg-white/8"
+                style={{ minHeight: 36, minWidth: 36 }}
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto p-4">
+              <OrderSummaryPanel
+                lines={lines}
+                onUpdateLine={onUpdateLine}
+                onRemoveLine={onRemoveLine}
+                onContinue={() => {
+                  setShowMobileSummary(false)
+                  onContinue()
+                }}
+                onBack={() => {
+                  setShowMobileSummary(false)
+                  onBack()
+                }}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

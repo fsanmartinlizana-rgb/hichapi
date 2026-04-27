@@ -86,8 +86,28 @@ export default function NuevaComandaFlow({
       const data = await res.json()
       if (!res.ok) {
         console.error('[nueva-comanda] orders/internal failed:', data)
-        const detail = data.details ? ` · ${data.details}` : ''
-        setError(`${data.error ?? 'No se pudo crear la comanda'}${detail}`)
+        // data.details puede ser un array de Zod issues (objetos) → si lo
+        // ponemos en template literal sale "[object Object]". Lo
+        // normalizamos a algo legible para que el restorant sepa qué
+        // ajustar (campo, motivo).
+        let detailStr = ''
+        if (data.details) {
+          if (Array.isArray(data.details)) {
+            detailStr = data.details
+              .map((d: { path?: string[]; message?: string }) =>
+                d?.message
+                  ? `${d.path?.join('.') ?? '?'}: ${d.message}`
+                  : JSON.stringify(d),
+              )
+              .join('; ')
+          } else if (typeof data.details === 'string') {
+            detailStr = data.details
+          } else {
+            detailStr = JSON.stringify(data.details)
+          }
+        }
+        const fullError = `${data.error ?? 'No se pudo crear la comanda'}${detailStr ? ` · ${detailStr}` : ''}`
+        setError(fullError)
         return
       }
       onSave()

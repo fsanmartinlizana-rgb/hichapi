@@ -1971,15 +1971,26 @@ function ComandasPageInner() {
         </div>
       )}
 
-      {/* Nueva comanda flow */}
-      {showNueva && (
+      {/* Nueva comanda flow — gateado por restId para evitar pasar undefined
+          al modal cuando el contexto del restaurant aun no carga (caso móvil
+          con conexión más lenta + deep-link ?nueva=1). */}
+      {showNueva && restId && (
         <NuevaComandaFlow
           onClose={() => setShowNueva(false)}
           onSave={handleNuevaComanda}
           tables={realTables}
           menuItems={realMenuItems}
-          restaurantId={restId!}
+          restaurantId={restId}
         />
+      )}
+      {showNueva && !restId && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-6">
+          <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl p-6 max-w-sm w-full text-center">
+            <RefreshCw size={20} className="text-[#FF6B35] animate-spin mx-auto mb-3" />
+            <p className="text-white text-sm font-semibold mb-1">Cargando tu restaurante…</p>
+            <p className="text-white/40 text-xs">En un momento podes tomar la comanda.</p>
+          </div>
+        </div>
       )}
 
       {/* Cancel order modal */}
