@@ -1365,8 +1365,29 @@ function ComandasPageInner() {
 
   // Browser notification helper
   function notifyBrowser(title: string, body: string) {
-    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
-      new Notification(title, { body })
+    if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return
+
+    // Some browsers (e.g. Chrome on Android) require using the Service Worker
+    // registration to show notifications instead of the Notification constructor directly.
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.ready
+        .then(registration => {
+          registration.showNotification(title, { body })
+        })
+        .catch(() => {
+          // Fallback: try direct constructor (desktop browsers without SW restrictions)
+          try {
+            new Notification(title, { body })
+          } catch (_) {
+            // Silently ignore if both methods fail
+          }
+        })
+    } else {
+      try {
+        new Notification(title, { body })
+      } catch (_) {
+        // Silently ignore if notifications are not supported
+      }
     }
   }
 
