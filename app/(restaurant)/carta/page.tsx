@@ -160,10 +160,18 @@ function IngredientRow({
       <select
         value={ing.stock_item_id}
         onChange={e => onChange({ stock_item_id: e.target.value })}
-        className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
+        className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
       >
+        {/* Si el ingredient todavia no tiene stock_item asignado (RecipeModal
+            arranca con stock_item_id="" para que el user elija) mostramos un
+            placeholder. Sin esto React tira warning + el value queda inválido. */}
+        {!ing.stock_item_id && (
+          <option value="" className="bg-[#1C1C2E]">Seleccionar producto…</option>
+        )}
         {stockItems.map(s => (
-          <option key={s.id} value={s.id} className="bg-[#1C1C2E]">{s.name}</option>
+          <option key={s.id} value={s.id} className="bg-[#1C1C2E]">
+            {s.name} ({s.unit})
+          </option>
         ))}
       </select>
       <input
@@ -746,7 +754,7 @@ function RecipeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl max-h-[85vh] flex flex-col">
+      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-xl shadow-2xl max-h-[85vh] flex flex-col">
         <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
           <div>
             <h2 className="text-white font-semibold text-sm">Receta — {item.name}</h2>
@@ -756,32 +764,38 @@ function RecipeModal({
           </div>
           <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={16} /></button>
         </div>
-        <div className="p-5 overflow-y-auto flex-1 space-y-3">
-          {ingredients.map((ing, idx) => (
-            <div key={idx} className="flex items-center gap-2">
-              <select
-                value={ing.stock_item_id}
-                onChange={e => updateIngredient(idx, 'stock_item_id', e.target.value)}
-                className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
-              >
-                <option value="">Seleccionar producto…</option>
-                {stockItems.map(s => <option key={s.id} value={s.id}>{s.name} ({s.unit})</option>)}
-              </select>
-              <input
-                type="number"
-                step="0.001"
-                min="0.001"
-                value={ing.qty}
-                onChange={e => updateIngredient(idx, 'qty', parseFloat(e.target.value) || 0)}
-                className="w-20 bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-white text-sm text-center focus:outline-none focus:border-[#FF6B35]/50"
+        <div className="p-5 overflow-y-auto flex-1 space-y-2">
+          <p className="text-white/35 text-[11px] mb-2">
+            La unidad cambia automáticamente según el ingrediente. Para tragos
+            usa items en{' '}
+            <code className="text-white/55">l</code> o{' '}
+            <code className="text-white/55">ml</code>.
+          </p>
+
+          {ingredients.length === 0 && (
+            <p className="text-white/30 text-[11px] px-3 py-3 rounded-lg bg-white/3 border border-white/6 text-center">
+              Sin ingredientes. Tocá &quot;Agregar ingrediente&quot;.
+            </p>
+          )}
+
+          {ingredients.map((ing, idx) => {
+            const stockItem = stockItems.find(s => s.id === ing.stock_item_id)
+            return (
+              <IngredientRow
+                key={idx}
+                ing={ing}
+                stockItems={stockItems}
+                stockItem={stockItem}
+                onChange={patch => {
+                  if (patch.stock_item_id !== undefined) updateIngredient(idx, 'stock_item_id', patch.stock_item_id)
+                  if (patch.qty !== undefined) updateIngredient(idx, 'qty', patch.qty)
+                }}
+                onRemove={() => removeIngredient(idx)}
               />
-              <span className="text-white/30 text-xs w-10 shrink-0">
-                {stockItems.find(s => s.id === ing.stock_item_id)?.unit ?? '—'}
-              </span>
-              <button onClick={() => removeIngredient(idx)} className="text-white/30 hover:text-red-400 transition-colors"><X size={14} /></button>
-            </div>
-          ))}
-          <button onClick={addIngredient} className="flex items-center gap-2 text-xs text-white/40 hover:text-white transition-colors">
+            )
+          })}
+
+          <button onClick={addIngredient} className="flex items-center gap-2 text-xs text-[#FF6B35] hover:text-[#ff8255] transition-colors mt-2">
             <Plus size={12} />Agregar ingrediente
           </button>
           {error && <p className="text-red-400 text-xs">{error}</p>}
