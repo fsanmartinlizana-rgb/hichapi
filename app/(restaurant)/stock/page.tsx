@@ -375,10 +375,12 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface ExtractedItem {
-  name:     string
-  quantity: number | null
-  unit:     string | null
-  category: string | null
+  name:           string
+  quantity:       number | null
+  unit:           string | null
+  category:       string | null
+  /** CLP por unidad. Vision lo deduce del precio total / cantidad cuando puede. */
+  cost_per_unit?: number | null
 }
 
 const VISION_VALID_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'application/pdf']
@@ -540,16 +542,17 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
         </div>
 
         {/* Tabla editable */}
-        <div className="rounded-2xl border border-white/10 overflow-hidden">
-          <div className="grid grid-cols-[2fr_1fr_1fr_1.2fr_40px] gap-2 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white/45">
+        <div className="rounded-2xl border border-white/10 overflow-x-auto">
+          <div className="grid grid-cols-[1.8fr_0.8fr_0.8fr_1fr_1fr_40px] gap-2 bg-white/5 px-3 py-2 text-[10px] font-bold uppercase tracking-wider text-white/45 min-w-[680px]">
             <div>Producto</div>
             <div>Cantidad</div>
             <div>Unidad</div>
+            <div>Costo (CLP)</div>
             <div>Categoría</div>
             <div></div>
           </div>
           {items.map((it, i) => (
-            <div key={i} className="grid grid-cols-[2fr_1fr_1fr_1.2fr_40px] gap-2 px-3 py-2 items-center border-t border-white/5">
+            <div key={i} className="grid grid-cols-[1.8fr_0.8fr_0.8fr_1fr_1fr_40px] gap-2 px-3 py-2 items-center border-t border-white/5 min-w-[680px]">
               <input
                 type="text"
                 value={it.name}
@@ -572,6 +575,21 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
                 {VISION_UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
               <input
+                type="number"
+                inputMode="numeric"
+                step="1"
+                min="0"
+                value={it.cost_per_unit ?? ''}
+                onChange={e => updateItem(i, { cost_per_unit: e.target.value ? parseInt(e.target.value, 10) : null })}
+                placeholder="0"
+                title="Costo unitario en pesos chilenos. Sirve para calcular margen por plato."
+                className={`bg-white/5 border rounded px-2 py-1.5 text-sm text-white focus:outline-none focus:border-[#FF6B35]/50 font-mono ${
+                  it.cost_per_unit == null || it.cost_per_unit === 0
+                    ? 'border-amber-500/40 bg-amber-500/5'
+                    : 'border-white/10'
+                }`}
+              />
+              <input
                 type="text"
                 value={it.category ?? ''}
                 onChange={e => updateItem(i, { category: e.target.value })}
@@ -589,6 +607,18 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
             </div>
           ))}
         </div>
+
+        {/* Aviso de costos faltantes */}
+        {items.some(it => it.cost_per_unit == null || it.cost_per_unit === 0) && (
+          <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 p-3 flex items-start gap-2">
+            <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+            <div className="text-xs text-amber-200/85">
+              <strong className="font-bold">Algunos productos no tienen costo cargado.</strong>{' '}
+              Sin costo no podemos calcular el margen de los platos que usen estos ingredientes.
+              Editá la columna <strong>Costo (CLP)</strong> arriba — son CLP por unidad (kg, litro, unidad, etc.).
+            </div>
+          </div>
+        )}
 
         {error && <p className="text-red-400 text-sm">{error}</p>}
 

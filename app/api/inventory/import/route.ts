@@ -8,12 +8,25 @@ function getAnthropic() {
   return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 }
 
-const EXTRACT_SYSTEM = `Eres un asistente de inventario de restaurantes.
-Extrae una lista de productos con cantidad y unidad de medida.
+const EXTRACT_SYSTEM = `Eres un asistente de inventario de restaurantes en Chile.
+Extrae cada producto de la boleta o factura con cantidad, unidad y costo.
+
 Responde SOLO en JSON válido con este formato exacto:
-[{"name": "Tomates", "quantity": 5, "unit": "kg", "category": "verduras"}]
+[{"name": "Tomates", "quantity": 5, "unit": "kg", "category": "verduras", "cost_per_unit": 1290}]
+
+REGLAS DE COSTO (cost_per_unit en CLP, sin decimales, sin puntos):
+- Si la boleta muestra precio total y cantidad, calcula el unitario: total / cantidad.
+  Ejemplo: "Tomates 5 kg $6.450" → cost_per_unit = 1290
+- Si solo muestra precio unitario, úsalo directo.
+- Si no hay precio visible, usa null.
+- NO incluyas IVA si la boleta lo separa — usa el costo neto cuando sea claro.
+
 Si no puedes extraer un campo, usa null.
+
 Categorías posibles: carnes, verduras, frutas, lácteos, bebidas, granos, condimentos, limpieza, otros.
+
+Unidades posibles: kg, g, l, ml, unidad, porcion, caja.
+
 Solo JSON, sin texto adicional, sin markdown.`
 
 export async function POST(req: NextRequest) {
@@ -34,31 +47,84 @@ export async function POST(req: NextRequest) {
     // If confirm=true, items are already extracted and we just insert them
     if (confirmStr === 'true') {
       const itemsJson = formData.get('items') as string
-      const items: Array<{ name: string; quantity: number | null; unit: string | null; category: string | null }> = JSON.parse(itemsJson)
+      const items: Array<{
+        name:           string
+        quantity:       number | null
+        unit:           string | null
+        category:       string | null
+        cost_per_unit?: number | null
+      }> = JSON.parse(itemsJson)
 
-      const toInsert = items.map(item => ({
+      // 1. Buscar nombres existentes para evitar duplicar productos del
+      //    mismo restaurant. Hacemos esto en código en vez de ON CONFLICT
+      //    porque la tabla stock_items no tiene un UNIQUE en
+      //    (restaurant_id, name) y agregar uno romperia restaurants que
+      //    legítimamente tienen dos items con mismo nombre y unidad
+      //    distinta (ej: "Salmón" en kg vs "Salmón" en porción).
+      const names = items.map(i => i.name).filter(Boolean)
+      const { data: existing } = await supabase
+        .from('stock_items')
+        .select('name')
+        .eq('restaurant_id', restaurant_id)
+        .in('name', names)
+
+      type ExistingRow = { name: string | null }
+      const existingSet = new Set((existing ?? []).map((r: ExistingRow) => (r.name ?? '').toLowerCase().trim()))
+
+      // 2. Filtrar solo los nuevos
+      const newItems = items.filter(i => i.name && !existingSet.has(i.name.toLowerCase().trim()))
+
+      const toInsert = newItems.map(item => ({
         restaurant_id,
-        name:         item.name,
-        current_qty:  item.quantity ?? 0,
-        unit:         (item.unit ?? 'unidad') as 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja',
-        category:     item.category ?? 'otros',
-        min_qty:      0,
-        cost_per_unit: 0,
-        active:       true,
+        name:          item.name,
+        current_qty:   item.quantity ?? 0,
+        unit:          (item.unit ?? 'unidad') as 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja',
+        category:      item.category ?? 'otros',
+        min_qty:       0,
+        cost_per_unit: Math.round(item.cost_per_unit ?? 0),
+        active:        true,
       }))
 
-      // Upsert by name+restaurant to avoid dupes
-      const { error: insertErr } = await supabase
-        .from('stock_items')
-        .upsert(toInsert, { onConflict: 'restaurant_id,name', ignoreDuplicates: true })
+      // 3. Insert simple (sin onConflict — los duplicados ya filtrados)
+      let insertedCount = 0
+      if (toInsert.length > 0) {
+        const { data: inserted, error: insertErr } = await supabase
+          .from('stock_items')
+          .insert(toInsert)
+          .select('id, current_qty')
+        if (insertErr) {
+          return NextResponse.json({ error: insertErr.message }, { status: 400 })
+        }
+        insertedCount = inserted?.length ?? toInsert.length
+
+        // 4. Para cada item nuevo con qty > 0, registrar movimiento de compra
+        //    así el inventario tiene trazabilidad de la entrada
+        type InsertedRow = { id: string; current_qty: number | null }
+        const movementsToInsert = (inserted ?? [])
+          .filter((r: InsertedRow) => (r.current_qty ?? 0) > 0)
+          .map((r: InsertedRow) => ({
+            stock_item_id: r.id,
+            restaurant_id,
+            delta:         r.current_qty,
+            reason:        'compra',
+          }))
+        if (movementsToInsert.length > 0) {
+          await supabase.from('stock_movements').insert(movementsToInsert)
+        }
+      }
+
+      const skippedCount = items.length - newItems.length
 
       await supabase.from('inventory_imports').update({
         status: 'completed',
-        imported_items: toInsert.length,
+        imported_items: insertedCount,
       }).eq('restaurant_id', restaurant_id).eq('status', 'processing')
 
-      if (insertErr) return NextResponse.json({ error: insertErr.message }, { status: 400 })
-      return NextResponse.json({ ok: true, imported: toInsert.length })
+      return NextResponse.json({
+        ok:       true,
+        imported: insertedCount,
+        skipped:  skippedCount,
+      })
     }
 
     // Step 1: Upload file to Supabase Storage
@@ -85,7 +151,13 @@ export async function POST(req: NextRequest) {
     }).select().single()
 
     // Step 2: Extract items
-    let extractedItems: Array<{ name: string; quantity: number | null; unit: string | null; category: string | null }> = []
+    let extractedItems: Array<{
+      name:           string
+      quantity:       number | null
+      unit:           string | null
+      category:       string | null
+      cost_per_unit?: number | null
+    }> = []
 
     const isImage = ['image/jpeg','image/png','image/webp','image/gif'].includes(file.type)
     const isCsv   = file.type === 'text/csv' || file.name.endsWith('.csv')
@@ -121,7 +193,7 @@ export async function POST(req: NextRequest) {
         extractedItems = []
       }
     } else if (isCsv) {
-      // Parse CSV
+      // Parse CSV — autodetecta columnas comunes
       const text = fileBuffer.toString('utf-8')
       const lines = text.split('\n').filter(Boolean)
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase())
@@ -130,11 +202,15 @@ export async function POST(req: NextRequest) {
         const nameIdx = headers.findIndex(h => h.includes('nombre') || h.includes('name') || h === 'item')
         const qtyIdx  = headers.findIndex(h => h.includes('cantidad') || h.includes('qty') || h.includes('quantity'))
         const unitIdx = headers.findIndex(h => h.includes('unidad') || h.includes('unit'))
+        const costIdx = headers.findIndex(h => h.includes('costo') || h.includes('precio') || h.includes('cost') || h.includes('price'))
+        const catIdx  = headers.findIndex(h => h.includes('categor') || h.includes('category'))
+        const parsedCost = costIdx >= 0 ? parseFloat((cols[costIdx] ?? '').replace(/[^\d.]/g, '')) : NaN
         return {
-          name:     cols[nameIdx >= 0 ? nameIdx : 0] ?? '',
-          quantity: qtyIdx >= 0 ? parseFloat(cols[qtyIdx]) || null : null,
-          unit:     unitIdx >= 0 ? cols[unitIdx] || null : null,
-          category: null,
+          name:          cols[nameIdx >= 0 ? nameIdx : 0] ?? '',
+          quantity:      qtyIdx >= 0 ? parseFloat(cols[qtyIdx]) || null : null,
+          unit:          unitIdx >= 0 ? cols[unitIdx] || null : null,
+          category:      catIdx >= 0 ? cols[catIdx] || null : null,
+          cost_per_unit: Number.isFinite(parsedCost) ? Math.round(parsedCost) : null,
         }
       }).filter(i => i.name)
     }

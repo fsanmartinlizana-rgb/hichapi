@@ -76,7 +76,7 @@ function ItemForm({
   onCancel,
 }: {
   initial?: Partial<MenuItem>
-  stockItems: { id: string; name: string; unit: string }[]
+  stockItems: { id: string; name: string; unit: string; cost_per_unit?: number }[]
   stations: StationOption[]
   initialOverrideId?: string | null
   onSave: (item: Omit<MenuItem, 'id'> & { station_override_id?: string | null }) => Promise<void>
@@ -205,7 +205,11 @@ function ItemForm({
         available,
         destination,
         tax_exempt: taxExempt,
-        cost_price: cost ? parseInt(cost) : undefined,
+        // Si hay receta cargada con costo > 0 → usar el calculado.
+        // Sino fallback al costo manual.
+        cost_price: hasIngredients && computedCostInt > 0
+          ? computedCostInt
+          : (cost ? parseInt(cost) : undefined),
         photo_url: finalPhotoUrl ?? undefined,
         ingredients: ingredients.filter(i => i.qty > 0 && i.stock_item_id),
         station_override_id: stationOverrideId || null,
@@ -216,7 +220,27 @@ function ItemForm({
     }
   }
 
-  const margin = price && cost ? Math.round((1 - parseInt(cost) / parseInt(price)) * 100) : null
+  // Costo calculado automaticamente desde ingredientes:
+  //   sum(qty * stock_item.cost_per_unit) para cada ingrediente
+  // Si el restaurant todavia no carga costos en su stock, queda 0 y
+  // mostramos un aviso para incentivar a llenarlo.
+  const computedCost = ingredients.reduce((acc, ing) => {
+    const item = stockItems.find(s => s.id === ing.stock_item_id)
+    return acc + (ing.qty * (item?.cost_per_unit ?? 0))
+  }, 0)
+  const computedCostInt = Math.round(computedCost)
+  const hasIngredients = ingredients.length > 0
+  // Detectar si algún ingrediente está sin costo cargado en stock
+  const ingredientsMissingCost = ingredients.filter(ing => {
+    const item = stockItems.find(s => s.id === ing.stock_item_id)
+    return ing.qty > 0 && (!item?.cost_per_unit || item.cost_per_unit === 0)
+  })
+
+  // Costo efectivo: si hay ingredientes con costo, usar el calculado; sino el manual
+  const effectiveCost = hasIngredients && computedCostInt > 0 ? computedCostInt : (cost ? parseInt(cost) : 0)
+  const margin = price && effectiveCost > 0
+    ? Math.round((1 - effectiveCost / parseInt(price)) * 100)
+    : null
 
   return (
     <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-5 space-y-4">
@@ -282,15 +306,36 @@ function ItemForm({
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-white/50 text-xs">Costo (opcional)</label>
+            <label className="text-white/50 text-xs">
+              Costo {hasIngredients && computedCostInt > 0 ? '(auto desde receta)' : '(manual, opcional)'}
+            </label>
             {margin !== null && (
               <span className={`text-[10px] font-semibold ${margin > 60 ? 'text-emerald-400' : margin > 40 ? 'text-yellow-400' : 'text-red-400'}`}>
                 {margin}% margen
               </span>
             )}
           </div>
-          <input value={cost} onChange={e => setCost(e.target.value.replace(/\D/g, ''))} placeholder="6200"
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
+          {hasIngredients && computedCostInt > 0 ? (
+            <div
+              className="w-full px-4 py-2.5 rounded-xl bg-emerald-500/8 border border-emerald-500/30 text-emerald-300 text-sm font-mono flex items-center justify-between"
+              title="Calculado en vivo desde la receta. Cambia los ingredientes o sus costos en /stock para actualizarlo."
+            >
+              <span>${computedCostInt.toLocaleString('es-CL')}</span>
+              {ingredientsMissingCost.length > 0 && (
+                <span className="text-amber-300 text-[10px] font-sans" title="Algunos ingredientes no tienen costo cargado">
+                  ⚠ {ingredientsMissingCost.length} sin costo
+                </span>
+              )}
+            </div>
+          ) : (
+            <input
+              value={cost}
+              onChange={e => setCost(e.target.value.replace(/\D/g, ''))}
+              placeholder="6200"
+              inputMode="numeric"
+              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono"
+            />
+          )}
         </div>
         <div className="col-span-2 space-y-1.5">
           <label className="text-white/50 text-xs">Tipo de producto</label>
@@ -741,7 +786,7 @@ export default function CartaPage() {
   const brandId = restaurant?.brand_id ?? null
 
   const [items, setItems]         = useState<MenuItem[]>([])
-  const [stockItems, setStockItems] = useState<{ id: string; name: string; unit: string }[]>([])
+  const [stockItems, setStockItems] = useState<{ id: string; name: string; unit: string; cost_per_unit?: number }[]>([])
   const [stations, setStations]   = useState<StationOption[]>([])
   const [overrides, setOverrides] = useState<ItemOverride[]>([])
   const [loading, setLoading]     = useState(true)
@@ -753,24 +798,34 @@ export default function CartaPage() {
   const [importing, setImporting] = useState(false)
   const [recipeItem, setRecipeItem] = useState<MenuItem | null>(null)
 
-  // ── Load stock items (for ingredient association) ────────────────────────
+  // ── Load stock items (for ingredient association + cálculo de margen) ───
   useEffect(() => {
     if (!restId) return
     fetch(`/api/stock?restaurant_id=${restId}`)
       .then(r => r.json())
       .then(d => {
         // GET /api/stock now returns { categories: { [cat]: { items: [] } }, ... }
-        const all: { id: string; name: string; unit: string }[] = []
+        const all: { id: string; name: string; unit: string; cost_per_unit?: number }[] = []
         if (d.categories && typeof d.categories === 'object') {
           for (const cat of Object.values(d.categories) as { items: Record<string, unknown>[] }[]) {
             for (const s of cat.items ?? []) {
-              all.push({ id: s.id as string, name: s.name as string, unit: (s.unit as string) || 'unidad' })
+              all.push({
+                id:            s.id as string,
+                name:          s.name as string,
+                unit:          (s.unit as string) || 'unidad',
+                cost_per_unit: typeof s.cost_per_unit === 'number' ? s.cost_per_unit : 0,
+              })
             }
           }
         } else if (Array.isArray(d.items)) {
           // fallback for old shape
           for (const s of d.items) {
-            all.push({ id: s.id as string, name: s.name as string, unit: (s.unit as string) || 'unidad' })
+            all.push({
+              id:            s.id as string,
+              name:          s.name as string,
+              unit:          (s.unit as string) || 'unidad',
+              cost_per_unit: typeof s.cost_per_unit === 'number' ? s.cost_per_unit : 0,
+            })
           }
         }
         setStockItems(all)
