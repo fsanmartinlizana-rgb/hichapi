@@ -140,6 +140,8 @@ export default function RestaurantePage() {
   const [direccion, setDireccion]   = useState('')
   const [comuna, setComuna]         = useState('')
   const [acteco, setActeco]         = useState('')
+  const [fechaResolucion, setFechaResolucion] = useState('')
+  const [numeroResolucion, setNumeroResolucion] = useState('')
 
   // Score (from API)
   const [score, setScore] = useState<ProfileScore | null>(null)
@@ -196,6 +198,19 @@ export default function RestaurantePage() {
           setDireccion(profileJson.restaurant.direccion ?? '')
           setComuna(profileJson.restaurant.comuna ?? '')
           setActeco(profileJson.restaurant.acteco ?? '')
+          
+          // Load DTE credentials (fecha_resolucion, numero_resolucion)
+          const supabase = createClient()
+          const { data: dteCreds } = await supabase
+            .from('dte_credentials')
+            .select('fecha_resolucion, numero_resolucion')
+            .eq('restaurant_id', restaurant.id)
+            .maybeSingle()
+          
+          if (dteCreds) {
+            setFechaResolucion(dteCreds.fecha_resolucion ?? '')
+            setNumeroResolucion(dteCreds.numero_resolucion?.toString() ?? '')
+          }
         }
 
         if (modsRes.data?.modules_config) {
@@ -268,6 +283,36 @@ export default function RestaurantePage() {
         setError(data.error ?? 'No se pudo guardar')
         return
       }
+      
+      // Update DTE credentials (fecha_resolucion, numero_resolucion) only if record exists
+      if (fechaResolucion || numeroResolucion) {
+        const supabase = createClient()
+        
+        // Check if credentials exist first
+        const { data: existingCreds } = await supabase
+          .from('dte_credentials')
+          .select('id')
+          .eq('restaurant_id', restaurant.id)
+          .maybeSingle()
+        
+        if (existingCreds) {
+          // Only update if credentials already exist
+          const { error: dteError } = await supabase
+            .from('dte_credentials')
+            .update({
+              fecha_resolucion: fechaResolucion || null,
+              numero_resolucion: numeroResolucion ? parseInt(numeroResolucion, 10) : null,
+            })
+            .eq('restaurant_id', restaurant.id)
+          
+          if (dteError) {
+            console.error('Error updating DTE credentials:', dteError)
+          }
+        } else {
+          console.warn('DTE credentials not found - user must upload certificate first')
+        }
+      }
+      
       setScore(data.score)
       setSaved(true)
       setTimeout(() => setSaved(false), 2500)
@@ -524,6 +569,14 @@ export default function RestaurantePage() {
             </Field>
             <Field label="Comuna">
               <TextInput value={comuna} onChange={setComuna} placeholder="Santiago" />
+            </Field>
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <Field label="Fecha resolución SII" hint="Formato: YYYY-MM-DD (Ej: 2026-04-23)">
+              <TextInput value={fechaResolucion} onChange={setFechaResolucion} placeholder="2026-04-23" />
+            </Field>
+            <Field label="Número resolución SII" hint="Ej: 0 para certificación, número real para producción">
+              <TextInput value={numeroResolucion} onChange={setNumeroResolucion} placeholder="0" />
             </Field>
           </div>
         </Section>

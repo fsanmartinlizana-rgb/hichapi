@@ -369,9 +369,10 @@ interface DtePdfProps {
   dte:        DteParsed
   tedPngB64:  string
   logoUrl?:   string   // URL pública del logo del restaurante (opcional)
+  format?:    'pos80' | 'papel-factura'
 }
 
-function DtePdfDocument({ dte, tedPngB64, logoUrl }: DtePdfProps) {
+function DtePdfDocument({ dte, tedPngB64, logoUrl, format = 'papel-factura' }: DtePdfProps) {
   const docLabel  = DOC_TYPE_LABEL[dte.tipoDte] ?? `DOCUMENTO TIPO ${dte.tipoDte}`
   const esCredito = dte.fmaPago === 2
 
@@ -576,9 +577,10 @@ export async function renderDtePdf(
   dte:        DteParsed,
   tedPngB64:  string,
   logoUrl?:   string,
+  format: 'pos80' | 'papel-factura' = 'papel-factura',
 ): Promise<Buffer> {
   const buffer = await renderToBuffer(
-    <DtePdfDocument dte={dte} tedPngB64={tedPngB64} logoUrl={logoUrl} />
+    <DtePdfDocument dte={dte} tedPngB64={tedPngB64} logoUrl={logoUrl} format={format} />
   )
   return Buffer.from(buffer)
 }

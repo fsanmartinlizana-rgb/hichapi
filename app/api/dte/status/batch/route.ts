@@ -8,7 +8,7 @@ import { checkDteStatus, getSiiToken, getSiiTokenFactura, queryEstDteFactura, Si
 import { loadCredentials } from '@/lib/dte/signer'
 import { sendBrandedEmail } from '@/lib/email/sender'
 import { facturaEmail } from '@/lib/email/templates'
-import { generateDtePdf } from '@/lib/dte/pdf-generator'
+import { generateDtePdfBase64 } from '@/lib/dte/pdf'
 
 // ══════════════════════════════════════════════════════════════════════════════
 //  POST /api/dte/status/batch
@@ -73,7 +73,23 @@ export async function POST(req: NextRequest) {
 
   // Separate emissions by type
   const boletaEmissions  = sentEmissions.filter((e: any) => e.document_type === 39 || e.document_type === 41)
-  const facturaEmissions = sentEmissions.filter((e: any) => e.document_type === 33 || e.document_type === 56 || e.document_type === 61)
+  
+  // For facturas, filter out those sent less than 40 seconds ago
+  // This prevents "DTE No Recibido" (FAU) errors when SII hasn't processed the DTE yet
+  const MIN_WAIT_SECONDS = 40
+  const nowTimestamp = Date.now()
+  const allFacturaEmissions = sentEmissions.filter((e: any) => e.document_type === 33 || e.document_type === 56 || e.document_type === 61)
+  const facturaEmissions = allFacturaEmissions.filter((em: any) => {
+    if (!em.emitted_at) return true // No timestamp, check anyway
+    const emittedTime = new Date(em.emitted_at).getTime()
+    const elapsedSeconds = (nowTimestamp - emittedTime) / 1000
+    return elapsedSeconds >= MIN_WAIT_SECONDS
+  })
+
+  if (facturaEmissions.length < allFacturaEmissions.length) {
+    const skipped = allFacturaEmissions.length - facturaEmissions.length
+    console.log(`⏳ [BATCH] Skipping ${skipped} factura(s) that are too recent (< ${MIN_WAIT_SECONDS}s)`)
+  }
 
   const now = new Date().toISOString()
   let updated = 0
@@ -152,7 +168,7 @@ export async function POST(req: NextRequest) {
             // Enviar XML + PDF al receptor por email si tiene email_receptor y xml_signed
             if (em.email_receptor && em.xml_signed) {
               try {
-                const pdfResult = await generateDtePdf(em.xml_signed, restaurant?.photo_url ?? undefined)
+                const pdfBase64 = await generateDtePdfBase64(em.xml_signed)
 
                 const { subject, html, text } = facturaEmail({
                   restaurantName: restaurant?.razon_social ?? 'Restaurante',
@@ -161,7 +177,7 @@ export async function POST(req: NextRequest) {
                   totalAmount:    em.total_amount,
                   emittedAt:      em.emitted_at as string,
                   hasXml:         true,
-                  hasPdf:         pdfResult.ok,
+                  hasPdf:         true,
                 })
 
                 const attachments: Array<{ filename: string; content: string; type: string }> = [
@@ -170,16 +186,12 @@ export async function POST(req: NextRequest) {
                     content:  Buffer.from(em.xml_signed).toString('base64'),
                     type:     'application/xml',
                   },
-                ]
-
-                // Solo agregar PDF si se generó correctamente
-                if (pdfResult.ok && pdfResult.buffer) {
-                  attachments.push({
+                  {
                     filename: `factura_${em.folio}.pdf`,
-                    content:  pdfResult.buffer.toString('base64'),
+                    content:  pdfBase64,
                     type:     'application/pdf',
-                  })
-                }
+                  },
+                ]
 
                 await sendBrandedEmail({
                   to:      em.email_receptor,

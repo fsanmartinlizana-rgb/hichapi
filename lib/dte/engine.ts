@@ -324,16 +324,8 @@ export async function runEmission(
   const orderSubtotal = order.subtotal ?? order.total
   const xmlMntTotal = mntTotalMatch ? parseInt(mntTotalMatch[1], 10) : orderSubtotal
 
-  console.log(`🔍 [DTE Engine] Verificando montos:`, {
-    order_total: order.total,
-    order_subtotal: orderSubtotal,
-    xml_mnt_total: xmlMntTotal,
-    son_iguales: xmlMntTotal === orderSubtotal,
-  })
-
   // ALWAYS update emission with actual XML total to ensure consistency
   // This fixes the issue where total_amount in DB doesn't match MntTotal in XML
-  console.log(`📝 [DTE Engine] Actualizando total_amount en BD: ${xmlMntTotal}`)
   const { error: updateTotalErr } = await supabase
     .from('dte_emissions')
     .update({ 
@@ -372,14 +364,6 @@ export async function runEmission(
       return { ok: false, error: detail }
     }
 
-    console.log('📤 [DTE Engine] Enviando factura al SII:', {
-      folio: folio,
-      tipo: documentType,
-      monto: orderSubtotal,
-      receptor: rutReceptor,
-      environment: envSii,
-    })
-
     const sendResult = await sendFacturaToSII(
       signed_xml,
       restaurant.rut ?? '',
@@ -387,14 +371,6 @@ export async function runEmission(
       tokenParams.token,
       envSii
     )
-
-    console.log('📥 [DTE Engine] Respuesta del envío:', {
-      success: sendResult.success,
-      track_id: sendResult.track_id,
-      status: sendResult.status,
-      error: sendResult.error,
-      message: sendResult.message,
-    })
 
     if (!sendResult.success) {
       const detail = `SII_UPLOAD_ERROR: ${sendResult.error} - ${sendResult.message || ''}`
@@ -441,6 +417,11 @@ export async function runEmission(
     signed_at:     signedAt,
     emitted_at:    emittedAt,
     sii_track_id:  track_id,
+    // Store the local emission date separately from the UTC timestamp.
+    // This fixes the FAU rejection bug: queryEstDteFactura requires the exact
+    // date used in <FchEmis> (local date), not the UTC-extracted date.
+    // `today` is already computed using local time (same value used in buildDteXml).
+    fecha_emision: today,
     // New receptor fields for facturas
     giro_receptor:       giroReceptor ?? null,
     direccion_receptor:  direccionReceptor ?? null,

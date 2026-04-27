@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
   const [emissionResult, restaurantResult] = await Promise.all([
     supabase
       .from('dte_emissions')
-      .select('id, sii_track_id, status, document_type, folio, emitted_at, total_amount, rut_receptor, razon_receptor, email_receptor, xml_signed')
+      .select('id, sii_track_id, status, document_type, folio, emitted_at, fecha_emision, total_amount, rut_receptor, razon_receptor, email_receptor, xml_signed')
       .eq('id', body.emission_id)
       .eq('restaurant_id', body.restaurant_id)
       .maybeSingle(),
@@ -135,6 +135,18 @@ export async function POST(req: NextRequest) {
     }
 
     // Query individual DTE status
+    const fechaEmisionDte = (emission as any).fecha_emision ?? (emission.emitted_at ? (emission.emitted_at as string).split('T')[0] : new Date().toISOString().split('T')[0])
+    console.log('🔍 [STATUS] Consultando estado factura:', {
+      folio:           emission.folio,
+      fecha_emision:   (emission as any).fecha_emision,
+      emitted_at:      emission.emitted_at,
+      fechaEmisionDte, // ← esto es lo que se envía al SII
+      montoDte:        emission.total_amount,
+      rutReceptor:     rawRut,
+      rutCompania:     restaurant.rut,
+      environment,
+    })
+
     const queryResult = await queryEstDteFactura(
       {
         rutConsultante: restaurant.rut ?? '',
@@ -142,12 +154,14 @@ export async function POST(req: NextRequest) {
         rutReceptor:    rawRut,
         tipoDte:        33,
         folioDte:       emission.folio,
-        fechaEmisionDte: emission.emitted_at ? (emission.emitted_at as string).split('T')[0] : new Date().toISOString().split('T')[0], // YYYY-MM-DD
+        fechaEmisionDte,
         montoDte:       emission.total_amount,
         token:          tokenResult.token,
       },
       environment
     )
+
+    console.log('📥 [STATUS] Respuesta SII:', { estado: queryResult.estado, glosa: queryResult.glosa, error: queryResult.error })
 
     if (queryResult.error) {
       return NextResponse.json({ error: queryResult.error }, { status: 502 })

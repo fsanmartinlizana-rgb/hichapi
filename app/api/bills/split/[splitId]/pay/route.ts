@@ -276,15 +276,14 @@ export async function POST(
               : undefined,
           }
 
-          if (dte.document_type === 33) {
-            void sendFacturaEmail({
-              ...emailArgs,
-              razonReceptor: dte.razon_receptor ?? '',
-            }).catch(err => console.error('[pay] sendFacturaEmail error:', err))
-          } else {
+          // Email sending is now handled by batch status check to avoid duplicates
+          // and ensure the DTE is accepted by SII before sending
+          if (dte.document_type === 39 || dte.document_type === 41) {
+            // Only send boletas immediately (they don't need SII acceptance)
             void sendBoletaEmail(emailArgs)
               .catch(err => console.error('[pay] sendBoletaEmail error:', err))
           }
+          // Facturas will be sent by batch when status changes to 'accepted'
         }
 
         // Guardar receptor en directorio para autocompletado futuro (solo facturas)

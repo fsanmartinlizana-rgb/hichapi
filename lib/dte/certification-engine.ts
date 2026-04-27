@@ -486,9 +486,7 @@ export async function submitCertificationBatch(
   try {
     // Submit boletas if any
     if (boletas.length > 0) {
-      console.log(`Creating boleta envelope for ${boletas.length} DTEs`)
       const boletaEnvelope = await createBatchEnvelope(boletas, restaurant.rut, credentials.rut_envia, true, credentials)
-      console.log(`Submitting boleta envelope to SII`)
       const boletaResult = await submitEnvelopeToSII(boletaEnvelope, restaurant.rut, credentials.rut_envia, environment, true, privateKeyPem, certificate)
       
       if (boletaResult.success && boletaResult.track_id) {
@@ -517,9 +515,7 @@ export async function submitCertificationBatch(
     
     // Submit facturas if any
     if (facturas.length > 0) {
-      console.log(`Creating factura envelope for ${facturas.length} DTEs`)
       const facturaEnvelope = await createBatchEnvelope(facturas, restaurant.rut, credentials.rut_envia, false, credentials)
-      console.log(`Submitting factura envelope to SII`)
       const facturaResult = await submitEnvelopeToSII(facturaEnvelope, restaurant.rut, credentials.rut_envia, environment, false, privateKeyPem, certificate)
       
       if (facturaResult.success && facturaResult.track_id) {
@@ -948,9 +944,10 @@ async function createBatchEnvelope(
   const tmst = new Date(nowDate.getTime() - offsetMs).toISOString().substring(0, 19)
   
   // Use resolution data for certification environment
+  // Official SII test values for certification (numero: 0, fecha: 2026-04-23)
   const RESOLUCION = {
-    fecha: '2006-02-07',
-    numero: '102'
+    fecha: '2026-04-23',
+    numero: '0'
   }
   const RUT_SII = '60803000-K'
   

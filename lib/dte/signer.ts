@@ -234,19 +234,20 @@ export function aplicarDescuentoGlobal(
 }
 
 // SII resolution data — use the company's actual SII resolution for both environments
+// For certification environment, use numero: 0, fecha: 2026-04-23
 const RESOLUCION: Record<number, { fecha: string; numero: number }> = {
-  39: { fecha: '2021-07-09', numero: 99 },
-  41: { fecha: '2021-07-09', numero: 99 },
-  33: { fecha: '2025-07-06', numero: 0  },
-  34: { fecha: '2025-07-06', numero: 0  },
-  43: { fecha: '2025-07-06', numero: 0  },
-  46: { fecha: '2025-07-06', numero: 0  },
-  52: { fecha: '2025-07-06', numero: 0  },
-  56: { fecha: '2025-07-06', numero: 0  },
-  61: { fecha: '2025-07-06', numero: 0  },
-  110: { fecha: '2025-07-06', numero: 0  },
-  111: { fecha: '2025-07-06', numero: 0  },
-  112: { fecha: '2025-07-06', numero: 0  },
+  39: { fecha: '2026-04-23', numero: 0 },  // Boleta electrónica - certificación
+  41: { fecha: '2026-04-23', numero: 0 },  // Boleta exenta - certificación
+  33: { fecha: '2026-04-23', numero: 0 },  // Factura electrónica - certificación
+  34: { fecha: '2026-04-23', numero: 0 },  // Factura exenta - certificación
+  43: { fecha: '2026-04-23', numero: 0 },  // Liquidación factura - certificación
+  46: { fecha: '2026-04-23', numero: 0 },  // Factura de compra - certificación
+  52: { fecha: '2026-04-23', numero: 0 },  // Guía de despacho - certificación
+  56: { fecha: '2026-04-23', numero: 0 },  // Nota de débito - certificación
+  61: { fecha: '2026-04-23', numero: 0 },  // Nota de crédito - certificación
+  110: { fecha: '2026-04-23', numero: 0 },  // Factura de exportación - certificación
+  111: { fecha: '2026-04-23', numero: 0 },  // Nota de débito exportación - certificación
+  112: { fecha: '2026-04-23', numero: 0 },  // Nota de crédito exportación - certificación
 }
 
 // RUT receptor SII (always 60803000-K for boletas)
@@ -677,8 +678,6 @@ export async function signDte(
   const { privateKeyPem, certificate, rutEnvia } = creds
   const supabase = createAdminClient()
 
-  console.log('signDte: RutEnvia used:', rutEnvia || '(empty)')
-
   // 5. Load CAF XML if cafId provided — dte_cafs stores it AES-256-GCM encrypted
   let cafXml: string | null = null
   if (cafId) {
@@ -695,22 +694,18 @@ export async function signDte(
           iv:         cafRow.xml_iv,
           authTag:    cafRow.xml_auth_tag,
         }).toString('utf8')
-        console.log('signDte: CAF loaded:', cafXml.length, 'chars for cafId:', cafId)
         const cafBlockMatch = /(<CAF[\s\S]*?<\/CAF>)/.exec(cafXml)
-        console.log('signDte: CAF block found:', cafBlockMatch ? 'YES' : 'NO')
       } catch (e) {
         console.error('signDte: CAF decryption failed:', e)
       }
-    } else {
-      console.log('signDte: CAF NOT FOUND for cafId:', cafId)
     }
   } else {
-    console.log('signDte: no cafId provided — TED will have no CAF block')
+    // No cafId provided — TED will have no CAF block
   }
 
   // 6. Build the full envelope
   try {
-    const signedXml = buildEnvelope(xml, privateKeyPem, certificate, rutEnvia, cafXml)
+    const signedXml = buildEnvelope(xml, privateKeyPem, certificate, rutEnvia, cafXml, creds.resolucion)
     return { signed_xml: signedXml }
   } catch (e) {
     console.error('signDte: signing failed:', e)
@@ -731,7 +726,8 @@ function buildEnvelope(
   privateKeyPem: string,
   certificate: forge.pki.Certificate,
   rutEnvia: string,
-  cafXml: string | null
+  cafXml: string | null,
+  resolucionOverride?: { fecha: string; numero: number }
 ): string {
   // Parse document type and folio from the XML
   const tipoMatch  = /<TipoDTE>(\d+)<\/TipoDTE>/.exec(dteXml)
@@ -753,7 +749,7 @@ function buildEnvelope(
   const it1       = nmbItemMatch?.[1] ?? 'Consumo'
 
   const isBoleta = tipoDTE === 39 || tipoDTE === 41
-  const resol    = RESOLUCION[tipoDTE] ?? RESOLUCION[39]
+  const resol    = resolucionOverride ?? RESOLUCION[tipoDTE] ?? RESOLUCION[39]
   const nowDate = new Date()
   const offsetMs = nowDate.getTimezoneOffset() * 60000
   const tmst     = new Date(nowDate.getTime() - offsetMs).toISOString().substring(0, 19)

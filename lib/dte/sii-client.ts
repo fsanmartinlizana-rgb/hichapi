@@ -565,6 +565,9 @@ export async function sendFacturaToSII(
     const trackId    = trackIdMatch?.[1]?.trim()
     const statusCode = statusMatch?.[1]?.trim()
 
+    console.log('📨 [sendFacturaToSII] Respuesta cruda SII:', responseXml.slice(0, 500))
+    console.log('📨 [sendFacturaToSII] Parsed:', { estado, trackId, statusCode })
+
     if (estado === 'OK' || estado === 'EPR' || statusCode === '0') {
       return { success: true, track_id: trackId, status: estado ?? statusCode, sii_response: responseXml }
     }

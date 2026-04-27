@@ -91,6 +91,50 @@ export async function POST(req: NextRequest) {
   )
   if (authErr || !user) return authErr ?? NextResponse.json({ error: 'No auth' }, { status: 401 })
 
+  // ── Validate complete DTE configuration ────────────────────────────────────
+  const supabase = createAdminClient()
+  
+  // Check restaurant data
+  const { data: restaurant } = await supabase
+    .from('restaurants')
+    .select('rut, razon_social, giro, direccion, comuna, acteco')
+    .eq('id', body.restaurant_id)
+    .single()
+
+  if (!restaurant) {
+    return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 })
+  }
+
+  // Validate all required restaurant fields
+  const missingRestaurantFields = []
+  if (!restaurant.rut) missingRestaurantFields.push('RUT emisor')
+  if (!restaurant.razon_social) missingRestaurantFields.push('Razón social')
+  if (!restaurant.giro) missingRestaurantFields.push('Giro')
+  if (!restaurant.direccion) missingRestaurantFields.push('Dirección (SII)')
+  if (!restaurant.comuna) missingRestaurantFields.push('Comuna')
+  if (!restaurant.acteco) missingRestaurantFields.push('Código ACTECO')
+
+  if (missingRestaurantFields.length > 0) {
+    return NextResponse.json({
+      error: 'Configuración DTE incompleta',
+      details: `Faltan los siguientes datos en la configuración del restaurante: ${missingRestaurantFields.join(', ')}. Completa todos los campos en "Datos tributarios (DTE)" antes de emitir documentos.`
+    }, { status: 400 })
+  }
+
+  // Check DTE credentials
+  const { data: dteCreds } = await supabase
+    .from('dte_credentials')
+    .select('fecha_resolucion, numero_resolucion')
+    .eq('restaurant_id', body.restaurant_id)
+    .maybeSingle()
+
+  if (!dteCreds || !dteCreds.fecha_resolucion || dteCreds.numero_resolucion === null) {
+    return NextResponse.json({
+      error: 'Configuración DTE incompleta',
+      details: 'Debes configurar la fecha y número de resolución SII en la configuración del restaurante antes de emitir documentos tributarios.'
+    }, { status: 400 })
+  }
+
   // ── Factura / nota validations ────────────────────────────────────────────
   const isFactura = body.document_type === 33 || body.document_type === 56 || body.document_type === 61
 
@@ -129,12 +173,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const supabase = createAdminClient()
-
   // Verify restaurant has DTE enabled and required tax data
   const { data: rest } = await supabase
     .from('restaurants')
-    .select('rut, razon_social, dte_enabled, dte_environment')
+    .select('dte_enabled, dte_environment')
     .eq('id', body.restaurant_id)
     .single()
 

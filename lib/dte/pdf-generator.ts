@@ -27,6 +27,7 @@ export interface GenerateDtePdfResult {
 export async function generateDtePdf(
   signedXml: string,
   logoUrl?:  string,
+  format: 'pos80' | 'papel-factura' = 'papel-factura',
 ): Promise<GenerateDtePdfResult> {
   try {
     console.log('[pdf-generator] Starting PDF generation')
@@ -38,8 +39,6 @@ export async function generateDtePdf(
     if (!dte.folio || !dte.tipoDte) {
       return { ok: false, error: 'XML inválido: no se pudo extraer folio o tipo de documento' }
     }
-
-    console.log('[pdf-generator] Parsed DTE:', { folio: dte.folio, tipoDte: dte.tipoDte })
 
     // 2. Generar código de barras PDF417 del TED
     console.log('[pdf-generator] Generating TED barcode')
@@ -56,7 +55,7 @@ export async function generateDtePdf(
 
     // 3. Renderizar PDF
     console.log('[pdf-generator] Rendering PDF')
-    const buffer = await renderDtePdf(dte, tedPngB64, logoUrl)
+    const buffer = await renderDtePdf(dte, tedPngB64, logoUrl, format)
     console.log('[pdf-generator] PDF rendered successfully')
 
     return { ok: true, buffer }
