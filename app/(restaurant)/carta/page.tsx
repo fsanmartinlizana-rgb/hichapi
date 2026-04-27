@@ -65,6 +65,133 @@ const DESTINATIONS: { value: Destination; label: string; icon: typeof ChefHat; h
   { value: 'ninguno', label: 'Sin prep', icon: Package, hint: 'No requiere preparación' },
 ]
 
+// ── Conversión de unidades para ingredientes ────────────────────────────────
+//
+// La qty del ingrediente se persiste SIEMPRE en la unidad base del stock_item
+// (ej: si el stock está en kg, qty está en kg). El IngredientRow permite al
+// user trabajar en unidades compatibles (ej: ingresar 200 g cuando el stock
+// está en kg) y convierte al guardar.
+//
+// Conversiones soportadas:
+//   • masa:    kg ↔ g  (1 kg = 1000 g)
+//   • volumen: l  ↔ ml (1 l = 1000 ml)
+//   • discretas (unidad/porcion/caja): sin conversión
+
+type DisplayUnit = 'kg' | 'g' | 'l' | 'ml' | 'unidad' | 'porcion' | 'caja'
+
+const COMPATIBLE_UNITS: Record<string, DisplayUnit[]> = {
+  kg:      ['kg', 'g'],
+  g:       ['kg', 'g'],
+  l:       ['l', 'ml'],
+  ml:      ['l', 'ml'],
+  unidad:  ['unidad'],
+  porcion: ['porcion'],
+  caja:    ['caja'],
+}
+
+/** Convierte una cantidad entre unidades compatibles. Si las unidades no son
+ * compatibles devuelve el mismo valor (caso fail-safe). */
+function convertQty(qty: number, fromUnit: string, toUnit: string): number {
+  if (fromUnit === toUnit) return qty
+  if (fromUnit === 'kg' && toUnit === 'g')  return qty * 1000
+  if (fromUnit === 'g'  && toUnit === 'kg') return qty / 1000
+  if (fromUnit === 'l'  && toUnit === 'ml') return qty * 1000
+  if (fromUnit === 'ml' && toUnit === 'l')  return qty / 1000
+  return qty
+}
+
+/** Step apropiado para el input según la unidad mostrada. */
+function inputStep(unit: string): string {
+  if (unit === 'g' || unit === 'ml') return '1'
+  if (unit === 'kg' || unit === 'l') return '0.001'
+  return '1'
+}
+
+function IngredientRow({
+  ing,
+  stockItems,
+  stockItem,
+  onChange,
+  onRemove,
+}: {
+  ing: Ingredient
+  stockItems: { id: string; name: string; unit: string; cost_per_unit?: number }[]
+  stockItem?: { id: string; name: string; unit: string; cost_per_unit?: number }
+  onChange: (patch: Partial<Ingredient>) => void
+  onRemove: () => void
+}) {
+  const baseUnit = stockItem?.unit ?? 'unidad'
+  const compatibleUnits = COMPATIBLE_UNITS[baseUnit] ?? [baseUnit as DisplayUnit]
+  // Display unit local: arranca en la base del stock. El user puede cambiarla.
+  const [displayUnit, setDisplayUnit] = useState<string>(baseUnit)
+
+  // Si cambia el stock_item (otro producto), reseteamos displayUnit al base nuevo
+  useEffect(() => {
+    setDisplayUnit(baseUnit)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [stockItem?.id])
+
+  // Qty mostrada al user, convertida desde la qty base persistida
+  const displayQty = convertQty(ing.qty, baseUnit, displayUnit)
+
+  function handleQtyChange(v: string) {
+    const num = parseFloat(v) || 0
+    const baseQty = convertQty(num, displayUnit, baseUnit)
+    onChange({ qty: baseQty })
+  }
+
+  function handleUnitChange(u: string) {
+    // Solo cambia la unidad de display — la qty base no se toca, solo se reformatea.
+    setDisplayUnit(u)
+  }
+
+  return (
+    <div className="flex gap-1.5">
+      <select
+        value={ing.stock_item_id}
+        onChange={e => onChange({ stock_item_id: e.target.value })}
+        className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
+      >
+        {stockItems.map(s => (
+          <option key={s.id} value={s.id} className="bg-[#1C1C2E]">{s.name}</option>
+        ))}
+      </select>
+      <input
+        type="number"
+        value={displayQty || ''}
+        onChange={e => handleQtyChange(e.target.value)}
+        step={inputStep(displayUnit)}
+        inputMode="decimal"
+        placeholder="0"
+        className="w-20 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 text-right font-mono"
+      />
+      {compatibleUnits.length > 1 ? (
+        <select
+          value={displayUnit}
+          onChange={e => handleUnitChange(e.target.value)}
+          title={`Stock guardado en ${baseUnit} — se convierte al elegir otra unidad`}
+          className="px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white/80 text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none min-w-[60px] text-center"
+        >
+          {compatibleUnits.map(u => (
+            <option key={u} value={u} className="bg-[#1C1C2E]">{u}</option>
+          ))}
+        </select>
+      ) : (
+        <span className="px-2 py-2 rounded-xl bg-white/3 border border-white/6 text-white/40 text-xs min-w-[50px] text-center">
+          {baseUnit}
+        </span>
+      )}
+      <button
+        type="button"
+        onClick={onRemove}
+        className="w-9 px-2 py-2 rounded-xl bg-white/3 hover:bg-red-500/15 text-white/30 hover:text-red-400 transition-colors"
+      >
+        <X size={12} />
+      </button>
+    </div>
+  )
+}
+
 // ── ItemForm ─────────────────────────────────────────────────────────────────
 
 function ItemForm({
@@ -490,35 +617,14 @@ function ItemForm({
             {ingredients.map((ing, i) => {
               const stockItem = stockItems.find(s => s.id === ing.stock_item_id)
               return (
-                <div key={i} className="flex gap-1.5">
-                  <select
-                    value={ing.stock_item_id}
-                    onChange={e => updateIngredient(i, { stock_item_id: e.target.value })}
-                    className="flex-1 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
-                  >
-                    {stockItems.map(s => (
-                      <option key={s.id} value={s.id} className="bg-[#1C1C2E]">{s.name}</option>
-                    ))}
-                  </select>
-                  <input
-                    type="number"
-                    value={ing.qty || ''}
-                    onChange={e => updateIngredient(i, { qty: parseFloat(e.target.value) || 0 })}
-                    step="0.01"
-                    placeholder="0"
-                    className="w-20 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 text-right font-mono"
-                  />
-                  <span className="px-2 py-2 rounded-xl bg-white/3 border border-white/6 text-white/40 text-xs min-w-[50px] text-center">
-                    {stockItem?.unit ?? '—'}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removeIngredient(i)}
-                    className="w-9 px-2 py-2 rounded-xl bg-white/3 hover:bg-red-500/15 text-white/30 hover:text-red-400 transition-colors"
-                  >
-                    <X size={12} />
-                  </button>
-                </div>
+                <IngredientRow
+                  key={i}
+                  ing={ing}
+                  stockItems={stockItems}
+                  stockItem={stockItem}
+                  onChange={patch => updateIngredient(i, patch)}
+                  onRemove={() => removeIngredient(i)}
+                />
               )
             })}
           </div>

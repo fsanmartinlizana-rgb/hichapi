@@ -12,14 +12,39 @@ import { requireUser } from '@/lib/supabase/auth-guard'
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const BodySchema = z.object({
-  // Cada imagen en base64 (sin el prefijo "data:image/…;base64,")
+  // Cada archivo en base64 (sin el prefijo "data:..."). Acepta imágenes o PDF.
   images: z.array(z.string().min(1)).min(1).max(6),
   mime: z.string().default('image/jpeg'),
 })
 
-const EXTRACTION_PROMPT = `Eres un asistente experto que analiza cartas de restaurantes.
+/** Anthropic acepta image/* como vision, application/pdf como document.
+ * Convierte el mime del browser al formato del block correcto. */
+function buildContentBlock(b64: string, mime: string): Anthropic.ContentBlockParam {
+  if (mime === 'application/pdf') {
+    return {
+      type: 'document',
+      source: {
+        type:       'base64',
+        media_type: 'application/pdf',
+        data:       b64,
+      },
+    }
+  }
+  // Default: imagen. Normalizar mime a uno soportado por Vision.
+  const imageMime: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' =
+    mime === 'image/png'  ? 'image/png'
+    : mime === 'image/webp' ? 'image/webp'
+    : mime === 'image/gif'  ? 'image/gif'
+    : 'image/jpeg'
+  return {
+    type: 'image',
+    source: { type: 'base64', media_type: imageMime, data: b64 },
+  }
+}
 
-Tu tarea: extraer todos los platos / bebidas de la imagen de la carta.
+const EXTRACTION_PROMPT = `Eres un asistente experto que analiza cartas de restaurantes en Chile.
+
+Tu tarea: extraer todos los platos / bebidas de la carta (imagen o PDF).
 
 Para cada ítem devuelve:
 - name: nombre del plato
@@ -27,13 +52,18 @@ Para cada ítem devuelve:
 - price: precio en pesos chilenos como número entero (sin $, sin puntos, sin comas). Ejemplo: 18000. Si la carta dice "18.000" o "$18.000", tú devuelves 18000.
 - category: una de ["entrada", "principal", "postre", "bebida", "para compartir"]. Infiere por contexto.
 - tags: array de tags relevantes del catálogo: ["vegano", "vegetariano", "sin gluten", "sin lactosa", "picante", "popular", "nuevo", "especialidad", "para compartir"]. Solo incluye los que apliquen.
+- ingredients: array OPCIONAL de { name, qty, unit } cuando la carta menciona explícitamente el gramaje o los ingredientes con cantidad. Ejemplo: si la carta dice "Lomo vetado 250g con papas rústicas 150g", devuelve:
+  ingredients: [{"name": "Lomo vetado", "qty": 250, "unit": "g"}, {"name": "Papas rústicas", "qty": 150, "unit": "g"}].
+  Unidades válidas: kg, g, l, ml, unidad, porcion, caja.
+  Si la carta NO menciona cantidades por ingrediente, omite el campo.
 
 REGLAS:
 - Devuelve SOLO JSON válido (sin markdown, sin prefacio).
 - Formato exacto: { "items": [ ... ] }
 - Si un ítem no tiene precio claro, omítelo.
 - Si ves sugerencias tipo "combos" o "menú del día", también inclúyelos.
-- Usa nombres tal como aparecen en la carta (respetando tildes).`
+- Usa nombres tal como aparecen en la carta (respetando tildes).
+- Si es un PDF de varias páginas, procesa todas las páginas.`
 
 export async function POST(req: NextRequest) {
   const { error: authErr } = await requireUser()
@@ -46,19 +76,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'IA no configurada' }, { status: 503 })
     }
 
-    // Build content blocks — one image per block
+    // Build content blocks — image vs document según el mime
     const content: Anthropic.ContentBlockParam[] = [
       { type: 'text', text: EXTRACTION_PROMPT },
-      ...body.images.map((b64): Anthropic.ContentBlockParam => ({
-        type: 'image',
-        source: {
-          type: 'base64',
-          media_type: (body.mime === 'image/png' ? 'image/png'
-                     : body.mime === 'image/webp' ? 'image/webp'
-                     : 'image/jpeg') as 'image/png' | 'image/jpeg' | 'image/webp',
-          data: b64,
-        },
-      })),
+      ...body.images.map(b64 => buildContentBlock(b64, body.mime)),
     ]
 
     const response = await anthropic.messages.create({
@@ -74,13 +95,16 @@ export async function POST(req: NextRequest) {
 
     const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
 
-    let parsed: { items?: Array<{
-      name: string
+    type ExtractedIngredient = { name: string; qty: number; unit: string }
+    type ExtractedItem = {
+      name:         string
       description?: string
-      price: number
-      category: string
-      tags?: string[]
-    }> }
+      price:        number
+      category:     string
+      tags?:        string[]
+      ingredients?: ExtractedIngredient[]
+    }
+    let parsed: { items?: ExtractedItem[] }
     try {
       parsed = JSON.parse(cleaned)
     } catch {
@@ -91,6 +115,8 @@ export async function POST(req: NextRequest) {
       }
       parsed = JSON.parse(match[0])
     }
+
+    const VALID_UNITS = new Set(['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja'])
 
     const items = (parsed.items ?? [])
       .filter(i => i.name && typeof i.price === 'number' && i.price > 0)
@@ -103,6 +129,19 @@ export async function POST(req: NextRequest) {
                       : 'principal',
         tags:        Array.isArray(i.tags) ? i.tags.slice(0, 8) : [],
         available:   true,
+        // Ingredientes detectados — el frontend los puede asociar a stock_items
+        // por nombre approx (no los persistimos directo porque el restaurant
+        // probablemente todavia no tiene esos productos en stock).
+        ingredients_hint: Array.isArray(i.ingredients)
+          ? i.ingredients
+              .filter(ing => ing && ing.name && typeof ing.qty === 'number' && ing.qty > 0)
+              .map(ing => ({
+                name: ing.name.trim().slice(0, 100),
+                qty:  ing.qty,
+                unit: VALID_UNITS.has((ing.unit ?? '').toLowerCase()) ? ing.unit.toLowerCase() : 'unidad',
+              }))
+              .slice(0, 20)
+          : [],
       }))
 
     return NextResponse.json({ ok: true, items, count: items.length })
@@ -110,7 +149,12 @@ export async function POST(req: NextRequest) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Datos inválidos', details: err.issues }, { status: 400 })
     }
-    console.error('extract error:', err)
-    return NextResponse.json({ error: 'Error al analizar la imagen' }, { status: 500 })
+    // Log más útil para debugging — incluye el mensaje del error
+    const message = err instanceof Error ? err.message : String(err)
+    console.error('[menu-items/extract] error:', message, err)
+    return NextResponse.json(
+      { error: `Error al analizar el archivo: ${message}` },
+      { status: 500 },
+    )
   }
 }

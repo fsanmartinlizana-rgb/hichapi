@@ -763,7 +763,8 @@ function ProductModal({ restaurantId, item, onClose, onSaved }: { restaurantId: 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault(); setSaving(true); setError('')
     try {
-      const payload = {
+      // Payload base — siempre presente
+      const payload: Record<string, unknown> = {
         ...(isEdit ? { id: item!.id } : { restaurant_id: restaurantId }),
         name: form.name,
         unit: form.unit,
@@ -774,11 +775,28 @@ function ProductModal({ restaurantId, item, onClose, onSaved }: { restaurantId: 
         supplier: form.supplier || undefined,
         expiry_date: form.expiry_date || null,
         shelf_life_days: form.shelf_life_days ? parseInt(form.shelf_life_days) : null,
-        lot_number: form.lot_number || null,
-        alert_days_before: parseInt(form.alert_days_before) || 3,
       }
+      // Campos de la migration 060 — solo se envian si el user los lleno.
+      // Esto evita "column does not exist" en restaurants donde la migration
+      // SPRINT_01_stock_v2.sql todavia no se aplico en Supabase.
+      if (form.lot_number) payload.lot_number = form.lot_number
+      const alertDays = parseInt(form.alert_days_before)
+      if (Number.isFinite(alertDays) && alertDays !== 3) {
+        payload.alert_days_before = alertDays
+      }
+
       const res = await fetch('/api/stock', { method: isEdit ? 'PATCH' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
-      if (!res.ok) { const d = await res.json(); setError(d.error ?? 'Error al guardar'); return }
+      if (!res.ok) {
+        const d = await res.json()
+        // Mensaje específico cuando la columna no existe en la DB
+        const msg = d.error ?? 'Error al guardar'
+        if (typeof msg === 'string' && msg.includes('alert_days_before') || msg.includes('lot_number')) {
+          setError('Faltan columnas en la DB. Pedí al admin correr SPRINT_01_stock_v2.sql en Supabase.')
+        } else {
+          setError(msg)
+        }
+        return
+      }
       onSaved(); onClose()
     } catch { setError('Error de red') } finally { setSaving(false) }
   }
