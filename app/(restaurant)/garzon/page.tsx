@@ -218,7 +218,7 @@ export default function GarzonPage() {
         .order('label'),
       supabase
         .from('orders')
-        .select('id, table_id, status, total, pax, client_name, notes, created_at, updated_at, order_items(id, name, quantity, unit_price, notes, status, destination)')
+        .select('id, table_id, status, total, pax, client_name, notes, created_at, updated_at, order_items(id, name, quantity, unit_price, notes, status, destination, menu_item_id, menu_items(tax_exempt))')
         .eq('restaurant_id', restId)
         .not('status', 'in', '("paid","cancelled")')
         .order('created_at', { ascending: false }),
@@ -459,6 +459,7 @@ export default function GarzonPage() {
       notes: i.notes,
       status: i.status,
       destination: i.destination,
+      tax_exempt: (i as any).menu_items?.tax_exempt === true,
     })),
   } : null
 

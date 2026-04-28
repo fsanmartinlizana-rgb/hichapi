@@ -19,7 +19,9 @@ export async function POST(
     }
 
     const body = await request.json()
-    const { split_index, amount, payment_method, cash_amount, digital_amount, dte } = body
+    const { split_index, amount, tip_amount, payment_method, cash_amount, digital_amount, dte } = body
+    // dteAmount = monto sin propina (lo que va en la boleta)
+    const dteAmount = Math.max(1, amount - (tip_amount || 0))
 
     // Validaciones básicas
     if (split_index === undefined || !amount || !payment_method || !dte) {
@@ -188,10 +190,10 @@ export async function POST(
         throw new Error('Restaurante sin RUT configurado')
       }
 
-      // Calcular net/iva desde el monto del split
+      // Calcular net/iva desde el monto del split SIN propina (dteAmount)
       const IVA_RATE = 0.19
-      const net = Math.round(amount / (1 + IVA_RATE))
-      const iva = amount - net
+      const net = Math.round(dteAmount / (1 + IVA_RATE))
+      const iva = dteAmount - net
 
       // Insertar fila en dte_emissions antes de llamar al engine
       const { data: emission, error: emissionInsertErr } = await adminSupabase
@@ -212,7 +214,7 @@ export async function POST(
           emitted_by:         user.id,
           net_amount:         net,
           iva_amount:         iva,
-          total_amount:       amount,
+          total_amount:       dteAmount,  // sin propina
         })
         .select('id')
         .single()
@@ -220,6 +222,20 @@ export async function POST(
       if (emissionInsertErr || !emission) {
         console.error('[pay] Error inserting dte_emission:', emissionInsertErr)
         throw new Error('No se pudo crear la emisión DTE')
+      }
+
+      // Para by_items: enriquecer items con tax_exempt desde order_items de la orden
+      let taxExemptByName: Record<string, boolean> = {}
+      if (billSplit.split_type === 'by_items' && billSplit.num_splits > 1) {
+        const { data: orderItemsForTax } = await adminSupabase
+          .from('order_items')
+          .select('name, menu_item_id, menu_items(tax_exempt)')
+          .eq('order_id', billSplit.order_ids[0])
+        ;(orderItemsForTax ?? []).forEach((oi: any) => {
+          if (oi.menu_items?.tax_exempt === true) {
+            taxExemptByName[oi.name] = true
+          }
+        })
       }
 
       const emitResult = await runEmission(
@@ -233,6 +249,31 @@ export async function POST(
         dte.direccion_receptor,
         dte.comuna_receptor,
         dte.fma_pago ?? (payment_method === 'cash' ? 1 : 2),
+        // Determinar items para el DTE:
+        // - Pago completo (1 persona): cargar order_items reales (engine los carga)
+        // - by_items: usar los items asignados a esta persona, enriquecidos con ind_exe
+        // - equal/custom: ítem genérico "Consumo"
+        (() => {
+          if (billSplit.num_splits === 1) return undefined
+          if (billSplit.split_type === 'by_items') {
+            const itemsPerSplit = billSplit.split_config?.items_per_split as Array<Array<{ name: string; quantity: number; unit_price: number }>> | undefined
+            const personItems = itemsPerSplit?.[split_index]
+            if (personItems && personItems.length > 0) {
+              return personItems.map(i => ({
+                ...i,
+                ...(taxExemptByName[i.name] ? { ind_exe: 1 as const } : {}),
+              }))
+            }
+          }
+          return [{ name: 'Consumo', quantity: 1, unit_price: dteAmount }]
+        })(),
+        undefined, // descuentoGlobal
+        undefined, // tipoDocRef
+        undefined, // folioRef
+        undefined, // fchRef
+        undefined, // codRef
+        undefined, // razonRef
+        true,      // skipDuplicateCheck — múltiples boletas por orden en split
       )
 
       if (emitResult.ok) {
@@ -244,23 +285,30 @@ export async function POST(
 
         // Enviar email si hay email_receptor y el DTE se emitió correctamente
         if (dte.email_receptor && emitResult.folio) {
-          const { data: orderItems } = await adminSupabase
-            .from('order_items')
-            .select('name, quantity, unit_price')
-            .eq('order_id', billSplit.order_ids[0])
-
-          const mappedItems = (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
-            name:       i.name,
-            quantity:   i.quantity,
-            unit_price: i.unit_price,
-          }))
-
-          // Si el monto cobrado (con propina) es mayor que la suma de ítems,
-          // agregar una línea de propina para que el total cuadre en el email
-          const itemsTotal = mappedItems.reduce((sum: number, i: { name: string; quantity: number; unit_price: number }) => sum + i.unit_price * i.quantity, 0)
-          const tipAmount  = amount - itemsTotal
-          if (tipAmount > 0) {
-            mappedItems.push({ name: 'Propina', quantity: 1, unit_price: tipAmount })
+          // Para pago completo (1 persona): cargar order_items reales
+          // Para by_items: usar los items asignados a esta persona
+          // Para equal/custom: ítem genérico con el monto SIN propina
+          let mappedItems: Array<{ name: string; quantity: number; unit_price: number }>
+          if (billSplit.num_splits === 1) {
+            const { data: orderItems } = await adminSupabase
+              .from('order_items')
+              .select('name, quantity, unit_price')
+              .eq('order_id', billSplit.order_ids[0])
+              .neq('status', 'cancelled')
+            mappedItems = (orderItems ?? []).map((i: { name: string; quantity: number; unit_price: number }) => ({
+              name: i.name, quantity: i.quantity, unit_price: i.unit_price,
+            }))
+            if (mappedItems.length === 0) {
+              mappedItems = [{ name: 'Consumo', quantity: 1, unit_price: dteAmount }]
+            }
+          } else if (billSplit.split_type === 'by_items') {
+            const itemsPerSplit = billSplit.split_config?.items_per_split as Array<Array<{ name: string; quantity: number; unit_price: number }>> | undefined
+            const personItems = itemsPerSplit?.[split_index]
+            mappedItems = (personItems && personItems.length > 0)
+              ? personItems
+              : [{ name: 'Consumo', quantity: 1, unit_price: dteAmount }]
+          } else {
+            mappedItems = [{ name: 'Consumo', quantity: 1, unit_price: dteAmount }]
           }
 
           const emailArgs = {
@@ -268,7 +316,7 @@ export async function POST(
             orderId:        billSplit.order_ids[0],
             folio:          emitResult.folio,
             restaurantName: restaurant.razon_social ?? restaurant.rut,
-            totalAmount:    amount,
+            totalAmount:    dteAmount,
             emittedAt:      new Date().toISOString(),
             items:          mappedItems,
             xmlBase64: emitResult.signed_xml

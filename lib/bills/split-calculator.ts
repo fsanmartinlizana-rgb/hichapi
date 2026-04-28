@@ -6,6 +6,7 @@ export interface Split {
   index: number
   amount: number
   paid: boolean
+  items?: Array<{ name: string; quantity: number; unit_price: number; ind_exe?: 1 }>
 }
 
 export interface OrderItem {

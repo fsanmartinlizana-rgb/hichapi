@@ -101,6 +101,7 @@ export async function runEmission(
   fchRef?:              string,
   codRef?:              1 | 2 | 3,
   razonRef?:            string,
+  skipDuplicateCheck?:  boolean,  // true para splits de cuenta (múltiples boletas por orden)
 ): Promise<EmissionResult> {
   const supabase = createAdminClient()
 
@@ -144,9 +145,11 @@ export async function runEmission(
   }
 
   // ── Guard 1: order must be paid ────────────────────────────────────────────
+  // For split bills (skipDuplicateCheck=true), the order may not be 'paid' yet
+  // (it's marked paid only when all splits complete), so we skip this check too.
   const { data: order, error: orderErr } = await supabase
     .from('orders')
-    .select('id, status, total, restaurant_id')
+    .select('id, status, total, restaurant_id, subtotal')
     .eq('id', orderId)
     .maybeSingle()
 
@@ -156,7 +159,7 @@ export async function runEmission(
     return { ok: false, error: detail }
   }
 
-  if (order.status !== 'paid') {
+  if (!skipDuplicateCheck && order.status !== 'paid') {
     const detail = 'ORDER_NOT_PAID'
     await writeErrorDetail(supabase, emissionId, detail)
     return { ok: false, error: detail }
@@ -164,25 +167,29 @@ export async function runEmission(
 
   // ── Guard 2: no duplicate active emission for this order + document type ───
   // Allow multiple documents for the same order if they are different types
-  const { data: existing, error: dupErr } = await supabase
-    .from('dte_emissions')
-    .select('id, status, document_type')
-    .eq('order_id', orderId)
-    .eq('document_type', documentType)  // Only check same document type
-    .neq('status', 'cancelled')
-    .neq('id', emissionId)   // exclude the current emission row itself
-    .maybeSingle()
+  // Skip this check for split bills (skipDuplicateCheck=true) since multiple
+  // boletas can be emitted for the same order when splitting the bill
+  if (!skipDuplicateCheck) {
+    const { data: existing, error: dupErr } = await supabase
+      .from('dte_emissions')
+      .select('id, status, document_type')
+      .eq('order_id', orderId)
+      .eq('document_type', documentType)  // Only check same document type
+      .neq('status', 'cancelled')
+      .neq('id', emissionId)   // exclude the current emission row itself
+      .maybeSingle()
 
-  if (dupErr) {
-    const detail = `DB_ERROR: ${dupErr.message}`
-    await writeErrorDetail(supabase, emissionId, detail)
-    return { ok: false, error: detail }
-  }
+    if (dupErr) {
+      const detail = `DB_ERROR: ${dupErr.message}`
+      await writeErrorDetail(supabase, emissionId, detail)
+      return { ok: false, error: detail }
+    }
 
-  if (existing) {
-    const detail = 'DUPLICATE_EMISSION'
-    await writeErrorDetail(supabase, emissionId, detail)
-    return { ok: false, error: detail }
+    if (existing) {
+      const detail = 'DUPLICATE_EMISSION'
+      await writeErrorDetail(supabase, emissionId, detail)
+      return { ok: false, error: detail }
+    }
   }
 
   // ── Load restaurant data ───────────────────────────────────────────────────
@@ -207,7 +214,7 @@ export async function runEmission(
   } else {
     const { data: orderItems, error: itemsErr } = await supabase
       .from('order_items')
-      .select('name, quantity, unit_price, tax_exempt')
+      .select('name, quantity, unit_price, menu_item_id')
       .eq('order_id', orderId)
       .neq('status', 'cancelled')
 
@@ -217,12 +224,27 @@ export async function runEmission(
       return { ok: false, error: detail }
     }
 
+    // Obtener tax_exempt desde menu_items para los items que tienen menu_item_id
+    const menuItemIds = (orderItems ?? [])
+      .map((i: any) => i.menu_item_id)
+      .filter(Boolean)
+
+    let taxExemptMap: Record<string, boolean> = {}
+    if (menuItemIds.length > 0) {
+      const { data: menuItems } = await supabase
+        .from('menu_items')
+        .select('id, tax_exempt')
+        .in('id', menuItemIds)
+      taxExemptMap = Object.fromEntries(
+        (menuItems ?? []).map((m: any) => [m.id, m.tax_exempt === true])
+      )
+    }
+
     lineItems = (orderItems ?? []).map((item: any) => ({
       name:       item.name,
       quantity:   item.quantity,
       unit_price: item.unit_price,
-      // Propagar exención de IVA desde order_items (heredado de menu_items.tax_exempt)
-      ...(item.tax_exempt ? { ind_exe: 1 as const } : {}),
+      ...(taxExemptMap[item.menu_item_id] ? { ind_exe: 1 as const } : {}),
     }))
 
     // If no items, use a single summary line from the order subtotal (excluding tip)
@@ -237,10 +259,8 @@ export async function runEmission(
   }
 
   // ── Auto-upgrade boleta (39) → boleta exenta (41) si todos los ítems son exentos ──
-  // Si el caller pidió tipo 39 pero todos los ítems tienen ind_exe=1, emitir tipo 41
   if (documentType === 39 && lineItems.length > 0 && lineItems.every(i => i.ind_exe === 1)) {
     documentType = 41
-    // Actualizar la fila de emisión con el tipo correcto antes de continuar
     await supabase
       .from('dte_emissions')
       .update({ document_type: 41 })
@@ -282,11 +302,21 @@ export async function runEmission(
 
   // Para notas (56/61) con items custom, el total_amount debe calcularse desde
   // los items pasados, no desde la orden original.
+  // Para splits (skipDuplicateCheck=true), usar el total_amount de la fila de emisión
+  // que ya tiene el monto correcto del split, no el total de la orden completa.
   // Para boletas y facturas normales, usar el subtotal de la orden.
   let buildTotalAmount: number
   if (items && items.length > 0 && (documentType === 56 || documentType === 61)) {
     // Sumar los items custom (precios brutos CLP)
     buildTotalAmount = items.reduce((sum, i) => sum + Math.round(i.quantity * i.unit_price), 0)
+  } else if (skipDuplicateCheck) {
+    // Split de cuenta: leer el total_amount de la fila de emisión (monto del split)
+    const { data: emissionRow } = await supabase
+      .from('dte_emissions')
+      .select('total_amount')
+      .eq('id', emissionId)
+      .single()
+    buildTotalAmount = emissionRow?.total_amount ?? (order.subtotal ?? order.total)
   } else {
     buildTotalAmount = order.subtotal ?? order.total
   }

@@ -21,6 +21,7 @@ interface Order {
     name: string
     quantity: number
     unit_price: number
+    tax_exempt?: boolean
   }>
 }
 
@@ -89,17 +90,27 @@ export function BillSplitModal({
   function handleConfigureByItems(assignments: Record<string, number>, numPeople: number) {
     // Calcular monto por persona sumando los unit_price de los items asignados
     const totals = Array(numPeople).fill(0) as number[]
+    // items_per_person[personIndex] = array de {name, quantity, unit_price}
+    const itemsPerPerson: Array<Array<{ name: string; quantity: number; unit_price: number }>> =
+      Array.from({ length: numPeople }, () => [])
+
     for (const [key, personIndex] of Object.entries(assignments)) {
       if (personIndex < 0) continue
-      // Buscar el item por key (puede ser "id" o "id__n" para qty > 1)
       const baseId = key.split('__')[0]
       const item = allItems.find(it => it.id === baseId)
-      if (item) totals[personIndex] += item.unit_price
+      if (item) {
+        totals[personIndex] += item.unit_price
+        itemsPerPerson[personIndex].push({
+          name: item.name,
+          quantity: 1,
+          unit_price: item.unit_price,
+          ...(item.tax_exempt ? { ind_exe: 1 as const } : {}),
+        })
+      }
     }
     const newSplits: Split[] = totals
-      .map((amount, index) => ({ index, amount, paid: false }))
+      .map((amount, index) => ({ index, amount, paid: false, items: itemsPerPerson[index] }))
       .filter(s => s.amount > 0)
-    // Re-indexar
     newSplits.forEach((s, i) => { s.index = i })
     setSplits(newSplits)
     setStep('payment')
@@ -134,8 +145,9 @@ export function BillSplitModal({
     setError(null)
 
     const splitConfig =
-      resolvedType === 'equal'  ? { num_people: resolvedSplits.length } :
-      resolvedType === 'custom' ? { amounts: resolvedSplits.map(s => s.amount) } :
+      resolvedType === 'equal'    ? { num_people: resolvedSplits.length } :
+      resolvedType === 'custom'   ? { amounts: resolvedSplits.map(s => s.amount) } :
+      resolvedType === 'by_items' ? { items_per_split: resolvedSplits.map(s => s.items ?? []) } :
       {}
 
     try {
@@ -197,6 +209,7 @@ export function BillSplitModal({
         body: JSON.stringify({
           split_index: currentSplitIndex,
           amount: actualAmount,          // total real con propina
+          tip_amount: (cashAmount || 0) + (digitalAmount || 0) - activeSplit.amount, // propina = total cobrado - monto del split
           payment_method: method,
           cash_amount: cashAmount || 0,
           digital_amount: digitalAmount || 0,
