@@ -115,13 +115,11 @@ export async function runEmission(
       return { ok: false, error: detail }
     }
 
-    // Validate all required receptor fields are present and non-empty
-    const missingReceptorField =
-      !rutReceptor?.trim() ||
-      !razonReceptor?.trim() ||
-      !giroReceptor?.trim() ||
-      !direccionReceptor?.trim() ||
-      !comunaReceptor?.trim()
+    // For type 33 (factura): all receptor fields are required
+    // For types 56/61 (notas): only rut + razon are required
+    const missingReceptorField = documentType === 33
+      ? (!rutReceptor?.trim() || !razonReceptor?.trim() || !giroReceptor?.trim() || !direccionReceptor?.trim() || !comunaReceptor?.trim())
+      : (!rutReceptor?.trim() || !razonReceptor?.trim())
 
     if (missingReceptorField) {
       const detail = 'RECEPTOR_DATOS_INCOMPLETOS'
@@ -238,6 +236,17 @@ export async function runEmission(
     }
   }
 
+  // ── Auto-upgrade boleta (39) → boleta exenta (41) si todos los ítems son exentos ──
+  // Si el caller pidió tipo 39 pero todos los ítems tienen ind_exe=1, emitir tipo 41
+  if (documentType === 39 && lineItems.length > 0 && lineItems.every(i => i.ind_exe === 1)) {
+    documentType = 41
+    // Actualizar la fila de emisión con el tipo correcto antes de continuar
+    await supabase
+      .from('dte_emissions')
+      .update({ document_type: 41 })
+      .eq('id', emissionId)
+  }
+
   // ── Step (a): reserve folio ────────────────────────────────────────────────
   const folioResult = await takeNextFolio(restaurantId, documentType)
 
@@ -271,6 +280,17 @@ export async function runEmission(
   const now = new Date()
   const today = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}-${String(now.getDate()).padStart(2,'0')}`
 
+  // Para notas (56/61) con items custom, el total_amount debe calcularse desde
+  // los items pasados, no desde la orden original.
+  // Para boletas y facturas normales, usar el subtotal de la orden.
+  let buildTotalAmount: number
+  if (items && items.length > 0 && (documentType === 56 || documentType === 61)) {
+    // Sumar los items custom (precios brutos CLP)
+    buildTotalAmount = items.reduce((sum, i) => sum + Math.round(i.quantity * i.unit_price), 0)
+  } else {
+    buildTotalAmount = order.subtotal ?? order.total
+  }
+
   let unsignedXml: string
   try {
     unsignedXml = buildDteXml({
@@ -283,7 +303,7 @@ export async function runEmission(
       direccion:           (restaurant as any).direccion ?? restaurant.address ?? '',
       comuna:              (restaurant as any).comuna ?? '',
       acteco:              (restaurant as any).acteco ?? '463020',  // fallback — idealmente guardar en tabla restaurants
-      total_amount:        order.subtotal ?? order.total,  // Use subtotal to exclude tip
+      total_amount:        buildTotalAmount,
       items:               lineItems,
       // Receptor fields
       rut_receptor:        isFactura ? (rutReceptor ?? '') : (rutReceptor ?? '66666666-6'),

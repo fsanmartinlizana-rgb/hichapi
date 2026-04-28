@@ -5,13 +5,14 @@ import { useRestaurant } from '@/lib/restaurant-context'
 import {
   FileText, ShieldCheck, AlertCircle, Loader2, Upload, Clock,
   CheckCircle2, XCircle, ChevronDown, ChevronUp, Globe,
-  RefreshCw, X, Download, Eye, Inbox, Plus, Search,
+  RefreshCw, X, Download, Eye, Inbox, Plus, Search, TrendingUp,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { EmptyState } from '@/components/ui/EmptyState'
 import { StatusBadge, type Tone } from '@/components/ui/StatusBadge'
 import { formatCurrency } from '@/lib/i18n'
 import { NotaCreditoModal } from '@/components/dte/NotaCreditoModal'
+import { NotaDebitoModal } from '@/components/dte/NotaDebitoModal'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -177,6 +178,10 @@ export default function DtePage() {
   // Nota de crédito modal
   const [notaCreditoModal, setNotaCreditoModal] = useState(false)
   const [selectedEmission, setSelectedEmission] = useState<Emission | null>(null)
+
+  // Nota de débito modal
+  const [notaDebitoModal,   setNotaDebitoModal]   = useState(false)
+  const [debitoEmission,    setDebitoEmission]     = useState<Emission | null>(null)
 
   // Facturas recibidas de proveedores
   const [incomingInvoices,    setIncomingInvoices]    = useState<IncomingInvoice[]>([])
@@ -904,7 +909,7 @@ export default function DtePage() {
                   <p className="text-white/30 text-xs text-center py-8">Sin resultados</p>
                 ) : emisionPaged.map(em => {
                   const style     = STATUS_STYLE[em.status] ?? STATUS_STYLE.draft
-                  const hasDetail = em.status === 'rejected' || (em.error_detail !== null && em.error_detail !== '')
+                  const hasDetail = em.status === 'rejected'
                   const isSent    = em.status === 'sent'
                   const expanded  = expandedRows.has(em.id)
                   const polling   = pollingRows.has(em.id)
@@ -944,7 +949,8 @@ export default function DtePage() {
                         </p>
                         <div className="flex items-center gap-1.5 flex-wrap">
                           <StatusBadge tone={style.tone} icon={style.icon} label={style.label} />
-                          {(em.document_type === 33 || em.document_type === 56 || em.document_type === 61) && (
+                          {/* AEC badge: solo para facturas (33) y notas de débito (56) */}
+                          {(em.document_type === 33 || em.document_type === 56) && (
                             <AecBadge status={em.aec_status} emittedAt={em.emitted_at} />
                           )}
                           <button onClick={e => { e.stopPropagation(); setDetailEmission(em) }} title="Ver detalle"
@@ -971,6 +977,21 @@ export default function DtePage() {
                             >
                               <XCircle size={10} />
                               Anular
+                            </button>
+                          )}
+                          {/* Botón Nota de Débito para facturas aceptadas */}
+                          {em.status === 'accepted' && em.document_type === 33 && (
+                            <button
+                              onClick={e => {
+                                e.stopPropagation()
+                                setDebitoEmission(em)
+                                setNotaDebitoModal(true)
+                              }}
+                              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                              title="Emitir nota de débito"
+                            >
+                              <TrendingUp size={10} />
+                              N. Débito
                             </button>
                           )}
                           {hasDetail && (expanded ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />)}
@@ -1062,7 +1083,22 @@ export default function DtePage() {
           originalEmission={selectedEmission}
           restaurantId={restaurant.id}
           onSuccess={() => {
-            // Recargar la lista de emisiones
+            reloadEmissions()
+          }}
+        />
+      )}
+
+      {/* Nota de débito modal */}
+      {debitoEmission && restaurant && (
+        <NotaDebitoModal
+          open={notaDebitoModal}
+          onClose={() => {
+            setNotaDebitoModal(false)
+            setDebitoEmission(null)
+          }}
+          originalEmission={debitoEmission}
+          restaurantId={restaurant.id}
+          onSuccess={() => {
             reloadEmissions()
           }}
         />
@@ -1325,7 +1361,8 @@ function Paginator({ page, total, onChange, count, pageSize }: {
 }
 
 /**
- * AEC status badge — shows the acuse de recibo state for facturas (types 33, 56, 61).
+ * AEC status badge — shows the acuse de recibo state for facturas (type 33) and notas de débito (type 56).
+ * Notas de crédito (type 61) do NOT require AEC when canceling boletas.
  * Requirements 8.4, 8.5, 10.4
  */
 function AecBadge({ status, emittedAt }: { status: string | null; emittedAt: string }) {
@@ -1494,8 +1531,8 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
             />
           </div>
 
-          {/* Error detail */}
-          {emission.error_detail && (
+          {/* Error detail — solo mostrar si el documento está rechazado */}
+          {emission.status === 'rejected' && emission.error_detail && (
             <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
               <p className="text-red-300 text-[11px] font-semibold mb-1">Error</p>
               <p className="text-red-200/80 text-xs break-words">{emission.error_detail}</p>

@@ -140,8 +140,9 @@ export function calcularImpuestosAdicionales(items: DteLineItem[]): {
   imptoReten: Array<{ tipo: number; tasa: number; monto: number }>
   mntTotal:   number
 } {
-  let mntNeto = 0
-  let mntExe  = 0
+  let mntNeto      = 0
+  let mntExe       = 0
+  let brutoAfecto  = 0  // suma de brutos afectos a IVA (sin impuestos adicionales)
   // Accumulate additional tax amounts by code
   const impMap: Record<number, { tasa: number; monto: number }> = {}
 
@@ -166,15 +167,20 @@ export function calcularImpuestosAdicionales(items: DteLineItem[]): {
         impMap[item.cod_imp_adic].monto += montoImp
       } else {
         // Código desconocido: tratar como ítem normal afecto a IVA
-        mntNeto += Math.round(bruto / 1.19)
+        const neto = Math.round(bruto / 1.19)
+        mntNeto     += neto
+        brutoAfecto += bruto
       }
     } else {
       // Ítem normal afecto a IVA
-      mntNeto += Math.round(bruto / 1.19)
+      const neto = Math.round(bruto / 1.19)
+      mntNeto     += neto
+      brutoAfecto += bruto
     }
   }
 
-  const iva = Math.round(mntNeto * 0.19)
+  // IVA = bruto afecto - neto afecto (evita error de redondeo de mntNeto * 0.19)
+  const iva = brutoAfecto - mntNeto
   const imptoReten = Object.entries(impMap).map(([tipo, { tasa, monto }]) => ({
     tipo:  parseInt(tipo),
     tasa,
@@ -416,13 +422,19 @@ export function buildDteXml(input: DteInput): string {
     const dirRecep  = (direccion_receptor ?? '').substring(0, 70)
     const cmnaRecep = (comuna_receptor ?? '').substring(0, 20)
 
+    // Para notas (56, 61): incluir giro/dir/comuna solo si tienen valor
+    // Para facturas (33): son obligatorios según esquema SII
+    const giroRecepXml = giroRecep ? `        <GiroRecep>${escapeXml(toIso88591Safe(giroRecep))}</GiroRecep>\n` : (document_type === 33 ? `        <GiroRecep></GiroRecep>\n` : '')
+    const dirRecepXml  = dirRecep  ? `        <DirRecep>${escapeXml(toIso88591Safe(dirRecep))}</DirRecep>\n`   : (document_type === 33 ? `        <DirRecep></DirRecep>\n`   : '')
+    const cmnaRecepXml = cmnaRecep ? `        <CmnaRecep>${escapeXml(toIso88591Safe(cmnaRecep))}</CmnaRecep>\n` : (document_type === 33 ? `        <CmnaRecep></CmnaRecep>\n` : '')
+
     receptorXml =
       `\n      <Receptor>\n` +
       `        <RUTRecep>${escapeXml(rut_receptor ?? '')}</RUTRecep>\n` +
       `        <RznSocRecep>${escapeXml(toIso88591Safe(rznRecep))}</RznSocRecep>\n` +
-      `        <GiroRecep>${escapeXml(toIso88591Safe(giroRecep))}</GiroRecep>\n` +
-      `        <DirRecep>${escapeXml(toIso88591Safe(dirRecep))}</DirRecep>\n` +
-      `        <CmnaRecep>${escapeXml(toIso88591Safe(cmnaRecep))}</CmnaRecep>\n` +
+      giroRecepXml +
+      dirRecepXml +
+      cmnaRecepXml +
       `      </Receptor>`
   } else {
     receptorXml =

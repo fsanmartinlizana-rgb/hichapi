@@ -17,8 +17,8 @@ import { generateDtePdf } from '@/lib/dte/pdf-generator'
 //  Updates the emission row: accepted → status='accepted', accepted_at=now();
 //                            rejected → status='rejected', error_detail=detail
 //
-//  For type 33 (factura): uses SOAP QueryEstDte via queryEstDteFactura.
-//  For types 39/41 (boleta): uses existing checkDteStatus flow.
+//  For types 33, 56 (factura/nota débito): uses SOAP QueryEstDte via queryEstDteFactura.
+//  For types 39/41/61 (boleta/nota crédito): uses existing checkDteStatus flow.
 //
 //  Restricted to owner/admin.
 //
@@ -108,9 +108,13 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Branch by document type ───────────────────────────────────────────────
+  // Types 33, 56 use the SOAP QueryEstDte endpoint (factura flow)
+  // Types 39, 41, 61 use the REST boleta flow
+  // Note: type 61 (nota de crédito) was already working with the boleta flow,
+  // and uses RUT 66666666-6 for boleta cancellations which fails SOAP validation
 
-  if (emission.document_type === 33) {
-    // ── Factura electrónica: use QueryEstDte SOAP ─────────────────────────
+  if (emission.document_type === 33 || emission.document_type === 56) {
+    // ── Factura / Nota de Débito: use QueryEstDte SOAP ────────────────────
 
     // Validate rut_receptor format (strip dots, then check XXXXXXXX-X pattern)
     const rawRut = (emission.rut_receptor ?? '').replace(/\./g, '')
@@ -136,11 +140,11 @@ export async function POST(req: NextRequest) {
 
     // Query individual DTE status
     const fechaEmisionDte = (emission as any).fecha_emision ?? (emission.emitted_at ? (emission.emitted_at as string).split('T')[0] : new Date().toISOString().split('T')[0])
-    console.log('🔍 [STATUS] Consultando estado factura:', {
+    console.log('🔍 [STATUS] Consultando estado DTE tipo', emission.document_type, ':', {
       folio:           emission.folio,
       fecha_emision:   (emission as any).fecha_emision,
       emitted_at:      emission.emitted_at,
-      fechaEmisionDte, // ← esto es lo que se envía al SII
+      fechaEmisionDte,
       montoDte:        emission.total_amount,
       rutReceptor:     rawRut,
       rutCompania:     restaurant.rut,
@@ -152,7 +156,7 @@ export async function POST(req: NextRequest) {
         rutConsultante: restaurant.rut ?? '',
         rutCompania:    restaurant.rut ?? '',
         rutReceptor:    rawRut,
-        tipoDte:        33,
+        tipoDte:        emission.document_type as 33 | 56,
         folioDte:       emission.folio,
         fechaEmisionDte,
         montoDte:       emission.total_amount,

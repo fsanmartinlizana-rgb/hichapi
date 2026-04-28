@@ -146,6 +146,7 @@ export async function POST(req: NextRequest) {
     }
 
     // For type 33: all receptor fields are required
+    // For types 56/61 (notas): only rut + razon are required
     if (body.document_type === 33) {
       const missing =
         !body.rut_receptor?.trim() ||
@@ -154,6 +155,11 @@ export async function POST(req: NextRequest) {
         !body.direccion_receptor?.trim() ||
         !body.comuna_receptor?.trim()
 
+      if (missing) {
+        return NextResponse.json({ error: 'RECEPTOR_DATOS_INCOMPLETOS' }, { status: 400 })
+      }
+    } else if (body.document_type === 56 || body.document_type === 61) {
+      const missing = !body.rut_receptor?.trim() || !body.razon_receptor?.trim()
       if (missing) {
         return NextResponse.json({ error: 'RECEPTOR_DATOS_INCOMPLETOS' }, { status: 400 })
       }
@@ -173,10 +179,10 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Verify restaurant has DTE enabled and required tax data
+  // Verify restaurant has DTE enabled (reuse restaurant data from earlier query)
   const { data: rest } = await supabase
     .from('restaurants')
-    .select('dte_enabled, dte_environment')
+    .select('dte_enabled, dte_environment, rut, razon_social')
     .eq('id', body.restaurant_id)
     .single()
 

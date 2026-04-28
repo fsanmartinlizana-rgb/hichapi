@@ -28,6 +28,8 @@ ALTER TABLE dte_emissions
   ADD COLUMN IF NOT EXISTS comuna_receptor    TEXT;
 
 -- Estado del proceso de intercambio electrónico (AEC / acuse de recibo)
+-- Solo aplica para facturas (tipo 33) y notas de débito (tipo 56)
+-- Las notas de crédito (tipo 61) NO requieren AEC cuando anulan boletas
 -- Requisitos: 8.1, 8.2, 8.3
 ALTER TABLE dte_emissions
   ADD COLUMN IF NOT EXISTS aec_status TEXT

@@ -12,7 +12,7 @@ import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
 //    1. Validate inputs (restaurant_id, emission_id, aec_status)
 //    2. Authenticate with requireRestaurantRole (owner, admin, supervisor)
 //    3. Verify emission exists and belongs to the restaurant
-//    4. Verify emission is of type 33, 56, or 61 (only facturas have AEC)
+//    4. Verify emission is of type 33 or 56 (only facturas and notas de débito have AEC)
 //    5. Update dte_emissions with aec_status, aec_fecha, aec_glosa
 //    6. Return { ok: true } on success
 //
@@ -61,8 +61,9 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Emisión no encontrada' }, { status: 404 })
   }
 
-  // Only facturas (33), notas de débito (56) and notas de crédito (61) support AEC
-  const AEC_APPLICABLE_TYPES = [33, 56, 61]
+  // Only facturas (33) and notas de débito (56) support AEC
+  // Notas de crédito (61) do NOT require AEC when canceling boletas
+  const AEC_APPLICABLE_TYPES = [33, 56]
   if (!AEC_APPLICABLE_TYPES.includes(emission.document_type)) {
     return NextResponse.json({ error: 'AEC_NOT_APPLICABLE' }, { status: 400 })
   }
