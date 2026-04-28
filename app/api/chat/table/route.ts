@@ -94,6 +94,42 @@ interface MenuRow {
   allergens?: unknown
 }
 
+/**
+ * Strippea oraciones del mensaje del modelo que contengan un `$X` que NO
+ * coincida con ningún precio del menú. Defensa contra aritmética inventada
+ * por el LLM (sumas/totales mal calculados).
+ *
+ * Why: aunque la regla 13 del prompt prohíbe escribir totales, Haiku a veces
+ * los escribe igual y se equivoca con la suma. Confiar solo en el prompt no
+ * basta — los precios deben siempre cuadrar. Cualquier monto en el mensaje
+ * que no aparezca verbatim en el menú se considera "computado por el modelo"
+ * y se elimina la oración entera. El sistema canónico es el carrito + UI.
+ *
+ * Edge case: si todas las oraciones se strippean (pathológico), devuelve el
+ * mensaje original — preferimos eco bruto a vacío.
+ */
+function sanitizeMessagePrices(message: string, menuPrices: Set<number>): string {
+  if (!message) return message
+  // Split por puntuación final + whitespace. Mantiene emojis y acentos intactos.
+  const sentences = message.split(/(?<=[.!?])\s+/)
+  let stripped = 0
+  const kept = sentences.filter(s => {
+    const matches = [...s.matchAll(/\$\s*(\d{1,3}(?:[.,]\d{3})+|\d+)/g)]
+    if (matches.length === 0) return true
+    const allValid = matches.every(m => {
+      const num = parseInt(m[1].replace(/[.,]/g, ''), 10)
+      return menuPrices.has(num)
+    })
+    if (!allValid) stripped++
+    return allValid
+  })
+  if (stripped > 0) {
+    console.warn(`[chat/table] sanitizeMessagePrices: stripped ${stripped} sentence(s) with non-menu $ amounts`)
+  }
+  const result = kept.join(' ').trim()
+  return result || message
+}
+
 function buildSystemPrompt(
   restaurantName: string,
   tableLabel: string,
@@ -145,7 +181,11 @@ ${featuredText}${promosText}${cartText}
 REGLAS:
 1. Si el cliente pide algo concreto → acción "add_items" con los items del menú (usa los IDs exactos de la CARTA DISPONIBLE).
 2. CRÍTICO: Cuando agregues items, SIEMPRE usa el ID exacto [uuid] que aparece en la CARTA DISPONIBLE. NUNCA inventes IDs ni nombres. Si el cliente pide "Sprite", buscá "[id] Sprite" en la carta y usá ese ID exacto.
-3. "Para compartir", "para la mesa", "para todos" NO multiplica la cantidad. quantity = 1 siempre, salvo que el cliente diga explícitamente un número ("2 porciones", "dos", "x3", etc.). Un plato compartido sigue siendo 1 unidad.
+3. CANTIDAD vs PORCIÓN COMPARTIDA:
+   - Si el plato es claramente individual (salmón, pasta, hamburguesa, postre) y el cliente dice 'para dos' o menciona cuántas personas son → quantity igual al número de personas.
+   - Si el plato es claramente compartido por naturaleza (tabla, picada, fuente, para picar) → quantity: 1, pero ACLARA en el mensaje cuántas personas cubre: 'este plato alcanza para 2-3 personas'.
+   - Si hay ambigüedad → pregunta ANTES de agregar: '¿Lo quieren uno cada uno o comparten uno?'.
+   - NUNCA asumas silenciosamente ni agregues sin confirmar cuando hay duda.
 4. Si pide algo que no existe en la carta → sugiere la alternativa más parecida disponible, pero NO lo agregues automáticamente.
 5. Si pide restricciones (sin gluten, vegano, etc.) → filtra por tags y recomienda lo correcto.
 6. Si dice "la cuenta" o "quiero pagar" → acción "request_bill".
@@ -155,9 +195,8 @@ REGLAS:
 10. Si pide "ver la carta", "el menú", "qué tienen", "qué puedo pedir" → acción "show_menu".
 11. Si pregunta por ingredientes de un plato ("¿qué lleva el...?", "con qué viene...") → usa la lista de ingredientes de la CARTA DISPONIBLE de arriba para responder.
 12. Máximo 2-3 oraciones por mensaje. Tono: cálido, como un amigo que trabaja ahí.
-13. NUNCA inventes precios, platos ni ingredientes que no estén en la carta.
-
-FORMATO DE PRECIOS (crítico): SIEMPRE escribí los precios completos en pesos chilenos, con separador de miles. Ejemplo: "$18.000" o "$18000". NUNCA uses la forma "18k" o "18.5k" — eso confunde al cliente.
+13. PRECIOS INDIVIDUALES ÚNICAMENTE: Menciona el precio de cada plato por separado. NUNCA calcules ni escribas totales en el mensaje — el sistema los calcula automáticamente. Correcto: 'El Salmón ($18.500) y la Leche Asada ($5.900)'. INCORRECTO: 'entre los dos andan en $24.400'. Siempre con separador de miles, nunca '18k'.
+14. NUNCA inventes precios, platos ni ingredientes que no estén en la carta.
 
 RESPONDE SIEMPRE EN JSON (sin markdown):
 {
@@ -310,8 +349,14 @@ export async function POST(req: NextRequest) {
           }
         }).filter((item: ResolvedItem | null): item is ResolvedItem => item !== null)
 
+        // Sanitizar precios en el mensaje: cualquier $ no presente en el menú
+        // se considera total computado por el modelo y se strippea. Los precios
+        // canónicos viven en el carrito / UI, nunca en el texto del LLM.
+        const menuPrices = new Set<number>(menu.map((m: { price: number }) => m.price))
+        const sanitizedMessage = sanitizeMessagePrices(parsed.message ?? '', menuPrices)
+
         await send('done', {
-          message: parsed.message,
+          message: sanitizedMessage,
           action: parsed.action ?? 'chat',
           items_to_add: resolvedItems,
           split_count: parsed.split_count ?? null,
