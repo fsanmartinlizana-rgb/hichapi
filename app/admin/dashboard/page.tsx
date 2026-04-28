@@ -7,6 +7,9 @@ import {
 } from 'lucide-react'
 import ActivationFunnel from '@/components/admin/ActivationFunnel'
 import AdminTicketsTab from '@/components/admin/AdminTicketsTab'
+import RestaurantsAtRisk from '@/components/admin/RestaurantsAtRisk'
+import RegistrationsByDay from '@/components/admin/RegistrationsByDay'
+import PlanUpgrades from '@/components/admin/PlanUpgrades'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -197,21 +200,62 @@ export default function FounderDashboardPage() {
           <KpiCard icon={Star}         label="Rating promedio"      value={k.avg_rating !== null ? `${k.avg_rating} ★` : '—'} />
         </div>
 
-        {/* Ticket alert */}
-        {k.tickets_critical > 0 && (
-          <div className="flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30">
-            <AlertTriangle size={18} className="text-red-400 shrink-0" />
-            <p className="text-sm text-red-200">
-              {k.tickets_critical} ticket{k.tickets_critical > 1 ? 's' : ''} crítico{k.tickets_critical > 1 ? 's' : ''} abierto{k.tickets_critical > 1 ? 's' : ''}.
-            </p>
-          </div>
-        )}
+        {/* Ticket alert — críticos sin respuesta hace >24h */}
+        {(() => {
+          const stale = data.recent_tickets.filter(t =>
+            t.severity === 'critical'
+            && (t.status === 'open' || t.status === 'investigating')
+            && Date.now() - new Date(t.created_at).getTime() > 24 * 3600 * 1000
+          )
+          if (stale.length > 0) {
+            return (
+              <button
+                onClick={() => setTab('tickets')}
+                className="w-full flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:bg-red-500/15 transition-colors text-left"
+              >
+                <AlertTriangle size={18} className="text-red-400 shrink-0" />
+                <div className="flex-1">
+                  <p className="text-sm text-red-200 font-semibold">
+                    {stale.length} ticket{stale.length > 1 ? 's' : ''} crítico{stale.length > 1 ? 's' : ''} sin respuesta hace &gt;24h
+                  </p>
+                  <p className="text-xs text-red-300/70 mt-0.5 truncate">
+                    {stale[0].subject}
+                  </p>
+                </div>
+                <span className="text-xs text-red-300/60">Ver →</span>
+              </button>
+            )
+          }
+          if (k.tickets_critical > 0) {
+            return (
+              <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                <AlertTriangle size={18} className="text-amber-400 shrink-0" />
+                <p className="text-sm text-amber-200">
+                  {k.tickets_critical} ticket{k.tickets_critical > 1 ? 's' : ''} crítico{k.tickets_critical > 1 ? 's' : ''} abierto{k.tickets_critical > 1 ? 's' : ''}.
+                </p>
+              </div>
+            )
+          }
+          return null
+        })()}
+
+        {/* Nuevos restaurantes por día */}
+        <RegistrationsByDay
+          adminSecret={secret}
+          days={period === '7d' ? 7 : period === '90d' ? 90 : period === 'all' ? 90 : 30}
+        />
 
         {/* Funnel de activación de restaurantes */}
         <ActivationFunnel
           adminSecret={secret}
           days={period === '7d' ? 7 : period === '90d' ? 90 : period === 'all' ? 365 : 30}
         />
+
+        {/* Upgrades / downgrades de plan por semana (necesita migration 062) */}
+        <PlanUpgrades adminSecret={secret} weeks={8} />
+
+        {/* Restaurantes en riesgo de churn / atascados en activación */}
+        <RestaurantsAtRisk adminSecret={secret} />
 
         {/* Tabs */}
         <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit">

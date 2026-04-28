@@ -37,6 +37,12 @@ yarn-error.log*
 .kiro/credentials.md
 HiChapi_Credenciales.xlsx
 
+# Claude Code local settings — contiene allowlist con tokens
+.claude/settings.local.json
+
+# node_modules anidado en docs/ (la regla /node_modules solo cubre raíz)
+docs/**/node_modules/
+
 # vercel
 .vercel
 
