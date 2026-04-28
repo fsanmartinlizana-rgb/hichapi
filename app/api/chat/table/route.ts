@@ -2,6 +2,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { sanitizeMessagePrices, recoverMessageFromRawText } from '@/lib/chat/sanitize'
 
 // ── Rate limiter (in-memory, per IP, 30 req/min) ───────────────────────────
 const rateMap = new Map<string, { count: number; reset: number }>()
@@ -94,42 +95,6 @@ interface MenuRow {
   allergens?: unknown
 }
 
-/**
- * Strippea oraciones del mensaje del modelo que contengan un `$X` que NO
- * coincida con ningún precio del menú. Defensa contra aritmética inventada
- * por el LLM (sumas/totales mal calculados).
- *
- * Why: aunque la regla 13 del prompt prohíbe escribir totales, Haiku a veces
- * los escribe igual y se equivoca con la suma. Confiar solo en el prompt no
- * basta — los precios deben siempre cuadrar. Cualquier monto en el mensaje
- * que no aparezca verbatim en el menú se considera "computado por el modelo"
- * y se elimina la oración entera. El sistema canónico es el carrito + UI.
- *
- * Edge case: si todas las oraciones se strippean (pathológico), devuelve el
- * mensaje original — preferimos eco bruto a vacío.
- */
-function sanitizeMessagePrices(message: string, menuPrices: Set<number>): string {
-  if (!message) return message
-  // Split por puntuación final + whitespace. Mantiene emojis y acentos intactos.
-  const sentences = message.split(/(?<=[.!?])\s+/)
-  let stripped = 0
-  const kept = sentences.filter(s => {
-    const matches = [...s.matchAll(/\$\s*(\d{1,3}(?:[.,]\d{3})+|\d+)/g)]
-    if (matches.length === 0) return true
-    const allValid = matches.every(m => {
-      const num = parseInt(m[1].replace(/[.,]/g, ''), 10)
-      return menuPrices.has(num)
-    })
-    if (!allValid) stripped++
-    return allValid
-  })
-  if (stripped > 0) {
-    console.warn(`[chat/table] sanitizeMessagePrices: stripped ${stripped} sentence(s) with non-menu $ amounts`)
-  }
-  const result = kept.join(' ').trim()
-  return result || message
-}
-
 function buildSystemPrompt(
   restaurantName: string,
   tableLabel: string,
@@ -179,13 +144,17 @@ CARTA DISPONIBLE HOY:
 ${menuText}
 ${featuredText}${promosText}${cartText}
 REGLAS:
-1. Si el cliente pide algo concreto → acción "add_items" con los items del menú (usa los IDs exactos de la CARTA DISPONIBLE).
+1. AGREGAR vs RECOMENDAR:
+   - "add_items" SOLO cuando el cliente diga claramente que quiere algo ("quiero X", "tráeme X", "agrega X", "dame X", o un "sí" tras una recomendación tuya específica).
+   - Si pregunta abierta ("¿qué me recomiendas?", "qué tienen rico", "estoy con hambre") → "recommend" SIN agregar nada al carrito. Esperá la confirmación.
+   - Si describe situación (aniversario, dieta, presupuesto) sin pedir explícitamente → "recommend".
 2. CRÍTICO: Cuando agregues items, SIEMPRE usa el ID exacto [uuid] que aparece en la CARTA DISPONIBLE. NUNCA inventes IDs ni nombres. Si el cliente pide "Sprite", buscá "[id] Sprite" en la carta y usá ese ID exacto.
-3. CANTIDAD vs PORCIÓN COMPARTIDA:
-   - Si el plato es claramente individual (salmón, pasta, hamburguesa, postre) y el cliente dice 'para dos' o menciona cuántas personas son → quantity igual al número de personas.
-   - Si el plato es claramente compartido por naturaleza (tabla, picada, fuente, para picar) → quantity: 1, pero ACLARA en el mensaje cuántas personas cubre: 'este plato alcanza para 2-3 personas'.
-   - Si hay ambigüedad → pregunta ANTES de agregar: '¿Lo quieren uno cada uno o comparten uno?'.
-   - NUNCA asumas silenciosamente ni agregues sin confirmar cuando hay duda.
+3. CANTIDAD POR DEFECTO:
+   - PLATO PRINCIPAL individual (salmón, pasta, hamburguesa, principal) + el cliente dice 'para dos' o cuántas personas son → quantity igual al número de personas (cada uno come el suyo).
+   - POSTRE: por defecto quantity 1 (típicamente se comparte o se pide solo). Solo agregar más si el cliente lo dice EXPLÍCITAMENTE ('dos postres', 'uno para cada uno').
+   - BEBIDA: por defecto quantity igual al número de personas (cada uno bebe la suya), salvo que sea para compartir (ej: una botella de vino, jarra).
+   - PLATO COMPARTIDO POR NATURALEZA (tabla, picada, fuente, para picar) → quantity: 1, ACLARÁ cuántas personas cubre: 'este plato alcanza para 2-3 personas'.
+   - Si hay ambigüedad → preguntá ANTES de agregar. NUNCA asumas en silencio.
 4. Si pide algo que no existe en la carta → sugiere la alternativa más parecida disponible, pero NO lo agregues automáticamente.
 5. Si pide restricciones (sin gluten, vegano, etc.) → filtra por tags y recomienda lo correcto.
 6. Si dice "la cuenta" o "quiero pagar" → acción "request_bill".
@@ -197,6 +166,8 @@ REGLAS:
 12. Máximo 2-3 oraciones por mensaje. Tono: cálido, como un amigo que trabaja ahí.
 13. PRECIOS INDIVIDUALES ÚNICAMENTE: Menciona el precio de cada plato por separado. NUNCA calcules ni escribas totales en el mensaje — el sistema los calcula automáticamente. Correcto: 'El Salmón ($18.500) y la Leche Asada ($5.900)'. INCORRECTO: 'entre los dos andan en $24.400'. Siempre con separador de miles, nunca '18k'.
 14. NUNCA inventes precios, platos ni ingredientes que no estén en la carta.
+15. PRESUPUESTO ES INVIOLABLE: Si el cliente dio un presupuesto (ej: "menos de 30 mil"), validá MENTALMENTE (sin escribir el total) que la suma de PEDIDO ACTUAL + lo que vas a agregar no lo supere. Si lo supera, NO agregues — recomendá una combinación más barata o menor cantidad. Acordate que "para dos" típicamente son 2 platos principales + 1 postre compartido.
+16. CARRITO SOBRE PRESUPUESTO: Si el cliente dice algo tipo "me pasé del presupuesto", "supera mi presupuesto", "está caro", "muy caro", o "es mucho" → acción "chat", reconocé el problema y sugerí EXPLÍCITAMENTE qué item del PEDIDO ACTUAL se podría quitar (el más caro o el que duplica a otro) para volver al presupuesto. NUNCA respondas "no entendí". El cliente tendrá que quitarlo manualmente desde la UI.
 
 RESPONDE SIEMPRE EN JSON (sin markdown):
 {
@@ -284,7 +255,10 @@ export async function POST(req: NextRequest) {
       try {
         const claudeStream = anthropic.messages.stream({
           model: 'claude-haiku-4-5-20251001',
-          max_tokens: 500,
+          // 800 tokens (subido de 500): el JSON puede llevar varios items con
+          // UUIDs de 36 chars cada uno, y un response cortado revienta JSON.parse
+          // → "Ups, no entendí bien" en prod. 800 da margen, costo despreciable.
+          max_tokens: 800,
           system: buildSystemPrompt(resName, tableLabel, menu, cart, activePromotions),
           messages,
         })
@@ -311,7 +285,38 @@ export async function POST(req: NextRequest) {
         }
 
         const cleaned = fullText.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim()
-        const parsed  = JSON.parse(cleaned)
+
+        // JSON recovery: si Claude devolvió JSON malformado (típicamente porque
+        // max_tokens cortó la respuesta a la mitad), intentamos rescatar al
+        // menos el campo "message" para no caer al genérico "Ups, no entendí"
+        // que el cliente ve. Degrada a action="chat" sin items.
+        type ParsedClaudeResponse = {
+          message?: string
+          action?: string
+          items_to_add?: Array<{ menu_item_id: string; name: string; quantity: number; note?: string }>
+          split_count?: number | null
+        }
+        let parsed: ParsedClaudeResponse
+        try {
+          parsed = JSON.parse(cleaned)
+        } catch (parseErr) {
+          const recovered = recoverMessageFromRawText(fullText)
+          if (recovered) {
+            console.warn(
+              `[chat/table] JSON.parse falló, recuperado message como chat. ` +
+              `Length=${cleaned.length}. First 200 chars: ${cleaned.slice(0, 200)}`,
+              parseErr,
+            )
+            parsed = { message: recovered, action: 'chat', items_to_add: [], split_count: null }
+          } else {
+            // No hay siquiera un message rescatable → re-throw para caer al catch externo
+            console.error(
+              `[chat/table] JSON.parse falló y sin message rescatable. ` +
+              `Length=${cleaned.length}. First 200 chars: ${cleaned.slice(0, 200)}`,
+            )
+            throw parseErr
+          }
+        }
 
         // ── Resolve menu_item prices for new items ────────────────────────────
         // First try matching by id, then fall back to EXACT case-insensitive name match.
@@ -353,7 +358,11 @@ export async function POST(req: NextRequest) {
         // se considera total computado por el modelo y se strippea. Los precios
         // canónicos viven en el carrito / UI, nunca en el texto del LLM.
         const menuPrices = new Set<number>(menu.map((m: { price: number }) => m.price))
-        const sanitizedMessage = sanitizeMessagePrices(parsed.message ?? '', menuPrices)
+        const { sanitized: sanitizedMessage, strippedCount } =
+          sanitizeMessagePrices(parsed.message ?? '', menuPrices)
+        if (strippedCount > 0) {
+          console.warn(`[chat/table] sanitizeMessagePrices: stripped ${strippedCount} sentence(s) with non-menu $ amounts`)
+        }
 
         await send('done', {
           message: sanitizedMessage,
