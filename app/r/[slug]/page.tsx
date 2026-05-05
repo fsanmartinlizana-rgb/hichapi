@@ -1,10 +1,17 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Star, Clock, MapPin, Globe, DollarSign, Phone, AtSign, Users } from 'lucide-react'
+import { Star, Clock, MapPin, Globe, DollarSign, Phone, AtSign, Users, Info } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import { formatCurrency } from '@/lib/i18n'
 import { notFound } from 'next/navigation'
 import { BackButton } from './BackButton'
+
+interface GoogleReview {
+  author: string | null
+  rating: number | null
+  text:   string
+  time:   string | null
+}
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -42,6 +49,10 @@ interface RestaurantData {
   price_range: string
   active: boolean
   claimed: boolean
+  data_source: 'manual' | 'agent_enriched' | 'owner_claimed' | null
+  google_rating: number | null
+  google_rating_count: number | null
+  google_reviews: GoogleReview[] | null
   menu_items: MenuItemData[]
 }
 
@@ -67,6 +78,7 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
       address, photo_url, gallery_urls, price_range, active, claimed,
+      data_source, google_rating, google_rating_count, google_reviews,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -74,16 +86,21 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .single()
 
   if (error || !data) return null
+  const d = data as Record<string, unknown>
   return {
     ...data,
-    phone:         null,
-    website:       null,
-    instagram:     null,
-    description:   null,
-    capacity:      null,
-    tags:          null,
-    hours:         null,
-    gallery_urls: (data as { gallery_urls?: string[] | null }).gallery_urls ?? [],
+    phone:               null,
+    website:             null,
+    instagram:           null,
+    description:         null,
+    capacity:            null,
+    tags:                null,
+    hours:               null,
+    gallery_urls:        (d.gallery_urls as string[] | null) ?? [],
+    data_source:         (d.data_source as RestaurantData['data_source']) ?? 'manual',
+    google_rating:       (d.google_rating as number | null) ?? null,
+    google_rating_count: (d.google_rating_count as number | null) ?? null,
+    google_reviews:      (d.google_reviews as GoogleReview[] | null) ?? null,
   } as RestaurantData
 }
 
@@ -389,30 +406,49 @@ function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
   )
 }
 
-function ReviewsSection({ reviews, rating, reviewCount }: {
+function ReviewsSection({ reviews, rating, reviewCount, googleRating, googleRatingCount, googleReviews }: {
   reviews: { id: string; rating: number; comment: string | null; created_at: string }[]
   rating: number
   reviewCount: number
+  googleRating?: number | null
+  googleRatingCount?: number | null
+  googleReviews?: GoogleReview[] | null
 }) {
+  // Si HiChapi todavía no tiene reviews propias pero hay reviews de Google,
+  // las mostramos siempre con atribución explícita — NUNCA como reviews
+  // propias de HiChapi.
+  const hasOwnReviews    = reviews.length > 0
+  const hasGoogleReviews = (googleReviews?.length ?? 0) > 0
+
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h3 className="font-bold text-[#1A1A2E] text-base flex items-center gap-2">
           <Star size={15} className="text-[#FF6B35]" />
           Opiniones
         </h3>
-        <div className="flex items-center gap-1.5">
-          <span className="text-sm font-bold text-[#1A1A2E]">{rating.toFixed(1)}</span>
-          <RatingStars rating={rating} />
-          <span className="text-xs text-neutral-400">({reviewCount})</span>
-        </div>
+        {hasOwnReviews ? (
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold text-[#1A1A2E]">{rating.toFixed(1)}</span>
+            <RatingStars rating={rating} />
+            <span className="text-xs text-neutral-400">({reviewCount})</span>
+          </div>
+        ) : googleRating != null ? (
+          <div className="flex items-center gap-1.5 text-xs">
+            <RatingStars rating={googleRating} />
+            <span className="font-semibold text-[#1A1A2E]">{googleRating.toFixed(1)}</span>
+            <span className="text-neutral-400">en Google ({googleRatingCount ?? 0})</span>
+          </div>
+        ) : null}
       </div>
 
-      {reviews.length === 0 ? (
+      {!hasOwnReviews && !hasGoogleReviews && (
         <p className="text-sm text-neutral-400 text-center py-4">
           Aun no hay opiniones. Se el primero!
         </p>
-      ) : (
+      )}
+
+      {hasOwnReviews && (
         <div className="space-y-3">
           {reviews.slice(0, 5).map(review => (
             <div key={review.id} className="bg-[#FAFAF8] rounded-xl p-3">
@@ -424,6 +460,36 @@ function ReviewsSection({ reviews, rating, reviewCount }: {
               </div>
               {review.comment && (
                 <p className="text-xs text-neutral-600 leading-relaxed">{review.comment}</p>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Google reviews con atribución obligatoria — son de Google Maps, no
+          se presentan jamás como reviews propias de HiChapi. */}
+      {hasGoogleReviews && (
+        <div className="space-y-3">
+          {!hasOwnReviews && (
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              Reseñas importadas de Google Maps mientras HiChapi recopila las propias.
+            </p>
+          )}
+          {googleReviews!.map((r, i) => (
+            <div key={i} className="bg-[#FAFAF8] rounded-xl p-3 border-l-2 border-[#4285F4]/40">
+              <div className="flex items-center justify-between gap-2 mb-1">
+                <div className="flex items-center gap-2">
+                  {r.rating != null && <RatingStars rating={r.rating} />}
+                  <span className="text-[10px] text-neutral-500 font-medium">
+                    {r.author ?? 'Anónimo'}
+                  </span>
+                </div>
+                <span className="text-[10px] text-[#4285F4] font-semibold">
+                  Google Maps
+                </span>
+              </div>
+              {r.text && (
+                <p className="text-xs text-neutral-600 leading-relaxed">{r.text}</p>
               )}
             </div>
           ))}
@@ -526,14 +592,27 @@ export default async function RestaurantPage({
               {restaurant.name}
             </h1>
             <div className="flex flex-wrap items-center gap-3">
-              <div className="flex items-center gap-1.5">
-                <RatingStars rating={restaurant.rating} />
-                <span className="text-white font-semibold text-sm">{restaurant.rating.toFixed(1)}</span>
-                {restaurant.review_count > 0 && (
+              {/* Rating: si HiChapi tiene reviews propias, las mostramos.
+                  Si no y tenemos rating de Google, mostramos ese con atribución
+                  explícita. Nunca presentar Google rating como propio. */}
+              {restaurant.review_count > 0 ? (
+                <div className="flex items-center gap-1.5">
+                  <RatingStars rating={restaurant.rating} />
+                  <span className="text-white font-semibold text-sm">{restaurant.rating.toFixed(1)}</span>
                   <span className="text-white/50 text-xs">({restaurant.review_count})</span>
-                )}
-              </div>
-              <span className="text-white/60 text-sm">·</span>
+                </div>
+              ) : restaurant.google_rating != null ? (
+                <div className="flex items-center gap-1.5">
+                  <RatingStars rating={restaurant.google_rating} />
+                  <span className="text-white font-semibold text-sm">{restaurant.google_rating.toFixed(1)}</span>
+                  <span className="text-white/70 text-[11px]">
+                    en Google ({restaurant.google_rating_count ?? 0})
+                  </span>
+                </div>
+              ) : null}
+              {(restaurant.review_count > 0 || restaurant.google_rating != null) && (
+                <span className="text-white/60 text-sm">·</span>
+              )}
               <span className="text-white/80 text-sm">{restaurant.neighborhood}</span>
               {restaurant.cuisine_type && (
                 <>
@@ -544,6 +623,23 @@ export default async function RestaurantPage({
             </div>
           </div>
         </section>
+
+        {/* Badge de información generada automáticamente — el restaurant fue
+            descubierto por el agente de enriquecimiento, no por su dueño. */}
+        {restaurant.data_source === 'agent_enriched' && !restaurant.claimed && (
+          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 flex items-start gap-3">
+            <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-900">
+                Información generada automáticamente
+              </p>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                Este perfil fue creado a partir de información pública (Google Maps).
+                Si eres el dueño, reclámalo abajo para corregir o ampliar los datos.
+              </p>
+            </div>
+          </div>
+        )}
 
         {/* ── Promociones activas ── */}
         {activePromos.length > 0 && (
@@ -648,6 +744,9 @@ export default async function RestaurantPage({
               reviews={reviews}
               rating={restaurant.rating}
               reviewCount={restaurant.review_count}
+              googleRating={restaurant.google_rating}
+              googleRatingCount={restaurant.google_rating_count}
+              googleReviews={restaurant.google_reviews}
             />
           </aside>
         </div>

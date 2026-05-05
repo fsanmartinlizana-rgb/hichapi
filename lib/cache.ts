@@ -51,8 +51,10 @@ class TTLCache<T> {
 
 // ── Instancias exportadas ─────────────────────────────────────────────────────
 
-/** Resultados de restaurantes: 30 minutos */
-export const queryCache = new TTLCache<any[]>(30 * 60 * 1000)
+/** Resultados de búsqueda Discovery: 30 minutos. Tipo `unknown` porque
+ *  el shape evoluciona (antes array, ahora SearchOutput) — el llamador hace
+ *  el cast a su tipo concreto. */
+export const queryCache = new TTLCache<unknown>(30 * 60 * 1000)
 
 /** Respuestas de Claude: 60 minutos */
 export const claudeCache = new TTLCache<{

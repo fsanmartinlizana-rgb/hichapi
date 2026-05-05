@@ -12,6 +12,11 @@ export interface Restaurant {
   rating: number
   review_count: number
   has_promotion?: boolean
+  /** Rating importado de Google Maps. Solo se muestra cuando HiChapi aún no
+   *  tiene reviews propias (review_count === 0). NUNCA presentarlo como
+   *  rating propio — siempre con sufijo "Google". */
+  google_rating?: number | null
+  google_rating_count?: number | null
 }
 
 export interface MenuItem {

@@ -107,12 +107,26 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
           <h3 className="font-semibold text-[#1A1A2E] text-base leading-tight group-hover:text-[#FF6B35] transition-colors">
             {restaurant.name}
           </h3>
-          <div className="flex items-center gap-1 ml-2 shrink-0">
-            <Star size={12} className="text-[#FF6B35] fill-[#FF6B35]" />
-            <span className="text-xs font-medium text-neutral-600">
-              {restaurant.rating.toFixed(1)}
-            </span>
-          </div>
+          {(() => {
+            // Si HiChapi aún no tiene reviews propias y hay rating de Google,
+            // mostramos el de Google con atribución. Nunca mezclamos: si hay
+            // reviews propias, usamos esas y omitimos Google.
+            const hasOwn  = (restaurant.review_count ?? 0) > 0
+            const hasGoogle = !hasOwn && restaurant.google_rating != null
+            if (!hasOwn && !hasGoogle) return null
+            const value = hasGoogle ? restaurant.google_rating! : restaurant.rating
+            return (
+              <div className="flex items-center gap-1 ml-2 shrink-0">
+                <Star size={12} className="text-[#FF6B35] fill-[#FF6B35]" />
+                <span className="text-xs font-medium text-neutral-600">
+                  {value.toFixed(1)}
+                </span>
+                {hasGoogle && (
+                  <span className="text-[10px] text-neutral-400">· Google</span>
+                )}
+              </div>
+            )
+          })()}
         </div>
         <p className="text-xs text-neutral-400 mb-3">{restaurant.neighborhood} · {restaurant.cuisine_type}</p>
 

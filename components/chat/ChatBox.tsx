@@ -75,7 +75,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
     })
   }
 
-  async function sendMessage(message: string) {
+  async function sendMessage(message: string, opts?: { isRetry?: boolean }) {
     if (!message.trim() || loading) return
 
     setLoading(true)
@@ -83,7 +83,7 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
     onLoadingChange?.(true)
     setInput('')
     onStatusChange('')
-    setChapiMessage('')
+    if (!opts?.isRetry) setChapiMessage('')
     setAskingForZone(false)
 
     let currentIntent = { ...intent }
@@ -150,8 +150,39 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
               if (data.results?.length > 0) {
                 onResults(data.results, message)
                 onStatusChange('')
+              } else if (data.no_results_in_zone && !opts?.isRetry) {
+                // ── Auto-enrich: zona conocida pero sin restaurants en DB.
+                // Disparamos el agente y, si inserta, reintentamos la misma
+                // búsqueda. El usuario solo ve el mensaje de progreso.
+                const zoneLabel = data.intent?.zone ?? 'esa zona'
+                setChapiMessage(`No encontré restaurantes en ${zoneLabel}. Estoy buscando más opciones para ti...`)
+                onLoadingChange?.(false)
+
+                fetch('/api/enrich-zone', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    zone:           data.intent?.zone ?? '',
+                    query_original: message,
+                    lat:            data.intent?.user_lat ?? null,
+                    lng:            data.intent?.user_lng ?? null,
+                  }),
+                })
+                  .then(r => r.json())
+                  .then((enrich: { inserted?: number }) => {
+                    if ((enrich?.inserted ?? 0) > 0) {
+                      // Pequeño delay para que el finally del SSE actual marque
+                      // loading=false antes del retry — sin esto, el guardia
+                      // `if (loading) return` puede abortar el reintento.
+                      setTimeout(() => sendMessage(message, { isRetry: true }), 120)
+                    } else {
+                      // Agente no encontró nada → fallback al banner clásico
+                      onNoResults?.(data.intent ?? currentIntent)
+                    }
+                  })
+                  .catch(() => onNoResults?.(data.intent ?? currentIntent))
               } else if (data.searched_but_empty) {
-                // #3 — searched but found nothing → notify parent
+                // searched but found nothing (sin zone específica) → banner clásico
                 onNoResults?.(data.intent ?? currentIntent)
               }
 

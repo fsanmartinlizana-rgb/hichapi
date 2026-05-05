@@ -27,10 +27,11 @@ export default function ClaimPage() {
   const [error, setError] = useState('')
 
   const [form, setForm] = useState({
-    owner_name: '',
-    owner_email: '',
-    owner_phone: '',
-    message: '',
+    owner_name:   '',
+    owner_email:  '',
+    owner_phone:  '',
+    claimant_rut: '',
+    message:      '',
   })
 
   // Fetch restaurant info
@@ -61,10 +62,11 @@ export default function ClaimPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           restaurant_id: restaurant.id,
-          owner_name: form.owner_name,
-          owner_email: form.owner_email,
-          owner_phone: form.owner_phone || undefined,
-          message: form.message || undefined,
+          owner_name:    form.owner_name,
+          owner_email:   form.owner_email,
+          owner_phone:   form.owner_phone || undefined,
+          claimant_rut:  form.claimant_rut || undefined,
+          message:       form.message || undefined,
         }),
       })
 
@@ -223,6 +225,21 @@ export default function ClaimPage() {
                 className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm text-[#1A1A2E]
                            focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35]"
                 placeholder="+56 9 1234 5678"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-neutral-500 mb-1.5">
+                RUT (opcional pero acelera la verificación)
+              </label>
+              <input
+                type="text"
+                value={form.claimant_rut}
+                onChange={e => setForm(f => ({ ...f, claimant_rut: e.target.value }))}
+                className="w-full px-4 py-2.5 rounded-xl border border-neutral-200 text-sm text-[#1A1A2E]
+                           focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/20 focus:border-[#FF6B35]"
+                placeholder="12.345.678-9"
+                maxLength={12}
               />
             </div>
 

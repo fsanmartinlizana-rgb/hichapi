@@ -120,14 +120,36 @@ function cuisineMatchesMenu(c: string, menuItems: { name?: string | null; descri
   })
 }
 
-async function fetchAndFilter(intent: Intent, withZone: boolean, withCuisine: boolean = true) {
-  // Fetch broadly: filter accent-insensitive in JS to avoid Postgres collation issues
-  // (e.g. "Nunoa" vs "Ñuñoa", "Patagonica" vs "Patagónica").
-  const { data: restaurants, error } = await supabase
+type FetchOpts = {
+  withZone:    boolean
+  withCuisine: boolean
+  /** Si presente y hay user_lat/lng, primero filtra por ST_DWithin via RPC. */
+  radius_m?:   number
+}
+
+async function fetchAndFilter(intent: Intent, opts: FetchOpts) {
+  const { withZone, withCuisine, radius_m } = opts
+
+  // ── PostGIS path: cuando hay coords del usuario y radio, filtramos por
+  // ST_DWithin ANTES de cualquier ranking. Esto cierra el bug "italiana en
+  // Maipú devuelve Ñuñoa": el filtro geográfico es WHERE en el query plan,
+  // no un filtro JS post-fetch.
+  let baseSelect = supabase
     .from('restaurants')
     .select(`*, menu_items (id, name, description, price, tags, photo_url, available, category)`)
     .eq('active', true)
-    .limit(300)
+
+  if (radius_m && intent.user_lat != null && intent.user_lng != null) {
+    const { data: nearby, error: rpcErr } = await supabase.rpc('restaurants_in_radius', {
+      lat: intent.user_lat, lng: intent.user_lng, radius_m,
+    })
+    if (rpcErr || !nearby || nearby.length === 0) return []
+    const ids = (nearby as { id: string }[]).map(r => r.id)
+    if (ids.length === 0) return []
+    baseSelect = baseSelect.in('id', ids)
+  }
+
+  const { data: restaurants, error } = await baseSelect.limit(300)
 
   if (error || !restaurants) return []
 
@@ -193,6 +215,10 @@ async function fetchAndFilter(intent: Intent, withZone: boolean, withCuisine: bo
           lat: restaurant.lat, lng: restaurant.lng, photo_url: restaurant.photo_url,
           cuisine_type: restaurant.cuisine_type, price_range: restaurant.price_range,
           rating: restaurant.rating, review_count: restaurant.review_count,
+          // Para que el card del listado caiga al rating de Google con
+          // atribución cuando HiChapi todavía no tiene reviews propias.
+          google_rating:       restaurant.google_rating ?? null,
+          google_rating_count: restaurant.google_rating_count ?? null,
         },
         suggested_dish: bestDish,
         menu_items: menuItems,
@@ -203,7 +229,15 @@ async function fetchAndFilter(intent: Intent, withZone: boolean, withCuisine: bo
     .slice(0, 3)
 }
 
-async function searchRestaurants(intent: Intent) {
+type SearchOutput = {
+  results: NonNullable<Awaited<ReturnType<typeof fetchAndFilter>>>
+  /** Hay zone (texto o coords) pero ningún restaurant matchea allí.
+   *  Importante: NO devolvemos resultados de otra zona — eso confunde al
+   *  usuario y dispara el bug "italiana en Maipú devuelve Ñuñoa". */
+  no_results_in_zone: boolean
+}
+
+async function searchRestaurants(intent: Intent): Promise<SearchOutput> {
   // ── Resolver landmarks/metro → barrio canónico ───────────────────────────
   const resolvedIntent: Intent = {
     ...intent,
@@ -212,24 +246,42 @@ async function searchRestaurants(intent: Intent) {
 
   // ── Caché de resultados por intent ───────────────────────────────────────
   const cacheKey = intentCacheKey(resolvedIntent)
-  const cached = queryCache.get(cacheKey)
+  const cached = queryCache.get(cacheKey) as SearchOutput | undefined
   if (cached) return cached
 
-  // ── Query Supabase ────────────────────────────────────────────────────────
-  // 3 niveles de fallback para maximizar recall:
-  //   1. zone + cuisine (estricto)
-  //   2. sin zone, con cuisine (quizás no hay nada cerca pero sí de esa cuisine)
-  //   3. con zone, sin cuisine (hay cosas cerca pero no justo de esa cuisine)
-  //   4. sin zone ni cuisine (último recurso: muestro top rated)
-  let results = await fetchAndFilter(resolvedIntent, true, true)
-  if (results.length === 0 && resolvedIntent.zone) {
-    results = await fetchAndFilter(resolvedIntent, false, true)
-  }
-  if (results.length === 0 && resolvedIntent.cuisine_type && resolvedIntent.zone) {
-    results = await fetchAndFilter(resolvedIntent, true, false)
-  }
-  if (results.length === 0 && resolvedIntent.cuisine_type) {
-    results = await fetchAndFilter(resolvedIntent, false, false)
+  let results: SearchOutput['results'] = []
+  let no_results_in_zone = false
+
+  const hasCoords = resolvedIntent.user_lat != null && resolvedIntent.user_lng != null
+
+  if (hasCoords) {
+    // ── Path con coordenadas: PostGIS WHERE antes de cualquier ranking.
+    // 3km → 5km → vacío. NO ampliamos sin radio: si nada en 5km, mejor que
+    // el agente enriquezca la zona que mostrar resultados de otra parte.
+    results = await fetchAndFilter(resolvedIntent, { withZone: false, withCuisine: true, radius_m: 3000 })
+    if (results.length === 0) {
+      results = await fetchAndFilter(resolvedIntent, { withZone: false, withCuisine: true, radius_m: 5000 })
+    }
+    if (results.length === 0 && resolvedIntent.cuisine_type) {
+      // último intento: relajar cuisine pero mantener radio
+      results = await fetchAndFilter(resolvedIntent, { withZone: false, withCuisine: false, radius_m: 5000 })
+    }
+    if (results.length === 0) no_results_in_zone = true
+  } else if (resolvedIntent.zone) {
+    // ── Path con zona como texto (sin coords): match estricto contra
+    // neighborhood. Si vacío, vacío con flag. NUNCA dropeamos zone para
+    // mostrar resultados de otra comuna.
+    results = await fetchAndFilter(resolvedIntent, { withZone: true, withCuisine: true })
+    if (results.length === 0) {
+      no_results_in_zone = true
+    }
+  } else {
+    // ── Path sin zona ni coords: aquí el fallback de cuisine sí es válido
+    // porque el usuario no pidió zona específica.
+    results = await fetchAndFilter(resolvedIntent, { withZone: false, withCuisine: true })
+    if (results.length === 0 && resolvedIntent.cuisine_type) {
+      results = await fetchAndFilter(resolvedIntent, { withZone: false, withCuisine: false })
+    }
   }
 
   // ── Enriquecer con promociones activas para channel_chapi ──────────
@@ -261,8 +313,14 @@ async function searchRestaurants(intent: Intent) {
     }
   }
 
-  queryCache.set(cacheKey, results)
-  return results
+  const out: SearchOutput = { results, no_results_in_zone }
+  // No cacheamos vacíos: el frontend dispara enrichment async y reintenta esta
+  // búsqueda con el mismo intent. Si cacheamos `[]`, el retry recibe el cache
+  // viejo y nunca ve los restaurantes recién insertados.
+  if (results.length > 0) {
+    queryCache.set(cacheKey, out)
+  }
+  return out
 }
 
 // ── Rule-based parser: zero AI cost, used as fallback ─────────────────────────
@@ -428,8 +486,11 @@ export async function POST(req: NextRequest) {
 
         // Search restaurants if ready
         let results: any[] = []
+        let no_results_in_zone = false
         if (chapiResponse.ready_to_search && !chapiResponse.needs_location) {
-          results = await searchRestaurants(chapiResponse.intent || {})
+          const out = await searchRestaurants(chapiResponse.intent || {})
+          results = out.results
+          no_results_in_zone = out.no_results_in_zone
         }
 
         await send('done', {
@@ -440,6 +501,10 @@ export async function POST(req: NextRequest) {
           needs_location: chapiResponse.needs_location,
           // Only signal empty if Claude itself decided to search (not just asking clarifying Qs)
           searched_but_empty: claudeSaysReady && !chapiResponse.needs_location && results.length === 0,
+          // Vacío específicamente porque la zona pedida no tiene matches (no
+          // confundir con "el usuario aún no dio una zona"). El frontend usa
+          // este flag para disparar el agente de enriquecimiento.
+          no_results_in_zone: no_results_in_zone && claudeSaysReady,
         })
       } catch (err) {
         await send('error', { message: 'Error procesando tu mensaje. Intenta de nuevo.' })

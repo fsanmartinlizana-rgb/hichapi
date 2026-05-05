@@ -9,6 +9,7 @@ const ClaimSchema = z.object({
   owner_name:    z.string().min(2).max(100),
   owner_email:   z.string().email(),
   owner_phone:   z.string().max(20).optional(),
+  claimant_rut:  z.string().max(15).optional(),
   message:       z.string().max(500).optional(), // "Soy el dueño porque…"
 })
 
@@ -65,8 +66,9 @@ export async function POST(req: NextRequest) {
         restaurant_id: data.restaurant_id,
         owner_name:    data.owner_name,
         owner_email:   data.owner_email,
-        owner_phone:   data.owner_phone || null,
-        message:       data.message || null,
+        owner_phone:   data.owner_phone  || null,
+        claimant_rut:  data.claimant_rut || null,
+        message:       data.message      || null,
         status:        'pending',
       })
       .select('id')
@@ -132,12 +134,16 @@ export async function PATCH(req: NextRequest) {
     }
 
     if (parsed.action === 'approve') {
-      // Mark restaurant as claimed
+      // Mark restaurant as claimed + verified + transitionar data_source.
+      // Después de approve, el restaurant deja de ser 'agent_enriched' y pasa
+      // a ser 'owner_claimed' — esto es lo que controla si genera comisión.
       await supabase
         .from('restaurants')
         .update({
-          claimed: true,
-          claimed_at: new Date().toISOString(),
+          claimed:     true,
+          verified:    true,
+          claimed_at:  new Date().toISOString(),
+          data_source: 'owner_claimed',
         })
         .eq('id', claim.restaurant_id)
 
