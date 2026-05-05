@@ -269,9 +269,14 @@ async function searchRestaurants(intent: Intent): Promise<SearchOutput> {
     if (results.length === 0) no_results_in_zone = true
   } else if (resolvedIntent.zone) {
     // ── Path con zona como texto (sin coords): match estricto contra
-    // neighborhood. Si vacío, vacío con flag. NUNCA dropeamos zone para
-    // mostrar resultados de otra comuna.
+    // neighborhood. Si vacío, ANTES de declarar no_results_in_zone intentamos
+    // relajar cuisine MANTENIENDO la zona — eso es un fallback honesto:
+    // "no hay italianos en Concón pero sí hay otros restaurants ahí".
+    // NUNCA dropeamos la zona para mostrar resultados de otra comuna.
     results = await fetchAndFilter(resolvedIntent, { withZone: true, withCuisine: true })
+    if (results.length === 0 && resolvedIntent.cuisine_type) {
+      results = await fetchAndFilter(resolvedIntent, { withZone: true, withCuisine: false })
+    }
     if (results.length === 0) {
       no_results_in_zone = true
     }

@@ -136,7 +136,10 @@ function inferCuisine(place: GPlace): string {
   for (const [k, v] of m) {
     if (haystack.includes(k)) return v
   }
-  return place.primaryTypeDisplayName?.text ?? 'internacional'
+  // Si nada matchea, valor canónico 'internacional'. Evita guardar literales
+  // como "Restaurante" del primaryTypeDisplayName que después no matchean
+  // con ningún filtro de cuisine en /api/chat.
+  return 'internacional'
 }
 
 /** Extrae max 3 reviews con el shape del brief: { author, rating, text, time }.
@@ -187,20 +190,41 @@ export async function POST(req: NextRequest) {
 
   const zone = resolveZone(parsed.zone) ?? parsed.zone
 
-  // ── 1. Dedupe 24h: si ya hay un job done/running para esta zona, skip ────
-  const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: recent } = await supabase
+  // ── 1. Dedupe inteligente:
+  // (a) bloquear si hay un job 'running' creado hace menos de 5 min (concurrencia)
+  // (b) bloquear si hay un job 'done' exitoso (>0 inserts) en las últimas 24h
+  // Casos NO bloqueantes:
+  //   - 'failed' / 'skipped' previos → permitir reintento
+  //   - 'done' con 0 inserts → permitir reintento (Google quizás ahora sí, o
+  //     la zona se cubrió desde otra entrada)
+  //   - 'running' viejo (>5 min) → asumir muerto por timeout, permitir reintento
+  const concurrentSince = new Date(Date.now() - 5 * 60 * 1000).toISOString()
+  const { data: concurrent } = await supabase
     .from('enrichment_jobs')
-    .select('id, status, restaurants_inserted')
+    .select('id')
     .eq('zone', zone)
-    .gte('created_at', since)
-    .in('status', ['running', 'done'])
+    .eq('status', 'running')
+    .gte('created_at', concurrentSince)
     .limit(1)
 
-  if (recent && recent.length > 0) {
+  if (concurrent && concurrent.length > 0) {
+    return NextResponse.json({ skipped: true, reason: 'running', inserted: 0 })
+  }
+
+  const recentSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+  const { data: recentSuccess } = await supabase
+    .from('enrichment_jobs')
+    .select('id, restaurants_inserted')
+    .eq('zone', zone)
+    .eq('status', 'done')
+    .gt('restaurants_inserted', 0)
+    .gte('created_at', recentSince)
+    .limit(1)
+
+  if (recentSuccess && recentSuccess.length > 0) {
     return NextResponse.json({
       skipped:  true,
-      reason:   'recent_job',
+      reason:   'recent_success',
       inserted: 0,
     })
   }
