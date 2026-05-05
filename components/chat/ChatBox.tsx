@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, KeyboardEvent } from 'react'
+import { useState, useRef, useEffect, KeyboardEvent } from 'react'
 import { Send, Loader2, MapPin } from 'lucide-react'
 import { ChapiIntent, RestaurantResult } from '@/lib/types'
 
@@ -23,11 +23,31 @@ const ZONE_CHIPS = [
   'Vitacura',
 ]
 
+/** Cuando hay zone pedida, no hay matches con la cuisine pedida y SÍ hay otros
+ *  restaurants en la zona, ofrecemos al user "ver {N} otras opciones en {zone}".
+ *  Es opt-in explícito — nunca mezclamos cuisines silenciosamente. */
+export interface NoCuisineMatchInfo {
+  zone:                string
+  cuisine:             string
+  alternatives_count:  number
+  query_original:      string
+}
+
 interface ChatBoxProps {
-  onResults: (results: RestaurantResult[], query: string) => void
-  onStatusChange: (status: string) => void
-  onLoadingChange?: (loading: boolean) => void
-  onNoResults?: (intent: ChapiIntent) => void
+  onResults:               (results: RestaurantResult[], query: string) => void
+  onStatusChange:          (status: string) => void
+  onLoadingChange?:        (loading: boolean) => void
+  /** Llamado cuando no hay nada en la zona ni siquiera tras enriquecer. */
+  onNoResults?:            (intent: ChapiIntent) => void
+  /** Llamado cuando hay zona y restaurants en la zona, pero ninguno de la
+   *  cuisine pedida. El padre muestra un botón "ver alternativas". Al clic,
+   *  el padre incrementa `pendingAlternativeNonce` para disparar la búsqueda
+   *  con allow_alternatives=true. */
+  onNoCuisineMatchInZone?: (info: NoCuisineMatchInfo) => void
+  /** Cuando este nonce cambia, ChatBox reenvía la última query del user con
+   *  allow_alternatives=true. El padre lo incrementa al clicar el botón
+   *  "ver alternativas en {zone}". null/0 = no acción. */
+  pendingAlternativeNonce?: number
 }
 
 // ── Typing dots animation ────────────────────────────────────────────────────
@@ -54,15 +74,32 @@ function TypingDots() {
   )
 }
 
-export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResults }: ChatBoxProps) {
+export function ChatBox({
+  onResults,
+  onStatusChange,
+  onLoadingChange,
+  onNoResults,
+  onNoCuisineMatchInZone,
+  pendingAlternativeNonce,
+}: ChatBoxProps) {
   const [input, setInput]               = useState('')
   const [loading, setLoading]           = useState(false)
-  const [waitingFirstToken, setWaiting] = useState(false)  // #1 — loading indicator
+  const [waitingFirstToken, setWaiting] = useState(false)
   const [intent, setIntent]             = useState<ChapiIntent>({})
   const [chapiMessage, setChapiMessage] = useState('')
   const [needsLocation, setNeedsLocation] = useState(false)
   const [askingForZone, setAskingForZone] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const lastQueryRef = useRef<string>('')
+
+  // Cuando el padre incrementa pendingAlternativeNonce, reenviamos la última
+  // query con allow_alternatives=true (opt-in del user al clic del banner).
+  useEffect(() => {
+    if (!pendingAlternativeNonce) return
+    if (!lastQueryRef.current) return
+    sendMessage(lastQueryRef.current, { allowAlternatives: true })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pendingAlternativeNonce])
 
   async function requestLocation(): Promise<{ user_lat: number; user_lng: number } | null> {
     return new Promise((resolve) => {
@@ -75,15 +112,19 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
     })
   }
 
-  async function sendMessage(message: string, opts?: { isRetry?: boolean }) {
+  async function sendMessage(
+    message: string,
+    opts?: { isRetry?: boolean; allowAlternatives?: boolean },
+  ) {
     if (!message.trim() || loading) return
 
+    lastQueryRef.current = message
     setLoading(true)
-    setWaiting(true)       // show dots immediately
+    setWaiting(true)
     onLoadingChange?.(true)
     setInput('')
     onStatusChange('')
-    if (!opts?.isRetry) setChapiMessage('')
+    if (!opts?.isRetry && !opts?.allowAlternatives) setChapiMessage('')
     setAskingForZone(false)
 
     let currentIntent = { ...intent }
@@ -99,7 +140,11 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
       const res = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, intent: currentIntent }),
+        body: JSON.stringify({
+          message,
+          intent: currentIntent,
+          allow_alternatives: !!opts?.allowAlternatives,
+        }),
       })
 
       if (!res.ok) throw new Error('Error en la API')
@@ -147,22 +192,36 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
               // Show zone chips when Chapi hasn't got a zone yet and isn't searching
               setAskingForZone(!data.ready_to_search || (!data.intent?.zone && !data.needs_location))
 
+              // Si Claude todavía está clarificando (pidiendo presupuesto u
+              // otra info), NO accionamos sobre la búsqueda — dejamos que el
+              // user responda primero. Solo cuando claude_was_ready=true
+              // entramos al flow de auto-enrich / banners.
+              const claudeReady = data.claude_was_ready === true
+
               if (data.results?.length > 0) {
                 onResults(data.results, message)
                 onStatusChange('')
-              } else if (data.no_results_in_zone && !opts?.isRetry) {
-                // ── Auto-enrich: zona conocida pero sin restaurants en DB.
-                // Disparamos el agente y, si inserta, reintentamos la misma
-                // búsqueda. El usuario solo ve el mensaje de progreso.
-                const zoneLabel = data.intent?.zone ?? 'esa zona'
-                setChapiMessage(`No encontré restaurantes en ${zoneLabel}. Estoy buscando más opciones para ti...`)
+              } else if (data.no_results_in_zone && claudeReady && !opts?.isRetry) {
+                // ── Auto-enrich: zona conocida pero sin restaurants para
+                // este cuisine en DB. Disparamos el agente y reintentamos.
+                // Si tras el retry tampoco hay matches pero la zona tiene
+                // OTROS restaurants, ofrecemos al user "ver alternativas"
+                // (opt-in explícito, nunca mezclamos cuisines silenciosamente).
+                const zoneLabel = data.intent?.zone ?? data.resolved_zone ?? 'esa zona'
+                const cuisineLabel = data.intent?.cuisine_type ?? null
+                setChapiMessage(
+                  cuisineLabel
+                    ? `No encontré ${cuisineLabel} en ${zoneLabel}. Estoy buscando más opciones para ti...`
+                    : `No encontré restaurantes en ${zoneLabel}. Estoy buscando más opciones para ti...`
+                )
                 onLoadingChange?.(false)
 
                 fetch('/api/enrich-zone', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
-                    zone:           data.intent?.zone ?? '',
+                    zone:           data.intent?.zone ?? data.resolved_zone ?? '',
+                    cuisine_type:   cuisineLabel,
                     query_original: message,
                     lat:            data.intent?.user_lat ?? null,
                     lng:            data.intent?.user_lng ?? null,
@@ -172,17 +231,39 @@ export function ChatBox({ onResults, onStatusChange, onLoadingChange, onNoResult
                   .then((enrich: { inserted?: number }) => {
                     if ((enrich?.inserted ?? 0) > 0) {
                       // Pequeño delay para que el finally del SSE actual marque
-                      // loading=false antes del retry — sin esto, el guardia
-                      // `if (loading) return` puede abortar el reintento.
+                      // loading=false antes del retry.
                       setTimeout(() => sendMessage(message, { isRetry: true }), 120)
+                    } else if (cuisineLabel && (data.alternatives_in_zone_count ?? 0) > 0) {
+                      // Hay restaurants en zona pero ninguno de la cuisine
+                      // pedida. Ofrecer al user opt-in para ver alternativas.
+                      onNoCuisineMatchInZone?.({
+                        zone:               zoneLabel,
+                        cuisine:            cuisineLabel,
+                        alternatives_count: data.alternatives_in_zone_count!,
+                        query_original:     message,
+                      })
                     } else {
-                      // Agente no encontró nada → fallback al banner clásico
                       onNoResults?.(data.intent ?? currentIntent)
                     }
                   })
                   .catch(() => onNoResults?.(data.intent ?? currentIntent))
-              } else if (data.searched_but_empty) {
-                // searched but found nothing (sin zone específica) → banner clásico
+              } else if (
+                data.no_results_in_zone &&
+                claudeReady &&
+                opts?.isRetry &&
+                data.intent?.cuisine_type &&
+                (data.alternatives_in_zone_count ?? 0) > 0
+              ) {
+                // Caso post-retry: tampoco hay matches específicos pero hay
+                // alternativas en la zona. Ofrecer opt-in.
+                const zoneLabel = data.intent?.zone ?? data.resolved_zone ?? 'esa zona'
+                onNoCuisineMatchInZone?.({
+                  zone:               zoneLabel,
+                  cuisine:            data.intent.cuisine_type,
+                  alternatives_count: data.alternatives_in_zone_count!,
+                  query_original:     message,
+                })
+              } else if (data.searched_but_empty && claudeReady) {
                 onNoResults?.(data.intent ?? currentIntent)
               }
 

@@ -3,8 +3,8 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
-import { Map, RotateCcw, SearchX, Loader2 } from 'lucide-react'
-import { ChatBox } from '@/components/chat/ChatBox'
+import { Map, RotateCcw, SearchX, Loader2, ArrowRight } from 'lucide-react'
+import { ChatBox, type NoCuisineMatchInfo } from '@/components/chat/ChatBox'
 import { ResultsGrid, ResultsGridSkeleton } from '@/components/discovery/ResultsGrid'
 import { RestaurantResult, ChapiIntent } from '@/lib/types'
 
@@ -57,7 +57,49 @@ function MapSkeleton() {
   )
 }
 
-// ── #3: Estado de sin resultados ──────────────────────────────────────────────
+// ── Banner opt-in: hay zona con restaurants, pero ninguno de la cuisine pedida
+function NoCuisineMatchBanner({
+  info,
+  onShowAlternatives,
+  onReset,
+}: {
+  info: NoCuisineMatchInfo
+  onShowAlternatives: () => void
+  onReset: () => void
+}) {
+  return (
+    <div className="max-w-md mx-auto px-4 text-center py-12">
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8">
+        <SearchX size={40} className="mx-auto mb-4 text-neutral-300" strokeWidth={1.5} />
+        <h3 className="font-semibold text-[#1A1A2E] mb-2">
+          No tengo {info.cuisine} en {info.zone}
+        </h3>
+        <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
+          Pero sí hay {info.alternatives_count} restaurant{info.alternatives_count !== 1 ? 's' : ''} de otras cocinas en {info.zone}.
+          ¿Quieres verlos?
+        </p>
+        <div className="flex flex-col gap-2">
+          <button
+            onClick={onShowAlternatives}
+            className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
+                       bg-[#FF6B35] hover:bg-[#e55a2b]
+                       text-white font-semibold text-sm transition-colors"
+          >
+            Ver opciones en {info.zone} <ArrowRight size={14} />
+          </button>
+          <button
+            onClick={onReset}
+            className="text-sm text-neutral-400 hover:text-[#FF6B35] transition-colors py-1"
+          >
+            Probar otra búsqueda
+          </button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Estado de sin resultados (zona vacía o cuisine sin alternativas) ─────────
 function NoResultsBanner({
   intent,
   onFetch,
@@ -138,6 +180,8 @@ export default function Home() {
   const [status, setStatus]             = useState('')
   const [isSearching, setIsSearching]   = useState(false)
   const [noResults, setNoResults]       = useState<ChapiIntent | null>(null)
+  const [noCuisineMatch, setNoCuisineMatch] = useState<NoCuisineMatchInfo | null>(null)
+  const [pendingAltNonce, setPendingAltNonce] = useState(0)
   const [searchKey, setSearchKey]       = useState(0)
   const [showMap, setShowMap]           = useState(false)
   const hydratedRef = useRef(false)
@@ -183,6 +227,7 @@ export default function Home() {
     setQuery(userQuery)
     setIsSearching(false)
     setNoResults(null)
+    setNoCuisineMatch(null)
     setShowMap(false)
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
@@ -192,13 +237,28 @@ export default function Home() {
   const handleStatusChange = useCallback((s: string) => setStatus(s), [])
   const handleLoadingChange = useCallback((loading: boolean) => setIsSearching(loading), [])
 
-  // #3 — no results callback
   const handleNoResults = useCallback((intent: ChapiIntent) => {
     setIsSearching(false)
     setNoResults(intent)
+    setNoCuisineMatch(null)
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
+  }, [])
+
+  const handleNoCuisineMatch = useCallback((info: NoCuisineMatchInfo) => {
+    setIsSearching(false)
+    setNoCuisineMatch(info)
+    setNoResults(null)
+    setTimeout(() => {
+      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }, [])
+
+  const handleShowAlternatives = useCallback(() => {
+    setNoCuisineMatch(null)
+    setIsSearching(true)
+    setPendingAltNonce(n => n + 1)
   }, [])
 
   const handleReset = useCallback(() => {
@@ -207,13 +267,15 @@ export default function Home() {
     setStatus('')
     setIsSearching(false)
     setNoResults(null)
+    setNoCuisineMatch(null)
     setShowMap(false)
     setSearchKey(k => k + 1)
     clearPersisted()
     setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
   }, [])
 
-  const showResultsSection = results.length > 0 || isSearching || noResults !== null
+  const showResultsSection =
+    results.length > 0 || isSearching || noResults !== null || noCuisineMatch !== null
 
   return (
     <main className="min-h-screen" style={{ background: '#FAFAF8' }}>
@@ -247,6 +309,8 @@ export default function Home() {
           onStatusChange={handleStatusChange}
           onLoadingChange={handleLoadingChange}
           onNoResults={handleNoResults}
+          onNoCuisineMatchInZone={handleNoCuisineMatch}
+          pendingAlternativeNonce={pendingAltNonce}
         />
 
         {status && <p className="mt-4 text-sm text-neutral-400 animate-pulse">{status}</p>}
@@ -257,7 +321,7 @@ export default function Home() {
         <section id="results" className="pb-20">
 
           {/* Toolbar */}
-          {!noResults && (
+          {!noResults && !noCuisineMatch && (
             <div className="flex items-center justify-between max-w-4xl mx-auto px-4 mb-4 gap-2">
               {!isSearching && process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
                 <button
@@ -286,7 +350,7 @@ export default function Home() {
           )}
 
           {/* Map */}
-          {!isSearching && !noResults && showMap && (
+          {!isSearching && !noResults && !noCuisineMatch && showMap && (
             <div className="w-full max-w-4xl mx-auto px-4 mb-6">
               <ResultsMap results={results} />
             </div>
@@ -295,6 +359,12 @@ export default function Home() {
           {/* Content */}
           {isSearching ? (
             <ResultsGridSkeleton />
+          ) : noCuisineMatch ? (
+            <NoCuisineMatchBanner
+              info={noCuisineMatch}
+              onShowAlternatives={handleShowAlternatives}
+              onReset={handleReset}
+            />
           ) : noResults ? (
             <NoResultsBanner
               intent={noResults}

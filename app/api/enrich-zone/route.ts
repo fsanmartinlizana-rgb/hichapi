@@ -15,6 +15,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { resolveZone } from '@/lib/landmarks'
+import { canonicalCuisine, CUISINE_RESTAURANT_KEYWORDS } from '@/lib/discovery'
 
 export const runtime  = 'nodejs'
 export const maxDuration = 60
@@ -29,6 +30,10 @@ const RequestSchema = z.object({
   query_original: z.string().max(500).optional(),
   lat:            z.number().nullable().optional(),
   lng:            z.number().nullable().optional(),
+  /** Cuisine pedida por el usuario. Se incluye en el text query de Google
+   *  Places para que devuelva restaurants RELEVANTES (ej. "pizzerías en
+   *  Concón" en lugar de "restaurantes en Concón"). */
+  cuisine_type:   z.string().max(50).nullable().optional(),
 })
 
 // ── Helpers ────────────────────────────────────────────────────────────────────
@@ -99,46 +104,103 @@ function mapPriceLevel(p?: string): 'economico' | 'medio' | 'premium' {
   }
 }
 
-/** Infiere cuisine_type canónico desde types[] + primaryTypeDisplayName. Usa
- *  los mismos buckets que el chat para que el filtro post-enrichment matchee. */
+/** Infiere cuisine_type canónico desde la información REAL de Google (types
+ *  + primaryTypeDisplayName + nombre del lugar). Usa los mismos buckets que
+ *  el chat para coherencia bidireccional.
+ *
+ *  IMPORTANTE: NO usamos la cuisine pedida por el user como fallback. Si
+ *  pedimos "alemana en Concón" y Google devuelve un kebab y un sandwichería,
+ *  los etiquetamos como `arabe` y `sandwicheria` respectivamente — NO como
+ *  alemana. Etiquetar todo como lo pedido sería deshonesto: el chat después
+ *  los mostraría a otro user pidiendo alemana cuando no son alemana. */
 function inferCuisine(place: GPlace): string {
+  // Combinamos types, primaryTypeDisplayName y el NOMBRE del lugar en un
+  // haystack para hacer matching. El nombre suele ser informativo
+  // ("Pizzería X", "Sushi Y", "Kebab Z").
   const haystack = stripAccents(
     [
       ...(place.types ?? []),
       place.primaryTypeDisplayName?.text ?? '',
+      place.displayName?.text ?? '',
     ].join(' '),
   )
-  const m: [string, string][] = [
-    ['sushi',          'japonesa'],
-    ['ramen',          'japonesa'],
-    ['japan',          'japonesa'],
-    ['italian',        'italiana'],
-    ['pizza',          'italiana'],
-    ['pasta',          'italiana'],
-    ['peruvian',       'peruana'],
-    ['ceviche',        'peruana'],
-    ['mexican',        'mexicana'],
-    ['taco',           'mexicana'],
-    ['vegan',          'vegana'],
-    ['vegetar',        'vegetariana'],
-    ['burger',         'hamburgueseria'],
-    ['hambur',         'hamburgueseria'],
-    ['thai',           'tailandesa'],
-    ['parrilla',       'parrilla'],
-    ['steak',          'parrilla'],
-    ['seafood',        'mariscos'],
-    ['marisc',         'mariscos'],
-    ['cafe',           'cafeteria'],
-    ['bakery',         'panaderia'],
-    ['ice_cream',      'heladeria'],
-    ['chilean',        'chilena'],
+
+  // Mapeo Google-types → canónica (los types son ENUM estables de la API).
+  // Estos toman prioridad porque son señal estructurada, no texto libre.
+  const TYPE_MAP: [string, string][] = [
+    ['sushi_restaurant',         'japonesa'],
+    ['japanese_restaurant',      'japonesa'],
+    ['italian_restaurant',       'italiana'],
+    ['pizza_restaurant',         'italiana'],
+    ['mexican_restaurant',       'mexicana'],
+    ['indian_restaurant',        'india'],
+    ['chinese_restaurant',       'china'],
+    ['korean_restaurant',        'coreana'],
+    ['vietnamese_restaurant',    'vietnamita'],
+    ['thai_restaurant',          'tailandesa'],
+    ['middle_eastern_restaurant', 'arabe'],
+    ['lebanese_restaurant',      'arabe'],
+    ['turkish_restaurant',       'arabe'],
+    ['american_restaurant',      'americana'],
+    ['mediterranean_restaurant', 'mediterranea'],
+    ['greek_restaurant',         'griega'],
+    ['spanish_restaurant',       'espanola'],
+    ['french_restaurant',        'francesa'],
+    ['seafood_restaurant',       'mariscos'],
+    ['vegan_restaurant',         'vegana'],
+    ['vegetarian_restaurant',    'vegetariana'],
+    ['hamburger_restaurant',     'hamburgueseria'],
+    ['fast_food_restaurant',     'hamburgueseria'],
+    ['steak_house',              'parrilla'],
+    ['ice_cream_shop',           'heladeria'],
+    ['coffee_shop',              'cafeteria'],
+    ['bakery',                   'panaderia'],
+    ['cafe',                     'cafeteria'],
+    ['sandwich_shop',            'sandwicheria'],
+    ['pub',                      'cerveceria'],
+    ['brewery',                  'cerveceria'],
+    ['wine_bar',                 'cerveceria'],
+    ['bar',                      'cerveceria'],
   ]
-  for (const [k, v] of m) {
+  for (const t of place.types ?? []) {
+    const tNorm = t.toLowerCase()
+    const hit = TYPE_MAP.find(([k]) => tNorm === k)
+    if (hit) return hit[1]
+  }
+
+  // Fallback 1: matcheo por keyword en haystack (cubre cuando los types
+  // son genéricos pero el nombre dice "Pizzería" o "Sushi").
+  const KW: [string, string][] = [
+    ['sushi', 'japonesa'], ['ramen', 'japonesa'],
+    ['pizza', 'italiana'], ['pasta', 'italiana'], ['italian', 'italiana'],
+    ['ceviche', 'peruana'], ['cebich', 'peruana'], ['peruvian', 'peruana'], ['nikkei', 'peruana'],
+    ['taco', 'mexicana'], ['mexican', 'mexicana'],
+    ['hambur', 'hamburgueseria'], ['burger', 'hamburgueseria'],
+    ['thai', 'tailandesa'],
+    ['parrilla', 'parrilla'], ['steak', 'parrilla'], ['churrasq', 'parrilla'],
+    ['marisc', 'mariscos'], ['pescad', 'mariscos'], ['seafood', 'mariscos'],
+    ['kebab', 'arabe'], ['shawarma', 'arabe'], ['falafel', 'arabe'],
+    ['curry', 'india'], ['tandoor', 'india'],
+    ['indian', 'india'], ['chinese', 'china'], ['chifa', 'china'],
+    ['vegan', 'vegana'], ['vegetar', 'vegetariana'],
+    ['cafe', 'cafeteria'], ['brunch', 'cafeteria'], ['coffee', 'cafeteria'],
+    ['ice_cream', 'heladeria'], ['helader', 'heladeria'], ['gelato', 'heladeria'],
+    ['bakery', 'panaderia'], ['panader', 'panaderia'],
+    ['sandwich', 'sandwicheria'],
+    ['chilean', 'chilena'], ['chilen', 'chilena'], ['picada', 'chilena'], ['patagon', 'chilena'],
+    ['american', 'americana'],
+    ['argentin', 'argentina'], ['venezuelan', 'venezolana'], ['arepa', 'venezolana'],
+    ['colombian', 'colombiana'], ['mediterran', 'mediterranea'],
+    ['greek', 'griega'], ['spanish', 'espanola'], ['paella', 'espanola'],
+    ['french', 'francesa'], ['asian', 'asiatica'],
+    ['brewery', 'cerveceria'], ['pub', 'cerveceria'],
+  ]
+  for (const [k, v] of KW) {
     if (haystack.includes(k)) return v
   }
-  // Si nada matchea, valor canónico 'internacional'. Evita guardar literales
-  // como "Restaurante" del primaryTypeDisplayName que después no matchean
-  // con ningún filtro de cuisine en /api/chat.
+
+  // Sin match — caemos al canon catch-all. NO usamos la cuisine pedida como
+  // fallback porque eso etiquetaría falsamente al lugar (ver doc de la fn).
   return 'internacional'
 }
 
@@ -190,19 +252,27 @@ export async function POST(req: NextRequest) {
 
   const zone = resolveZone(parsed.zone) ?? parsed.zone
 
-  // ── 1. Dedupe inteligente:
-  // (a) bloquear si hay un job 'running' creado hace menos de 5 min (concurrencia)
+  // Construye el text query: si tenemos cuisine, la incluimos para que
+  // Google Places devuelva resultados relevantes en lugar de restaurants
+  // genéricos. Ej. "comida india en Santiago Centro" → solo indios.
+  const cuisineLabel = parsed.cuisine_type?.trim()
+  const textQuery = cuisineLabel
+    ? `${cuisineLabel} en ${zone}, Chile`
+    : `restaurantes en ${zone}, Chile`
+
+  // ── 1. Dedupe inteligente. Clave de dedupe = zone + cuisine (pizzerías
+  // y mariscos en Concón son requests distintos).
+  // (a) bloquear si hay un job 'running' creado hace menos de 5 min
   // (b) bloquear si hay un job 'done' exitoso (>0 inserts) en las últimas 24h
-  // Casos NO bloqueantes:
-  //   - 'failed' / 'skipped' previos → permitir reintento
-  //   - 'done' con 0 inserts → permitir reintento (Google quizás ahora sí, o
-  //     la zona se cubrió desde otra entrada)
-  //   - 'running' viejo (>5 min) → asumir muerto por timeout, permitir reintento
+  //     PARA EL MISMO query (zone + cuisine)
+  // No bloqueantes: failed/skipped/done con 0 inserts/running viejo.
+  const dedupeKey = textQuery
   const concurrentSince = new Date(Date.now() - 5 * 60 * 1000).toISOString()
   const { data: concurrent } = await supabase
     .from('enrichment_jobs')
     .select('id')
     .eq('zone', zone)
+    .eq('query_original', dedupeKey)
     .eq('status', 'running')
     .gte('created_at', concurrentSince)
     .limit(1)
@@ -216,6 +286,7 @@ export async function POST(req: NextRequest) {
     .from('enrichment_jobs')
     .select('id, restaurants_inserted')
     .eq('zone', zone)
+    .eq('query_original', dedupeKey)
     .eq('status', 'done')
     .gt('restaurants_inserted', 0)
     .gte('created_at', recentSince)
@@ -234,7 +305,9 @@ export async function POST(req: NextRequest) {
     .from('enrichment_jobs')
     .insert({
       zone,
-      query_original: parsed.query_original ?? null,
+      // query_original = el texto exacto que mandamos a Google. Sirve como
+      // dedupe-key cross-cuisine y como rastro de auditoría.
+      query_original: dedupeKey,
       status:         'running',
     })
     .select('id')
@@ -286,10 +359,7 @@ export async function POST(req: NextRequest) {
         'X-Goog-Api-Key':     process.env.GOOGLE_PLACES_API_KEY!,
         'X-Goog-FieldMask':   fieldMask,
       },
-      body: JSON.stringify({
-        textQuery:    `restaurantes en ${zone}, Santiago, Chile`,
-        languageCode: 'es',
-      }),
+      body: JSON.stringify({ textQuery, languageCode: 'es' }),
       signal: AbortSignal.timeout(25_000),
     })
 
@@ -344,12 +414,57 @@ export async function POST(req: NextRequest) {
 
     const toInsert: Row[] = []
     let usedSlugs = new Set(existingSlugs)
+    // canonicalCuisine se usa más abajo solo para validar que los lugares
+    // insertados sean realmente de la cuisine pedida (cuando aplica).
+    const requestedCanon = canonicalCuisine(parsed.cuisine_type)
+    const requestedKeywords = requestedCanon
+      ? CUISINE_RESTAURANT_KEYWORDS[requestedCanon] ?? [requestedCanon]
+      : null
+
+    // Tipos de Google Places que aceptamos como "lugares de comida". Otros
+    // tipos (escuela, gimnasio, oficina) los descartamos aunque su nombre
+    // matchee la cuisine pedida.
+    const FOOD_TYPES = new Set([
+      'restaurant', 'food', 'cafe', 'bar', 'bakery', 'meal_takeaway',
+      'meal_delivery', 'sandwich_shop', 'pizza_restaurant', 'sushi_restaurant',
+      'italian_restaurant', 'japanese_restaurant', 'mexican_restaurant',
+      'chinese_restaurant', 'indian_restaurant', 'french_restaurant',
+      'thai_restaurant', 'korean_restaurant', 'vietnamese_restaurant',
+      'spanish_restaurant', 'american_restaurant', 'seafood_restaurant',
+      'steak_house', 'hamburger_restaurant', 'vegan_restaurant',
+      'vegetarian_restaurant', 'middle_eastern_restaurant', 'greek_restaurant',
+      'turkish_restaurant', 'lebanese_restaurant', 'mediterranean_restaurant',
+      'fast_food_restaurant', 'ice_cream_shop', 'coffee_shop', 'pub',
+      'wine_bar', 'brewery', 'bistro', 'breakfast_restaurant',
+      'brunch_restaurant', 'fine_dining_restaurant',
+    ])
 
     for (const p of places) {
       const name = p.displayName?.text?.trim()
       const lat  = p.location?.latitude
       const lng  = p.location?.longitude
       if (!name || lat == null || lng == null) continue
+
+      // Filtrar lugares que no son de comida (escuelas, oficinas, etc.).
+      // Google a veces devuelve esto cuando la cuisine pedida es rara en
+      // la zona ("comida francesa en Concón" → escuelas francesas).
+      const types = p.types ?? []
+      const isFoodPlace = types.some(t => FOOD_TYPES.has(t))
+      if (!isFoodPlace) continue
+
+      // Si el user pidió una cuisine específica, solo aceptamos lugares
+      // que MATCHEEN esa cuisine en sus types/nombre. Esto evita meter
+      // un kebab cuando pidieron "alemana" — mejor 0 inserts y banner
+      // opt-in que data deshonesta.
+      if (requestedKeywords && requestedKeywords.length > 0) {
+        const haystack = stripAccents([
+          ...types,
+          p.primaryTypeDisplayName?.text ?? '',
+          p.displayName?.text ?? '',
+        ].join(' '))
+        const cuisineMatchesPlace = requestedKeywords.some(k => haystack.includes(k))
+        if (!cuisineMatchesPlace) continue
+      }
 
       // Dedupe geo: ¿hay alguno existente a < 50m?
       const tooClose = existingByLoc.some(
