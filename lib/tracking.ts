@@ -77,6 +77,8 @@ export interface SearchArgs extends BaseFields {
   results_count?:       number | null
   no_results_in_zone?: boolean
   triggered_enrichment?: boolean
+  /** Razón canónica del 0-result (alimentación al dashboard). */
+  failure_reason?: 'no_zone_coverage' | 'no_cuisine_match' | 'no_dietary_match' | 'no_budget_match' | 'enrichment_skipped' | null
 }
 
 export async function trackSearch(args: SearchArgs): Promise<string | null> {

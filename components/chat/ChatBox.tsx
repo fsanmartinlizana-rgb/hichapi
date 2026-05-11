@@ -34,6 +34,22 @@ export interface NoCuisineMatchInfo {
   query_original:      string
 }
 
+/** Tag de fail estructurado para que el frontend muestre el mensaje correcto. */
+export type SearchFailureReason =
+  | 'no_zone_coverage'
+  | 'no_cuisine_match'
+  | 'no_dietary_match'
+  | 'no_budget_match'
+
+export interface NoResultsDetail {
+  reason:               SearchFailureReason
+  zone:                 string | null
+  cuisine:              string | null
+  dietary_restrictions: string[]
+  budget_clp:           number | null
+  alternatives_count:   number  // restaurants en zona ignorando todos los filtros
+}
+
 interface ChatBoxProps {
   /** search_event_id se incluye para que ResultCard pueda track los clicks
    *  contra esa búsqueda específica. */
@@ -47,6 +63,9 @@ interface ChatBoxProps {
    *  el padre incrementa `pendingAlternativeNonce` para disparar la búsqueda
    *  con allow_alternatives=true. */
   onNoCuisineMatchInZone?: (info: NoCuisineMatchInfo) => void
+  /** Callback con el detail estructurado del 0-result. Reemplaza a onNoResults
+   *  cuando el banner contextual aplica (dietary/budget/coverage explícitos). */
+  onNoResultsDetail?:      (detail: NoResultsDetail) => void
   /** Cuando este nonce cambia, ChatBox reenvía la última query del user con
    *  allow_alternatives=true. El padre lo incrementa al clicar el botón
    *  "ver alternativas en {zone}". null/0 = no acción. */
@@ -83,6 +102,7 @@ export function ChatBox({
   onLoadingChange,
   onNoResults,
   onNoCuisineMatchInZone,
+  onNoResultsDetail,
   pendingAlternativeNonce,
 }: ChatBoxProps) {
   const [input, setInput]               = useState('')
@@ -215,6 +235,8 @@ export function ChatBox({
                     results_count:        data.results?.length ?? 0,
                     no_results_in_zone:   !!data.no_results_in_zone,
                     triggered_enrichment: false,  // se setea en true por el agente backend, no acá
+                    // Tag canónico para distinguir las 4 causas raíz en el dashboard
+                    failure_reason:       data.failure_reason ?? null,
                   })
                 : Promise.resolve(null)
 
@@ -234,6 +256,21 @@ export function ChatBox({
                 }).catch(() => {
                   onResults(data.results, message, null)
                   onStatusChange('')
+                })
+              } else if (
+                // dietary/budget no match: el agente NO va a ayudar porque
+                // los placeholders del agente no tienen tags ricos. Mostrar
+                // mensaje específico y NO disparar enrichment inútil.
+                claudeReady &&
+                (data.failure_reason === 'no_dietary_match' || data.failure_reason === 'no_budget_match')
+              ) {
+                onNoResultsDetail?.({
+                  reason:               data.failure_reason,
+                  zone:                 data.intent?.zone ?? data.resolved_zone ?? null,
+                  cuisine:              data.intent?.cuisine_type ?? null,
+                  dietary_restrictions: data.intent?.dietary_restrictions ?? [],
+                  budget_clp:           data.intent?.budget_clp ?? null,
+                  alternatives_count:   data.alternatives_in_zone_count ?? 0,
                 })
               } else if (data.no_results_in_zone && claudeReady && !opts?.isRetry) {
                 // ── Auto-enrich: zona conocida pero sin restaurants para

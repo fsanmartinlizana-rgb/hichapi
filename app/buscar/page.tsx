@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { Map, RotateCcw, SearchX, Loader2, ArrowRight } from 'lucide-react'
-import { ChatBox, type NoCuisineMatchInfo } from '@/components/chat/ChatBox'
+import { ChatBox, type NoCuisineMatchInfo, type NoResultsDetail } from '@/components/chat/ChatBox'
 import { ResultsGrid, ResultsGridSkeleton } from '@/components/discovery/ResultsGrid'
 import { RestaurantResult, ChapiIntent } from '@/lib/types'
 import { trackSearch, trackSearchResults } from '@/lib/tracking'
@@ -54,6 +54,67 @@ function MapSkeleton() {
   return (
     <div className="w-full max-w-4xl mx-auto px-4 mb-4">
       <div className="rounded-2xl bg-neutral-100 animate-pulse border border-neutral-100" style={{ height: '300px' }} />
+    </div>
+  )
+}
+
+// ── Banner contextual cuando el filtro de dietary/budget descarta todo ──────
+// Diferenciado del "no hay nada en la zona": acá SÍ hay restaurants, pero
+// ninguno satisface dietary (ej. sin gluten) o budget. El agente no puede
+// ayudar (los placeholders no tienen tags ricos), así que en lugar de
+// disparar enrichment inútil le decimos al user qué ofrecemos.
+function ContextualNoResultsBanner({
+  detail,
+  onShowAll,
+  onReset,
+}: {
+  detail: NoResultsDetail
+  onShowAll: () => void
+  onReset: () => void
+}) {
+  const isDietary = detail.reason === 'no_dietary_match'
+  const isBudget  = detail.reason === 'no_budget_match'
+  const dietaryStr = detail.dietary_restrictions.join(' / ')
+  const zoneStr    = detail.zone ?? 'esa zona'
+  const cuisineStr = detail.cuisine ? `${detail.cuisine} ` : ''
+
+  const title = isDietary
+    ? `Sin opciones ${dietaryStr} en ${zoneStr}`
+    : isBudget
+    ? `Sin opciones bajo tu presupuesto en ${zoneStr}`
+    : `Sin opciones en ${zoneStr}`
+
+  const explanation = isDietary
+    ? `Hay ${detail.alternatives_count} restaurant${detail.alternatives_count !== 1 ? 's' : ''} ${cuisineStr}en ${zoneStr}, pero aún no detallaron qué platos son ${dietaryStr}. A medida que los dueños suban su carta completa, vas a poder filtrar mejor.`
+    : isBudget
+    ? `Hay ${detail.alternatives_count} restaurant${detail.alternatives_count !== 1 ? 's' : ''} ${cuisineStr}en ${zoneStr}, pero los precios que tenemos cargados superan tu presupuesto. Podés subir el presupuesto o ver igualmente.`
+    : `No encontré matches estrictos pero hay ${detail.alternatives_count} restaurants en la zona.`
+
+  return (
+    <div className="max-w-md mx-auto px-4 text-center py-12">
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8">
+        <SearchX size={40} className="mx-auto mb-4 text-neutral-300" strokeWidth={1.5} />
+        <h3 className="font-semibold text-[#1A1A2E] mb-2">{title}</h3>
+        <p className="text-sm text-neutral-400 mb-6 leading-relaxed">{explanation}</p>
+        <div className="flex flex-col gap-2">
+          {detail.alternatives_count > 0 && (
+            <button
+              onClick={onShowAll}
+              className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
+                         bg-[#FF6B35] hover:bg-[#e55a2b]
+                         text-white font-semibold text-sm transition-colors"
+            >
+              Ver los {detail.alternatives_count} restaurants en {zoneStr} <ArrowRight size={14} />
+            </button>
+          )}
+          <button
+            onClick={onReset}
+            className="text-sm text-neutral-400 hover:text-[#FF6B35] transition-colors py-1"
+          >
+            Probar otra búsqueda
+          </button>
+        </div>
+      </div>
     </div>
   )
 }
@@ -133,23 +194,51 @@ function NoResultsBanner({
     }
   }
 
+  // Resumen de qué buscó el user — feedback explícito de lo que entendimos
+  const cuisineLabel = intent.cuisine_type ? `${intent.cuisine_type}` : null
+  const zoneLabel    = intent.zone ?? null
+  const dietaryLabel = (intent.dietary_restrictions ?? []).length > 0
+    ? (intent.dietary_restrictions ?? []).join(' / ')
+    : null
+  const budgetLabel  = intent.budget_clp ? `hasta $${intent.budget_clp.toLocaleString('es-CL')}` : null
+
+  const queryPills = [cuisineLabel, dietaryLabel, zoneLabel ? `en ${zoneLabel}` : null, budgetLabel]
+    .filter(Boolean) as string[]
+
+  const title = zoneLabel
+    ? `No encontré restaurants en ${zoneLabel}`
+    : 'No encontré matches para tu búsqueda'
+
   return (
     <div className="max-w-md mx-auto px-4 text-center py-12">
       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8">
         <SearchX size={40} className="mx-auto mb-4 text-neutral-300" strokeWidth={1.5} />
-        <h3 className="font-semibold text-[#1A1A2E] mb-2">
-          Aún no tenemos restaurantes aquí
-        </h3>
+        <h3 className="font-semibold text-[#1A1A2E] mb-1">{title}</h3>
+        {queryPills.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 justify-center mb-3">
+            {queryPills.map((p, i) => (
+              <span key={i} className="text-[11px] px-2 py-0.5 rounded-full bg-neutral-100 text-neutral-500">
+                {p}
+              </span>
+            ))}
+          </div>
+        )}
         <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
-          No encontré opciones para tu búsqueda en nuestra base de datos.
-          Puedo buscar restaurantes en esa zona y agregarlos ahora.
+          Esta zona todavía no tiene cobertura en HiChapi.
+          {zoneLabel && ' Puedo buscar restaurants ahí en Google y agregarlos ahora — toma ~10 segundos.'}
         </p>
 
         {done ? (
-          <div className="text-sm font-medium text-green-600">
-            {count > 0
-              ? `✅ Agregué ${count} restaurante${count > 1 ? 's' : ''} — buscando de nuevo...`
-              : '😔 No encontré más opciones por ahora. Intenta otra zona.'}
+          <div className="text-sm font-medium leading-relaxed">
+            {count > 0 ? (
+              <span className="text-green-600">
+                ✅ Agregué {count} restaurant{count > 1 ? 's' : ''} — buscando de nuevo...
+              </span>
+            ) : (
+              <span className="text-neutral-500">
+                😕 Google tampoco devolvió resultados para esta búsqueda. Probá una zona más céntrica o sin tantos filtros.
+              </span>
+            )}
           </div>
         ) : (
           <div className="flex flex-col gap-2">
@@ -160,7 +249,7 @@ function NoResultsBanner({
                          bg-[#FF6B35] hover:bg-[#e55a2b] disabled:bg-neutral-200
                          text-white font-semibold text-sm transition-colors"
             >
-              {fetching ? <><Loader2 size={15} className="animate-spin" /> Buscando restaurantes...</> : '🔍 Buscar restaurantes en esta zona'}
+              {fetching ? <><Loader2 size={15} className="animate-spin" /> Buscando en Google Maps...</> : '🔍 Buscar en Google Maps'}
             </button>
             <button
               onClick={onReset}
@@ -182,6 +271,7 @@ export default function Home() {
   const [isSearching, setIsSearching]   = useState(false)
   const [noResults, setNoResults]       = useState<ChapiIntent | null>(null)
   const [noCuisineMatch, setNoCuisineMatch] = useState<NoCuisineMatchInfo | null>(null)
+  const [noResultsDetail, setNoResultsDetail] = useState<NoResultsDetail | null>(null)
   const [pendingAltNonce, setPendingAltNonce] = useState(0)
   const [searchKey, setSearchKey]       = useState(0)
   const [searchEventId, setSearchEventId] = useState<string | null>(null)
@@ -231,6 +321,7 @@ export default function Home() {
     setIsSearching(false)
     setNoResults(null)
     setNoCuisineMatch(null)
+    setNoResultsDetail(null)
     setShowMap(false)
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
@@ -244,6 +335,7 @@ export default function Home() {
     setIsSearching(false)
     setNoResults(intent)
     setNoCuisineMatch(null)
+    setNoResultsDetail(null)
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
@@ -253,6 +345,17 @@ export default function Home() {
     setIsSearching(false)
     setNoCuisineMatch(info)
     setNoResults(null)
+    setNoResultsDetail(null)
+    setTimeout(() => {
+      document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
+    }, 100)
+  }, [])
+
+  const handleNoResultsDetail = useCallback((detail: NoResultsDetail) => {
+    setIsSearching(false)
+    setNoResultsDetail(detail)
+    setNoCuisineMatch(null)
+    setNoResults(null)
     setTimeout(() => {
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth' })
     }, 100)
@@ -260,6 +363,7 @@ export default function Home() {
 
   const handleShowAlternatives = useCallback(() => {
     setNoCuisineMatch(null)
+    setNoResultsDetail(null)
     setIsSearching(true)
     setPendingAltNonce(n => n + 1)
   }, [])
@@ -271,6 +375,7 @@ export default function Home() {
     setIsSearching(false)
     setNoResults(null)
     setNoCuisineMatch(null)
+    setNoResultsDetail(null)
     setShowMap(false)
     setSearchKey(k => k + 1)
     clearPersisted()
@@ -278,7 +383,8 @@ export default function Home() {
   }, [])
 
   const showResultsSection =
-    results.length > 0 || isSearching || noResults !== null || noCuisineMatch !== null
+    results.length > 0 || isSearching ||
+    noResults !== null || noCuisineMatch !== null || noResultsDetail !== null
 
   return (
     <main className="min-h-screen" style={{ background: '#FAFAF8' }}>
@@ -313,6 +419,7 @@ export default function Home() {
           onLoadingChange={handleLoadingChange}
           onNoResults={handleNoResults}
           onNoCuisineMatchInZone={handleNoCuisineMatch}
+          onNoResultsDetail={handleNoResultsDetail}
           pendingAlternativeNonce={pendingAltNonce}
         />
 
@@ -324,7 +431,7 @@ export default function Home() {
         <section id="results" className="pb-20">
 
           {/* Toolbar */}
-          {!noResults && !noCuisineMatch && (
+          {!noResults && !noCuisineMatch && !noResultsDetail && (
             <div className="flex items-center justify-between max-w-4xl mx-auto px-4 mb-4 gap-2">
               {!isSearching && process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
                 <button
@@ -353,7 +460,7 @@ export default function Home() {
           )}
 
           {/* Map */}
-          {!isSearching && !noResults && !noCuisineMatch && showMap && (
+          {!isSearching && !noResults && !noCuisineMatch && !noResultsDetail && showMap && (
             <div className="w-full max-w-4xl mx-auto px-4 mb-6">
               <ResultsMap results={results} />
             </div>
@@ -362,6 +469,12 @@ export default function Home() {
           {/* Content */}
           {isSearching ? (
             <ResultsGridSkeleton />
+          ) : noResultsDetail ? (
+            <ContextualNoResultsBanner
+              detail={noResultsDetail}
+              onShowAll={handleShowAlternatives}
+              onReset={handleReset}
+            />
           ) : noCuisineMatch ? (
             <NoCuisineMatchBanner
               info={noCuisineMatch}

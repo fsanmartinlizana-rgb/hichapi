@@ -49,6 +49,10 @@ const SearchSchema = BaseSchema.extend({
   results_count:      z.number().int().nonnegative().max(100).optional().nullable(),
   no_results_in_zone: z.boolean().optional(),
   triggered_enrichment: z.boolean().optional(),
+  failure_reason:     z.enum([
+    'no_zone_coverage', 'no_cuisine_match',
+    'no_dietary_match', 'no_budget_match', 'enrichment_skipped',
+  ]).optional().nullable(),
 })
 
 const SearchResultsSchema = BaseSchema.extend({
@@ -138,6 +142,7 @@ export async function POST(req: NextRequest) {
           results_count:        body.results_count ?? null,
           no_results_in_zone:   body.no_results_in_zone ?? false,
           triggered_enrichment: body.triggered_enrichment ?? false,
+          failure_reason:       body.failure_reason ?? null,
           referrer, user_agent, ip_country, ip_region,
         }).select('id').single()
 

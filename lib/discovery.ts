@@ -48,6 +48,16 @@ type MenuItem = {
   category?: string | null
 }
 
+/** Razón canónica por la que una búsqueda devolvió 0 results. NULL = exitosa.
+ *  El frontend usa este tag para mostrar el mensaje correcto al user, y el
+ *  dashboard de analytics lo trackea para priorizar qué arreglar. */
+export type FailureReason =
+  | 'no_zone_coverage'    // zona sin restaurants en DB todavía
+  | 'no_cuisine_match'    // hay restaurants en zona pero no de la cuisine pedida
+  | 'no_dietary_match'    // hay cuisine match pero ningún menú satisface dietary
+  | 'no_budget_match'     // hay cuisine match pero ningún menú entra en presupuesto
+  | null
+
 export type SearchOutput = {
   results: ResultRestaurant[]
   /** Hay zone (texto o coords) pero ningún restaurant matchea bajo el filtro
@@ -60,6 +70,9 @@ export type SearchOutput = {
   /** Zone canónico tras resolveZone (útil para mostrar al usuario y enviar
    *  al agente de enriquecimiento). */
   resolved_zone: string | null
+  /** Causa raíz del 0-result. Permite al frontend mostrar mensaje específico
+   *  y al dashboard distinguir "enriquecer más zonas" vs "tagear menús". */
+  failure_reason: FailureReason
 }
 
 export type SearchOpts = {
@@ -410,17 +423,48 @@ export async function searchRestaurants(
     }
   }
 
-  // ── Calcular alternatives_in_zone_count cuando aplica ──────────────────
-  // Solo cuando hay zona texto + cuisine pedida + 0 resultados estrictos.
-  // Sirve para que el frontend pueda preguntar "¿quieres ver alternativas?"
+  // ── alternatives_in_zone_count + failure_reason ────────────────────────
+  // Cuando results=0 con zona pedida, hacemos 1-2 queries adicionales para
+  // (a) saber cuántos restaurants HAY en la zona (ignorando filtros) y
+  // (b) clasificar la causa raíz del fail. Esto SOLO en cold path.
   let alternatives_in_zone_count = 0
-  if (
-    no_results_in_zone &&
-    resolvedIntent.zone &&
-    resolvedIntent.cuisine_type &&
-    !opts.ignoreCuisine
-  ) {
+  let failure_reason: FailureReason = null
+  if (no_results_in_zone && resolvedIntent.zone && !opts.ignoreCuisine) {
     alternatives_in_zone_count = await countInZone(resolvedIntent.zone)
+    const altCount = alternatives_in_zone_count
+
+    if (altCount === 0) {
+      failure_reason = 'no_zone_coverage'
+    } else if (resolvedIntent.cuisine_type) {
+      // Hay restaurants en la zona; sabemos que el filtro de cuisine los
+      // descartó. Pero el motor también aplica dietary + budget en la misma
+      // pasada — para distinguir dietary vs cuisine, re-fetch con cuisine
+      // pero sin dietary/budget.
+      const hasDietary = (resolvedIntent.dietary_restrictions?.length ?? 0) > 0
+      const hasBudget  = resolvedIntent.budget_clp != null
+      if (hasDietary || hasBudget) {
+        // Re-fetch: cuisine sí, dietary/budget no — si encuentra → la causa
+        // fue dietary o budget, no cuisine.
+        const cuisineOnly = await fetchAndFilter(
+          { ...resolvedIntent, dietary_restrictions: [], budget_clp: null },
+          { withZone: true, withCuisine: true },
+        )
+        if (cuisineOnly.length > 0) {
+          // Hubo match de cuisine. Distinguir dietary vs budget.
+          if (hasDietary) failure_reason = 'no_dietary_match'
+          else            failure_reason = 'no_budget_match'
+        } else {
+          failure_reason = 'no_cuisine_match'
+        }
+      } else {
+        failure_reason = 'no_cuisine_match'
+      }
+    } else {
+      // Sin cuisine pedida pero results=0 (pasó al dietary/budget)
+      const hasDietary = (resolvedIntent.dietary_restrictions?.length ?? 0) > 0
+      if (hasDietary) failure_reason = 'no_dietary_match'
+      else            failure_reason = 'no_budget_match'
+    }
   }
 
   // ── Enriquecer con promociones activas ───────────────────────────────
@@ -453,5 +497,6 @@ export async function searchRestaurants(
     no_results_in_zone,
     alternatives_in_zone_count,
     resolved_zone: resolvedZone,
+    failure_reason,
   }
 }

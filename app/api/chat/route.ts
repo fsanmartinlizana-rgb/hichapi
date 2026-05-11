@@ -249,6 +249,7 @@ export async function POST(req: NextRequest) {
           no_results_in_zone: false,
           alternatives_in_zone_count: 0,
           resolved_zone: null,
+          failure_reason: null,
         }
         if (chapiResponse.ready_to_search && !chapiResponse.needs_location) {
           out = await search(chapiResponse.intent || {}, !!allow_alternatives)
@@ -260,13 +261,14 @@ export async function POST(req: NextRequest) {
           results:                   out.results,
           ready_to_search:           chapiResponse.ready_to_search,
           needs_location:            chapiResponse.needs_location,
-          // Flag honesto: refleja si la búsqueda interna salió vacía con zona.
-          // El frontend decide cuándo accionar (usa claude_was_ready para
-          // distinguir "Claude está clarificando" vs "Claude ya buscó").
           no_results_in_zone:        out.no_results_in_zone,
           claude_was_ready:          claudeSaysReady,
           alternatives_in_zone_count: out.alternatives_in_zone_count,
           resolved_zone:             out.resolved_zone,
+          // Causa raíz del 0-result (no_zone_coverage / no_cuisine_match /
+          // no_dietary_match / no_budget_match). El frontend usa esto para
+          // mostrar mensaje específico y decidir si dispara enrichment.
+          failure_reason:            out.failure_reason,
           searched_but_empty:        claudeSaysReady && !chapiResponse.needs_location && out.results.length === 0,
         })
       } catch (err) {

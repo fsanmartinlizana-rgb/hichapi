@@ -200,7 +200,7 @@ export async function GET(req: NextRequest) {
   // ── Búsquedas sin resultado por zona (oportunidades) ─────────────────────
   const { data: noResRows } = await supabase
     .from('search_events')
-    .select('zone_detected, parsed_intent')
+    .select('zone_detected, failure_reason')
     .gte('created_at', since30)
     .eq('no_results_in_zone', true)
     .not('zone_detected', 'is', null)
@@ -213,6 +213,23 @@ export async function GET(req: NextRequest) {
   const opportunityZones = Array.from(noResMap.entries())
     .sort((a, b) => b[1] - a[1]).slice(0, 15)
     .map(([zone, count]) => ({ zone, count }))
+
+  // ── Distribución de failure_reason (últimos 30d) ─────────────────────────
+  // Permite priorizar: ¿hay que enriquecer zonas, pedirle a owners que taguen
+  // dietary, o revisar pricing? Cada categoría requiere acción distinta.
+  const failureCounts: Record<string, number> = {
+    no_zone_coverage: 0,
+    no_cuisine_match: 0,
+    no_dietary_match: 0,
+    no_budget_match:  0,
+    enrichment_skipped: 0,
+  }
+  for (const r of (noResRows ?? []) as { failure_reason: string | null }[]) {
+    const k = r.failure_reason
+    if (k && k in failureCounts) failureCounts[k]++
+  }
+  const failureBreakdown = Object.entries(failureCounts)
+    .map(([reason, count]) => ({ reason, count }))
 
   // ── Costos Google Places (mes actual) ────────────────────────────────────
   const startOfMonth = new Date()
@@ -249,6 +266,7 @@ export async function GET(req: NextRequest) {
     top_viewed_restaurants: topViewedRestaurants,
     top_clicked_restaurants: topClickedRestaurants,
     opportunity_zones:      opportunityZones,
+    failure_breakdown:      failureBreakdown,
     costs: {
       month_spend_usd:    Number(spendUsd.toFixed(2)),
       month_budget_usd:   budgetUsd,

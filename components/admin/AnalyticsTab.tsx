@@ -29,6 +29,7 @@ interface AnalyticsPayload {
   top_viewed_restaurants: Array<{ id: string; name: string; slug: string; neighborhood: string | null; views: number }>
   top_clicked_restaurants: Array<{ id: string; name: string; slug: string; neighborhood: string | null; clicks: number }>
   opportunity_zones: Array<{ zone: string; count: number }>
+  failure_breakdown: Array<{ reason: string; count: number }>
   costs: {
     month_spend_usd: number; month_budget_usd: number; pct_budget: number
     projected_eom_usd: number; text_search_count: number; photo_count: number
@@ -92,6 +93,11 @@ export default function AnalyticsTab({ adminSecret, period }: Props) {
       {/* Costos Google Places */}
       <Section title="Google Places — gasto del mes" icon={DollarSign}>
         <CostsCard costs={data.costs} />
+      </Section>
+
+      {/* Razones de fail (priorización de acciones) */}
+      <Section title="Por qué fallaron las búsquedas (últimos 30d)" icon={AlertTriangle}>
+        <FailureBreakdown rows={data.failure_breakdown} />
       </Section>
 
       {/* Oportunidades */}
@@ -275,6 +281,40 @@ function OpportunitiesTable({ zones, adminSecret, onEnriched }: {
       ))}
       {/* Note: el botón usa el guard same-origin del endpoint — admin debe
           estar en hichapi.com o localhost para que funcione */}
+    </div>
+  )
+}
+
+// Mapa amigable de cada failure_reason → label + acción sugerida.
+const FAILURE_LABELS: Record<string, { label: string; action: string; color: string }> = {
+  no_zone_coverage:   { label: 'Sin cobertura en zona',     action: 'Disparar enriquecimiento de Google',         color: 'text-amber-300' },
+  no_cuisine_match:   { label: 'Cuisine pedida no existe', action: 'OK — flujo opt-in muestra alternativas',     color: 'text-emerald-300' },
+  no_dietary_match:   { label: 'Sin opciones dietéticas',   action: 'Pedirle a owners que taguen menús',          color: 'text-orange-300' },
+  no_budget_match:    { label: 'Sobre presupuesto',         action: 'Revisar pricing en zonas premium',           color: 'text-blue-300' },
+  enrichment_skipped: { label: 'Enriquecimiento bloqueado', action: 'Revisar budget Google o dedup 30d',          color: 'text-red-300' },
+}
+
+function FailureBreakdown({ rows }: { rows: Array<{ reason: string; count: number }> }) {
+  const total = rows.reduce((s, r) => s + r.count, 0)
+  if (total === 0) return <div className="text-white/30 text-xs">Sin fails en el período — todas las búsquedas devolvieron resultados</div>
+  return (
+    <div className="space-y-2">
+      {rows.sort((a, b) => b.count - a.count).map(r => {
+        const meta = FAILURE_LABELS[r.reason] ?? { label: r.reason, action: '', color: 'text-white/60' }
+        const pct = total > 0 ? (r.count / total) * 100 : 0
+        return (
+          <div key={r.reason} className="space-y-1">
+            <div className="flex items-center justify-between text-xs">
+              <span className={meta.color + ' font-semibold'}>{meta.label}</span>
+              <span className="text-white/40 tabular-nums">{r.count} ({pct.toFixed(0)}%)</span>
+            </div>
+            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+              <div className="h-full bg-[#FF6B35]" style={{ width: `${pct}%` }} />
+            </div>
+            <div className="text-[10px] text-white/40 italic">→ {meta.action}</div>
+          </div>
+        )
+      })}
     </div>
   )
 }
