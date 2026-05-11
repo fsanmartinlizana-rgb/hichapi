@@ -238,6 +238,114 @@ export function welcomeEmail(opts: WelcomeEmailOpts): { subject: string; html: s
   }
 }
 
+// ── Claim de restaurant: magic link al owner ─────────────────────────────────
+
+interface ClaimWelcomeEmailOpts {
+  restaurantName: string
+  ownerName:      string
+  magicLink:      string
+}
+
+export function claimWelcomeEmail(opts: ClaimWelcomeEmailOpts): { subject: string; html: string; text: string } {
+  const subject = `Tu cuenta de ${opts.restaurantName} está lista en HiChapi`
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Hola ${escapeHtml(opts.ownerName)}! 👋</h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      Confirmamos tu reclamo de
+      <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>.
+      Hacé click en el botón para entrar a tu panel — sin contraseñas, directo.
+    </p>
+
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%">
+      <tr><td align="center" style="padding:8px 0 24px;">
+        <a href="${opts.magicLink}"
+           style="display:inline-block;background:${BRAND_ORANGE};color:#fff;font-weight:700;
+                  font-size:15px;padding:14px 32px;border-radius:14px;text-decoration:none;">
+          Entrar a mi restaurante
+        </a>
+      </td></tr>
+    </table>
+
+    <p style="margin:0 0 6px;font-size:12px;color:rgba(255,255,255,0.4);">
+      ¿El botón no funciona? Copia este link en tu navegador (válido 1 hora):
+    </p>
+    <p style="margin:0 0 18px;font-size:11px;word-break:break-all;color:${BRAND_ORANGE};">
+      ${opts.magicLink}
+    </p>
+
+    <hr style="border:none;border-top:1px solid rgba(255,255,255,0.08);margin:22px 0 18px;" />
+    <p style="margin:0;font-size:12px;line-height:1.6;color:rgba(255,255,255,0.45);">
+      <strong style="color:rgba(255,255,255,0.7);">Próximos pasos:</strong>
+      Una vez dentro del panel vas a poder subir fotos reales, ajustar tu carta,
+      horarios y empezar a recibir reservas. Si tenés dudas escribinos a
+      <a href="mailto:hola@hichapi.cl" style="color:${BRAND_ORANGE};text-decoration:none;">hola@hichapi.cl</a>.
+    </p>
+  `
+  const text = [
+    `¡Hola ${opts.ownerName}!`,
+    ``,
+    `Confirmamos tu reclamo de ${opts.restaurantName}.`,
+    `Hacé click en el siguiente link para entrar al panel (válido 1 hora):`,
+    ``,
+    opts.magicLink,
+    ``,
+    `Una vez dentro vas a poder subir fotos, ajustar la carta y empezar a recibir reservas.`,
+    ``,
+    `— Equipo HiChapi`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview: `Entrá a tu panel de ${opts.restaurantName}`, bodyHtml }),
+    text,
+  }
+}
+
+// ── Aviso a admin: intento de claim a restaurant ya reclamado ────────────────
+
+interface ClaimConflictAdminEmailOpts {
+  restaurantName: string
+  restaurantSlug: string
+  attemptedBy:    { name: string; email: string }
+}
+
+export function claimConflictAdminEmail(opts: ClaimConflictAdminEmailOpts): { subject: string; html: string; text: string } {
+  const subject = `[Admin] Intento de claim a ${opts.restaurantName} (ya reclamado)`
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:20px;font-weight:700;color:#fff;">Intento de claim duplicado</h1>
+    <p style="margin:0 0 16px;font-size:14px;color:rgba(255,255,255,0.7);">
+      Alguien intentó reclamar <strong style="color:${BRAND_ORANGE};">${escapeHtml(opts.restaurantName)}</strong>,
+      pero el restaurant ya tiene un dueño asociado.
+    </p>
+    <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="width:100%;background:rgba(255,255,255,0.04);border-radius:10px;padding:0;margin-bottom:16px;">
+      <tr><td style="padding:8px 12px;font-size:13px;color:rgba(255,255,255,0.5);">Restaurant</td>
+          <td style="padding:8px 12px;font-size:13px;color:#fff;">${escapeHtml(opts.restaurantName)} (${escapeHtml(opts.restaurantSlug)})</td></tr>
+      <tr><td style="padding:8px 12px;font-size:13px;color:rgba(255,255,255,0.5);">Nombre</td>
+          <td style="padding:8px 12px;font-size:13px;color:#fff;">${escapeHtml(opts.attemptedBy.name)}</td></tr>
+      <tr><td style="padding:8px 12px;font-size:13px;color:rgba(255,255,255,0.5);">Email</td>
+          <td style="padding:8px 12px;font-size:13px;color:#fff;">${escapeHtml(opts.attemptedBy.email)}</td></tr>
+    </table>
+    <p style="margin:0;font-size:12px;color:rgba(255,255,255,0.4);">
+      Si la persona dice ser dueña legítima, contactala manualmente para resolver el conflicto.
+    </p>
+  `
+  const text = [
+    `Intento de claim duplicado en HiChapi`,
+    ``,
+    `Restaurant: ${opts.restaurantName} (${opts.restaurantSlug})`,
+    `Nombre: ${opts.attemptedBy.name}`,
+    `Email: ${opts.attemptedBy.email}`,
+    ``,
+    `El restaurant ya tiene dueño. Resolver manualmente si la persona dice ser legítima.`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview: `Claim duplicado para ${opts.restaurantName}`, bodyHtml }),
+    text,
+  }
+}
+
 // ── Confirmación de reserva ──────────────────────────────────────────────────
 
 interface ReservationConfirmOpts {

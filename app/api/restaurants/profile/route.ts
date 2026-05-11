@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
@@ -141,11 +142,29 @@ export async function PATCH(req: NextRequest) {
     if (v !== undefined) update[k] = v
   }
 
+  // ── Ownership de la foto ───────────────────────────────────────────────────
+  // Si el owner está subiendo una foto (photo_url no-null) o llenando la
+  // galería, marcamos photo_source='owner_upload'. Desde ese momento el
+  // agente de enriquecimiento NUNCA toca esta foto (guard server-side en
+  // /api/enrich-zone usa `WHERE photo_source IS DISTINCT FROM 'owner_upload'`).
+  //
+  // Si el owner deja photo_url=null (eliminó su foto), NO sobrescribimos
+  // photo_source: queda en 'owner_upload' y el frontend cae a placeholder
+  // por cuisine. Esto evita que el agente vuelva a tomar control automático.
+  const ownerTouchedPhoto =
+    (update.photo_url !== undefined && update.photo_url !== null) ||
+    (Array.isArray(update.gallery_urls) && update.gallery_urls.length > 0)
+  if (ownerTouchedPhoto) {
+    update.photo_source = 'owner_upload'
+    update.photo_fetched_at = new Date().toISOString()
+    update.photo_fetch_attempted = true
+  }
+
   // Recompute score from the merged record
   const supabase = createAdminClient()
   const { data: current } = await supabase
     .from('restaurants')
-    .select('name, description, address, phone, cuisine_type, price_range, hours, tags, instagram, photo_url')
+    .select('name, description, address, phone, cuisine_type, price_range, hours, tags, instagram, photo_url, slug')
     .eq('id', body.restaurant_id)
     .single()
 
@@ -170,11 +189,18 @@ export async function PATCH(req: NextRequest) {
 
   if (error || !data) {
     console.error('Error updating restaurant profile:', error)
-    return NextResponse.json({ 
-      error: 'No se pudo guardar', 
+    return NextResponse.json({
+      error: 'No se pudo guardar',
       details: error?.message || 'Unknown error',
       code: error?.code || 'UNKNOWN'
     }, { status: 500 })
+  }
+
+  // Invalidamos el cache de la ficha pública. Sin esto, los visitantes ven
+  // la versión anterior por horas (Next.js cachea por defecto). Crítico
+  // cuando el owner sube una foto nueva o cambia descripción/horarios.
+  if (data.slug) {
+    try { revalidatePath(`/r/${data.slug}`) } catch { /* best-effort */ }
   }
 
   return NextResponse.json({ restaurant: data, score })

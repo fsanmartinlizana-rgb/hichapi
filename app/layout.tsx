@@ -1,6 +1,8 @@
 import type { Metadata } from 'next'
 import { DM_Sans, DM_Mono } from 'next/font/google'
+import { Suspense } from 'react'
 import './globals.css'
+import { PageViewTracker } from '@/components/tracking/PageViewTracker'
 export const dynamic = 'force-dynamic'
 
 const dmSans = DM_Sans({
@@ -37,6 +39,11 @@ export default function RootLayout({
   return (
     <html lang="es" data-scroll-behavior="smooth" className={`${dmSans.variable} ${dmMono.variable}`}>
       <body style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+        {/* Tracking de page views (Ley 19.628: sin IP cruda, retention 12m).
+            Wrapped en Suspense porque useSearchParams requiere boundary. */}
+        <Suspense fallback={null}>
+          <PageViewTracker />
+        </Suspense>
         {children}
       </body>
     </html>

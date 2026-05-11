@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect, KeyboardEvent } from 'react'
 import { Send, Loader2, MapPin } from 'lucide-react'
 import { ChapiIntent, RestaurantResult } from '@/lib/types'
+import { trackSearch, trackSearchResults } from '@/lib/tracking'
 
 const QUICK_CHIPS = [
   'Sin gluten cerca de mí',
@@ -34,7 +35,9 @@ export interface NoCuisineMatchInfo {
 }
 
 interface ChatBoxProps {
-  onResults:               (results: RestaurantResult[], query: string) => void
+  /** search_event_id se incluye para que ResultCard pueda track los clicks
+   *  contra esa búsqueda específica. */
+  onResults:               (results: RestaurantResult[], query: string, search_event_id: string | null) => void
   onStatusChange:          (status: string) => void
   onLoadingChange?:        (loading: boolean) => void
   /** Llamado cuando no hay nada en la zona ni siquiera tras enriquecer. */
@@ -198,9 +201,40 @@ export function ChatBox({
               // entramos al flow de auto-enrich / banners.
               const claudeReady = data.claude_was_ready === true
 
+              // Track de la búsqueda (Ley 19.628: sin IP cruda, retention 12m,
+              // RLS super_admin). Solo cuando Claude ya buscó (no clarificando)
+              // y no es un retry (evitamos doble track del mismo intent).
+              const shouldTrack = claudeReady && !opts?.isRetry
+              const trackingPromise: Promise<string | null> = shouldTrack
+                ? trackSearch({
+                    query_text:           message,
+                    parsed_intent:        data.intent ?? null,
+                    zone_detected:        data.intent?.zone ?? data.resolved_zone ?? null,
+                    zone_lat:             data.intent?.user_lat ?? null,
+                    zone_lng:             data.intent?.user_lng ?? null,
+                    results_count:        data.results?.length ?? 0,
+                    no_results_in_zone:   !!data.no_results_in_zone,
+                    triggered_enrichment: false,  // se setea en true por el agente backend, no acá
+                  })
+                : Promise.resolve(null)
+
               if (data.results?.length > 0) {
-                onResults(data.results, message)
-                onStatusChange('')
+                trackingPromise.then(searchEventId => {
+                  if (searchEventId) {
+                    void trackSearchResults({
+                      search_event_id: searchEventId,
+                      results: data.results.slice(0, 20).map((r: { restaurant: { id: string } }, i: number) => ({
+                        restaurant_id: r.restaurant.id,
+                        position:      i + 1,
+                      })),
+                    })
+                  }
+                  onResults(data.results, message, searchEventId)
+                  onStatusChange('')
+                }).catch(() => {
+                  onResults(data.results, message, null)
+                  onStatusChange('')
+                })
               } else if (data.no_results_in_zone && claudeReady && !opts?.isRetry) {
                 // ── Auto-enrich: zona conocida pero sin restaurants para
                 // este cuisine en DB. Disparamos el agente y reintentamos.

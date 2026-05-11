@@ -10,6 +10,7 @@ import AdminTicketsTab from '@/components/admin/AdminTicketsTab'
 import RestaurantsAtRisk from '@/components/admin/RestaurantsAtRisk'
 import RegistrationsByDay from '@/components/admin/RegistrationsByDay'
 import PlanUpgrades from '@/components/admin/PlanUpgrades'
+import AnalyticsTab from '@/components/admin/AnalyticsTab'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -84,7 +85,7 @@ export default function FounderDashboardPage() {
   const [period, setPeriod]     = useState('30d')
   const [data, setData]         = useState<DashboardPayload | null>(null)
   const [loading, setLoading]   = useState(false)
-  const [tab, setTab]           = useState<'restaurants' | 'reviews' | 'tickets'>('restaurants')
+  const [tab, setTab]           = useState<'restaurants' | 'reviews' | 'tickets' | 'analytics'>('restaurants')
 
   const load = useCallback(async (s = secret, p = period) => {
     setLoading(true)
@@ -258,11 +259,12 @@ export default function FounderDashboardPage() {
         <RestaurantsAtRisk adminSecret={secret} />
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit">
+        <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit flex-wrap">
           {([
             { id: 'restaurants', label: `Top restaurantes (${data.top_restaurants.length})` },
             { id: 'reviews',     label: `Feedback (${k.reviews_count})` },
             { id: 'tickets',     label: `Soporte (${k.tickets_open} abiertos)` },
+            { id: 'analytics',   label: `Analytics` },
           ] as const).map(t => (
             <button
               key={t.id}
@@ -343,6 +345,10 @@ export default function FounderDashboardPage() {
             adminSecret={secret}
             onRefresh={() => load()}
           />
+        )}
+
+        {tab === 'analytics' && (
+          <AnalyticsTab adminSecret={secret} period={period} />
         )}
       </div>
     </main>

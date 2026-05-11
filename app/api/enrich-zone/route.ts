@@ -5,11 +5,18 @@
  * `no_results_in_zone:true`, el frontend dispara este endpoint para que
  * Google Places (New) Text Search complete la base de datos en background.
  *
- * Costo por llamada (Text Search Pro con reviews): ≈ USD $0.032.
- * Dedupe por zona en 24h evita disparos duplicados.
+ * Costos (Google Places Pro tier):
+ *  - Text Search con reviews: $0.032 por call
+ *  - Photo descargada:        $0.007 por foto
  *
- * No bloquea la respuesta del chat — el frontend lo dispara y luego reintenta
- * la búsqueda cuando este endpoint reporta `inserted > 0`.
+ * Defensa de costos (3 capas):
+ *  1. Budget mensual hard cap (env GOOGLE_PLACES_MONTHLY_BUDGET_USD, def 50)
+ *  2. Dedupe 30 días por zone_key+cuisine (tabla enrichment_log)
+ *  3. Dedupe 5 min por job 'running' (anti-concurrencia, enrichment_jobs)
+ *
+ * Override del owner: cualquier UPDATE de photo_url incluye guard
+ * `WHERE photo_source IS DISTINCT FROM 'owner_upload'`. Si el dueño subió
+ * su foto, el agente NUNCA la toca.
  */
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -19,6 +26,12 @@ import { canonicalCuisine, CUISINE_RESTAURANT_KEYWORDS } from '@/lib/discovery'
 
 export const runtime  = 'nodejs'
 export const maxDuration = 60
+
+// ── Constantes de costo ────────────────────────────────────────────────────
+const COST_TEXT_SEARCH_USD = 0.032
+const COST_PHOTO_USD       = 0.007
+const DEFAULT_MONTHLY_BUDGET_USD = 50
+const DEDUPE_DAYS = 30
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -30,13 +43,10 @@ const RequestSchema = z.object({
   query_original: z.string().max(500).optional(),
   lat:            z.number().nullable().optional(),
   lng:            z.number().nullable().optional(),
-  /** Cuisine pedida por el usuario. Se incluye en el text query de Google
-   *  Places para que devuelva restaurants RELEVANTES (ej. "pizzerías en
-   *  Concón" en lugar de "restaurantes en Concón"). */
   cuisine_type:   z.string().max(50).nullable().optional(),
 })
 
-// ── Helpers ────────────────────────────────────────────────────────────────────
+// ── Helpers ────────────────────────────────────────────────────────────────
 
 function stripAccents(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
@@ -51,8 +61,7 @@ function toSlug(name: string): string {
     .slice(0, 60)
 }
 
-/** Distancia en metros entre dos coords (haversine). Usado para dedupe geo
- *  in-memory: evita 1 RPC por candidato. */
+/** Distancia en metros entre dos coords (haversine). Dedupe geo in-memory. */
 function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000
   const toRad = (d: number) => (d * Math.PI) / 180
@@ -64,7 +73,19 @@ function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number)
   return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
-// ── Google Places types (parcial — solo lo que pedimos en FieldMask) ─────────
+/** Clave de dedupe de enrichment_log. Prioriza el slug del texto de la zona
+ *  (que es como el user típicamente busca) y solo cae a geo si no hay zone
+ *  resoluble. Esto se alinea con el flujo real de búsqueda. */
+function zoneKeyFor(zone: string, lat?: number | null, lng?: number | null): string {
+  const slug = stripAccents(zone).replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '').slice(0, 60)
+  if (slug) return slug
+  if (lat != null && lng != null) {
+    return `geo:${lat.toFixed(3)}_${lng.toFixed(3)}`
+  }
+  return 'unknown'
+}
+
+// ── Google Places types ────────────────────────────────────────────────────
 
 type GLocalizedText = { text: string; languageCode?: string }
 
@@ -74,6 +95,19 @@ interface GReview {
   originalText?:  GLocalizedText
   publishTime?:   string
   authorAttribution?: { displayName?: string }
+}
+
+interface GPhotoAuthorAttribution {
+  displayName?: string
+  uri?:         string
+  photoUri?:    string
+}
+
+interface GPhoto {
+  name?:                string  // ej "places/ChIJ.../photos/AeJ..."
+  widthPx?:             number
+  heightPx?:            number
+  authorAttributions?:  GPhotoAuthorAttribution[]
 }
 
 interface GPlace {
@@ -87,9 +121,10 @@ interface GPlace {
   rating?:                number
   userRatingCount?:       number
   reviews?:               GReview[]
+  photos?:                GPhoto[]
 }
 
-// ── Mapeos ────────────────────────────────────────────────────────────────────
+// ── Mapeos ────────────────────────────────────────────────────────────────
 
 function mapPriceLevel(p?: string): 'economico' | 'medio' | 'premium' {
   switch (p) {
@@ -104,19 +139,7 @@ function mapPriceLevel(p?: string): 'economico' | 'medio' | 'premium' {
   }
 }
 
-/** Infiere cuisine_type canónico desde la información REAL de Google (types
- *  + primaryTypeDisplayName + nombre del lugar). Usa los mismos buckets que
- *  el chat para coherencia bidireccional.
- *
- *  IMPORTANTE: NO usamos la cuisine pedida por el user como fallback. Si
- *  pedimos "alemana en Concón" y Google devuelve un kebab y un sandwichería,
- *  los etiquetamos como `arabe` y `sandwicheria` respectivamente — NO como
- *  alemana. Etiquetar todo como lo pedido sería deshonesto: el chat después
- *  los mostraría a otro user pidiendo alemana cuando no son alemana. */
 function inferCuisine(place: GPlace): string {
-  // Combinamos types, primaryTypeDisplayName y el NOMBRE del lugar en un
-  // haystack para hacer matching. El nombre suele ser informativo
-  // ("Pizzería X", "Sushi Y", "Kebab Z").
   const haystack = stripAccents(
     [
       ...(place.types ?? []),
@@ -124,52 +147,29 @@ function inferCuisine(place: GPlace): string {
       place.displayName?.text ?? '',
     ].join(' '),
   )
-
-  // Mapeo Google-types → canónica (los types son ENUM estables de la API).
-  // Estos toman prioridad porque son señal estructurada, no texto libre.
   const TYPE_MAP: [string, string][] = [
-    ['sushi_restaurant',         'japonesa'],
-    ['japanese_restaurant',      'japonesa'],
-    ['italian_restaurant',       'italiana'],
-    ['pizza_restaurant',         'italiana'],
-    ['mexican_restaurant',       'mexicana'],
-    ['indian_restaurant',        'india'],
-    ['chinese_restaurant',       'china'],
-    ['korean_restaurant',        'coreana'],
-    ['vietnamese_restaurant',    'vietnamita'],
-    ['thai_restaurant',          'tailandesa'],
-    ['middle_eastern_restaurant', 'arabe'],
-    ['lebanese_restaurant',      'arabe'],
-    ['turkish_restaurant',       'arabe'],
-    ['american_restaurant',      'americana'],
-    ['mediterranean_restaurant', 'mediterranea'],
-    ['greek_restaurant',         'griega'],
-    ['spanish_restaurant',       'espanola'],
-    ['french_restaurant',        'francesa'],
-    ['seafood_restaurant',       'mariscos'],
-    ['vegan_restaurant',         'vegana'],
-    ['vegetarian_restaurant',    'vegetariana'],
-    ['hamburger_restaurant',     'hamburgueseria'],
-    ['fast_food_restaurant',     'hamburgueseria'],
-    ['steak_house',              'parrilla'],
-    ['ice_cream_shop',           'heladeria'],
-    ['coffee_shop',              'cafeteria'],
-    ['bakery',                   'panaderia'],
-    ['cafe',                     'cafeteria'],
-    ['sandwich_shop',            'sandwicheria'],
-    ['pub',                      'cerveceria'],
-    ['brewery',                  'cerveceria'],
-    ['wine_bar',                 'cerveceria'],
-    ['bar',                      'cerveceria'],
+    ['sushi_restaurant', 'japonesa'], ['japanese_restaurant', 'japonesa'],
+    ['italian_restaurant', 'italiana'], ['pizza_restaurant', 'italiana'],
+    ['mexican_restaurant', 'mexicana'], ['indian_restaurant', 'india'],
+    ['chinese_restaurant', 'china'], ['korean_restaurant', 'coreana'],
+    ['vietnamese_restaurant', 'vietnamita'], ['thai_restaurant', 'tailandesa'],
+    ['middle_eastern_restaurant', 'arabe'], ['lebanese_restaurant', 'arabe'],
+    ['turkish_restaurant', 'arabe'], ['american_restaurant', 'americana'],
+    ['mediterranean_restaurant', 'mediterranea'], ['greek_restaurant', 'griega'],
+    ['spanish_restaurant', 'espanola'], ['french_restaurant', 'francesa'],
+    ['seafood_restaurant', 'mariscos'], ['vegan_restaurant', 'vegana'],
+    ['vegetarian_restaurant', 'vegetariana'], ['hamburger_restaurant', 'hamburgueseria'],
+    ['fast_food_restaurant', 'hamburgueseria'], ['steak_house', 'parrilla'],
+    ['ice_cream_shop', 'heladeria'], ['coffee_shop', 'cafeteria'],
+    ['bakery', 'panaderia'], ['cafe', 'cafeteria'],
+    ['sandwich_shop', 'sandwicheria'], ['pub', 'cerveceria'],
+    ['brewery', 'cerveceria'], ['wine_bar', 'cerveceria'], ['bar', 'cerveceria'],
   ]
   for (const t of place.types ?? []) {
     const tNorm = t.toLowerCase()
     const hit = TYPE_MAP.find(([k]) => tNorm === k)
     if (hit) return hit[1]
   }
-
-  // Fallback 1: matcheo por keyword en haystack (cubre cuando los types
-  // son genéricos pero el nombre dice "Pizzería" o "Sushi").
   const KW: [string, string][] = [
     ['sushi', 'japonesa'], ['ramen', 'japonesa'],
     ['pizza', 'italiana'], ['pasta', 'italiana'], ['italian', 'italiana'],
@@ -198,14 +198,9 @@ function inferCuisine(place: GPlace): string {
   for (const [k, v] of KW) {
     if (haystack.includes(k)) return v
   }
-
-  // Sin match — caemos al canon catch-all. NO usamos la cuisine pedida como
-  // fallback porque eso etiquetaría falsamente al lugar (ver doc de la fn).
   return 'internacional'
 }
 
-/** Extrae max 3 reviews con el shape del brief: { author, rating, text, time }.
- *  Usa originalText (idioma original) sobre text (puede venir traducido). */
 function pickReviews(reviews?: GReview[]): unknown[] {
   if (!reviews || reviews.length === 0) return []
   return reviews.slice(0, 3).map(r => ({
@@ -216,13 +211,63 @@ function pickReviews(reviews?: GReview[]): unknown[] {
   }))
 }
 
-// ── Handler ───────────────────────────────────────────────────────────────────
+// ── Budget mensual (single source of truth = SUM(enrichment_log)) ──────────
+
+async function getMonthlySpendUSD(): Promise<number> {
+  const startOfMonth = new Date()
+  startOfMonth.setUTCDate(1)
+  startOfMonth.setUTCHours(0, 0, 0, 0)
+  const { data } = await supabase
+    .from('enrichment_log')
+    .select('cost_usd')
+    .gte('last_enriched_at', startOfMonth.toISOString())
+  if (!data) return 0
+  return (data as { cost_usd: number | string }[])
+    .reduce((s, r) => s + Number(r.cost_usd ?? 0), 0)
+}
+
+function getBudgetUSD(): number {
+  const env = process.env.GOOGLE_PLACES_MONTHLY_BUDGET_USD
+  const n = env ? Number(env) : NaN
+  return Number.isFinite(n) ? n : DEFAULT_MONTHLY_BUDGET_USD
+}
+
+// ── Descarga de foto de Google Places y subida a Supabase Storage ──────────
+
+async function downloadAndStorePhoto(
+  photoName: string,
+  restaurantSlug: string,
+): Promise<string | null> {
+  try {
+    const url = `https://places.googleapis.com/v1/${photoName}/media?maxWidthPx=1200&key=${process.env.GOOGLE_PLACES_API_KEY}`
+    const res = await fetch(url, { signal: AbortSignal.timeout(15_000), redirect: 'follow' })
+    if (!res.ok) {
+      console.warn(`Photo download failed (${res.status}) for ${restaurantSlug}`)
+      return null
+    }
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.byteLength === 0) return null
+
+    const path = `agent-enriched/${restaurantSlug}-${Date.now()}.jpg`
+    const { error: upErr } = await supabase.storage
+      .from('restaurant-photos')
+      .upload(path, buf, { contentType: 'image/jpeg', upsert: true })
+    if (upErr) {
+      console.error('Photo upload failed:', upErr)
+      return null
+    }
+    const { data: urlData } = supabase.storage.from('restaurant-photos').getPublicUrl(path)
+    return urlData.publicUrl
+  } catch (err) {
+    console.warn('Photo fetch threw:', err instanceof Error ? err.message : err)
+    return null
+  }
+}
+
+// ── Handler ───────────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
-  // Same-origin guard (no es endpoint público). Aceptamos:
-  //   - Origin/referer matching NEXT_PUBLIC_SITE_URL (prod)
-  //   - Origin/referer matching el host del request (preview/staging/dev)
-  //   - Origin vacío (server-side fetch)
+  // Same-origin guard (no es endpoint público).
   const origin    = req.headers.get('origin')  ?? ''
   const referer   = req.headers.get('referer') ?? ''
   const reqHost   = req.headers.get('host')    ?? ''
@@ -251,65 +296,66 @@ export async function POST(req: NextRequest) {
   }
 
   const zone = resolveZone(parsed.zone) ?? parsed.zone
-
-  // Construye el text query: si tenemos cuisine, la incluimos para que
-  // Google Places devuelva resultados relevantes en lugar de restaurants
-  // genéricos. Ej. "comida india en Santiago Centro" → solo indios.
-  const cuisineLabel = parsed.cuisine_type?.trim()
+  const cuisineLabel = parsed.cuisine_type?.trim() ?? null
   const textQuery = cuisineLabel
     ? `${cuisineLabel} en ${zone}, Chile`
     : `restaurantes en ${zone}, Chile`
+  const zKey = zoneKeyFor(zone, parsed.lat, parsed.lng)
 
-  // ── 1. Dedupe inteligente. Clave de dedupe = zone + cuisine (pizzerías
-  // y mariscos en Concón son requests distintos).
-  // (a) bloquear si hay un job 'running' creado hace menos de 5 min
-  // (b) bloquear si hay un job 'done' exitoso (>0 inserts) en las últimas 24h
-  //     PARA EL MISMO query (zone + cuisine)
-  // No bloqueantes: failed/skipped/done con 0 inserts/running viejo.
-  const dedupeKey = textQuery
+  // ── 1. Budget mensual (single source of truth = SUM enrichment_log) ─────
+  const spend = await getMonthlySpendUSD()
+  const budget = getBudgetUSD()
+  if (spend >= budget) {
+    console.warn(`[enrich-zone] Monthly budget exceeded: $${spend.toFixed(2)} / $${budget.toFixed(2)}`)
+    return NextResponse.json({
+      skipped:  true,
+      reason:   'monthly_budget_exceeded',
+      inserted: 0,
+      spend_usd: Number(spend.toFixed(4)),
+      budget_usd: budget,
+    })
+  }
+
+  // ── 2. Dedupe 30 días por zone_key + cuisine (enrichment_log) ──────────
+  const dedupeSince = new Date(Date.now() - DEDUPE_DAYS * 24 * 60 * 60 * 1000).toISOString()
+  const cuisineFilter = canonicalCuisine(cuisineLabel)
+  const { data: recentLog } = await supabase
+    .from('enrichment_log')
+    .select('id, last_enriched_at, results_count')
+    .eq('zone_key', zKey)
+    .eq('cuisine', cuisineFilter ?? '')  // empty string para "no cuisine"
+    .gte('last_enriched_at', dedupeSince)
+    .gt('results_count', 0)
+    .order('last_enriched_at', { ascending: false })
+    .limit(1)
+
+  if (recentLog && recentLog.length > 0) {
+    return NextResponse.json({
+      skipped:  true,
+      reason:   `cap_${DEDUPE_DAYS}d`,
+      inserted: 0,
+      last_enriched_at: recentLog[0].last_enriched_at,
+    })
+  }
+
+  // ── 3. Dedupe 5 min anti-concurrencia (enrichment_jobs running) ────────
   const concurrentSince = new Date(Date.now() - 5 * 60 * 1000).toISOString()
   const { data: concurrent } = await supabase
     .from('enrichment_jobs')
     .select('id')
     .eq('zone', zone)
-    .eq('query_original', dedupeKey)
+    .eq('query_original', textQuery)
     .eq('status', 'running')
     .gte('created_at', concurrentSince)
     .limit(1)
-
   if (concurrent && concurrent.length > 0) {
     return NextResponse.json({ skipped: true, reason: 'running', inserted: 0 })
   }
 
-  const recentSince = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-  const { data: recentSuccess } = await supabase
-    .from('enrichment_jobs')
-    .select('id, restaurants_inserted')
-    .eq('zone', zone)
-    .eq('query_original', dedupeKey)
-    .eq('status', 'done')
-    .gt('restaurants_inserted', 0)
-    .gte('created_at', recentSince)
-    .limit(1)
-
-  if (recentSuccess && recentSuccess.length > 0) {
-    return NextResponse.json({
-      skipped:  true,
-      reason:   'recent_success',
-      inserted: 0,
-    })
-  }
-
-  // ── 2. Insertar job con status='running' ─────────────────────────────────
+  // ── 4. Crear el job (status='running') ─────────────────────────────────
   const { data: job, error: jobErr } = await supabase
     .from('enrichment_jobs')
-    .insert({
-      zone,
-      // query_original = el texto exacto que mandamos a Google. Sirve como
-      // dedupe-key cross-cuisine y como rastro de auditoría.
-      query_original: dedupeKey,
-      status:         'running',
-    })
+    .insert({ zone, query_original: textQuery, status: 'running' })
     .select('id')
     .single()
 
@@ -318,7 +364,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No se pudo crear el job' }, { status: 500 })
   }
 
-  // Helper para cerrar el job en cualquier salida.
+  // Tracking de costo para esta corrida (alimenta enrichment_log al cierre).
+  let textSearchCount = 0
+  let photoCount      = 0
+  let resultsCount    = 0
+
   async function finishJob(
     status: 'done' | 'failed' | 'skipped',
     found:  number,
@@ -337,8 +387,21 @@ export async function POST(req: NextRequest) {
       .eq('id', job!.id)
   }
 
+  async function logEnrichment(rCount: number) {
+    const cost = textSearchCount * COST_TEXT_SEARCH_USD + photoCount * COST_PHOTO_USD
+    await supabase.from('enrichment_log').insert({
+      zone_key:           zKey,
+      cuisine:            cuisineFilter ?? '',
+      results_count:      rCount,
+      cost_usd:           cost,
+      text_search_count:  textSearchCount,
+      photo_count:        photoCount,
+      enrichment_job_id:  job!.id,
+    })
+  }
+
   try {
-    // ── 3. Llamar Google Places New Text Search ───────────────────────────
+    // ── 5. Llamar Google Places Text Search ────────────────────────────
     const fieldMask = [
       'places.displayName',
       'places.formattedAddress',
@@ -350,6 +413,8 @@ export async function POST(req: NextRequest) {
       'places.rating',
       'places.userRatingCount',
       'places.reviews',
+      'places.photos.name',
+      'places.photos.authorAttributions',
     ].join(',')
 
     const placesRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -363,67 +428,54 @@ export async function POST(req: NextRequest) {
       signal: AbortSignal.timeout(25_000),
     })
 
+    textSearchCount = 1  // contamos el call independiente del resultado
+
     if (!placesRes.ok) {
       const detail = await placesRes.text().catch(() => '')
       await finishJob('failed', 0, 0, `Google Places ${placesRes.status}: ${detail.slice(0, 200)}`)
+      await logEnrichment(0)
       return NextResponse.json({ error: 'Google Places error', inserted: 0 }, { status: 200 })
     }
 
     const placesData = (await placesRes.json()) as { places?: GPlace[] }
     const places     = placesData.places ?? []
-
     if (places.length === 0) {
       await finishJob('done', 0, 0)
+      await logEnrichment(0)
       return NextResponse.json({ inserted: 0, found: 0 })
     }
 
-    // ── 4. Cargar existentes para dedupe (slug + lat/lng + name) ─────────
+    // ── 6. Cargar existentes para dedupe geo/slug ──────────────────────
     const { data: existing } = await supabase
       .from('restaurants')
       .select('id, name, slug, lat, lng')
       .eq('active', true)
-
     const existingSlugs = new Set((existing ?? []).map(r => r.slug))
     const existingByLoc = (existing ?? []).filter(
       r => r.lat != null && r.lng != null,
     ) as { id: string; name: string; lat: number; lng: number }[]
 
-    // ── 5. Mapear Google → fila de restaurants ───────────────────────────
+    // ── 7. Mapear Google → rows + decidir cuáles insertar ──────────────
     type Row = {
-      name:                string
-      slug:                string
-      address:             string | null
-      neighborhood:        string
-      lat:                 number
-      lng:                 number
-      cuisine_type:        string
-      price_range:         'economico' | 'medio' | 'premium'
-      rating:              number
-      review_count:        number
-      active:              boolean
-      plan:                'free'
-      photo_url:           null
-      claimed:             false
-      verified:            false
-      data_source:         'agent_enriched'
-      google_rating:       number | null
-      google_rating_count: number | null
-      google_reviews:      unknown[]
-      config_chapi:        Record<string, unknown>
+      name: string; slug: string; address: string | null; neighborhood: string
+      lat: number; lng: number; cuisine_type: string
+      price_range: 'economico' | 'medio' | 'premium'
+      rating: number; review_count: number
+      active: boolean; plan: 'free'; photo_url: null
+      claimed: false; verified: false; data_source: 'agent_enriched'
+      google_rating: number | null; google_rating_count: number | null
+      google_reviews: unknown[]
+      config_chapi: Record<string, unknown>
+      // Pre-tracked para evitar segundo round-trip a Google después del insert
+      _photoName?: string | null
+      _photoAttribution?: GPhotoAuthorAttribution[] | null
     }
 
-    const toInsert: Row[] = []
-    let usedSlugs = new Set(existingSlugs)
-    // canonicalCuisine se usa más abajo solo para validar que los lugares
-    // insertados sean realmente de la cuisine pedida (cuando aplica).
-    const requestedCanon = canonicalCuisine(parsed.cuisine_type)
+    const requestedCanon    = canonicalCuisine(cuisineLabel)
     const requestedKeywords = requestedCanon
       ? CUISINE_RESTAURANT_KEYWORDS[requestedCanon] ?? [requestedCanon]
       : null
 
-    // Tipos de Google Places que aceptamos como "lugares de comida". Otros
-    // tipos (escuela, gimnasio, oficina) los descartamos aunque su nombre
-    // matchee la cuisine pedida.
     const FOOD_TYPES = new Set([
       'restaurant', 'food', 'cafe', 'bar', 'bakery', 'meal_takeaway',
       'meal_delivery', 'sandwich_shop', 'pizza_restaurant', 'sushi_restaurant',
@@ -439,40 +491,29 @@ export async function POST(req: NextRequest) {
       'brunch_restaurant', 'fine_dining_restaurant',
     ])
 
+    const toInsert: Row[] = []
+    const usedSlugs = new Set(existingSlugs)
+
     for (const p of places) {
       const name = p.displayName?.text?.trim()
       const lat  = p.location?.latitude
       const lng  = p.location?.longitude
       if (!name || lat == null || lng == null) continue
 
-      // Filtrar lugares que no son de comida (escuelas, oficinas, etc.).
-      // Google a veces devuelve esto cuando la cuisine pedida es rara en
-      // la zona ("comida francesa en Concón" → escuelas francesas).
       const types = p.types ?? []
-      const isFoodPlace = types.some(t => FOOD_TYPES.has(t))
-      if (!isFoodPlace) continue
+      if (!types.some(t => FOOD_TYPES.has(t))) continue
 
-      // Si el user pidió una cuisine específica, solo aceptamos lugares
-      // que MATCHEEN esa cuisine en sus types/nombre. Esto evita meter
-      // un kebab cuando pidieron "alemana" — mejor 0 inserts y banner
-      // opt-in que data deshonesta.
       if (requestedKeywords && requestedKeywords.length > 0) {
         const haystack = stripAccents([
           ...types,
           p.primaryTypeDisplayName?.text ?? '',
           p.displayName?.text ?? '',
         ].join(' '))
-        const cuisineMatchesPlace = requestedKeywords.some(k => haystack.includes(k))
-        if (!cuisineMatchesPlace) continue
+        if (!requestedKeywords.some(k => haystack.includes(k))) continue
       }
 
-      // Dedupe geo: ¿hay alguno existente a < 50m?
-      const tooClose = existingByLoc.some(
-        r => haversineMeters(r.lat, r.lng, lat, lng) < 50,
-      )
-      if (tooClose) continue
+      if (existingByLoc.some(r => haversineMeters(r.lat, r.lng, lat, lng) < 50)) continue
 
-      // Dedupe por slug (resolver colisiones agregando sufijo).
       let slug = toSlug(name) || `place-${toInsert.length}`
       if (usedSlugs.has(slug)) {
         let n = 2
@@ -481,18 +522,14 @@ export async function POST(req: NextRequest) {
       }
       usedSlugs.add(slug)
 
+      const primaryPhoto = p.photos?.[0]
       toInsert.push({
-        name,
-        slug,
+        name, slug,
         address:             p.formattedAddress ?? null,
         neighborhood:        zone,
-        lat,
-        lng,
+        lat, lng,
         cuisine_type:        inferCuisine(p),
         price_range:         mapPriceLevel(p.priceLevel),
-        // El rating propio de HiChapi arranca en 0. NUNCA copiamos el de Google
-        // a `rating` porque eso lo presentaría como rating de HiChapi en la
-        // ficha. El de Google va en su propio campo con atribución explícita.
         rating:              0,
         review_count:        0,
         active:              true,
@@ -507,33 +544,35 @@ export async function POST(req: NextRequest) {
         config_chapi: {
           horarios:   p.regularOpeningHours?.weekdayDescriptions ?? null,
           tipo_local: p.primaryTypeDisplayName?.text ?? null,
-          types:      p.types ?? [],
+          types,
         },
+        _photoName:        primaryPhoto?.name ?? null,
+        _photoAttribution: primaryPhoto?.authorAttributions ?? null,
       })
     }
 
     if (toInsert.length === 0) {
       await finishJob('done', places.length, 0)
+      await logEnrichment(0)
       return NextResponse.json({ inserted: 0, found: places.length })
     }
 
-    // ── 6. Insert en bulk ────────────────────────────────────────────────
+    // ── 8. Insert en bulk (sin las props internas _photo*) ─────────────
+    type InsertRow = Omit<Row, '_photoName' | '_photoAttribution'>
+    const insertRows: InsertRow[] = toInsert.map(({ _photoName, _photoAttribution, ...rest }) => rest)
     const { data: inserted, error: insertErr } = await supabase
       .from('restaurants')
-      .insert(toInsert)
-      .select('id, name')
+      .insert(insertRows)
+      .select('id, slug')
 
     if (insertErr) {
       await finishJob('failed', places.length, 0, `Insert: ${insertErr.message}`)
-      return NextResponse.json(
-        { error: insertErr.message, inserted: 0 },
-        { status: 200 },
-      )
+      await logEnrichment(0)
+      return NextResponse.json({ error: insertErr.message, inserted: 0 }, { status: 200 })
     }
+    resultsCount = inserted?.length ?? 0
 
-    // ── 7. Plato del día genérico para que el chat pueda surfacearlos ────
-    // Sin esto, el filtro de menú en /api/chat los descarta porque
-    // `candidateItems.length === 0` corta el restaurant.
+    // ── 9. Menu items placeholder ─────────────────────────────────────
     const placeholderItems = (inserted ?? []).map(r => ({
       restaurant_id: r.id,
       name:          'Plato del día',
@@ -543,20 +582,72 @@ export async function POST(req: NextRequest) {
       tags:          ['internacional'],
       available:     true,
     }))
-
     if (placeholderItems.length > 0) {
       await supabase.from('menu_items').insert(placeholderItems)
     }
 
-    await finishJob('done', places.length, inserted?.length ?? 0)
+    // ── 10. Descargar foto principal por cada insertado ────────────────
+    // Hacemos en paralelo con concurrencia limitada para no saturar.
+    type Insertion = { id: string; slug: string }
+    const insertedRows = (inserted ?? []) as Insertion[]
+    const bySlug = new Map<string, typeof toInsert[number]>()
+    for (const r of toInsert) bySlug.set(r.slug, r)
 
+    const PHOTO_CONCURRENCY = 3
+    for (let i = 0; i < insertedRows.length; i += PHOTO_CONCURRENCY) {
+      const batch = insertedRows.slice(i, i + PHOTO_CONCURRENCY)
+      await Promise.all(batch.map(async ins => {
+        const row = bySlug.get(ins.slug)
+        if (!row?._photoName) {
+          // No hay foto disponible en Google → marcar attempted=true, source='placeholder'
+          await supabase.from('restaurants').update({
+            photo_fetch_attempted: true,
+            photo_source:          'placeholder',
+          })
+          .eq('id', ins.id)
+          // Guard: nunca pisar al owner — esta row recién creada no puede ser
+          // owner_upload, pero por consistencia con el resto del flow:
+          .neq('photo_source', 'owner_upload')
+          return
+        }
+        const publicUrl = await downloadAndStorePhoto(row._photoName, ins.slug)
+        photoCount++  // contamos call incluso si falla — Google nos cobra igual
+        if (publicUrl) {
+          await supabase.from('restaurants').update({
+            photo_url:                publicUrl,
+            photo_source:             'google_places',
+            photo_fetched_at:         new Date().toISOString(),
+            photo_fetch_attempted:    true,
+            google_photo_attribution: row._photoAttribution ?? null,
+          })
+          .eq('id', ins.id)
+          .neq('photo_source', 'owner_upload')  // owner override guard
+        } else {
+          await supabase.from('restaurants').update({
+            photo_fetch_attempted: true,
+            photo_source:          'placeholder',
+          })
+          .eq('id', ins.id)
+          .neq('photo_source', 'owner_upload')
+        }
+      }))
+    }
+
+    // ── 11. Cerrar job + log de costo ──────────────────────────────────
+    await finishJob('done', places.length, resultsCount)
+    await logEnrichment(resultsCount)
+
+    const totalCost = textSearchCount * COST_TEXT_SEARCH_USD + photoCount * COST_PHOTO_USD
     return NextResponse.json({
-      inserted: inserted?.length ?? 0,
-      found:    places.length,
+      inserted:  resultsCount,
+      found:     places.length,
+      cost_usd:  Number(totalCost.toFixed(4)),
+      photos_downloaded: photoCount,
     })
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'unknown'
     await finishJob('failed', 0, 0, msg.slice(0, 500))
+    await logEnrichment(0)
     console.error('enrich-zone error:', err)
     return NextResponse.json({ error: msg, inserted: 0 }, { status: 200 })
   }

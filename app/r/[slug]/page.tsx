@@ -5,6 +5,7 @@ import { createClient } from '@supabase/supabase-js'
 import { formatCurrency } from '@/lib/i18n'
 import { notFound } from 'next/navigation'
 import { BackButton } from './BackButton'
+import { CuisinePlaceholder } from '@/components/discovery/CuisinePlaceholder'
 
 interface GoogleReview {
   author: string | null
@@ -53,6 +54,8 @@ interface RestaurantData {
   google_rating: number | null
   google_rating_count: number | null
   google_reviews: GoogleReview[] | null
+  photo_source: 'google_places' | 'owner_upload' | 'placeholder' | null
+  google_photo_attribution: Array<{ displayName?: string; uri?: string }> | null
   menu_items: MenuItemData[]
 }
 
@@ -79,6 +82,7 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
       address, photo_url, gallery_urls, price_range, active, claimed,
       data_source, google_rating, google_rating_count, google_reviews,
+      photo_source, google_photo_attribution,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -101,6 +105,8 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     google_rating:       (d.google_rating as number | null) ?? null,
     google_rating_count: (d.google_rating_count as number | null) ?? null,
     google_reviews:      (d.google_reviews as GoogleReview[] | null) ?? null,
+    photo_source:        (d.photo_source as RestaurantData['photo_source']) ?? null,
+    google_photo_attribution: (d.google_photo_attribution as RestaurantData['google_photo_attribution']) ?? null,
   } as RestaurantData
 }
 
@@ -577,8 +583,16 @@ export default async function RestaurantPage({
               priority
             />
           ) : (
-            <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-neutral-200 to-neutral-300">
-              <span className="text-7xl">🍽️</span>
+            <CuisinePlaceholder cuisine={restaurant.cuisine_type} />
+          )}
+
+          {/* Atribución Google Photos cuando la foto viene del agente */}
+          {restaurant.photo_url && restaurant.photo_source === 'google_places' && (
+            <div className="absolute top-3 right-3 z-10 text-[11px] font-semibold text-white/95 bg-black/45 px-2 py-1 rounded backdrop-blur-sm">
+              Foto: Google Maps
+              {restaurant.google_photo_attribution?.[0]?.displayName && (
+                <span className="font-normal opacity-80"> · {restaurant.google_photo_attribution[0].displayName}</span>
+              )}
             </div>
           )}
 

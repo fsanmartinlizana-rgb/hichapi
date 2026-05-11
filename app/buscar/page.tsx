@@ -7,6 +7,7 @@ import { Map, RotateCcw, SearchX, Loader2, ArrowRight } from 'lucide-react'
 import { ChatBox, type NoCuisineMatchInfo } from '@/components/chat/ChatBox'
 import { ResultsGrid, ResultsGridSkeleton } from '@/components/discovery/ResultsGrid'
 import { RestaurantResult, ChapiIntent } from '@/lib/types'
+import { trackSearch, trackSearchResults } from '@/lib/tracking'
 
 // ── Persisted state ───────────────────────────────────────────────────────────
 // Guardamos los resultados y el query en sessionStorage para que cuando el
@@ -183,6 +184,7 @@ export default function Home() {
   const [noCuisineMatch, setNoCuisineMatch] = useState<NoCuisineMatchInfo | null>(null)
   const [pendingAltNonce, setPendingAltNonce] = useState(0)
   const [searchKey, setSearchKey]       = useState(0)
+  const [searchEventId, setSearchEventId] = useState<string | null>(null)
   const [showMap, setShowMap]           = useState(false)
   const hydratedRef = useRef(false)
 
@@ -222,9 +224,10 @@ export default function Home() {
     }
   }, [results, query])
 
-  const handleResults = useCallback((newResults: RestaurantResult[], userQuery: string) => {
+  const handleResults = useCallback((newResults: RestaurantResult[], userQuery: string, eventId: string | null) => {
     setResults(newResults)
     setQuery(userQuery)
+    setSearchEventId(eventId)
     setIsSearching(false)
     setNoResults(null)
     setNoCuisineMatch(null)
@@ -375,7 +378,7 @@ export default function Home() {
               onReset={handleReset}
             />
           ) : (
-            <ResultsGrid results={results} query={query} />
+            <ResultsGrid results={results} query={query} searchEventId={searchEventId} />
           )}
         </section>
       )}

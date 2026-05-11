@@ -57,11 +57,13 @@ export default function ClaimPage() {
     setSubmitting(true)
 
     try {
-      const res = await fetch('/api/restaurants/claim', {
+      // Nuevo endpoint self-service. El restaurant_id va en el PATH para
+      // evitar IDOR (no se acepta en el body). El endpoint crea la cuenta,
+      // marca el restaurant como claimed y envía magic link al email.
+      const res = await fetch(`/api/restaurants/${restaurant.id}/claim`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          restaurant_id: restaurant.id,
           owner_name:    form.owner_name,
           owner_email:   form.owner_email,
           owner_phone:   form.owner_phone || undefined,
@@ -130,10 +132,14 @@ export default function ClaimPage() {
       <div className="min-h-screen bg-[#FAFAF8] flex items-center justify-center px-4">
         <div className="max-w-md w-full bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 text-center space-y-4">
           <CheckCircle size={48} className="text-emerald-500 mx-auto" />
-          <h1 className="text-xl font-bold text-[#1A1A2E]">Solicitud enviada</h1>
+          <h1 className="text-xl font-bold text-[#1A1A2E]">¡Tu cuenta está lista!</h1>
           <p className="text-sm text-neutral-500 leading-relaxed">
-            Revisaremos tu solicitud para <strong>{restaurant.name}</strong> y te contactaremos
-            a <strong>{form.owner_email}</strong> en las próximas 24 horas.
+            Reclamaste <strong>{restaurant.name}</strong>. Te enviamos un link de acceso
+            directo a <strong>{form.owner_email}</strong> — revisá tu inbox (y la carpeta
+            de spam) para entrar al panel. El link es válido por 1 hora.
+          </p>
+          <p className="text-xs text-neutral-400">
+            Sin contraseñas: solo hacés click en el botón del email y entrás.
           </p>
           <Link
             href={`/r/${restaurant.slug}`}

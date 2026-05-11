@@ -6,6 +6,8 @@ import Link from 'next/link'
 import { Star, MapPin, ChevronDown, ChevronUp } from 'lucide-react'
 import { RestaurantResult, MenuItem } from '@/lib/types'
 import { formatCurrency } from '@/lib/i18n'
+import { CuisinePlaceholder } from './CuisinePlaceholder'
+import { trackResultClick } from '@/lib/tracking'
 
 const formatPrice = (clp: number) => formatCurrency(clp)
 
@@ -49,10 +51,23 @@ function hasPromotion(result: RestaurantResult): boolean {
   return !!(result as any).restaurant?.has_promotion
 }
 
-export function ResultCard({ result, index }: { result: RestaurantResult; index: number }) {
+export function ResultCard({
+  result,
+  index,
+  searchEventId,
+}: {
+  result: RestaurantResult
+  index: number
+  searchEventId?: string | null
+}) {
   const { restaurant, suggested_dish, menu_items, distance_m } = result
   const [expanded, setExpanded] = useState(false)
   const showPromoBadge = hasPromotion(result)
+
+  function handleClick() {
+    // Fire-and-forget: si searchEventId es null (tracking falló), no rompe.
+    if (searchEventId) trackResultClick(searchEventId, restaurant.id)
+  }
 
   // Extra dishes beyond the first one
   const extraDishes = (menu_items ?? []).slice(1)
@@ -61,6 +76,7 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
   return (
     <Link
       href={`/r/${restaurant.slug}`}
+      onClick={handleClick}
       className="group block bg-white rounded-2xl overflow-hidden shadow-sm border border-neutral-100 hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     >
       {/* Foto */}
@@ -75,9 +91,22 @@ export function ResultCard({ result, index }: { result: RestaurantResult; index:
             priority={index === 0}
           />
         ) : (
-          <div className="w-full h-full bg-neutral-200 flex items-center justify-center">
-            <span className="text-4xl">🍽️</span>
-          </div>
+          <CuisinePlaceholder cuisine={restaurant.cuisine_type} />
+        )}
+
+        {/* Atribución Google Photos — solo cuando la foto vino del agente
+            (Google Places). Si owner_upload o placeholder, sin atribución. */}
+        {restaurant.photo_url && restaurant.photo_source === 'google_places' && (
+          <span className="absolute bottom-2 right-2 text-[10px] font-semibold text-white/95 bg-black/45 px-1.5 py-0.5 rounded backdrop-blur-sm">
+            Foto: Google Maps
+          </span>
+        )}
+
+        {/* Badge "Por confirmar" para restaurants no claimed sin foto del owner */}
+        {!restaurant.claimed && (
+          <span className="absolute bottom-2 left-2 text-[10px] font-medium text-amber-900 bg-amber-100/95 px-1.5 py-0.5 rounded backdrop-blur-sm">
+            Por confirmar
+          </span>
         )}
 
         {distance_m && (

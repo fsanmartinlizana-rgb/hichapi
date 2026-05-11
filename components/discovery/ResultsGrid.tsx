@@ -4,9 +4,11 @@ import { ResultCard } from './ResultCard'
 interface ResultsGridProps {
   results: RestaurantResult[]
   query: string
+  /** ID del search_event para tracking de clicks. Null si tracking falló. */
+  searchEventId?: string | null
 }
 
-export function ResultsGrid({ results, query }: ResultsGridProps) {
+export function ResultsGrid({ results, searchEventId }: ResultsGridProps) {
   if (results.length === 0) return null
 
   return (
@@ -26,7 +28,12 @@ export function ResultsGrid({ results, query }: ResultsGridProps) {
         }`}
       >
         {results.map((result, i) => (
-          <ResultCard key={result.restaurant.id} result={result} index={i} />
+          <ResultCard
+            key={result.restaurant.id}
+            result={result}
+            index={i}
+            searchEventId={searchEventId ?? null}
+          />
         ))}
       </div>
     </div>

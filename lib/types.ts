@@ -17,6 +17,10 @@ export interface Restaurant {
    *  rating propio — siempre con sufijo "Google". */
   google_rating?: number | null
   google_rating_count?: number | null
+  /** Origen de la foto. Cambia atribución visual (Google Maps vs nada) y
+   *  el flujo de override: si es 'owner_upload', el agente nunca toca. */
+  photo_source?: 'google_places' | 'owner_upload' | 'placeholder' | null
+  claimed?: boolean | null
 }
 
 export interface MenuItem {
