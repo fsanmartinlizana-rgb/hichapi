@@ -64,6 +64,11 @@ export type FailureReason =
 
 export type SearchOutput = {
   results: ResultRestaurant[]
+  /** Cuando results=[] y falla la búsqueda, sugerencias de "te podría
+   *  interesar" de la misma cuisine en otras zonas (o top rated si no
+   *  hay cuisine pedida). Hasta 5 cards mini. NUNCA reemplaza a results
+   *  — son visualmente distintos en el frontend. */
+  suggestions: ResultRestaurant[]
   /** Hay zone (texto o coords) pero ningún restaurant matchea bajo el filtro
    *  estricto. NUNCA llenamos results con otra zona ni con otra cuisine. */
   no_results_in_zone: boolean
@@ -536,8 +541,27 @@ export async function searchRestaurants(
     }
   }
 
+  // ── Suggestions cuando results=[] ─────────────────────────────────────
+  // Mejora UX del banner "no encontramos nada": en lugar de un dead-end,
+  // mostramos hasta 5 sugerencias relacionadas. Heurística:
+  //   - Si hay cuisine pedida → top 5 de esa cuisine en cualquier zona
+  //   - Si no hay cuisine     → top 5 por rating en cualquier zona
+  // Ordenadas por rating DESC. NUNCA reemplazan los results estrictos —
+  // son "te podría interesar" visualmente separadas.
+  let suggestions: ResultRestaurant[] = []
+  if (results.length === 0 && !opts.ignoreCuisine) {
+    suggestions = await fetchAndFilter(
+      // Sin zone ni budget ni dietary — solo cuisine si hay. Esto maximiza
+      // resultados y respeta lo que más le importa al user.
+      { cuisine_type: resolvedIntent.cuisine_type ?? null },
+      { withZone: false, withCuisine: !!resolvedIntent.cuisine_type },
+    )
+    suggestions = suggestions.slice(0, 5)
+  }
+
   return {
     results,
+    suggestions,
     no_results_in_zone,
     alternatives_in_zone_count,
     resolved_zone: resolvedZone,

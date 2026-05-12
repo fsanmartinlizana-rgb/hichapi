@@ -164,10 +164,12 @@ function NoCuisineMatchBanner({
 // ── Estado de sin resultados (zona vacía o cuisine sin alternativas) ─────────
 function NoResultsBanner({
   intent,
+  suggestions,
   onFetch,
   onReset,
 }: {
   intent: ChapiIntent
+  suggestions: RestaurantResult[]
   onFetch: () => void
   onReset: () => void
 }) {
@@ -260,6 +262,49 @@ function NoResultsBanner({
           </div>
         )}
       </div>
+
+      {/* Sugerencias "te podría interesar" — cards mini de la misma cuisine
+          en otras zonas. Solo si el backend nos las pasó (typical cuando
+          fail_reason='no_zone_coverage' y hay cuisine pedida). */}
+      {suggestions.length > 0 && (
+        <div className="mt-8 text-left">
+          <p className="text-sm font-semibold text-[#1A1A2E] text-center mb-1">
+            {cuisineLabel
+              ? `Mientras tanto, ${cuisineLabel}s con mejor rating en otras zonas`
+              : 'Mientras tanto, top de Santiago'}
+          </p>
+          <p className="text-xs text-neutral-400 text-center mb-4">
+            Estos sí los tenemos en HiChapi · ordenados por mejor rating
+          </p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {suggestions.slice(0, 6).map(s => (
+              <Link
+                key={s.restaurant.id}
+                href={`/r/${s.restaurant.slug}`}
+                className="block bg-white rounded-xl border border-neutral-100 p-3 hover:border-[#FF6B35]/40 hover:shadow-sm transition-all text-left"
+              >
+                <p className="text-sm font-semibold text-[#1A1A2E] leading-tight truncate">
+                  {s.restaurant.name}
+                </p>
+                <p className="text-[11px] text-neutral-400 mb-1.5">
+                  {s.restaurant.neighborhood} · {s.restaurant.cuisine_type}
+                </p>
+                <div className="flex items-center gap-1 text-xs">
+                  <span className="text-[#FF6B35]">★</span>
+                  <span className="font-medium text-neutral-600">
+                    {(s.restaurant.review_count ?? 0) > 0
+                      ? s.restaurant.rating.toFixed(1)
+                      : s.restaurant.google_rating?.toFixed(1) ?? '—'}
+                  </span>
+                  {(s.restaurant.review_count ?? 0) === 0 && s.restaurant.google_rating != null && (
+                    <span className="text-[10px] text-neutral-400">· Google</span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -270,6 +315,7 @@ export default function Home() {
   const [status, setStatus]             = useState('')
   const [isSearching, setIsSearching]   = useState(false)
   const [noResults, setNoResults]       = useState<ChapiIntent | null>(null)
+  const [noResultsSuggestions, setNoResultsSuggestions] = useState<RestaurantResult[]>([])
   const [noCuisineMatch, setNoCuisineMatch] = useState<NoCuisineMatchInfo | null>(null)
   const [noResultsDetail, setNoResultsDetail] = useState<NoResultsDetail | null>(null)
   const [pendingAltNonce, setPendingAltNonce] = useState(0)
@@ -331,9 +377,10 @@ export default function Home() {
   const handleStatusChange = useCallback((s: string) => setStatus(s), [])
   const handleLoadingChange = useCallback((loading: boolean) => setIsSearching(loading), [])
 
-  const handleNoResults = useCallback((intent: ChapiIntent) => {
+  const handleNoResults = useCallback((intent: ChapiIntent, suggestions: RestaurantResult[]) => {
     setIsSearching(false)
     setNoResults(intent)
+    setNoResultsSuggestions(suggestions ?? [])
     setNoCuisineMatch(null)
     setNoResultsDetail(null)
     setTimeout(() => {
@@ -374,6 +421,7 @@ export default function Home() {
     setStatus('')
     setIsSearching(false)
     setNoResults(null)
+    setNoResultsSuggestions([])
     setNoCuisineMatch(null)
     setNoResultsDetail(null)
     setShowMap(false)
@@ -422,6 +470,37 @@ export default function Home() {
           onNoResultsDetail={handleNoResultsDetail}
           pendingAlternativeNonce={pendingAltNonce}
         />
+
+        {/* Guía explícita: mostrar los 3 datos óptimos para una búsqueda
+            precisa. Solo cuando el user todavía no buscó nada (hero state).
+            Una vez que aparece la sección de resultados, ocultar para no
+            ocupar espacio. */}
+        {!showResultsSection && (
+          <div className="mt-6 max-w-2xl w-full px-4">
+            <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-neutral-100 px-5 py-4">
+              <p className="text-xs text-neutral-500 text-center mb-3">
+                Para resultados precisos, cuéntale a Chapi:
+              </p>
+              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
+                <span className="flex items-center gap-1.5 text-neutral-600">
+                  <span className="text-base">🍴</span>
+                  <span><strong className="text-[#1A1A2E]">Qué cocina</strong> <span className="text-neutral-400">(italiana, sushi, vegana...)</span></span>
+                </span>
+                <span className="flex items-center gap-1.5 text-neutral-600">
+                  <span className="text-base">📍</span>
+                  <span><strong className="text-[#1A1A2E]">Dónde</strong> <span className="text-neutral-400">(Providencia, cerca de mí...)</span></span>
+                </span>
+                <span className="flex items-center gap-1.5 text-neutral-600">
+                  <span className="text-base">💰</span>
+                  <span><strong className="text-[#1A1A2E]">Cuánto</strong> <span className="text-neutral-400">(15 lucas, 30 mil...)</span></span>
+                </span>
+              </div>
+              <p className="text-[10px] text-neutral-400 text-center mt-3 italic">
+                Mientras más detalle, mejor recomendación. Si pides solo uno, te muestro lo más popular.
+              </p>
+            </div>
+          </div>
+        )}
 
         {status && <p className="mt-4 text-sm text-neutral-400 animate-pulse">{status}</p>}
       </section>
@@ -484,8 +563,10 @@ export default function Home() {
           ) : noResults ? (
             <NoResultsBanner
               intent={noResults}
+              suggestions={noResultsSuggestions}
               onFetch={() => {
                 setNoResults(null)
+                setNoResultsSuggestions([])
                 setSearchKey(k => k + 1)
               }}
               onReset={handleReset}

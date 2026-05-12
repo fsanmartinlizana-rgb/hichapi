@@ -246,6 +246,7 @@ export async function POST(req: NextRequest) {
         // Búsqueda. Pasamos `allow_alternatives` al motor para el caso opt-in.
         let out: SearchOutput = {
           results: [],
+          suggestions: [],
           no_results_in_zone: false,
           alternatives_in_zone_count: 0,
           resolved_zone: null,
@@ -269,6 +270,9 @@ export async function POST(req: NextRequest) {
           // no_dietary_match / no_budget_match). El frontend usa esto para
           // mostrar mensaje específico y decidir si dispara enrichment.
           failure_reason:            out.failure_reason,
+          // Sugerencias "te podría interesar" cuando results=[] — frontend
+          // las muestra como cards mini en el banner de no-results.
+          suggestions:               out.suggestions,
           searched_but_empty:        claudeSaysReady && !chapiResponse.needs_location && out.results.length === 0,
         })
       } catch (err) {

@@ -56,8 +56,10 @@ interface ChatBoxProps {
   onResults:               (results: RestaurantResult[], query: string, search_event_id: string | null) => void
   onStatusChange:          (status: string) => void
   onLoadingChange?:        (loading: boolean) => void
-  /** Llamado cuando no hay nada en la zona ni siquiera tras enriquecer. */
-  onNoResults?:            (intent: ChapiIntent) => void
+  /** Llamado cuando no hay nada en la zona ni siquiera tras enriquecer.
+   *  `suggestions` son cards mini de "te podría interesar" calculadas
+   *  server-side (top 5 de la misma cuisine en otras zonas). */
+  onNoResults?:            (intent: ChapiIntent, suggestions: RestaurantResult[]) => void
   /** Llamado cuando hay zona y restaurants en la zona, pero ninguno de la
    *  cuisine pedida. El padre muestra un botón "ver alternativas". Al clic,
    *  el padre incrementa `pendingAlternativeNonce` para disparar la búsqueda
@@ -314,10 +316,10 @@ export function ChatBox({
                         query_original:     message,
                       })
                     } else {
-                      onNoResults?.(data.intent ?? currentIntent)
+                      onNoResults?.(data.intent ?? currentIntent, data.suggestions ?? [])
                     }
                   })
-                  .catch(() => onNoResults?.(data.intent ?? currentIntent))
+                  .catch(() => onNoResults?.(data.intent ?? currentIntent, data.suggestions ?? []))
               } else if (
                 data.no_results_in_zone &&
                 claudeReady &&
@@ -335,7 +337,7 @@ export function ChatBox({
                   query_original:     message,
                 })
               } else if (data.searched_but_empty && claudeReady) {
-                onNoResults?.(data.intent ?? currentIntent)
+                onNoResults?.(data.intent ?? currentIntent, data.suggestions ?? [])
               }
 
             } else if (event === 'error') {
@@ -361,6 +363,29 @@ export function ChatBox({
     }
   }
 
+  // Pills del intent capturado — feedback visual de "qué entendí". Solo
+  // se muestran cuando hay AL MENOS un dato y Chapi ya respondió algo.
+  const intentPills: { icon: string; text: string; captured: boolean }[] = (() => {
+    const out: { icon: string; text: string; captured: boolean }[] = []
+    out.push({
+      icon: '🍴',
+      text: intent.cuisine_type ?? 'cocina',
+      captured: !!intent.cuisine_type,
+    })
+    out.push({
+      icon: '📍',
+      text: intent.zone ?? 'zona',
+      captured: !!intent.zone,
+    })
+    out.push({
+      icon: '💰',
+      text: intent.budget_clp ? `${Math.round(intent.budget_clp / 1000)}k` : 'presupuesto',
+      captured: !!intent.budget_clp,
+    })
+    return out
+  })()
+  const someIntentCaptured = intentPills.some(p => p.captured)
+
   return (
     <div className="w-full max-w-2xl mx-auto px-4">
 
@@ -382,6 +407,29 @@ export function ChatBox({
           </p>
         ) : null}
       </div>
+
+      {/* Pills del intent: "qué entendí, qué falta". Solo cuando hay
+          conversación arrancada (chapiMessage) y al menos 1 dato capturado.
+          Los capturados van fuertes; los faltantes en gris para señalar
+          qué agregaría valor al pedirlo. */}
+      {chapiMessage && someIntentCaptured && (
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5">
+          <span className="text-[10px] text-neutral-400">Chapi entendió:</span>
+          {intentPills.map((p, i) => (
+            <span
+              key={i}
+              className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
+                p.captured
+                  ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                  : 'bg-neutral-50 border-neutral-200 text-neutral-400'
+              }`}
+              title={p.captured ? `${p.text} ✓` : `Falta: ${p.text}`}
+            >
+              {p.icon} {p.captured ? p.text : <span className="italic">{p.text}?</span>}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Input box */}
       <div
