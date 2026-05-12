@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useState, useEffect } from 'react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield, Check, X, AlertCircle, Sparkles } from 'lucide-react'
@@ -130,6 +130,15 @@ function RegisterPageInner() {
   const planParam = searchParams.get('plan')
   const selectedPlan: PlanId = isPlanId(planParam) ? planParam : 'free'
   const planInfo = PLAN_INFO[selectedPlan]
+  // ── Modo claim: ?claimed=<restaurant_id> ────────────────────────────────
+  // Llega desde el magic link de /api/restaurants/[id]/claim. El user ya
+  // está autenticado y tiene team_members.role='owner' del restaurant.
+  // No necesita crear cuenta ni restaurant — lo llevamos directo a
+  // completar el perfil con un mensaje de bienvenida.
+  const claimedId = searchParams.get('claimed')
+  if (claimedId && /^[0-9a-f-]{36}$/.test(claimedId)) {
+    return <ClaimedWelcome restaurantId={claimedId} />
+  }
 
   const [step, setStep] = useState(0)
 
@@ -479,6 +488,133 @@ function RegisterPageInner() {
         <Shield size={11} />
         <span className="text-[10px]">Conexión segura · Datos encriptados · Supabase Auth</span>
       </div>
+    </div>
+  )
+}
+
+// ── ClaimedWelcome ──────────────────────────────────────────────────────────
+// El owner llega acá tras clickear el magic link de claim. Le mostramos:
+//   1. Bienvenida con el nombre del restaurant
+//   2. Lo que ya tenemos pre-cargado del agent_enriched
+//   3. Qué le falta completar (con badges)
+//   4. CTA grande al panel de edición (/restaurante)
+//
+// No re-pedimos contraseña ni datos básicos — eso ya pasó en el claim.
+// La info del restaurant (agent_enriched) queda persistida y es base para
+// que el owner la actualice desde el panel.
+
+interface ClaimedRestaurant {
+  id: string
+  name: string
+  slug: string
+  neighborhood: string | null
+  cuisine_type: string | null
+  address: string | null
+  description: string | null
+  phone: string | null
+  photo_url: string | null
+  hours: Record<string, unknown> | null
+}
+
+function ClaimedWelcome({ restaurantId }: { restaurantId: string }) {
+  const router = useRouter()
+  const [restaurant, setRestaurant] = useState<ClaimedRestaurant | null>(null)
+  const [authOk, setAuthOk] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    (async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        // Magic link expirado o sesión perdida → redirigir a login
+        router.replace(`/login?redirect=/register?claimed=${restaurantId}`)
+        return
+      }
+      // Cargar el restaurant. El user ya tiene RLS de owner gracias al
+      // team_members insertado por el endpoint de claim.
+      const { data } = await supabase
+        .from('restaurants')
+        .select('id, name, slug, neighborhood, cuisine_type, address, description, phone, photo_url, hours')
+        .eq('id', restaurantId)
+        .single()
+      setRestaurant(data as ClaimedRestaurant | null)
+      setAuthOk(true)
+    })()
+  }, [restaurantId, router])
+
+  if (authOk === null) {
+    return (
+      <div className="w-full max-w-sm bg-[#13132A] rounded-2xl border border-white/8 p-8 text-center">
+        <Loader2 size={20} className="text-white/40 mx-auto animate-spin" />
+      </div>
+    )
+  }
+  if (!restaurant) {
+    return (
+      <div className="w-full max-w-sm bg-[#13132A] rounded-2xl border border-white/8 p-8 text-center space-y-3">
+        <AlertCircle size={24} className="text-amber-400 mx-auto" />
+        <p className="text-sm text-white/70">No pudimos cargar el restaurant. El link puede haber expirado.</p>
+        <Link href="/login" className="text-sm text-[#FF6B35] underline">Iniciar sesión</Link>
+      </div>
+    )
+  }
+
+  // Checklist de qué le falta al perfil — guía al owner sobre qué editar
+  const missing: { key: string; label: string }[] = []
+  if (!restaurant.description) missing.push({ key: 'desc', label: 'Descripción' })
+  if (!restaurant.phone)       missing.push({ key: 'phone', label: 'Teléfono' })
+  if (!restaurant.photo_url)   missing.push({ key: 'photo', label: 'Foto principal real' })
+  if (!restaurant.hours || Object.keys(restaurant.hours).length === 0) {
+    missing.push({ key: 'hours', label: 'Horarios' })
+  }
+
+  return (
+    <div className="w-full max-w-md bg-[#13132A] rounded-2xl border border-white/8 p-8 space-y-5">
+      <div className="text-center space-y-2">
+        <Sparkles size={28} className="text-[#FF6B35] mx-auto" />
+        <h1 className="text-xl font-bold text-white">¡Bienvenido a HiChapi!</h1>
+        <p className="text-sm text-white/60">
+          <span className="font-semibold text-white">{restaurant.name}</span> ya es tuyo.
+        </p>
+      </div>
+
+      {/* Pre-cargado */}
+      <div className="bg-white/5 rounded-xl border border-white/8 p-4 space-y-2">
+        <p className="text-[10px] uppercase tracking-wide font-semibold text-emerald-400">Ya tenemos esto cargado</p>
+        <ul className="text-xs text-white/70 space-y-1">
+          <li>• Nombre: <span className="text-white">{restaurant.name}</span></li>
+          {restaurant.address && <li>• Dirección: <span className="text-white">{restaurant.address}</span></li>}
+          {restaurant.neighborhood && <li>• Barrio: <span className="text-white">{restaurant.neighborhood}</span></li>}
+          {restaurant.cuisine_type && <li>• Cocina: <span className="text-white capitalize">{restaurant.cuisine_type}</span></li>}
+        </ul>
+      </div>
+
+      {/* Qué falta */}
+      {missing.length > 0 && (
+        <div className="bg-amber-500/5 rounded-xl border border-amber-500/15 p-4 space-y-2">
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-amber-300">Para completar tu perfil</p>
+          <div className="flex flex-wrap gap-1.5">
+            {missing.map(m => (
+              <span key={m.key} className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-200 border border-amber-500/20">
+                {m.label}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* CTA */}
+      <button
+        onClick={() => router.push('/restaurante')}
+        className="w-full py-3 rounded-xl bg-[#FF6B35] hover:bg-[#e55a2b] text-white font-semibold text-sm transition-colors"
+      >
+        Ir a editar mi perfil →
+      </button>
+
+      <p className="text-[10px] text-white/30 text-center leading-relaxed">
+        Los datos los obtuvimos de fuentes públicas (Google Maps). Vos sos el dueño,
+        así que tu edición es la versión oficial.
+      </p>
     </div>
   )
 }

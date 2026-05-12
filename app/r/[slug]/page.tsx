@@ -391,6 +391,26 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
 }
 
 function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
+  // Si el restaurant aún no fue reclamado por el dueño, NO mostramos
+  // "Reservar mesa" — la reserva se gestiona en el panel del owner y no
+  // existe sin él. Mostramos un mensaje honesto y dejamos visible el CTA
+  // de claim que ya está en otro lado de la página.
+  if (!restaurant.claimed) {
+    return (
+      <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-3">
+        <h3 className="font-bold text-[#1A1A2E] text-base">¿Querés ir?</h3>
+        <p className="text-sm text-neutral-500 leading-relaxed">
+          Este restaurant aún no se sumó a HiChapi, así que no podemos confirmar
+          horarios ni tomar reservas online. Te recomendamos:
+        </p>
+        <ul className="text-xs text-neutral-500 space-y-1.5 pl-4 list-disc">
+          <li>Llamarles antes de ir para confirmar disponibilidad.</li>
+          <li>Revisar su Google Maps para horarios actualizados.</li>
+        </ul>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
       <h3 className="font-bold text-[#1A1A2E] text-base">Listo para ir?</h3>

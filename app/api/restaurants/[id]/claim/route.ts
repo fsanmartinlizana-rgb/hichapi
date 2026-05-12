@@ -227,11 +227,16 @@ export async function POST(
   })
 
   // ── 7. Magic link + email ─────────────────────────────────────────────────
+  // Redirect a /register?claimed=<id> en lugar de /dashboard: la página
+  // detecta el param y entra en modo "completar perfil", pre-llenando
+  // nombre/dirección/cuisine del restaurant agent_enriched para que el
+  // owner solo edite/agregue lo que falta (foto, descripción, horarios,
+  // teléfono, etc.). Termina llevando al dashboard normal.
   const origin = resolveAppUrl(req)
   const { data: link, error: linkErr } = await supabase.auth.admin.generateLink({
     type:    'magiclink',
     email:   emailLower,
-    options: { redirectTo: `${origin}/dashboard` },
+    options: { redirectTo: `${origin}/register?claimed=${restaurantId}` },
   })
 
   if (linkErr || !link?.properties?.action_link) {

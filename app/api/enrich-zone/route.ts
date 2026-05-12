@@ -122,6 +122,8 @@ interface GPlace {
   userRatingCount?:       number
   reviews?:               GReview[]
   photos?:                GPhoto[]
+  websiteUri?:            string
+  nationalPhoneNumber?:   string
 }
 
 // ── Mapeos ────────────────────────────────────────────────────────────────
@@ -415,6 +417,8 @@ export async function POST(req: NextRequest) {
       'places.reviews',
       'places.photos.name',
       'places.photos.authorAttributions',
+      'places.websiteUri',
+      'places.nationalPhoneNumber',
     ].join(',')
 
     const placesRes = await fetch('https://places.googleapis.com/v1/places:searchText', {
@@ -542,9 +546,15 @@ export async function POST(req: NextRequest) {
         google_rating_count: p.userRatingCount ?? null,
         google_reviews:      pickReviews(p.reviews),
         config_chapi: {
-          horarios:   p.regularOpeningHours?.weekdayDescriptions ?? null,
-          tipo_local: p.primaryTypeDisplayName?.text ?? null,
+          horarios:    p.regularOpeningHours?.weekdayDescriptions ?? null,
+          tipo_local:  p.primaryTypeDisplayName?.text ?? null,
           types,
+          website:     p.websiteUri ?? null,
+          phone:       p.nationalPhoneNumber ?? null,
+          // menu_extracted: false significa que el endpoint extract-menu
+          // todavía no procesó este restaurant. El cron / botón admin lo
+          // dispara para sacar platos reales del website con Claude.
+          menu_extracted: false,
         },
         _photoName:        primaryPhoto?.name ?? null,
         _photoAttribution: primaryPhoto?.authorAttributions ?? null,
@@ -572,19 +582,12 @@ export async function POST(req: NextRequest) {
     }
     resultsCount = inserted?.length ?? 0
 
-    // ── 9. Menu items placeholder ─────────────────────────────────────
-    const placeholderItems = (inserted ?? []).map(r => ({
-      restaurant_id: r.id,
-      name:          'Plato del día',
-      description:   'Consultar al restaurante para la carta del día',
-      price:         9900,
-      category:      'platos principales',
-      tags:          ['internacional'],
-      available:     true,
-    }))
-    if (placeholderItems.length > 0) {
-      await supabase.from('menu_items').insert(placeholderItems)
-    }
+    // ── 9. NO insertamos placeholder "Plato del día" ─────────────────
+    // Antes: insertábamos un item fake. Era deshonesto (precio inventado
+    // $9.900, sin tags reales) y bloqueaba el filtro dietary del chat
+    // (siempre matcheaba nada). Ahora la card muestra "Carta aún no
+    // disponible" cuando menu_items=0, y el cron de extract-menu va a
+    // poblar platos reales scrapeando el website (si existe).
 
     // ── 10. Descargar foto principal por cada insertado ────────────────
     // Hacemos en paralelo con concurrencia limitada para no saturar.

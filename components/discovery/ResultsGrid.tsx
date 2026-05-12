@@ -1,3 +1,7 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { RestaurantResult } from '@/lib/types'
 import { ResultCard } from './ResultCard'
 
@@ -8,26 +12,39 @@ interface ResultsGridProps {
   searchEventId?: string | null
 }
 
+const PAGE_SIZE = 12
+
 export function ResultsGrid({ results, searchEventId }: ResultsGridProps) {
+  const [visible, setVisible] = useState(PAGE_SIZE)
+
+  // Reset cuando cambian los resultados (nueva búsqueda).
+  useEffect(() => { setVisible(PAGE_SIZE) }, [results])
+
   if (results.length === 0) return null
+
+  const visibleResults = results.slice(0, visible)
+  const remaining = results.length - visibleResults.length
+  const showAll = remaining <= 0
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-12">
       <p className="text-sm text-neutral-400 mb-4 text-center">
-        <span className="text-[#1A1A2E] font-medium">{results.length} opciones</span>
+        <span className="text-[#1A1A2E] font-medium">
+          {visibleResults.length}{remaining > 0 ? ` de ${results.length}` : ''} opciones
+        </span>
         {' '}que encontró Chapi para ti
       </p>
 
       <div
         className={`grid gap-4 ${
-          results.length === 1
+          visibleResults.length === 1
             ? 'grid-cols-1 max-w-sm mx-auto'
-            : results.length === 2
+            : visibleResults.length === 2
             ? 'grid-cols-1 sm:grid-cols-2'
             : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
         }`}
       >
-        {results.map((result, i) => (
+        {visibleResults.map((result, i) => (
           <ResultCard
             key={result.restaurant.id}
             result={result}
@@ -36,6 +53,21 @@ export function ResultsGrid({ results, searchEventId }: ResultsGridProps) {
           />
         ))}
       </div>
+
+      {!showAll && (
+        <div className="flex justify-center mt-6">
+          <button
+            onClick={() => setVisible(v => v + PAGE_SIZE)}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-full
+                       bg-white border border-neutral-200 text-[#1A1A2E]
+                       hover:border-[#FF6B35] hover:text-[#FF6B35]
+                       transition-colors duration-150 shadow-sm text-sm font-medium"
+          >
+            Ver {Math.min(PAGE_SIZE, remaining)} más
+            <ChevronDown size={14} />
+          </button>
+        </div>
+      )}
     </div>
   )
 }

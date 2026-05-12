@@ -38,6 +38,10 @@ export type ResultRestaurant = {
   suggested_dish: MenuItem | null
   menu_items: MenuItem[]
   match_reason: string
+  /** Distancia en metros desde user_lat/lng. Solo presente cuando el user
+   *  compartió ubicación. Frontend lo usa para mostrar "X m" / "X km" y
+   *  decidir el badge "Más cerca" del primero. */
+  distance_m?: number
   active_promotions?: { name: string; label: string; description: string | null }[]
 }
 
@@ -85,6 +89,19 @@ export type SearchOpts = {
 
 export function stripAccents(s: string): string {
   return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim()
+}
+
+/** Distancia en metros entre dos coords (haversine). Usado para ordenar
+ *  results por cercanía cuando el user dio su ubicación. */
+export function haversineMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371000
+  const toRad = (d: number) => (d * Math.PI) / 180
+  const dLat = toRad(lat2 - lat1)
+  const dLng = toRad(lng2 - lng1)
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2
+  return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
 }
 
 // ── Diccionario de cuisines ──────────────────────────────────────────────────
@@ -314,27 +331,50 @@ async function fetchAndFilter(
     })
   }
 
-  const sorted = [...filtered].sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0))
+  // Sort priorizado:
+  // - Si hay user_lat/lng: por distancia ascendente (más cerca primero).
+  //   El primer result se marca como "más cerca" en el frontend con badge.
+  // - Sin coords: por rating DESC (como antes — los mejor valorados arriba).
+  const hasUserCoords = intent.user_lat != null && intent.user_lng != null
+  const sorted = [...filtered].sort((a, b) => {
+    if (hasUserCoords && a.lat != null && a.lng != null && b.lat != null && b.lng != null) {
+      const dA = haversineMeters(intent.user_lat!, intent.user_lng!, a.lat, a.lng)
+      const dB = haversineMeters(intent.user_lat!, intent.user_lng!, b.lat, b.lng)
+      return dA - dB
+    }
+    return (b.rating ?? 0) - (a.rating ?? 0)
+  })
 
   return sorted
     .map((restaurant): ResultRestaurant | null => {
       const items = restaurant.menu_items ?? []
+      const distance_m = (hasUserCoords && restaurant.lat != null && restaurant.lng != null)
+        ? Math.round(haversineMeters(intent.user_lat!, intent.user_lng!, restaurant.lat, restaurant.lng))
+        : undefined
       let candidateItems = items.filter(item => item.available !== false)
 
-      if (intent.budget_clp != null) {
+      const hasBudget  = intent.budget_clp != null
+      const hasDietary = (intent.dietary_restrictions?.length ?? 0) > 0
+
+      if (hasBudget) {
         candidateItems = candidateItems.filter(item => item.price <= intent.budget_clp!)
       }
-      if (intent.dietary_restrictions && intent.dietary_restrictions.length > 0) {
+      if (hasDietary) {
         candidateItems = candidateItems.filter(item =>
           intent.dietary_restrictions!.some(r =>
             item.tags?.some(tag => tag.toLowerCase().includes(r.toLowerCase()))
           )
         )
       }
-      if (candidateItems.length === 0) return null
+
+      // Solo descartamos el restaurant si el USER pidió filtros de menú
+      // (budget/dietary) Y nada satisface. Si pidió solo cuisine/zone, el
+      // restaurant aparece igual aunque tenga 0 items en DB — la card
+      // muestra "Carta aún no disponible" en lugar de plato fake.
+      if ((hasBudget || hasDietary) && candidateItems.length === 0) return null
 
       const sortedItems = [...candidateItems].sort((a, b) => b.price - a.price)
-      const bestDish  = sortedItems[0]
+      const bestDish: MenuItem | null = sortedItems[0] ?? null
       const menuItems = sortedItems.slice(0, 3)
 
       // matchReason — siempre fidedigno: indicamos POR QUÉ lo recomendamos.
@@ -361,10 +401,14 @@ async function fetchAndFilter(
         suggested_dish: bestDish,
         menu_items: menuItems,
         match_reason: matchReason,
+        distance_m,
       }
     })
     .filter((r): r is ResultRestaurant => r !== null)
-    .slice(0, 3)
+    // Cap superior: hasta 30 results. El frontend pagina mostrando 12 por
+    // pulsación del botón "Ver más". Subir el cap acá sin paginar inunda al
+    // user; bajarlo limita lo que puede explorar.
+    .slice(0, 30)
 }
 
 /** Cuenta restaurants en una zona (texto) ignorando cuisine. Usado para

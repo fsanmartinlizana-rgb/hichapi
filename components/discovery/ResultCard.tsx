@@ -121,6 +121,14 @@ export function ResultCard({
           <div className="bg-[#FF6B35] text-white text-xs font-bold w-6 h-6 rounded-full flex items-center justify-center">
             {index + 1}
           </div>
+          {/* Badge "Más cerca": solo el primer card cuando el user dio
+              ubicación (sabemos que hay distance_m). Comunica claramente
+              qué tan cerca está. */}
+          {index === 0 && typeof distance_m === 'number' && (
+            <span className="bg-emerald-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
+              📍 Más cerca
+            </span>
+          )}
           {showPromoBadge && (
             <span className="bg-orange-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full leading-none">
               🎯 Oferta hoy
@@ -159,8 +167,10 @@ export function ResultCard({
         </div>
         <p className="text-xs text-neutral-400 mb-3">{restaurant.neighborhood} · {restaurant.cuisine_type}</p>
 
-        {/* Carta — plato destacado + opcionales */}
-        {suggested_dish && (
+        {/* Carta — plato destacado + opcionales. Si no hay platos en DB
+            (restaurant agent_enriched sin website o pendiente de scrape),
+            mostramos placeholder honesto en lugar de inventar un plato. */}
+        {suggested_dish ? (
           <div className="bg-[#FAFAF8] rounded-xl px-3 pt-2 pb-1">
             <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-medium mb-1">
               Chapi sugiere
@@ -168,7 +178,6 @@ export function ResultCard({
 
             <DishRow dish={suggested_dish} highlight />
 
-            {/* Otros platos — expandibles */}
             {hasExtras && expanded && (
               <div className="mt-1">
                 {extraDishes.map(dish => (
@@ -177,7 +186,6 @@ export function ResultCard({
               </div>
             )}
 
-            {/* Toggle ver más / menos — stop propagation so Link doesn't fire */}
             {hasExtras && (
               <button
                 onClick={e => { e.preventDefault(); setExpanded(v => !v) }}
@@ -189,6 +197,13 @@ export function ResultCard({
                 }
               </button>
             )}
+          </div>
+        ) : (
+          <div className="bg-[#FAFAF8] rounded-xl px-3 py-2.5 text-center">
+            <p className="text-[11px] text-neutral-400 leading-relaxed">
+              Carta aún no disponible
+              {restaurant.claimed === false && ' — el dueño todavía no se sumó'}
+            </p>
           </div>
         )}
       </div>
