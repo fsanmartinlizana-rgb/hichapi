@@ -360,6 +360,7 @@ async function fetchAndFilter(
 
       const hasBudget  = intent.budget_clp != null
       const hasDietary = (intent.dietary_restrictions?.length ?? 0) > 0
+      const hasMenuInDb = items.length > 0  // ¿el restaurant tiene carta cargada?
 
       if (hasBudget) {
         candidateItems = candidateItems.filter(item => item.price <= intent.budget_clp!)
@@ -372,11 +373,18 @@ async function fetchAndFilter(
         )
       }
 
-      // Solo descartamos el restaurant si el USER pidió filtros de menú
-      // (budget/dietary) Y nada satisface. Si pidió solo cuisine/zone, el
-      // restaurant aparece igual aunque tenga 0 items en DB — la card
-      // muestra "Carta aún no disponible" en lugar de plato fake.
-      if ((hasBudget || hasDietary) && candidateItems.length === 0) return null
+      // Reglas de descarte:
+      // - Sin menú en DB + budget pedido → INCLUIR. No podemos saber si
+      //   entra en budget, pero la honestidad correcta es mostrar el lugar
+      //   con caveat "Carta pendiente" en lugar de descartar al ciego.
+      //   El user puede llamar para confirmar precios.
+      // - Sin menú en DB + dietary pedido → DESCARTAR. No podemos garantizar
+      //   que tengan opciones sin gluten/veganas si no conocemos su carta.
+      //   Mostrar sería deshonesto y pondría en riesgo a celíacos.
+      // - Con menú en DB + ningún item satisface filtros → DESCARTAR
+      //   (sabemos que su carta no aplica).
+      if (hasMenuInDb && (hasBudget || hasDietary) && candidateItems.length === 0) return null
+      if (!hasMenuInDb && hasDietary) return null
 
       const sortedItems = [...candidateItems].sort((a, b) => b.price - a.price)
       const bestDish: MenuItem | null = sortedItems[0] ?? null
