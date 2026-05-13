@@ -276,8 +276,31 @@ export async function POST(req: NextRequest) {
           searched_but_empty:        claudeSaysReady && !chapiResponse.needs_location && out.results.length === 0,
         })
       } catch (err) {
+        // Garantía "nunca falle una respuesta": en lugar de error escueto,
+        // emitimos un 'done' minimal con mensaje útil y intent vacío. El
+        // frontend lo procesa como respuesta normal y muestra al user un
+        // mensaje claro en lugar de dejar el chat mudo.
         console.error('Chat stream error:', err)
-        await send('error', { message: 'Error procesando tu mensaje. Intenta de nuevo.' })
+        try {
+          await send('done', {
+            message: 'Tuve un problema procesando eso. ¿Podés decírmelo de otra forma? (Ej: "italiana en Providencia 25 mil")',
+            intent: {},
+            results: [],
+            ready_to_search: false,
+            needs_location: false,
+            no_results_in_zone: false,
+            claude_was_ready: false,
+            alternatives_in_zone_count: 0,
+            resolved_zone: null,
+            failure_reason: null,
+            suggestions: [],
+            searched_but_empty: false,
+          })
+        } catch {
+          // Si ni siquiera podemos emitir el done de fallback, mandamos
+          // error. El frontend tiene catch para no dejar mudo.
+          await send('error', { message: 'Error procesando tu mensaje. Intenta de nuevo.' })
+        }
       } finally {
         await writer.close()
       }

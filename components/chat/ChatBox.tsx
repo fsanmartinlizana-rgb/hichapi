@@ -75,23 +75,31 @@ interface ChatBoxProps {
 }
 
 // ── Typing dots animation ────────────────────────────────────────────────────
+// 3 puntos naranja brand parpadeando con delay escalonado (animación blink
+// CSS pura). Wrapper marcado aria-live=polite para anuncio del screen reader.
 function TypingDots() {
   return (
-    <span className="inline-flex items-center gap-1 px-1">
+    <span
+      role="status"
+      aria-live="polite"
+      aria-label="Chapi está pensando"
+      className="inline-flex items-center gap-1 px-1"
+    >
       {[0, 1, 2].map(i => (
         <span
           key={i}
+          aria-hidden="true"
           className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]"
           style={{
-            animation: 'chapi-bounce 1.2s ease-in-out infinite',
+            animation: 'chapi-blink 1.2s ease-in-out infinite',
             animationDelay: `${i * 0.2}s`,
           }}
         />
       ))}
       <style>{`
-        @keyframes chapi-bounce {
-          0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
-          30%            { transform: translateY(-5px); opacity: 1; }
+        @keyframes chapi-blink {
+          0%, 80%, 100% { opacity: 0.2; }
+          40%            { opacity: 1; }
         }
       `}</style>
     </span>
@@ -341,15 +349,29 @@ export function ChatBox({
               }
 
             } else if (event === 'error') {
+              // Server emitió error explícito (Claude down, parse failure,
+              // etc.). Mostramos mensaje del bot honesto en lugar de dejar
+              // al user sin respuesta. Garantía: el chat NUNCA queda mudo.
               setWaiting(false)
-              onStatusChange(data.message)
+              setChapiMessage(
+                data?.message ??
+                'Tuve un problema procesando tu pedido. ¿Podés decírmelo de otra forma? (Si pasa de nuevo, escribinos a hola@hichapi.cl)'
+              )
+              onStatusChange('')
             }
           }
         }
       }
-    } catch {
+    } catch (err) {
+      // Network error, timeout, JSON parse de chunks, etc. Cualquier falla
+      // que llegue acá igual le devuelve UNA respuesta al user para que
+      // sepa qué pasó y cómo continuar.
       setWaiting(false)
-      onStatusChange('Algo salió mal. Intenta de nuevo.')
+      setChapiMessage(
+        'Se cortó la conexión por un segundo. Intentá de nuevo en un ratito 🛠️'
+      )
+      onStatusChange('')
+      console.error('[ChatBox] sendMessage failed:', err)
     } finally {
       setLoading(false)
       onLoadingChange?.(false)
@@ -395,7 +417,7 @@ export function ChatBox({
           <span
             className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 inline-flex items-center gap-1 border border-neutral-100"
           >
-            <span className="font-medium text-[#FF6B35]">Chapi</span>
+            <span className="font-medium text-[#FF6B35]">Chapi:</span>
             <TypingDots />
           </span>
         ) : chapiMessage ? (

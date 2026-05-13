@@ -477,26 +477,36 @@ export default function Home() {
             ocupar espacio. */}
         {!showResultsSection && (
           <div className="mt-6 max-w-2xl w-full px-4">
-            <div className="bg-white/60 backdrop-blur-sm rounded-2xl border border-neutral-100 px-5 py-4">
-              <p className="text-xs text-neutral-500 text-center mb-3">
+            <div className="bg-white/70 backdrop-blur-sm rounded-2xl border border-neutral-200 px-6 py-5">
+              <p className="text-lg font-semibold text-[#1A1A2E] text-center mb-4">
                 Para resultados precisos, cuéntale a Chapi:
               </p>
-              <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
-                <span className="flex items-center gap-1.5 text-neutral-600">
-                  <span className="text-base">🍴</span>
-                  <span><strong className="text-[#1A1A2E]">Qué cocina</strong> <span className="text-neutral-400">(italiana, sushi, vegana...)</span></span>
+              <div className="flex flex-col sm:flex-row sm:flex-wrap items-start sm:items-center sm:justify-center gap-y-3 sm:gap-x-6 sm:gap-y-2">
+                <span className="flex items-center gap-2 text-base text-slate-800">
+                  <span className="text-xl" aria-hidden="true">🍴</span>
+                  <span>
+                    <strong className="font-semibold text-[#1A1A2E]">Qué cocina</strong>{' '}
+                    <span className="text-slate-600 text-sm">(italiana, sushi, vegana...)</span>
+                  </span>
                 </span>
-                <span className="flex items-center gap-1.5 text-neutral-600">
-                  <span className="text-base">📍</span>
-                  <span><strong className="text-[#1A1A2E]">Dónde</strong> <span className="text-neutral-400">(Providencia, cerca de mí...)</span></span>
+                <span className="flex items-center gap-2 text-base text-slate-800">
+                  <span className="text-xl" aria-hidden="true">📍</span>
+                  <span>
+                    <strong className="font-semibold text-[#1A1A2E]">Dónde</strong>{' '}
+                    <span className="text-slate-600 text-sm">(Providencia, cerca de mí...)</span>
+                  </span>
                 </span>
-                <span className="flex items-center gap-1.5 text-neutral-600">
-                  <span className="text-base">💰</span>
-                  <span><strong className="text-[#1A1A2E]">Cuánto</strong> <span className="text-neutral-400">(15 lucas, 30 mil...)</span></span>
+                <span className="flex items-center gap-2 text-base text-slate-800">
+                  <span className="text-xl" aria-hidden="true">💰</span>
+                  <span>
+                    <strong className="font-semibold text-[#1A1A2E]">Cuánto</strong>{' '}
+                    <span className="text-slate-600 text-sm">(15 lucas, 30 mil...)</span>
+                  </span>
                 </span>
               </div>
-              <p className="text-[10px] text-neutral-400 text-center mt-3 italic">
-                Mientras más detalle, mejor recomendación. Si pides solo uno, te muestro lo más popular.
+              <p className="text-sm text-slate-700 text-center mt-4">
+                Mientras más detalle, mejor recomendación.{' '}
+                <span className="text-slate-600">Si pides solo uno, te muestro lo más popular.</span>
               </p>
             </div>
           </div>
@@ -577,10 +587,13 @@ export default function Home() {
         </section>
       )}
 
-      <footer className="text-center pb-8 text-xs text-neutral-300 space-y-1.5">
+      <footer className="text-center pb-10 text-sm text-slate-500 space-y-2">
         <p>HiChapi · Santiago, Chile</p>
         <p>
-          <Link href="/register" className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2">
+          <Link
+            href="/register"
+            className="text-slate-700 hover:text-[#FF6B35] transition-colors underline underline-offset-2 font-medium"
+          >
             ¿Eres dueño de un restaurante? Súmate a Chapi →
           </Link>
         </p>
