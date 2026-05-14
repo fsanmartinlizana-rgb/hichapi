@@ -21,6 +21,9 @@ export interface Restaurant {
    *  el flujo de override: si es 'owner_upload', el agente nunca toca. */
   photo_source?: 'google_places' | 'owner_upload' | 'placeholder' | null
   claimed?: boolean | null
+  /** Necesario para detectar "claim heredado": claimed=true pero sin
+   *  owner_id real son rows viejas de seeds; el flag solo no es confiable. */
+  owner_id?: string | null
 }
 
 export interface MenuItem {

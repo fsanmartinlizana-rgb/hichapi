@@ -50,6 +50,10 @@ interface RestaurantData {
   price_range: string
   active: boolean
   claimed: boolean
+  /** El flag `claimed` sola no es confiable: hay rows heredadas de seeds
+   *  con `claimed=true` pero `owner_id=null` (regresión del default antiguo
+   *  `DEFAULT true`). Necesitamos el owner_id real para mostrar Reservar. */
+  owner_id: string | null
   data_source: 'manual' | 'agent_enriched' | 'owner_claimed' | null
   google_rating: number | null
   google_rating_count: number | null
@@ -80,7 +84,7 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .from('restaurants')
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
-      address, photo_url, gallery_urls, price_range, active, claimed,
+      address, photo_url, gallery_urls, price_range, active, claimed, owner_id,
       data_source, google_rating, google_rating_count, google_reviews,
       photo_source, google_photo_attribution,
       menu_items (id, name, description, price, category, tags, available, photo_url)
@@ -391,11 +395,13 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
 }
 
 function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
-  // Si el restaurant aún no fue reclamado por el dueño, NO mostramos
-  // "Reservar mesa" — la reserva se gestiona en el panel del owner y no
-  // existe sin él. Mostramos un mensaje honesto y dejamos visible el CTA
-  // de claim que ya está en otro lado de la página.
-  if (!restaurant.claimed) {
+  // "Reclamado de verdad" requiere claimed=true Y owner_id presente.
+  // El flag `claimed` solo no es confiable: hay rows heredadas con
+  // claimed=true pero sin owner_id real (regresión de un default antiguo).
+  // Sin owner, no hay panel donde gestionar reservas — mejor no ofrecerlas.
+  const hasRealOwner = restaurant.claimed && restaurant.owner_id != null
+
+  if (!hasRealOwner) {
     return (
       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-3">
         <h3 className="font-bold text-[#1A1A2E] text-base">¿Querés ir?</h3>
@@ -659,8 +665,10 @@ export default async function RestaurantPage({
         </section>
 
         {/* Badge de información generada automáticamente — el restaurant fue
-            descubierto por el agente de enriquecimiento, no por su dueño. */}
-        {restaurant.data_source === 'agent_enriched' && !restaurant.claimed && (
+            descubierto por el agente de enriquecimiento, no por su dueño.
+            "Reclamado de verdad" = claimed + owner_id real (no flag heredado). */}
+        {restaurant.data_source === 'agent_enriched' &&
+          !(restaurant.claimed && restaurant.owner_id != null) && (
           <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 flex items-start gap-3">
             <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
             <div className="space-y-1">
@@ -739,8 +747,11 @@ export default async function RestaurantPage({
         {/* ── Quick info bar ── */}
         <QuickInfoBar restaurant={restaurant} />
 
-        {/* ── Claim banner for unclaimed restaurants ── */}
-        {!restaurant.claimed && <ClaimBanner slug={restaurant.slug} />}
+        {/* Claim banner: ofrecemos reclamar también cuando claimed=true pero
+            sin owner real (data heredada de seeds antiguos). */}
+        {!(restaurant.claimed && restaurant.owner_id != null) && (
+          <ClaimBanner slug={restaurant.slug} />
+        )}
 
         {/* ── Main 2-col layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">

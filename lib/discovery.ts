@@ -34,6 +34,7 @@ export type ResultRestaurant = {
     google_rating_count: number | null
     photo_source: 'google_places' | 'owner_upload' | 'placeholder' | null
     claimed: boolean | null
+    owner_id: string | null
   }
   suggested_dish: MenuItem | null
   menu_items: MenuItem[]
@@ -285,6 +286,7 @@ type RawRow = {
   google_rating: number | null; google_rating_count: number | null
   photo_source: 'google_places' | 'owner_upload' | 'placeholder' | null
   claimed: boolean | null
+  owner_id: string | null
   menu_items: MenuItem[] | null
 }
 
@@ -304,7 +306,7 @@ async function fetchAndFilter(
 
   let baseSelect = sb
     .from('restaurants')
-    .select(`id, name, slug, address, neighborhood, lat, lng, photo_url, cuisine_type, price_range, rating, review_count, google_rating, google_rating_count, photo_source, claimed,
+    .select(`id, name, slug, address, neighborhood, lat, lng, photo_url, cuisine_type, price_range, rating, review_count, google_rating, google_rating_count, photo_source, claimed, owner_id,
              menu_items (id, name, description, price, tags, photo_url, available, category)`)
     .eq('active', true)
 
@@ -410,6 +412,7 @@ async function fetchAndFilter(
           google_rating_count: restaurant.google_rating_count ?? null,
           photo_source: restaurant.photo_source ?? null,
           claimed: restaurant.claimed ?? null,
+          owner_id: restaurant.owner_id ?? null,
         },
         suggested_dish: bestDish,
         menu_items: menuItems,

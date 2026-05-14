@@ -102,8 +102,9 @@ export function ResultCard({
           </span>
         )}
 
-        {/* Badge "Por confirmar" para restaurants no claimed sin foto del owner */}
-        {!restaurant.claimed && (
+        {/* Badge "Por confirmar" cuando no hay owner real. Un flag claimed=true
+            heredado sin owner_id NO cuenta como reclamado. */}
+        {!(restaurant.claimed && restaurant.owner_id) && (
           <span className="absolute bottom-2 left-2 text-[10px] font-medium text-amber-900 bg-amber-100/95 px-1.5 py-0.5 rounded backdrop-blur-sm">
             Por confirmar
           </span>
@@ -202,7 +203,7 @@ export function ResultCard({
           <div className="bg-[#FAFAF8] rounded-xl px-3 py-2.5 text-center">
             <p className="text-[11px] text-neutral-400 leading-relaxed">
               Carta aún no disponible
-              {restaurant.claimed === false && ' — el dueño todavía no se sumó'}
+              {!(restaurant.claimed && restaurant.owner_id) && ' — el dueño todavía no se sumó'}
             </p>
           </div>
         )}
