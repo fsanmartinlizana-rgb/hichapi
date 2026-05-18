@@ -359,23 +359,12 @@ async function fetchAndFilter(
     })
   }
 
-  // ── Dish keyword: "quiero salmón en Providencia" ─────────────────────────
-  // Filtramos restaurants cuyo menú contenga el término en name/description.
-  // Si el restaurant NO tiene menú cargado (agent_enriched sin scrape),
-  // lo INCLUIMOS (mismo principio que budget: mejor mostrar con caveat que
-  // descartar al ciego — el cuisine_type matchea, podría tener el plato).
+  // ── Dish keyword: filtro estricto se aplica dentro del map() abajo,
+  // DESPUÉS de budget y dietary. Razón: si pidió "salmón hasta 15k" y el
+  // único item con salmón cuesta 25k, NO queremos mostrar el restaurant
+  // con un plato distinto — sería engañoso. Acá solo declaramos la
+  // intención; el filtro real vive donde sabemos qué items sobreviven.
   const dish = intent.dish_keyword?.trim()
-  if (dish && dish.length >= 2) {
-    const d = stripAccents(dish)
-    filtered = filtered.filter(r => {
-      const items = r.menu_items ?? []
-      if (items.length === 0) return true  // sin menu: incluir; user decide
-      return items.some(i => {
-        const hay = stripAccents(`${i.name ?? ''} ${i.description ?? ''}`)
-        return hay.includes(d)
-      })
-    })
-  }
 
   // Sort priorizado:
   // - Si hay user_lat/lng: por distancia ascendente (más cerca primero).
@@ -421,11 +410,21 @@ async function fetchAndFilter(
       //   El user puede llamar para confirmar precios.
       // - Sin menú en DB + dietary pedido → DESCARTAR. No podemos garantizar
       //   que tengan opciones sin gluten/veganas si no conocemos su carta.
-      //   Mostrar sería deshonesto y pondría en riesgo a celíacos.
-      // - Con menú en DB + ningún item satisface filtros → DESCARTAR
-      //   (sabemos que su carta no aplica).
+      // - Sin menú en DB + dish pedido → INCLUIR con caveat (carta sin
+      //   cargar — confirmá si tienen X). El user puede llamar.
+      // - Con menú en DB + ningún item satisface filtros → DESCARTAR.
+      // - Con menú en DB + dish pedido + NINGÚN candidato (post budget/dietary)
+      //   contiene el dish → DESCARTAR. Mostrar el restaurant con otro plato
+      //   es engañoso ("dice que tiene salmón pero la card muestra ravioli").
       if (hasMenuInDb && (hasBudget || hasDietary) && candidateItems.length === 0) return null
       if (!hasMenuInDb && hasDietary) return null
+      if (hasMenuInDb && dish) {
+        const d = stripAccents(dish)
+        const hasMatchInBudget = candidateItems.some(i =>
+          stripAccents(`${i.name ?? ''} ${i.description ?? ''}`).includes(d)
+        )
+        if (!hasMatchInBudget) return null
+      }
 
       // Sort de candidateItems: si user pidió dish_keyword, los items que
       // lo contengan van primero (suggested_dish va a ser uno relevante).
@@ -528,7 +527,11 @@ export async function searchRestaurants(
     ...intent,
     zone:  resolvedZone,
     zones: resolvedZones.length > 0 ? resolvedZones : null,
+    // ignoreCuisine = "ver alternativas en zona" opt-in del user. Significa
+    // "muéstrame TODO lo de la zona, sin filtrar por qué pedí comer".
+    // Por eso ignoramos tanto cuisine_type como dish_keyword.
     cuisine_type: opts.ignoreCuisine ? null : intent.cuisine_type,
+    dish_keyword: opts.ignoreCuisine ? null : intent.dish_keyword,
   }
 
   let results: ResultRestaurant[] = []

@@ -119,7 +119,10 @@ function ContextualNoResultsBanner({
   )
 }
 
-// ── Banner opt-in: hay zona con restaurants, pero ninguno de la cuisine pedida
+// ── Banner opt-in: hay zona con restaurants, pero ninguno satisface el
+// plato o cuisine pedido. Copy diferenciado: si es un plato específico
+// ("salmón"), el subtítulo dice "Pero hay X restaurants en la zona"; si
+// es una cuisine ("italiana"), dice "Pero hay X de otras cocinas".
 function NoCuisineMatchBanner({
   info,
   onShowAlternatives,
@@ -129,17 +132,20 @@ function NoCuisineMatchBanner({
   onShowAlternatives: () => void
   onReset: () => void
 }) {
+  const isDish = info.kind === 'dish'
+  const title = isDish
+    ? `No encontré ${info.what} en ${info.zone}`
+    : `No tengo ${info.what} en ${info.zone}`
+  const subtitle = isDish
+    ? `Pero sí hay ${info.alternatives_count} restaurant${info.alternatives_count !== 1 ? 's' : ''} en ${info.zone}. ¿Querés ver toda la oferta?`
+    : `Pero sí hay ${info.alternatives_count} restaurant${info.alternatives_count !== 1 ? 's' : ''} de otras cocinas en ${info.zone}. ¿Quieres verlos?`
+
   return (
     <div className="max-w-md mx-auto px-4 text-center py-12">
       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8">
         <SearchX size={40} className="mx-auto mb-4 text-neutral-300" strokeWidth={1.5} />
-        <h3 className="font-semibold text-[#1A1A2E] mb-2">
-          No tengo {info.cuisine} en {info.zone}
-        </h3>
-        <p className="text-sm text-neutral-400 mb-6 leading-relaxed">
-          Pero sí hay {info.alternatives_count} restaurant{info.alternatives_count !== 1 ? 's' : ''} de otras cocinas en {info.zone}.
-          ¿Quieres verlos?
-        </p>
+        <h3 className="font-semibold text-[#1A1A2E] mb-2">{title}</h3>
+        <p className="text-sm text-neutral-400 mb-6 leading-relaxed">{subtitle}</p>
         <div className="flex flex-col gap-2">
           <button
             onClick={onShowAlternatives}

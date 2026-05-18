@@ -24,12 +24,17 @@ const ZONE_CHIPS = [
   'Vitacura',
 ]
 
-/** Cuando hay zone pedida, no hay matches con la cuisine pedida y SÍ hay otros
- *  restaurants en la zona, ofrecemos al user "ver {N} otras opciones en {zone}".
- *  Es opt-in explícito — nunca mezclamos cuisines silenciosamente. */
+/** Cuando hay zone pedida, no hay matches con lo que el user pidió (cuisine
+ *  o un plato específico) y SÍ hay otros restaurants en la zona, ofrecemos
+ *  al user "ver {N} otras opciones en {zone}". Opt-in explícito — nunca
+ *  mezclamos cuisines/platos silenciosamente. */
 export interface NoCuisineMatchInfo {
   zone:                string
-  cuisine:             string
+  /** Lo que el user pidió y NO encontramos. Puede ser una cuisine
+   *  ("italiana") o un plato específico ("salmón"). El frontend usa
+   *  `kind` para mostrar el copy correcto. */
+  what:                string
+  kind:                'cuisine' | 'dish'
   alternatives_count:  number
   query_original:      string
 }
@@ -283,16 +288,19 @@ export function ChatBox({
                   alternatives_count:   data.alternatives_in_zone_count ?? 0,
                 })
               } else if (data.no_results_in_zone && claudeReady && !opts?.isRetry) {
-                // ── Auto-enrich: zona conocida pero sin restaurants para
-                // este cuisine en DB. Disparamos el agente y reintentamos.
-                // Si tras el retry tampoco hay matches pero la zona tiene
-                // OTROS restaurants, ofrecemos al user "ver alternativas"
-                // (opt-in explícito, nunca mezclamos cuisines silenciosamente).
-                const zoneLabel = data.intent?.zone ?? data.resolved_zone ?? 'esa zona'
+                // ── Auto-enrich: zona conocida pero sin matches para lo que
+                // el user pidió (cuisine o dish específico). Disparamos el
+                // agente y reintentamos. Si tras el retry tampoco hay matches
+                // pero la zona tiene OTROS restaurants, ofrecemos opt-in.
+                const zoneLabel    = data.intent?.zone ?? data.resolved_zone ?? 'esa zona'
                 const cuisineLabel = data.intent?.cuisine_type ?? null
+                const dishLabel    = data.intent?.dish_keyword ?? null
+                // El "what" prioriza dish específico sobre cuisine genérica:
+                // si pidió salmón + japonesa, "no encontré salmón" es más útil.
+                const whatLabel    = dishLabel ?? cuisineLabel
                 setChapiMessage(
-                  cuisineLabel
-                    ? `No encontré ${cuisineLabel} en ${zoneLabel}. Estoy buscando más opciones para ti...`
+                  whatLabel
+                    ? `No encontré ${whatLabel} en ${zoneLabel}. Estoy buscando más opciones para ti...`
                     : `No encontré restaurantes en ${zoneLabel}. Estoy buscando más opciones para ti...`
                 )
                 onLoadingChange?.(false)
@@ -314,12 +322,14 @@ export function ChatBox({
                       // Pequeño delay para que el finally del SSE actual marque
                       // loading=false antes del retry.
                       setTimeout(() => sendMessage(message, { isRetry: true }), 120)
-                    } else if (cuisineLabel && (data.alternatives_in_zone_count ?? 0) > 0) {
-                      // Hay restaurants en zona pero ninguno de la cuisine
-                      // pedida. Ofrecer al user opt-in para ver alternativas.
+                    } else if ((dishLabel || cuisineLabel) && (data.alternatives_in_zone_count ?? 0) > 0) {
+                      // Hay restaurants en zona pero ninguno satisface el
+                      // plato/cocina pedido. Ofrecer opt-in para ver toda
+                      // la oferta de la zona (ignora cuisine + dish).
                       onNoCuisineMatchInZone?.({
                         zone:               zoneLabel,
-                        cuisine:            cuisineLabel,
+                        what:               (dishLabel ?? cuisineLabel)!,
+                        kind:               dishLabel ? 'dish' : 'cuisine',
                         alternatives_count: data.alternatives_in_zone_count!,
                         query_original:     message,
                       })
@@ -332,15 +342,18 @@ export function ChatBox({
                 data.no_results_in_zone &&
                 claudeReady &&
                 opts?.isRetry &&
-                data.intent?.cuisine_type &&
+                (data.intent?.cuisine_type || data.intent?.dish_keyword) &&
                 (data.alternatives_in_zone_count ?? 0) > 0
               ) {
                 // Caso post-retry: tampoco hay matches específicos pero hay
-                // alternativas en la zona. Ofrecer opt-in.
+                // alternativas en la zona. Ofrecer opt-in (dish > cuisine).
                 const zoneLabel = data.intent?.zone ?? data.resolved_zone ?? 'esa zona'
+                const dish = data.intent?.dish_keyword ?? null
+                const cuisine = data.intent?.cuisine_type ?? null
                 onNoCuisineMatchInZone?.({
                   zone:               zoneLabel,
-                  cuisine:            data.intent.cuisine_type,
+                  what:               (dish ?? cuisine)!,
+                  kind:               dish ? 'dish' : 'cuisine',
                   alternatives_count: data.alternatives_in_zone_count!,
                   query_original:     message,
                 })
