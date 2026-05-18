@@ -439,8 +439,20 @@ async function fetchAndFilter(
         }
         return b.price - a.price
       })
-      const bestDish: MenuItem | null = sortedItems[0] ?? null
-      const menuItems = sortedItems.slice(0, 3)
+
+      // Si user pidió dish: solo mostramos items que matchean. No rellenamos
+      // con items random (ej. vinos) — eso confundía al user que pedía salmón.
+      // Si no hay dish: hasta 8 items para que el "Ver X más" tenga material.
+      let menuItems: MenuItem[]
+      if (dishNorm) {
+        const matchingItems = sortedItems.filter(i =>
+          stripAccents(`${i.name ?? ''} ${i.description ?? ''}`).includes(dishNorm)
+        )
+        menuItems = matchingItems.slice(0, 8)
+      } else {
+        menuItems = sortedItems.slice(0, 8)
+      }
+      const bestDish: MenuItem | null = menuItems[0] ?? sortedItems[0] ?? null
 
       // matchReason — siempre fidedigno: indicamos POR QUÉ lo recomendamos.
       let matchReason: string

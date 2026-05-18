@@ -19,13 +19,28 @@ interface ResultsMapProps {
 export const ResultsMap = memo(function ResultsMap({ results }: ResultsMapProps) {
   const mapContainer = useRef<HTMLDivElement>(null)
   const mapRef       = useRef<any>(null)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const markersRef   = useRef<any[]>([])
   const token        = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 
   useEffect(() => {
-    if (!token || !mapContainer.current || mapRef.current) return
+    if (!token || !mapContainer.current) return
 
-    const validResults = results.filter(r => r.restaurant.lat && r.restaurant.lng)
+    const validResults = results.filter(r =>
+      typeof r.restaurant.lat === 'number' &&
+      typeof r.restaurant.lng === 'number' &&
+      Number.isFinite(r.restaurant.lat) &&
+      Number.isFinite(r.restaurant.lng)
+    )
     if (validResults.length === 0) return
+
+    // Si el mapa ya existe (re-render con nuevos results), limpiamos los
+    // markers previos en vez de re-crear el mapa entero.
+    if (mapRef.current) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      markersRef.current.forEach((m: any) => m.remove())
+      markersRef.current = []
+    }
 
     // ─── Rule 9: Track map loads ───────────────────────────────────────────
     mapLoadCount++
@@ -37,26 +52,10 @@ export const ResultsMap = memo(function ResultsMap({ results }: ResultsMapProps)
     const avgLat = validResults.reduce((s, r) => s + r.restaurant.lat, 0) / validResults.length
     const avgLng = validResults.reduce((s, r) => s + r.restaurant.lng, 0) / validResults.length
 
-    import('mapbox-gl').then(({ default: mapboxgl }) => {
-      if (!mapContainer.current || mapRef.current) return
-
-      mapboxgl.accessToken = token
-
-      const map = new mapboxgl.Map({
-        container: mapContainer.current,
-        style: 'mapbox://styles/mapbox/light-v11',
-        center: [avgLng, avgLat],
-        zoom: 13,
-        trackResize: false,
-      })
-
-      mapRef.current = map
-      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
-
-      map.on('load', () => {
-        map.resize()
-
-        validResults.forEach((result, i) => {
+    // Helper: agrega los markers al mapa actual (sea recién creado o ya
+    // existente). Se llama desde dos lugares: en init y en re-render.
+    function addMarkers(mapboxgl: typeof import('mapbox-gl').default, map: import('mapbox-gl').Map) {
+      validResults.forEach((result, i) => {
           const { restaurant } = result
 
           // ── Card-style marker ──────────────────────────────────────────
@@ -189,41 +188,77 @@ export const ResultsMap = memo(function ResultsMap({ results }: ResultsMapProps)
 
           // anchor:'bottom' — the triangle tip (bottom of the flex column) sits
           // exactly on the restaurant's coordinate. No offset needed.
-          new mapboxgl.Marker({ element: el, anchor: 'bottom' })
-            .setLngLat([restaurant.lng, restaurant.lat])
+          const marker = new mapboxgl.Marker({ element: el, anchor: 'bottom' })
+            .setLngLat([restaurant.lng as number, restaurant.lat as number])
             .setPopup(popup)
             .addTo(map)
+          markersRef.current.push(marker)
         })
 
         // Fit all markers with a small delay so DOM is ready
         setTimeout(() => {
           if (validResults.length === 1) {
             map.flyTo({
-              center: [validResults[0].restaurant.lng, validResults[0].restaurant.lat],
+              center: [validResults[0].restaurant.lng as number, validResults[0].restaurant.lat as number],
               zoom: 15,
               duration: 800,
             })
           } else {
+            const first: [number, number] = [
+              validResults[0].restaurant.lng as number,
+              validResults[0].restaurant.lat as number,
+            ]
             const bounds = validResults.reduce(
-              (b, r) => b.extend([r.restaurant.lng, r.restaurant.lat]),
-              new mapboxgl.LngLatBounds(
-                [validResults[0].restaurant.lng, validResults[0].restaurant.lat],
-                [validResults[0].restaurant.lng, validResults[0].restaurant.lat],
-              )
+              (b, r) => b.extend([r.restaurant.lng as number, r.restaurant.lat as number]),
+              new mapboxgl.LngLatBounds(first, first)
             )
             map.fitBounds(bounds, { padding: 80, maxZoom: 15, duration: 800 })
           }
         }, 120)
+    }
+
+    import('mapbox-gl').then(({ default: mapboxgl }) => {
+      if (!mapContainer.current) return
+
+      // Si el mapa ya fue creado (cambio de results), solo agregamos los
+      // nuevos markers. No reinicializamos.
+      if (mapRef.current) {
+        addMarkers(mapboxgl, mapRef.current)
+        return
+      }
+
+      mapboxgl.accessToken = token
+      const map = new mapboxgl.Map({
+        container: mapContainer.current,
+        style: 'mapbox://styles/mapbox/light-v11',
+        center: [avgLng, avgLat],
+        zoom: 13,
+        trackResize: false,
+      })
+      mapRef.current = map
+      map.addControl(new mapboxgl.NavigationControl({ showCompass: false }), 'top-right')
+
+      map.on('load', () => {
+        map.resize()
+        addMarkers(mapboxgl, map)
       })
     })
 
+    // No destruir el mapa en cada update — solo en unmount real. El cleanup
+    // de markers en cada update sucede al inicio del effect (antes de
+    // agregar los nuevos).
+    return undefined
+  }, [results, token])
+
+  // Unmount real: destruye el mapa cuando ResultsMap deja de montarse.
+  useEffect(() => {
     return () => {
       if (mapRef.current) {
         mapRef.current.remove()
         mapRef.current = null
       }
+      markersRef.current = []
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   if (!token) return null

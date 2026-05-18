@@ -69,20 +69,31 @@ export const claudeCache = new TTLCache<{
 type Intent = {
   budget_clp?: number | null
   zone?: string | null
+  zones?: string[] | null
   dietary_restrictions?: string[] | null
   cuisine_type?: string | null
+  dish_keyword?: string | null
 }
 
 /**
  * Clave determinista para resultados de Supabase.
- * Normaliza todos los campos para que "Providencia" y "providencia" den la misma clave.
+ * Normaliza todos los campos para que "Providencia" y "providencia" den la
+ * misma clave. Incluye zones[] (multi-zona OR) y dish_keyword — sin estos
+ * dos campos, búsquedas con distintas zonas/platos colisionaban en cache.
  */
 export function intentCacheKey(intent: Intent): string {
+  // Normalizar zones: union de zone (legacy) + zones[] en un set ordenado.
+  const zSet = new Set<string>()
+  if (intent.zone)  zSet.add(intent.zone.toLowerCase().trim())
+  for (const z of intent.zones ?? []) {
+    if (z) zSet.add(z.toLowerCase().trim())
+  }
   return JSON.stringify({
-    z: intent.zone?.toLowerCase().trim() || null,
-    c: intent.cuisine_type?.toLowerCase().trim() || null,
-    b: intent.budget_clp ? Math.floor(intent.budget_clp / 1000) * 1000 : null, // bucketing de ±1000 CLP
-    d: [...(intent.dietary_restrictions || [])].map(r => r.toLowerCase()).sort(),
+    z:  [...zSet].sort(),                                                     // multi-zona OR
+    c:  intent.cuisine_type?.toLowerCase().trim() || null,
+    dk: intent.dish_keyword?.toLowerCase().trim() || null,                    // plato específico
+    b:  intent.budget_clp ? Math.floor(intent.budget_clp / 1000) * 1000 : null, // bucket ±1k
+    d:  [...(intent.dietary_restrictions || [])].map(r => r.toLowerCase()).sort(),
   })
 }
 
