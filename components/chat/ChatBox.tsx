@@ -402,17 +402,25 @@ export function ChatBox({
   // se muestran cuando hay AL MENOS un dato y Chapi ya respondió algo.
   const intentPills: { icon: string; text: string; captured: boolean }[] = (() => {
     const out: { icon: string; text: string; captured: boolean }[] = []
-    // Cuisine + dish específico (si lo hay)
     const intentAny = intent as ChapiIntent & { dish_keyword?: string | null; zones?: string[] | null }
+
+    // Dish específico (más específico que cuisine)
     const dish = intentAny.dish_keyword?.trim() || null
     if (dish) {
       out.push({ icon: '🥢', text: dish, captured: true })
     }
+    // Cuisine general
     out.push({
       icon: '🍴',
       text: intent.cuisine_type ?? 'cocina',
       captured: !!intent.cuisine_type,
     })
+    // Restricciones dietarias — pill por cada restricción capturada
+    // (vegano, sin gluten, etc.). Importante para que el user verifique
+    // que Chapi entendió bien "sin gluten + vegetariano" como dos cosas.
+    for (const d of intent.dietary_restrictions ?? []) {
+      out.push({ icon: '🌱', text: d, captured: true })
+    }
     // Zona — multi-zona si hay >1
     const zonesArr = intentAny.zones && intentAny.zones.length > 0
       ? intentAny.zones

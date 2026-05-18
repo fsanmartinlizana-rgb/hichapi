@@ -396,10 +396,23 @@ async function fetchAndFilter(
         candidateItems = candidateItems.filter(item => item.price <= intent.budget_clp!)
       }
       if (hasDietary) {
+        // El user pidió ej. "vegetariano AND sin gluten" — el item debe
+        // cumplir TODAS las restricciones (every), NO solo una (some).
+        // Bug previo: con some, una Cazuela de Vacuno con tag 'sin gluten'
+        // pasaba aunque no fuera vegetariana → engañoso al user.
+        //
+        // Normalización de género/número para matchear variantes:
+        //   "vegetariana" (intent) ↔ "Vegetariano" (tag)
+        //   "vegano" (intent) ↔ "Vegana" (tag)
+        // Quitamos tildes y sufijo trailing -a/-o para comparar raíces.
+        const normRestriction = (s: string) =>
+          stripAccents(s).replace(/[ao]$/, '').trim()
         candidateItems = candidateItems.filter(item =>
-          intent.dietary_restrictions!.some(r =>
-            item.tags?.some(tag => tag.toLowerCase().includes(r.toLowerCase()))
-          )
+          intent.dietary_restrictions!.every(r => {
+            const rNorm = normRestriction(r)
+            if (!rNorm) return true
+            return item.tags?.some(tag => normRestriction(tag).includes(rNorm))
+          })
         )
       }
 
