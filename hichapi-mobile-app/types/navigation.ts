@@ -211,6 +211,8 @@ export type RootStackParamList = {
   Main: undefined;
   /** Client flow — hosts the ClientStackNavigator */
   Client: undefined;
+  /** Rider flow — hosts the RiderNavigator */
+  Rider: undefined;
   /** Onboarding flow shown on first launch */
   Onboarding: undefined;
 };

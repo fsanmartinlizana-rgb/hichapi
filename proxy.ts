@@ -1,26 +1,40 @@
+/**
+ * proxy.ts
+ *
+ * Next.js Edge Proxy — JWT auth, role routing, and restaurant/rider context headers.
+ *
+ * Flow:
+ *  1. Validate JWT via supabase.auth.getUser()
+ *  2. For protected routes: query team_members to get role + restaurant_id
+ *  3. If no team_members row found, check rider_profiles → set rider headers
+ *  4. Propagate x-user-role, x-restaurant-id, x-user-id (or x-rider-id) to Server Components
+ *  5. Redirect unauthenticated users to /login
+ *  6. Redirect role-restricted users to their allowed home
+ */
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
 
 // ── Route access config ───────────────────────────────────────────────────────
 
-const PROTECTED  = [
-  '/dashboard','/comandas','/mesas','/carta','/garzon',
-  '/reporte','/analytics','/insights','/restaurante',
-  '/tono','/mermas','/stock','/turnos','/equipo',
+const PROTECTED = [
+  '/dashboard', '/comandas', '/mesas', '/carta', '/garzon',
+  '/reporte', '/analytics', '/insights', '/restaurante',
+  '/tono', '/mermas', '/stock', '/turnos', '/equipo',
+  '/delivery',
 ]
-const AUTH_ONLY  = ['/login','/register','/recuperar']
-const ADMIN_ONLY = ['/carta','/reporte','/analytics','/restaurante','/tono','/mermas','/stock','/turnos','/equipo']
-const ADMIN_ROLES = new Set(['owner','admin','super_admin'])
+const AUTH_ONLY  = ['/login', '/register', '/recuperar']
+const ADMIN_ONLY = ['/carta', '/reporte', '/analytics', '/restaurante', '/tono', '/mermas', '/stock', '/turnos', '/equipo']
+const ADMIN_ROLES = new Set(['owner', 'admin', 'super_admin'])
 
 // Where each role lands after login
 const ROLE_HOME: Record<string, string> = {
-  cocina:     '/comandas',
-  anfitrion:  '/mesas',
-  garzon:     '/garzon',
-  waiter:     '/garzon',
-  supervisor: '/dashboard',
-  admin:      '/dashboard',
-  owner:      '/dashboard',
+  cocina:      '/comandas',
+  anfitrion:   '/mesas',
+  garzon:      '/garzon',
+  waiter:      '/garzon',
+  supervisor:  '/dashboard',
+  admin:       '/dashboard',
+  owner:       '/dashboard',
   super_admin: '/dashboard',
 }
 
@@ -47,7 +61,7 @@ export async function proxy(req: NextRequest) {
           })
         },
       },
-    }
+    },
   )
 
   const { data: { user } } = await supabase.auth.getUser()
@@ -97,6 +111,25 @@ export async function proxy(req: NextRequest) {
     const isSuperAdmin = role === 'super_admin'
     const isAdminLevel = role ? ADMIN_ROLES.has(role) : false
 
+    // No team_members row found → check if this user is a rider
+    if (list.length === 0) {
+      const { data: riderProfile } = await supabase
+        .from('rider_profiles')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (riderProfile) {
+        // Rider authenticated: propagate headers for the mobile app.
+        // Do NOT redirect — the mobile app handles its own navigation.
+        const requestHeaders = new Headers(req.headers)
+        requestHeaders.set('x-user-role', 'rider')
+        requestHeaders.set('x-rider-id', riderProfile.id)
+        requestHeaders.set('x-user-id', user.id)
+        return NextResponse.next({ request: { headers: requestHeaders } })
+      }
+    }
+
     // Admin-only routes → redirect non-admins to their home
     if (isAdminOnly && !isAdminLevel && !isSuperAdmin) {
       const url = req.nextUrl.clone()
@@ -117,14 +150,14 @@ export async function proxy(req: NextRequest) {
 
     // Propagate context headers to Server Components
     res = NextResponse.next({ request: req })
-    res.headers.set('x-user-role',       role ?? '')
-    res.headers.set('x-restaurant-id',   restaurantId ?? '')
-    res.headers.set('x-user-id',         user.id)
+    res.headers.set('x-user-role',     role ?? '')
+    res.headers.set('x-restaurant-id', restaurantId ?? '')
+    res.headers.set('x-user-id',       user.id)
   }
 
   return res
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|auth/).*)',],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|auth/).*)'],
 }

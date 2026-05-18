@@ -56,6 +56,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Stock',         href: '/stock',     icon: Package,         roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Mermas',        href: '/mermas',    icon: Trash2,          roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Caja',          href: '/caja',      icon: Banknote,        roles: ['owner','admin','supervisor','super_admin'] },
+      { label: 'Delivery',      href: '/delivery',  icon: Bike,            roles: ['owner','admin','super_admin'] },
       { label: 'Turnos',        href: '/turnos',    icon: CalendarDays,    roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },

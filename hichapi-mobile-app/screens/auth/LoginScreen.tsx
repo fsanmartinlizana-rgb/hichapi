@@ -234,6 +234,18 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
             <Ionicons name="qr-code-outline" size={20} color="#FF6B35" style={styles.buttonIcon} />
             <Text style={styles.guestButtonText}>Escanear QR de mesa</Text>
           </TouchableOpacity>
+
+          {/* Rider flow entry point */}
+          <TouchableOpacity
+            style={[styles.guestButton, { marginTop: 12, borderColor: '#10B981' }]}
+            onPress={() => navigation.navigate('Rider' as any)}
+            accessibilityLabel="Soy Rider"
+            accessibilityHint="Toca para ingresar como repartidor"
+            accessibilityRole="button"
+          >
+            <Ionicons name="bicycle-outline" size={20} color="#10B981" style={styles.buttonIcon} />
+            <Text style={[styles.guestButtonText, { color: '#10B981' }]}>Soy Rider</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

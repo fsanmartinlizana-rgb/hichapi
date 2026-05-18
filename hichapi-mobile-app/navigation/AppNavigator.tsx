@@ -24,6 +24,7 @@ import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
 import OnboardingNavigator from './OnboardingNavigator';
 import ClientNavigator from './ClientNavigator';
+import RiderNavigator from './RiderNavigator';
 
 // ---------------------------------------------------------------------------
 // Deep link configuration (task 6.8)
@@ -105,11 +106,13 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Auth" component={AuthNavigator} />
             <Stack.Screen name="Client" component={ClientNavigator} />
+            <Stack.Screen name="Rider" component={RiderNavigator} />
           </>
         ) : (
           <>
             <Stack.Screen name="Main" component={MainNavigator} />
             <Stack.Screen name="Client" component={ClientNavigator} />
+            <Stack.Screen name="Rider" component={RiderNavigator} />
           </>
         )}
       </Stack.Navigator>
