@@ -389,16 +389,30 @@ export function ChatBox({
   // se muestran cuando hay AL MENOS un dato y Chapi ya respondió algo.
   const intentPills: { icon: string; text: string; captured: boolean }[] = (() => {
     const out: { icon: string; text: string; captured: boolean }[] = []
+    // Cuisine + dish específico (si lo hay)
+    const intentAny = intent as ChapiIntent & { dish_keyword?: string | null; zones?: string[] | null }
+    const dish = intentAny.dish_keyword?.trim() || null
+    if (dish) {
+      out.push({ icon: '🥢', text: dish, captured: true })
+    }
     out.push({
       icon: '🍴',
       text: intent.cuisine_type ?? 'cocina',
       captured: !!intent.cuisine_type,
     })
-    out.push({
-      icon: '📍',
-      text: intent.zone ?? 'zona',
-      captured: !!intent.zone,
-    })
+    // Zona — multi-zona si hay >1
+    const zonesArr = intentAny.zones && intentAny.zones.length > 0
+      ? intentAny.zones
+      : (intent.zone ? [intent.zone] : [])
+    if (zonesArr.length > 1) {
+      out.push({ icon: '📍', text: zonesArr.join(' o '), captured: true })
+    } else {
+      out.push({
+        icon: '📍',
+        text: zonesArr[0] ?? 'zona',
+        captured: zonesArr.length > 0,
+      })
+    }
     out.push({
       icon: '💰',
       text: intent.budget_clp ? `${Math.round(intent.budget_clp / 1000)}k` : 'presupuesto',

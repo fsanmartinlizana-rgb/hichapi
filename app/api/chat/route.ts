@@ -37,8 +37,10 @@ const RequestSchema = z.object({
     .object({
       budget_clp:           z.number().nullable().optional(),
       zone:                 z.string().nullable().optional(),
+      zones:                z.array(z.string()).nullable().optional(),
       dietary_restrictions: z.array(z.string()).nullable().optional(),
       cuisine_type:         z.string().nullable().optional(),
+      dish_keyword:         z.string().nullable().optional(),
       user_lat:             z.number().nullable().optional(),
       user_lng:             z.number().nullable().optional(),
     })
@@ -52,23 +54,27 @@ const SYSTEM_PROMPT = `Eres Chapi, el asistente gastronómico de HiChapi.
 Tu trabajo es entender qué quiere comer el usuario y encontrar las mejores opciones en Santiago.
 
 REGLAS:
-1. Extrae del mensaje actual: presupuesto (en CLP), zona/barrio, restricciones dietéticas, tipo de cocina.
+1. Extrae del mensaje: presupuesto (CLP), zonas (puede ser MÚLTIPLES), restricciones dietéticas, tipo de cocina, y opcionalmente un plato específico.
 2. "25 lucas" = 25000 CLP, "30 mil" = 30000 CLP.
-3. Si el usuario dice "cerca de mí" o similar → needs_location: true.
-4. ready_to_search: true si el usuario mencionó CUALQUIER cosa concreta: zona, barrio, tipo de cocina, presupuesto o restricción.
-5. Si el mensaje es muy vago ("quiero comer algo rico") → pide UNA cosa concreta (barrio o presupuesto).
-6. NO pidas más datos si ya tienes algo con qué buscar. Lanza la búsqueda.
-7. Tono: cercano, como un amigo que sabe de comida en Santiago. Máximo 2 oraciones.
-8. CAMBIO DE TEMA: Si el usuario pide algo diferente a lo del contexto previo (nueva cocina, nuevo barrio), devuelve SOLO los campos del nuevo pedido y pon null en todo lo demás. No acumules parámetros de búsquedas anteriores.
+3. MÚLTIPLES ZONAS con "o" / "y" → devuelve zones como ARRAY. Ej. "italiana en Providencia o Ñuñoa" → zones: ["Providencia", "Ñuñoa"]. Una sola zona → zones: ["Providencia"]. Mantén zone: null en ese caso (el motor usa zones[]).
+4. PLATO ESPECÍFICO: si el user menciona un plato concreto ("salmón", "ceviche", "pizza margarita", "ramen"), ponlo en dish_keyword. Esto es ADICIONAL a cuisine_type — un user puede pedir "salmón" sin decir "mariscos". Si dice algo genérico como "comida japonesa" o "algo italiano", NO uses dish_keyword (eso es cuisine_type).
+5. Si el usuario dice "cerca de mí" → needs_location: true.
+6. ready_to_search: true si mencionó CUALQUIER cosa concreta (zona, cocina, presupuesto, restricción o plato).
+7. Si el mensaje es muy vago → pide UNA cosa concreta.
+8. NO pidas más datos si ya tienes algo con qué buscar. Lanza la búsqueda.
+9. Tono: cercano. Máximo 2 oraciones.
+10. CAMBIO DE TEMA: si el user pide algo distinto al contexto previo, devuelve SOLO los campos nuevos con null en todo lo demás.
 
-RESPONDE SIEMPRE EN ESTE JSON (sin markdown, sin explicación extra):
+RESPONDE SIEMPRE EN ESTE JSON (sin markdown, sin explicación):
 {
-  "message": "respuesta breve para el usuario (máx 2 oraciones)",
+  "message": "respuesta breve (máx 2 oraciones)",
   "intent": {
     "budget_clp": número o null,
-    "zone": "barrio o zona" o null,
+    "zone": null,
+    "zones": ["Providencia", "Ñuñoa"] o [] (siempre array, vacío si no hay zona),
     "dietary_restrictions": ["sin gluten", "vegano"] o [],
-    "cuisine_type": "tipo de cocina" o null,
+    "cuisine_type": "italiana" / "japonesa" / "mariscos" / etc o null,
+    "dish_keyword": "salmón" o null (solo si el user mencionó plato específico),
     "user_lat": número o null,
     "user_lng": número o null
   },
@@ -109,7 +115,11 @@ function ruleBasedParser(message: string, prevIntent: Intent) {
     'macul','cerrillos','quilicura','la cisterna','el bosque','san bernardo',
     'rancagua','viña del mar','vina del mar','valparaiso','valparaíso','concon','concón',
   ]
-  const zone = ZONES.find(z => msg.includes(z)) ?? prevIntent.zone ?? null
+  // Multi-zona: detectamos TODAS las zonas mencionadas (no solo la primera).
+  // Esto cubre "italiana en Providencia o Ñuñoa" correctamente.
+  const foundZones = ZONES.filter(z => msg.includes(z))
+  const zones = foundZones.length > 0 ? foundZones : (prevIntent.zones ?? null)
+  const zone  = foundZones[0] ?? prevIntent.zone ?? null
 
   // No replicamos la lista canónica de cuisines acá — lib/discovery.ts la tiene.
   // Detectamos cualquier palabra "tipo de cocina" en el mensaje y la pasamos
@@ -135,14 +145,25 @@ function ruleBasedParser(message: string, prevIntent: Intent) {
   if (msg.includes('vegetar'))                                dietary_restrictions.push('vegetariano')
   if (msg.includes('sin lactosa'))                            dietary_restrictions.push('sin lactosa')
 
-  const hasSignal = zone || budget_clp || cuisine_type || dietary_restrictions.length > 0
+  // Dish keyword: lista corta de platos comunes. Si el user dice un plato
+  // específico, lo capturamos en dish_keyword (independiente de cuisine).
+  const DISH_KEYWORDS = [
+    'salmon','salmón','ceviche','sushi','ramen','pizza','pasta','lasagna',
+    'taco','burrito','hamburguesa','hambur','choripan','empanada','cazuela',
+    'pastel de choclo','mariscos','pescado','reineta','congrio','ostion','machas',
+    'curry','tandoor','naan','kebab','shawarma','falafel','pho','bibimbap',
+    'arepa','paella','steak','lomo','asado','parrilla','milanesa', 'tabla',
+  ]
+  const dish_keyword = DISH_KEYWORDS.find(k => msg.includes(k)) ?? prevIntent.dish_keyword ?? null
+
+  const hasSignal = zone || budget_clp || cuisine_type || dietary_restrictions.length > 0 || dish_keyword
 
   return {
     message: hasSignal
       ? '¡Buscando opciones para ti! 🍽️'
       : '¿Me dices en qué barrio o qué tipo de comida buscas?',
     intent: {
-      budget_clp, zone, cuisine_type, dietary_restrictions,
+      budget_clp, zone, zones, cuisine_type, dish_keyword, dietary_restrictions,
       user_lat: prevIntent.user_lat ?? null, user_lng: prevIntent.user_lng ?? null,
     },
     ready_to_search: !!hasSignal,

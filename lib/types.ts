@@ -40,8 +40,12 @@ export interface MenuItem {
 export interface ChapiIntent {
   budget_clp?: number
   zone?: string
+  /** Múltiples zonas con OR — "italiana en Providencia o Ñuñoa". */
+  zones?: string[]
   dietary_restrictions?: string[]
   cuisine_type?: string
+  /** Plato específico ("salmón", "ceviche") — independiente de cuisine_type. */
+  dish_keyword?: string
   occasion?: string
   user_lat?: number
   user_lng?: number

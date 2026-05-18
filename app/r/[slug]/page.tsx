@@ -84,9 +84,10 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .from('restaurants')
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
-      address, photo_url, gallery_urls, price_range, active, claimed, owner_id,
+      address, phone, website, instagram, description, capacity, tags, hours,
+      photo_url, gallery_urls, price_range, active, claimed, owner_id,
       data_source, google_rating, google_rating_count, google_reviews,
-      photo_source, google_photo_attribution,
+      photo_source, google_photo_attribution, config_chapi,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -95,23 +96,83 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
 
   if (error || !data) return null
   const d = data as Record<string, unknown>
+
+  // ── Fallback config_chapi → columnas estructuradas ──────────────────────
+  // Para agent_enriched, las columnas phone/website/hours suelen estar en
+  // NULL pero la data SÍ vive en config_chapi (lo trajo el scrape de Google).
+  // Acá fusionamos: si la columna está vacía, leemos de config_chapi para
+  // que la ficha tenga toda la info útil que sí tenemos.
+  const cfg = (d.config_chapi as Record<string, unknown> | null) ?? {}
+  const cfgPhone     = typeof cfg.phone === 'string' ? cfg.phone : null
+  const cfgWebsite   = typeof cfg.website === 'string' ? cfg.website : null
+  const cfgTipoLocal = typeof cfg.tipo_local === 'string' ? cfg.tipo_local : null
+  const cfgHorarios  = Array.isArray(cfg.horarios) ? (cfg.horarios as string[]) : null
+
+  // Si hours estructurado (Object {Lunes:{open,close,closed}}) no existe,
+  // intentamos parsear el array de Google "lunes: 12:30–17:00" al shape
+  // que la UI espera.
+  const colHours = d.hours as Record<string, DaySchedule> | null
+  const hoursMerged: Record<string, DaySchedule> | null =
+    colHours && Object.keys(colHours).length > 0
+      ? colHours
+      : cfgHorarios ? parseGoogleHorarios(cfgHorarios) : null
+
   return {
     ...data,
-    phone:               null,
-    website:             null,
-    instagram:           null,
-    description:         null,
-    capacity:            null,
-    tags:                null,
-    hours:               null,
-    gallery_urls:        (d.gallery_urls as string[] | null) ?? [],
-    data_source:         (d.data_source as RestaurantData['data_source']) ?? 'manual',
+    phone:        (d.phone as string | null)       || cfgPhone,
+    website:      (d.website as string | null)     || cfgWebsite,
+    instagram:    (d.instagram as string | null)   ?? null,
+    description: ((d.description as string | null) ?? null) ||
+                 (cfgTipoLocal ? `${cfgTipoLocal} — información tomada de Google Maps.` : null),
+    capacity:     (d.capacity as number | null)    ?? null,
+    tags:         (d.tags as string[] | null)      ?? null,
+    hours:        hoursMerged,
+    gallery_urls: (d.gallery_urls as string[] | null) ?? [],
+    data_source:  (d.data_source as RestaurantData['data_source']) ?? 'manual',
     google_rating:       (d.google_rating as number | null) ?? null,
     google_rating_count: (d.google_rating_count as number | null) ?? null,
     google_reviews:      (d.google_reviews as GoogleReview[] | null) ?? null,
     photo_source:        (d.photo_source as RestaurantData['photo_source']) ?? null,
     google_photo_attribution: (d.google_photo_attribution as RestaurantData['google_photo_attribution']) ?? null,
   } as RestaurantData
+}
+
+/** Convierte el array de Google ("lunes: 12:30–17:00", "martes: Cerrado")
+ *  al shape `{Lunes: {open, close, closed}}` que espera la UI.
+ *  Robusto contra variaciones (capitalización, separadores). */
+function parseGoogleHorarios(arr: string[]): Record<string, DaySchedule> {
+  const DAY_MAP: Record<string, string> = {
+    'lunes': 'Lunes', 'martes': 'Martes', 'miércoles': 'Miércoles',
+    'jueves': 'Jueves', 'viernes': 'Viernes', 'sábado': 'Sábado',
+    'domingo': 'Domingo',
+  }
+  const out: Record<string, DaySchedule> = {}
+  for (const line of arr) {
+    const colonIdx = line.indexOf(':')
+    if (colonIdx === -1) continue
+    const dayKey = line.slice(0, colonIdx).trim().toLowerCase()
+    const value  = line.slice(colonIdx + 1).trim()
+    const day = DAY_MAP[dayKey]
+    if (!day) continue
+    if (/cerrad|closed/i.test(value)) {
+      out[day] = { open: '00:00', close: '00:00', closed: true }
+      continue
+    }
+    // Separador "–" (en dash) o "-" (hyphen)
+    const range = value.split(/[–-]/).map(s => s.trim())
+    if (range.length !== 2) continue
+    // "12:30" o "0:30" → asegurar formato HH:MM
+    const norm = (t: string) => {
+      const m = t.match(/^(\d{1,2}):(\d{2})/)
+      if (!m) return null
+      return `${m[1].padStart(2, '0')}:${m[2]}`
+    }
+    const open = norm(range[0])
+    const close = norm(range[1])
+    if (!open || !close) continue
+    out[day] = { open, close, closed: false }
+  }
+  return out
 }
 
 async function getReviews(restaurantId: string) {
@@ -298,6 +359,12 @@ function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
 function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
   const hasContact = restaurant.phone || restaurant.website || restaurant.instagram
   const hasHours   = restaurant.hours && Object.keys(restaurant.hours).length > 0
+  // Si el restaurant es agent_enriched y todavía no fue reclamado por su
+  // dueño, la info de contacto/horarios viene de Google Maps. Atribuimos
+  // claramente para no presentar data scraped como verificada por HiChapi.
+  const isUnclaimedScrape =
+    restaurant.data_source === 'agent_enriched' &&
+    !(restaurant.claimed && restaurant.owner_id)
 
   if (!restaurant.description && !hasContact && !hasHours && (!restaurant.tags || restaurant.tags.length === 0)) {
     return null
@@ -307,6 +374,13 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
+      {isUnclaimedScrape && (hasContact || hasHours) && (
+        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
+          📍 Información tomada de Google Maps. El dueño aún no la verificó —
+          podría estar desactualizada.
+        </p>
+      )}
+
       {restaurant.description && (
         <div>
           <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2">

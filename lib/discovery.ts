@@ -14,9 +14,19 @@ import { resolveZone } from '@/lib/landmarks'
 
 export type Intent = {
   budget_clp?:           number | null
+  /** Zone canónica (legacy single-zone). Si zones[] tiene >0 items, eso
+   *  manda; este queda por backward compat con clientes viejos. */
   zone?:                 string | null
+  /** Múltiples zonas con semántica OR ("italiana en Providencia o Ñuñoa").
+   *  Si tiene >=2 items, el motor hace OR del filtro de neighborhood.
+   *  Si solo viene zone (legacy), se normaliza a zones=[zone]. */
+  zones?:                string[] | null
   dietary_restrictions?: string[] | null
   cuisine_type?:         string | null
+  /** Plato específico que el user quiere comer ("salmón", "ceviche", "pizza").
+   *  Si presente, filtramos restaurants cuyo menú contenga este término en
+   *  el nombre o descripción de algún item. Independiente de cuisine_type. */
+  dish_keyword?:         string | null
   user_lat?:             number | null
   user_lng?:             number | null
 }
@@ -324,9 +334,20 @@ async function fetchAndFilter(
   const restaurants = data as unknown as RawRow[]
 
   let filtered = restaurants
-  if (withZone && intent.zone) {
-    const z = stripAccents(intent.zone)
-    filtered = filtered.filter(r => r.neighborhood && stripAccents(r.neighborhood).includes(z))
+  if (withZone) {
+    // Multi-zona OR: si intent.zones tiene >0 items, matchea cualquiera.
+    // Si solo viene zone (legacy), trata como zones=[zone].
+    const allZones = (intent.zones && intent.zones.length > 0)
+      ? intent.zones
+      : (intent.zone ? [intent.zone] : [])
+    if (allZones.length > 0) {
+      const normZones = allZones.map(z => stripAccents(z)).filter(Boolean)
+      filtered = filtered.filter(r => {
+        if (!r.neighborhood) return false
+        const rn = stripAccents(r.neighborhood)
+        return normZones.some(z => rn.includes(z))
+      })
+    }
   }
 
   const reqCuisine = withCuisine ? canonicalCuisine(intent.cuisine_type) : null
@@ -335,6 +356,24 @@ async function fetchAndFilter(
       if (restaurantCuisineMatches(reqCuisine, r.cuisine_type)) return true
       if (menuMatchesCuisine(reqCuisine, r.menu_items ?? [])) return true
       return false
+    })
+  }
+
+  // ── Dish keyword: "quiero salmón en Providencia" ─────────────────────────
+  // Filtramos restaurants cuyo menú contenga el término en name/description.
+  // Si el restaurant NO tiene menú cargado (agent_enriched sin scrape),
+  // lo INCLUIMOS (mismo principio que budget: mejor mostrar con caveat que
+  // descartar al ciego — el cuisine_type matchea, podría tener el plato).
+  const dish = intent.dish_keyword?.trim()
+  if (dish && dish.length >= 2) {
+    const d = stripAccents(dish)
+    filtered = filtered.filter(r => {
+      const items = r.menu_items ?? []
+      if (items.length === 0) return true  // sin menu: incluir; user decide
+      return items.some(i => {
+        const hay = stripAccents(`${i.name ?? ''} ${i.description ?? ''}`)
+        return hay.includes(d)
+      })
     })
   }
 
@@ -388,13 +427,36 @@ async function fetchAndFilter(
       if (hasMenuInDb && (hasBudget || hasDietary) && candidateItems.length === 0) return null
       if (!hasMenuInDb && hasDietary) return null
 
-      const sortedItems = [...candidateItems].sort((a, b) => b.price - a.price)
+      // Sort de candidateItems: si user pidió dish_keyword, los items que
+      // lo contengan van primero (suggested_dish va a ser uno relevante).
+      // Después por precio descendente como antes.
+      const dishNorm = dish ? stripAccents(dish) : null
+      const sortedItems = [...candidateItems].sort((a, b) => {
+        if (dishNorm) {
+          const aMatch = stripAccents(`${a.name ?? ''} ${a.description ?? ''}`).includes(dishNorm)
+          const bMatch = stripAccents(`${b.name ?? ''} ${b.description ?? ''}`).includes(dishNorm)
+          if (aMatch && !bMatch) return -1
+          if (!aMatch && bMatch) return 1
+        }
+        return b.price - a.price
+      })
       const bestDish: MenuItem | null = sortedItems[0] ?? null
       const menuItems = sortedItems.slice(0, 3)
 
       // matchReason — siempre fidedigno: indicamos POR QUÉ lo recomendamos.
       let matchReason: string
-      if (reqCuisine && !restaurantCuisineMatches(reqCuisine, restaurant.cuisine_type) && bestDish) {
+      const dishMatchedItem = dishNorm && bestDish &&
+        stripAccents(`${bestDish.name ?? ''} ${bestDish.description ?? ''}`).includes(dishNorm)
+
+      if (dishMatchedItem && bestDish) {
+        // Caso priority: el user pidió un plato específico Y lo encontramos.
+        matchReason = `Tienen ${bestDish.name} en ${restaurant.neighborhood ?? ''}`.trim()
+      } else if (dish && !hasMenuInDb) {
+        // User pidió dish específico pero el restaurant no tiene menu en DB.
+        // Honesto: decimos que el lugar coincide con la zona/cuisine pero no
+        // podemos confirmar el plato.
+        matchReason = `${restaurant.cuisine_type ?? 'Restaurante'} en ${restaurant.neighborhood ?? ''} (carta sin cargar — confirmá si tienen ${dish})`.trim()
+      } else if (reqCuisine && !restaurantCuisineMatches(reqCuisine, restaurant.cuisine_type) && bestDish) {
         // El restaurant no es de la cuisine pedida pero su menú sí matchea.
         matchReason = `Tienen ${bestDish.name} en ${restaurant.neighborhood ?? ''}`.trim()
       } else {
@@ -427,19 +489,23 @@ async function fetchAndFilter(
     .slice(0, 30)
 }
 
-/** Cuenta restaurants en una zona (texto) ignorando cuisine. Usado para
- *  decidir si vale la pena ofrecerle al user "ver alternativas". */
-async function countInZone(zone: string): Promise<number> {
+/** Cuenta restaurants en una o múltiples zonas (OR) ignorando cuisine.
+ *  Usado para decidir si ofrecer al user "ver alternativas". */
+async function countInZones(zones: string[]): Promise<number> {
   const sb = getSupabase()
   const { data, error } = await sb
     .from('restaurants')
     .select('neighborhood')
     .eq('active', true)
     .limit(500)
-  if (error || !data) return 0
-  const z = stripAccents(zone)
+  if (error || !data || zones.length === 0) return 0
+  const normZones = zones.map(z => stripAccents(z))
   return (data as { neighborhood: string | null }[])
-    .filter(r => r.neighborhood && stripAccents(r.neighborhood).includes(z)).length
+    .filter(r => {
+      if (!r.neighborhood) return false
+      const rn = stripAccents(r.neighborhood)
+      return normZones.some(z => rn.includes(z))
+    }).length
 }
 
 // ── searchRestaurants — el contrato público ──────────────────────────────────
@@ -448,10 +514,20 @@ export async function searchRestaurants(
   intent: Intent,
   opts: SearchOpts = {},
 ): Promise<SearchOutput> {
-  const resolvedZone = resolveZone(intent.zone)
+  // Normalizar zones: si solo viene zone (legacy), promoverlo a zones=[zone].
+  // Cada zona se resuelve por landmarks (metro Tobalaba → Providencia, etc.).
+  const rawZones = (intent.zones && intent.zones.length > 0)
+    ? intent.zones
+    : (intent.zone ? [intent.zone] : [])
+  const resolvedZones = rawZones
+    .map(z => resolveZone(z))
+    .filter((z): z is string => !!z)
+  const resolvedZone = resolvedZones[0] ?? null  // legacy single
+
   const resolvedIntent: Intent = {
     ...intent,
-    zone: resolvedZone,
+    zone:  resolvedZone,
+    zones: resolvedZones.length > 0 ? resolvedZones : null,
     cuisine_type: opts.ignoreCuisine ? null : intent.cuisine_type,
   }
 
@@ -468,10 +544,10 @@ export async function searchRestaurants(
       results = await fetchAndFilter(resolvedIntent, { withZone: false, withCuisine: true, radius_m: 5000 })
     }
     if (results.length === 0) no_results_in_zone = true
-  } else if (resolvedIntent.zone) {
-    // Path con zone texto: estricto zone+cuisine. Si vacío, vacío con flag.
-    // NO relajamos cuisine acá — el user pedirá explícitamente alternativas
-    // si lo desea (frontend opt-in).
+  } else if ((resolvedIntent.zones && resolvedIntent.zones.length > 0) || resolvedIntent.zone) {
+    // Path con zona(s) texto: estricto zones+cuisine. Si vacío, vacío con
+    // flag. Para multi-zona, OR entre zonas. NO relajamos cuisine acá — el
+    // user pedirá explícitamente alternativas si lo desea (frontend opt-in).
     results = await fetchAndFilter(resolvedIntent, { withZone: true, withCuisine: true })
     if (results.length === 0) no_results_in_zone = true
   } else {
@@ -485,12 +561,15 @@ export async function searchRestaurants(
 
   // ── alternatives_in_zone_count + failure_reason ────────────────────────
   // Cuando results=0 con zona pedida, hacemos 1-2 queries adicionales para
-  // (a) saber cuántos restaurants HAY en la zona (ignorando filtros) y
-  // (b) clasificar la causa raíz del fail. Esto SOLO en cold path.
+  // (a) saber cuántos restaurants HAY en la(s) zona(s) (ignorando filtros)
+  // y (b) clasificar la causa raíz del fail. Esto SOLO en cold path.
   let alternatives_in_zone_count = 0
   let failure_reason: FailureReason = null
-  if (no_results_in_zone && resolvedIntent.zone && !opts.ignoreCuisine) {
-    alternatives_in_zone_count = await countInZone(resolvedIntent.zone)
+  const allZonesForFail = resolvedIntent.zones && resolvedIntent.zones.length > 0
+    ? resolvedIntent.zones
+    : (resolvedIntent.zone ? [resolvedIntent.zone] : [])
+  if (no_results_in_zone && allZonesForFail.length > 0 && !opts.ignoreCuisine) {
+    alternatives_in_zone_count = await countInZones(allZonesForFail)
     const altCount = alternatives_in_zone_count
 
     if (altCount === 0) {
