@@ -169,13 +169,14 @@ REGLAS:
 15. PRESUPUESTO ES INVIOLABLE: Si el cliente dio un presupuesto (ej: "menos de 30 mil"), validá MENTALMENTE (sin escribir el total) que la suma de PEDIDO ACTUAL + lo que vas a agregar no lo supere. Si lo supera, NO agregues — recomendá una combinación más barata o menor cantidad. Acordate que "para dos" típicamente son 2 platos principales + 1 postre compartido.
 16. CARRITO SOBRE PRESUPUESTO: Si el cliente dice algo tipo "me pasé del presupuesto", "supera mi presupuesto", "está caro", "muy caro", o "es mucho" → acción "chat", reconocé el problema y sugerí EXPLÍCITAMENTE qué item del PEDIDO ACTUAL se podría quitar (el más caro o el que duplica a otro) para volver al presupuesto. NUNCA respondas "no entendí". El cliente tendrá que quitarlo manualmente desde la UI.
 
-RESPONDE SIEMPRE EN JSON (sin markdown):
+RESPONDE SIEMPRE EN JSON (sin markdown y sin texto antes ni después del JSON):
 {
   "message": "respuesta al cliente",
   "action": "add_items" | "request_bill" | "request_split" | "recommend" | "show_menu" | "chat",
   "items_to_add": [{ "menu_item_id": "uuid", "name": "nombre", "quantity": 1, "note": "opcional" }] | null,
   "split_count": número | null
-}`
+}
+NO escribas nada fuera de este objeto JSON. No saludes fuera del JSON. Todo el texto al cliente debe ir en la propiedad "message".`
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
@@ -280,6 +281,12 @@ export async function POST(req: NextRequest) {
                 lastEmitted = current
                 await send('token', { text: current })
               }
+            } else if (fullText.length > 0 && !fullText.trim().startsWith('{')) {
+              // Plain text fallback for streaming
+              if (fullText !== lastEmitted) {
+                lastEmitted = fullText
+                await send('token', { text: fullText })
+              }
             }
           }
         }
@@ -308,6 +315,10 @@ export async function POST(req: NextRequest) {
               parseErr,
             )
             parsed = { message: recovered, action: 'chat', items_to_add: [], split_count: null }
+          } else if (cleaned && !cleaned.startsWith('{')) {
+            // Claude occasionally ignores the JSON instruction and replies in plain text.
+            // We treat the whole text as the message in this case to avoid crashing.
+            parsed = { message: cleaned, action: 'chat', items_to_add: [], split_count: null }
           } else {
             // No hay siquiera un message rescatable → re-throw para caer al catch externo
             console.error(

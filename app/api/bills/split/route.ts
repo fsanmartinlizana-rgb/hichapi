@@ -1,15 +1,14 @@
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/supabase/auth-guard'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 
 export async function POST(request: Request) {
   try {
+    const { user, error: authError } = await requireUser()
+    if (authError || !user) return authError ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+    
     const supabase = await createClient()
     const adminSupabase = createAdminClient()
-
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
 
     const body = await request.json()
     const { restaurant_id, table_id, order_ids, split_type, total_amount, num_splits, split_config } = body

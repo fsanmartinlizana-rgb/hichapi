@@ -3,6 +3,18 @@ import { createNotification } from '@/lib/notifications/server'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
+// Handle CORS preflight for mobile app
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, GET, PATCH, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
+}
+
 // ── Schemas ───────────────────────────────────────────────────────────────────
 
 const CartItemSchema = z.object({
@@ -275,6 +287,8 @@ export async function POST(req: NextRequest) {
       orderId: order.id,
       total,
       status: 'pending',
+    }, {
+      headers: { 'Access-Control-Allow-Origin': '*' }
     })
   } catch (err) {
     if (err instanceof z.ZodError) {
@@ -460,7 +474,9 @@ export async function PATCH(req: NextRequest) {
       }
     }
 
-    return NextResponse.json({ ok: true, order_id, status })
+    return NextResponse.json({ ok: true, order_id, status }, {
+      headers: { 'Access-Control-Allow-Origin': '*' }
+    })
   } catch (err) {
     if (err instanceof z.ZodError) {
       return NextResponse.json({ error: 'Datos inválidos' }, { status: 400 })
@@ -538,5 +554,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: 'Error consultando pedidos' }, { status: 500 })
   }
 
-  return NextResponse.json({ orders: orders ?? [], table_resolved: true })
+  return NextResponse.json({ orders: orders ?? [], table_resolved: true }, {
+    headers: { 'Access-Control-Allow-Origin': '*' }
+  })
 }

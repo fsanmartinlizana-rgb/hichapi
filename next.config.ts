@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
   async headers() {
     return [
       {
+        // Allow CORS for mobile app (Expo web dev server)
+        source: '/api/:path*',
+        headers: [
+          { key: 'Access-Control-Allow-Origin', value: '*' },
+          { key: 'Access-Control-Allow-Methods', value: 'GET,POST,PATCH,DELETE,OPTIONS' },
+          { key: 'Access-Control-Allow-Headers', value: 'Content-Type, Authorization' },
+        ],
+      },
+      {
         source: '/(.*)',
         headers: [
           { key: 'X-Content-Type-Options',    value: 'nosniff' },

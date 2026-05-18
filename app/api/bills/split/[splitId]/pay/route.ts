@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { requireUser } from '@/lib/supabase/auth-guard'
 import { createClient, createAdminClient } from '@/lib/supabase/server'
 import { runEmission } from '@/lib/dte/engine'
 import { sendBoletaEmail, sendFacturaEmail } from '@/lib/email/sender'
@@ -9,14 +10,11 @@ export async function POST(
 ) {
   try {
     const { splitId } = await params
+    const { user, error: authError } = await requireUser()
+    if (authError || !user) return authError ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+
     const supabase = await createClient()
     const adminSupabase = createAdminClient() // bypass RLS para operaciones internas
-
-    // Verificar autenticación
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    if (authError || !user) {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-    }
 
     const body = await request.json()
     const { split_index, amount, tip_amount, payment_method, cash_amount, digital_amount, dte } = body

@@ -3,6 +3,18 @@ import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
 
+// Handle CORS preflight for mobile app
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 204,
+    headers: {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    },
+  })
+}
+
 // ── POST /api/orders/internal ─────────────────────────────────────────────
 // Crea una comanda desde el panel admin (garzón/owner/etc). Resuelve
 // station_id por cada item para que el ruteo cross-local funcione igual

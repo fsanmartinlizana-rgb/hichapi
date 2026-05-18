@@ -1,16 +1,33 @@
 /**
  * Auth guard helpers for API routes.
- * Usage:
- *   const { user, error } = await requireUser(req)
- *   if (error) return error
+ * Supports both cookie-based auth (web) and Bearer token auth (mobile app).
  */
 import { createServerClient } from '@supabase/ssr'
-import { cookies } from 'next/headers'
+import { createClient } from '@supabase/supabase-js'
+import { cookies, headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule } from '@/lib/plans'
 
-/** Returns the authenticated user or an error response. */
+/** Returns the authenticated user or an error response.
+ *  Supports both cookie-based auth (web) and Bearer token auth (mobile app).
+ */
 export async function requireUser() {
+  // 1. Try Bearer token from Authorization header (mobile app)
+  const headerStore = await headers()
+  const authHeader = headerStore.get('authorization') ?? headerStore.get('Authorization')
+  if (authHeader?.startsWith('Bearer ')) {
+    const token = authHeader.slice(7)
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    )
+    const { data: { user }, error } = await supabase.auth.getUser(token)
+    if (user && !error) {
+      return { user, error: null }
+    }
+  }
+
+  // 2. Fall back to cookie-based auth (web)
   const cookieStore = await cookies()
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -41,12 +58,9 @@ export async function requireRestaurantRole(
   const { user, error } = await requireUser()
   if (error || !user) return { user: null, role: null, error: error ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 }) }
 
-  const cookieStore = await cookies()
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    { cookies: { getAll: () => cookieStore.getAll(), setAll: () => {} } },
-  )
+  // Use admin client to bypass RLS for role check (trusted server operation)
+  const { createAdminClient } = require('./server')
+  const supabase = createAdminClient()
 
   const { data: member } = await supabase
     .from('team_members')
@@ -79,10 +93,6 @@ export async function requireRestaurantRole(
 
 /**
  * Gate an API route by the restaurant's subscription plan.
- * Returns `{ error }` (402 Payment Required) if the plan is insufficient.
- * Usage:
- *   const { error: planErr } = await requirePlan(restaurantId, 'starter')
- *   if (planErr) return planErr
  */
 export async function requirePlan(
   restaurantId: string,

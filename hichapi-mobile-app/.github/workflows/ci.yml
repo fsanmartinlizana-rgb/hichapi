@@ -1,0 +1,44 @@
+name: CI — HiChapi Mobile App
+
+on:
+  pull_request:
+    branches: [main, develop]
+  push:
+    branches: [main]
+
+jobs:
+  test:
+    name: Test & Coverage
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: hichapi-mobile-app/package-lock.json
+
+      - name: Install dependencies
+        working-directory: hichapi-mobile-app
+        run: npm ci
+
+      - name: Run tests with coverage
+        working-directory: hichapi-mobile-app
+        run: npm run test:ci
+        env:
+          EXPO_PUBLIC_SUPABASE_URL: https://test.supabase.co
+          EXPO_PUBLIC_SUPABASE_ANON_KEY: test-anon-key
+          EXPO_PUBLIC_API_BASE_URL: https://test.api.hichapi.com
+          EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_placeholder
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage-report
+          path: hichapi-mobile-app/coverage/
+          retention-days: 7
