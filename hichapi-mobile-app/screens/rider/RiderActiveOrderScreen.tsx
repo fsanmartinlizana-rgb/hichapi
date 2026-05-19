@@ -9,6 +9,8 @@ import {
   View, Text, TouchableOpacity, ScrollView,
   StyleSheet, Alert, ActivityIndicator, SafeAreaView, Linking, Platform,
 } from 'react-native'
+import MapView, { Marker, Polyline } from 'react-native-maps'
+import { DARK_MAP_STYLE } from '../../utils/theme'
 import { updateDeliveryOrderStatus, calculateRoute } from '../../services/rider/api'
 import { startGpsTracking, stopGpsTracking, getCurrentPosition } from '../../services/rider/geolocation'
 import type { DeliveryOrder, PlannedRoute, FailureReason, VehicleType } from '../../../lib/delivery/types'
@@ -39,6 +41,7 @@ export default function RiderActiveOrderScreen({ order, token, vehicleType, onOr
   const [showFailurePicker, setShowFailurePicker] = useState(false)
   const [transitioning, setTransitioning] = useState(false)
   const routeRefreshRef = useRef<ReturnType<typeof setInterval> | null>(null)
+  const mapRef = useRef<MapView | null>(null)
 
   // Load initial route on mount
   useEffect(() => {
@@ -48,6 +51,43 @@ export default function RiderActiveOrderScreen({ order, token, vehicleType, onOr
       if (routeRefreshRef.current) clearInterval(routeRefreshRef.current)
     }
   }, [])
+
+  useEffect(() => {
+    if (route?.waypoints && mapRef.current) {
+      const coords = [
+        { latitude: route.waypoints.origin.lat, longitude: route.waypoints.origin.lng },
+        { latitude: route.waypoints.pickup.lat, longitude: route.waypoints.pickup.lng },
+        { latitude: route.waypoints.delivery.lat, longitude: route.waypoints.delivery.lng },
+      ]
+      const timer = setTimeout(() => {
+        mapRef.current?.fitToCoordinates(coords, {
+          edgePadding: { top: 40, right: 40, bottom: 40, left: 40 },
+          animated: true,
+        })
+      }, 500)
+      return () => clearTimeout(timer)
+    }
+  }, [route])
+
+  const getPolylineCoords = () => {
+    if (!route) return []
+    if (route.polyline && route.polyline !== 'mock_polyline') {
+      try {
+        const decoded = decodePolyline(route.polyline)
+        if (decoded.length > 0) return decoded
+      } catch (err) {
+        console.warn('Polyline decoding failed:', err)
+      }
+    }
+    if (route.waypoints) {
+      return [
+        { latitude: route.waypoints.origin.lat, longitude: route.waypoints.origin.lng },
+        { latitude: route.waypoints.pickup.lat, longitude: route.waypoints.pickup.lng },
+        { latitude: route.waypoints.delivery.lat, longitude: route.waypoints.delivery.lng },
+      ]
+    }
+    return []
+  }
 
   // Strip apartment/sector/floor suffixes that confuse navigation apps
   // e.g. "Rodolfo Walter 668 Mirador 2" → "Rodolfo Walter 668"
@@ -156,6 +196,66 @@ export default function RiderActiveOrderScreen({ order, token, vehicleType, onOr
           <Text style={styles.statusText}>{currentOrder.status.replace('_', ' ')}</Text>
         </View>
       </View>
+
+      {/* Map Section (Fixed height) */}
+      {route?.waypoints && (
+        <View style={styles.mapContainer}>
+          <MapView
+            ref={mapRef}
+            style={styles.map}
+            initialRegion={{
+              latitude: route.waypoints.pickup.lat,
+              longitude: route.waypoints.pickup.lng,
+              latitudeDelta: 0.02,
+              longitudeDelta: 0.02,
+            }}
+            showsUserLocation={true}
+            userInterfaceStyle="dark"
+            customMapStyle={DARK_MAP_STYLE}
+          >
+            {getPolylineCoords().length > 0 && (
+              <Polyline
+                coordinates={getPolylineCoords()}
+                strokeColor="#FF6B35"
+                strokeWidth={4}
+              />
+            )}
+
+            {/* Rider Position */}
+            <Marker
+              coordinate={{ latitude: route.waypoints.origin.lat, longitude: route.waypoints.origin.lng }}
+              title="Tú"
+              description="Tu ubicación de inicio"
+            >
+              <View style={styles.riderMarker}>
+                <Text style={styles.markerEmoji}>🛵</Text>
+              </View>
+            </Marker>
+
+            {/* Pickup */}
+            <Marker
+              coordinate={{ latitude: route.waypoints.pickup.lat, longitude: route.waypoints.pickup.lng }}
+              title="Recogida"
+              description={currentOrder.pickup_address}
+            >
+              <View style={styles.pickupMarker}>
+                <Text style={styles.markerEmoji}>🍔</Text>
+              </View>
+            </Marker>
+
+            {/* Delivery */}
+            <Marker
+              coordinate={{ latitude: route.waypoints.delivery.lat, longitude: route.waypoints.delivery.lng }}
+              title="Entrega"
+              description={currentOrder.delivery_address}
+            >
+              <View style={styles.deliveryMarker}>
+                <Text style={styles.markerEmoji}>🏠</Text>
+              </View>
+            </Marker>
+          </MapView>
+        </View>
+      )}
 
       {/* ── Scrollable content ── */}
       <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
@@ -350,6 +450,37 @@ export default function RiderActiveOrderScreen({ order, token, vehicleType, onOr
   )
 }
 
+function decodePolyline(encoded: string): { latitude: number; longitude: number }[] {
+  if (encoded === 'mock_polyline') return []
+  const points: { latitude: number; longitude: number }[] = []
+  let index = 0, len = encoded.length
+  let lat = 0, lng = 0
+
+  while (index < len) {
+    let b, shift = 0, result = 0
+    do {
+      b = encoded.charCodeAt(index++) - 63
+      result |= (b & 0x1f) << shift
+      shift += 5
+    } while (b >= 0x20)
+    const dlat = ((result & 1) ? ~(result >> 1) : (result >> 1))
+    lat += dlat
+
+    shift = 0
+    result = 0
+    do {
+      b = encoded.charCodeAt(index++) - 63
+      result |= (b & 0x1f) << shift
+      shift += 5
+    } while (b >= 0x20)
+    const dlng = ((result & 1) ? ~(result >> 1) : (result >> 1))
+    lng += dlng
+
+    points.push({ latitude: lat / 1E5, longitude: lng / 1E5 })
+  }
+  return points
+}
+
 const styles = StyleSheet.create({
   safeArea:             { flex: 1, backgroundColor: '#0A0A14' },
   header:               { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 12 },
@@ -360,6 +491,12 @@ const styles = StyleSheet.create({
   statusBadge:          { backgroundColor: 'rgba(255,107,53,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   statusText:           { color: '#FF6B35', fontSize: 12, fontWeight: '600', textTransform: 'capitalize' },
   // Map section (fixed, outside ScrollView)
+  mapContainer:         { width: '100%', height: 260, borderBottomWidth: 1, borderColor: 'rgba(255,255,255,0.08)' },
+  map:                  { flex: 1 },
+  riderMarker:          { backgroundColor: '#3B82F6', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
+  pickupMarker:         { backgroundColor: '#22C55E', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
+  deliveryMarker:       { backgroundColor: '#EF4444', padding: 6, borderRadius: 20, borderWidth: 2, borderColor: '#fff', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.2, shadowRadius: 2, elevation: 3 },
+  markerEmoji:          { fontSize: 16 },
   // Scrollable details
   scroll:               { flex: 1 },
   scrollContent:        { padding: 16, paddingBottom: 40 },

@@ -637,6 +637,11 @@ function OrderCard({
               {order.viaChapi && !order.crossFrom && (
                 <span className="text-[9px] text-[#FF6B35]/70 px-1.5 py-0.5 rounded bg-[#FF6B35]/10 ml-1">vía Chapi</span>
               )}
+              {order.tableLabel === 'Delivery' && !order.crossFrom && (
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-300 border border-blue-500/25 ml-1 flex items-center gap-0.5">
+                  🌐 Online
+                </span>
+              )}
             </div>
           </div>
         </div>

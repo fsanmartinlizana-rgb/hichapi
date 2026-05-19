@@ -14,6 +14,7 @@ import type {
   HeatMapFilters,
   DeliveryAnalytics,
   UpdateRiderProfileInput,
+  CreateRiderProfileInput,
   CreateRiderRatingInput,
   VehicleType,
 } from '../../../lib/delivery/types'
@@ -48,6 +49,17 @@ export async function getRiderProfile(token: string): Promise<RiderProfile> {
   return request<RiderProfile>('/api/delivery/rider/profile', { method: 'GET', token })
 }
 
+export async function createRiderProfile(
+  token: string,
+  input: CreateRiderProfileInput,
+): Promise<RiderProfile> {
+  return request<RiderProfile>('/api/delivery/rider/profile', {
+    method: 'POST',
+    token,
+    body: JSON.stringify(input),
+  })
+}
+
 export async function updateRiderProfile(
   token: string,
   input: UpdateRiderProfileInput,
@@ -71,6 +83,18 @@ export async function updateRiderStatus(
     method: 'PATCH',
     token,
     body: JSON.stringify({ status }),
+  })
+}
+
+export async function setDocumentUrl(
+  token: string,
+  docType: 'national_id' | 'license' | 'insurance' | 'permit' | 'inspection' | 'driver_record',
+  url: string,
+): Promise<{ success: boolean }> {
+  return request<{ success: boolean }>('/api/delivery/rider/profile/documents', {
+    method: 'POST',
+    token,
+    body: JSON.stringify({ doc_type: docType, url }),
   })
 }
 

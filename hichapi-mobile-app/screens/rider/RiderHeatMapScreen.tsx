@@ -10,6 +10,7 @@ import {
   StyleSheet, ActivityIndicator,
 } from 'react-native'
 import MapView, { Marker, Circle } from 'react-native-maps'
+import { DARK_MAP_STYLE } from '../../utils/theme'
 import { getHeatMap } from '../../services/rider/api'
 import { getCurrentPosition } from '../../services/rider/geolocation'
 import type { HeatMapCell, TimeOfDay } from '../../../lib/delivery/types'
@@ -130,6 +131,8 @@ export default function RiderHeatMapScreen({ token }: Props) {
               initialRegion={initialRegion}
               showsUserLocation={true}
               userLocationCalloutEnabled={true}
+              userInterfaceStyle="dark"
+              customMapStyle={DARK_MAP_STYLE}
             >
               {cells.map((cell, i) => (
                 <React.Fragment key={i}>

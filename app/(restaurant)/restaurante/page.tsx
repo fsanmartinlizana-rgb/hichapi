@@ -348,15 +348,29 @@ export default function RestaurantePage() {
               Esta información aparece en HiChapi para los clientes
             </p>
           </div>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
-          >
-            {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : null}
-            {saving ? 'Guardando…' : saved ? 'Guardado' : 'Guardar cambios'}
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {slug && (
+              <a
+                href={`/r/${slug}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm font-medium hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors"
+              >
+                <ExternalLink size={14} />
+                Ver mi página
+              </a>
+            )}
+            <button
+              onClick={handleSave}
+              disabled={saving}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-60 transition-colors"
+            >
+              {saving ? <Loader2 size={14} className="animate-spin" /> : saved ? <Check size={14} /> : null}
+              {saving ? 'Guardando…' : saved ? 'Guardado' : 'Guardar cambios'}
+            </button>
+          </div>
         </div>
+
 
         {error && (
           <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
@@ -530,7 +544,7 @@ export default function RestaurantePage() {
         <Section title="Contacto y redes">
           <div className="grid grid-cols-2 gap-4">
             <Field label="Dirección">
-              <IconInput icon={<MapPin size={13} />} value={address} onChange={setAddress} />
+              <AddressAutocompleteInput icon={<MapPin size={13} />} value={address} onChange={setAddress} placeholder="Ej: Ariztía 100, Ovalle" />
             </Field>
             <Field label="Teléfono">
               <IconInput icon={<Phone size={13} />} value={phone} onChange={setPhone} placeholder="+56 2 ..." />
@@ -750,6 +764,115 @@ function IconInput({
         placeholder={placeholder}
         className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
       />
+    </div>
+  )
+}
+
+interface MapboxFeature {
+  id: string
+  place_name: string
+  text: string
+  center: [number, number]
+}
+
+const MAPBOX_TOKEN = process.env.NEXT_PUBLIC_MAPBOX_TOKEN ?? ''
+
+function AddressAutocompleteInput({
+  value,
+  onChange,
+  placeholder,
+  icon,
+}: {
+  value: string
+  onChange: (val: string) => void
+  placeholder?: string
+  icon: React.ReactNode
+}) {
+  const [query, setQuery]           = useState(value)
+  const [suggestions, setSuggestions] = useState<MapboxFeature[]>([])
+  const [loading, setLoading]       = useState(false)
+  const [open, setOpen]             = useState(false)
+  const debounceRef                 = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const wrapperRef                  = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    setQuery(value)
+  }, [value])
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        setOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function handleInput(val: string) {
+    setQuery(val)
+    onChange(val)
+    if (debounceRef.current) clearTimeout(debounceRef.current)
+    if (val.length < 3) { setSuggestions([]); setOpen(false); return }
+
+    debounceRef.current = setTimeout(async () => {
+      if (!MAPBOX_TOKEN) return
+      setLoading(true)
+      try {
+        const bbox = '-71.25,-30.63,-71.15,-30.55'
+        const url  = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(val)}.json?access_token=${MAPBOX_TOKEN}&country=cl&language=es&bbox=${bbox}&limit=5`
+        const res  = await fetch(url)
+        const data = await res.json()
+        const features: MapboxFeature[] = data.features ?? []
+        setSuggestions(features)
+        setOpen(features.length > 0)
+      } finally {
+        setLoading(false)
+      }
+    }, 320)
+  }
+
+  function selectSuggestion(feature: MapboxFeature) {
+    const val = feature.place_name
+    setQuery(val)
+    onChange(val)
+    setSuggestions([])
+    setOpen(false)
+  }
+
+  return (
+    <div ref={wrapperRef} className="relative w-full">
+      <div className="relative">
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25">{icon}</span>
+        <input
+          type="text"
+          value={query}
+          onChange={e => handleInput(e.target.value)}
+          onFocus={() => suggestions.length > 0 && setOpen(true)}
+          placeholder={placeholder ?? 'Ej: Ariztía 100, Ovalle'}
+          autoComplete="off"
+          className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+        />
+        {loading && (
+          <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />
+        )}
+      </div>
+
+      {open && suggestions.length > 0 && (
+        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[#161622] border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+          {suggestions.map(feature => (
+            <button
+              key={feature.id}
+              type="button"
+              onClick={() => selectSuggestion(feature)}
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+            >
+              <MapPin size={12} className="text-[#FF6B35] shrink-0 mt-0.5" />
+              <span className="text-white text-xs leading-normal">{feature.place_name}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

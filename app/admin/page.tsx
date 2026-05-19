@@ -1,7 +1,20 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { CheckCircle, XCircle, Clock, RefreshCw, LogIn, ExternalLink, ChevronDown, ChevronUp } from 'lucide-react'
+import {
+  CheckCircle, XCircle, Clock, RefreshCw, LogIn, ExternalLink,
+  ChevronDown, ChevronUp, Image as ImageIcon, TrendingUp, Store,
+  ShoppingBag, DollarSign, Star, AlertTriangle
+} from 'lucide-react'
+
+import ActivationFunnel from '@/components/admin/ActivationFunnel'
+import AdminTicketsTab from '@/components/admin/AdminTicketsTab'
+import RestaurantsAtRisk from '@/components/admin/RestaurantsAtRisk'
+import RegistrationsByDay from '@/components/admin/RegistrationsByDay'
+import PlanUpgrades from '@/components/admin/PlanUpgrades'
+import AnalyticsTab from '@/components/admin/AnalyticsTab'
+
+// ── Types ────────────────────────────────────────────────────────────────────
 
 const STATUSES = ['pending', 'approved', 'rejected'] as const
 type Status = typeof STATUSES[number]
@@ -23,16 +36,108 @@ interface Submission {
   created_at: string
 }
 
-const STATUS_STYLES: Record<Status, string> = {
-  pending:  'bg-amber-50  text-amber-600  border-amber-200',
-  approved: 'bg-green-50  text-green-600  border-green-200',
-  rejected: 'bg-red-50    text-red-500    border-red-200',
+interface RiderProfile {
+  id: string
+  user_id: string
+  full_name: string
+  phone: string
+  national_id: string
+  vehicle_type: string
+  vehicle_model?: string
+  license_plate?: string
+  document_status: 'documents_submitted' | 'approved' | 'rejected'
+  doc_national_id_url?: string
+  doc_license_url?: string
+  doc_insurance_url?: string
+  doc_permit_url?: string
+  doc_inspection_url?: string
+  doc_driver_record_url?: string
+  updated_at: string
 }
 
-const STATUS_ICONS: Record<Status, React.ElementType> = {
-  pending:  Clock,
-  approved: CheckCircle,
-  rejected: XCircle,
+interface KPIs {
+  restaurants_total:  number
+  restaurants_active: number
+  orders_paid:        number
+  revenue_clp:        number
+  commission_clp:     number
+  avg_order_value:    number
+  reviews_count:      number
+  avg_rating:         number | null
+  tickets_open:       number
+  tickets_critical:   number
+}
+
+interface TopRestaurant {
+  id:           string
+  name:         string
+  neighborhood: string | null
+  plan:         string | null
+  active:       boolean | null
+  orders:       number
+  revenue:      number
+  commission:   number
+}
+
+interface Review {
+  id:            string
+  restaurant_id: string
+  rating:        number
+  comment:       string | null
+  ai_summary:    string | null
+  sentiment:     string | null
+  created_at:    string
+}
+
+interface Ticket {
+  id:            string
+  restaurant_id: string | null
+  subject:       string
+  description:   string
+  severity:      string
+  status:        string
+  created_at:    string
+  resolved_at:   string | null
+}
+
+interface DashboardPayload {
+  period:          string
+  kpis:            KPIs
+  top_restaurants: TopRestaurant[]
+  recent_reviews:  Review[]
+  recent_tickets:  Ticket[]
+}
+
+const PERIODS = [
+  { value: '7d',  label: '7 días' },
+  { value: '30d', label: '30 días' },
+  { value: '90d', label: '90 días' },
+  { value: 'all', label: 'Todo' },
+]
+
+const STATUS_STYLES: Record<Status, string> = {
+  pending:  'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  approved: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  rejected: 'bg-red-500/10 text-red-400 border-red-500/30',
+}
+
+const RIDER_STATUS_STYLES: Record<string, string> = {
+  documents_submitted: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
+  approved:            'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
+  rejected:            'bg-red-500/10 text-red-400 border-red-500/30',
+}
+
+const RIDER_STATUS_LABELS: Record<string, string> = {
+  documents_submitted: 'Por revisar',
+  approved:            'Aprobado',
+  rejected:            'Rechazado',
+}
+
+const VEHICLE_LABELS: Record<string, string> = {
+  bicycle:    'Bicicleta',
+  motorcycle: 'Moto',
+  car:        'Auto',
+  cargo_bike: 'Cargo bike',
 }
 
 const PRICE_LABELS: Record<string, string> = {
@@ -41,49 +146,89 @@ const PRICE_LABELS: Record<string, string> = {
   premium:   'Premium',
 }
 
+const CLP = (v: number) => `$${v.toLocaleString('es-CL')}`
+
+// ── Component ────────────────────────────────────────────────────────────────
+
 export default function AdminPage() {
-  const [secret, setSecret]           = useState('')
-  const [authed, setAuthed]           = useState(false)
-  const [authError, setAuthError]     = useState(false)
-  const [tab, setTab]                 = useState<Status>('pending')
-  const [submissions, setSubmissions] = useState<Submission[]>([])
-  const [loading, setLoading]         = useState(false)
-  const [expanded, setExpanded]       = useState<string | null>(null)
+  const [secret, setSecret]             = useState('')
+  const [authed, setAuthed]             = useState(false)
+  const [authError, setAuthError]       = useState(false)
+  const [view, setView]                 = useState<'inicio' | 'submissions' | 'riders'>('inicio')
+  const [tab, setTab]                   = useState<Status>('pending')
+  const [riderTab, setRiderTab]         = useState<'documents_submitted' | 'approved' | 'rejected'>('documents_submitted')
+  const [dashboardTab, setDashboardTab] = useState<'restaurants' | 'reviews' | 'tickets' | 'analytics'>('restaurants')
+
+  const [period, setPeriod]             = useState('30d')
+  const [dashboardData, setDashboardData] = useState<DashboardPayload | null>(null)
+  const [submissions, setSubmissions]   = useState<Submission[]>([])
+  const [riders, setRiders]             = useState<RiderProfile[]>([])
+
+  const [loading, setLoading]           = useState(false)
+  const [expanded, setExpanded]         = useState<string | null>(null)
   const [actionLoading, setActionLoading] = useState<string | null>(null)
-  const [selected, setSelected]       = useState<Set<string>>(new Set())  // #4 bulk
-  const [bulkLoading, setBulkLoading] = useState(false)
-  const [toast, setToast]             = useState<{ msg: string; ok: boolean } | null>(null)
+  const [selected, setSelected]         = useState<Set<string>>(new Set())
+  const [bulkLoading, setBulkLoading]   = useState(false)
+  const [toast, setToast]               = useState<{ msg: string; ok: boolean } | null>(null)
 
   function showToast(msg: string, ok = true) {
     setToast({ msg, ok })
     setTimeout(() => setToast(null), 3500)
   }
 
-  const load = useCallback(async (s = secret, t = tab) => {
+  const load = useCallback(async (s = secret) => {
     setLoading(true)
-    const res = await fetch(`/api/admin/submissions?status=${t}`, {
-      headers: { 'x-admin-secret': s },
-    })
-    if (res.status === 401) { setAuthed(false); setAuthError(true); setLoading(false); return }
-    const json = await res.json()
-    setSubmissions(json.data ?? [])
-    setLoading(false)
-  }, [secret, tab])
+    try {
+      if (view === 'inicio') {
+        const res = await fetch(`/api/admin/dashboard?period=${period}`, {
+          headers: { 'x-admin-secret': s },
+        })
+        if (res.status === 401) { setAuthed(false); setAuthError(true); setLoading(false); return }
+        const json = await res.json()
+        setDashboardData(json)
+      } else if (view === 'submissions') {
+        const res = await fetch(`/api/admin/submissions?status=${tab}`, {
+          headers: { 'x-admin-secret': s },
+        })
+        if (res.status === 401) { setAuthed(false); setAuthError(true); setLoading(false); return }
+        const json = await res.json()
+        setSubmissions(json.data ?? [])
+      } else {
+        const res = await fetch(`/api/admin/riders?status=${riderTab}`, {
+          headers: { 'x-admin-secret': s },
+        })
+        if (res.status === 401) { setAuthed(false); setAuthError(true); setLoading(false); return }
+        const json = await res.json()
+        setRiders(json.data ?? [])
+      }
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setLoading(false)
+    }
+  }, [secret, view, tab, riderTab, period])
 
   async function handleLogin() {
     setAuthError(false)
-    const res = await fetch(`/api/admin/submissions?status=pending`, {
-      headers: { 'x-admin-secret': secret },
-    })
-    if (res.status === 401) { setAuthError(true); return }
-    const json = await res.json()
-    setSubmissions(json.data ?? [])
-    setAuthed(true)
+    setLoading(true)
+    try {
+      const res = await fetch(`/api/admin/dashboard?period=30d`, {
+        headers: { 'x-admin-secret': secret },
+      })
+      if (res.status === 401) { setAuthError(true); setLoading(false); return }
+      const json = await res.json()
+      setDashboardData(json)
+      setAuthed(true)
+    } catch (err) {
+      setAuthError(true)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
     if (authed) load()
-  }, [tab, authed]) // eslint-disable-line
+  }, [view, tab, riderTab, period, authed, load])
 
   async function handleAction(id: string, action: 'approve' | 'reject') {
     setActionLoading(id + action)
@@ -108,7 +253,33 @@ export default function AdminPage() {
     }
   }
 
-  // #4 — bulk approve all selected
+  async function handleRiderAction(id: string, action: 'approve' | 'reject') {
+    setActionLoading(id + action)
+    try {
+      const res = await fetch('/api/admin/riders', {
+        method:  'PATCH',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': secret },
+        body:    JSON.stringify({ id, action }),
+      })
+      const json = await res.json()
+      if (res.ok) {
+        showToast(
+          action === 'approve'
+            ? `✅ Repartidor aprobado con éxito`
+            : `❌ Documentos rechazados`,
+          true
+        )
+        setRiders(prev => prev.filter(r => r.id !== id))
+      } else {
+        showToast('Error: ' + (json.error ?? 'algo salió mal'), false)
+      }
+    } catch (err: any) {
+      showToast('Error: ' + err.message, false)
+    } finally {
+      setActionLoading(null)
+    }
+  }
+
   async function handleBulkApprove() {
     if (selected.size === 0) return
     setBulkLoading(true)
@@ -145,15 +316,14 @@ export default function AdminPage() {
     }
   }
 
-  // ── Login ─────────────────────────────────────────────────────────────────
   if (!authed) {
     return (
-      <main className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF8' }}>
-        <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 w-full max-w-sm">
-          <h1 className="text-xl font-bold text-[#1A1A2E] mb-1">
-            hi<span style={{ color: '#FF6B35' }}>chapi</span> admin
+      <main className="min-h-screen flex items-center justify-center bg-[#0A0A14] text-white">
+        <div className="bg-[#13132A] rounded-2xl border border-white/10 p-8 w-full max-w-sm">
+          <h1 className="text-xl font-bold mb-1">
+            hi<span className="text-[#FF6B35]">chapi</span> · admin
           </h1>
-          <p className="text-sm text-neutral-400 mb-6">Panel de solicitudes</p>
+          <p className="text-sm text-white/40 mb-6">Panel de administración</p>
 
           <div className="flex flex-col gap-3">
             <input
@@ -162,11 +332,11 @@ export default function AdminPage() {
               value={secret}
               onChange={e => setSecret(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              className="w-full rounded-xl border border-neutral-200 px-4 py-3 text-sm
-                         text-[#1A1A2E] focus:outline-none focus:border-[#FF6B35] transition-colors"
+              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm
+                         text-white focus:outline-none focus:border-[#FF6B35] transition-colors"
             />
             {authError && (
-              <p className="text-xs text-red-500">Clave incorrecta</p>
+              <p className="text-xs text-red-400">Clave incorrecta</p>
             )}
             <button
               onClick={handleLogin}
@@ -183,199 +353,548 @@ export default function AdminPage() {
     )
   }
 
-  // ── Panel ─────────────────────────────────────────────────────────────────
   return (
-    <main className="min-h-screen" style={{ background: '#FAFAF8' }}>
+    <main className="min-h-screen bg-[#0A0A14] text-white">
       {/* Header */}
-      <header className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
-        <h1 className="font-bold text-[#1A1A2E]">
-          hi<span style={{ color: '#FF6B35' }}>chapi</span>
-          <span className="text-neutral-400 font-normal ml-2 text-sm">· Solicitudes</span>
-        </h1>
-        <div className="flex gap-2 items-center">
+      <header className="bg-[#13132A] border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 z-10 flex-wrap gap-4">
+        <div className="flex items-center gap-6 flex-wrap">
+          <h1 className="font-bold text-white text-lg">
+            hi<span className="text-[#FF6B35]">chapi</span>
+            <span className="text-white/40 font-normal ml-2 text-sm">· Centro de Control</span>
+          </h1>
+
+          {/* View Selector Menu */}
+          <nav className="flex gap-1 bg-white/5 border border-white/10 rounded-xl p-1 text-xs">
+            <button
+              onClick={() => { setView('inicio'); setExpanded(null) }}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                view === 'inicio'
+                  ? 'bg-[#FF6B35] text-white shadow-sm'
+                  : 'text-white/40 hover:text-white'
+              }`}
+            >
+              Inicio
+            </button>
+            <button
+              onClick={() => { setView('submissions'); setExpanded(null) }}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                view === 'submissions'
+                  ? 'bg-[#FF6B35] text-white shadow-sm'
+                  : 'text-white/40 hover:text-white'
+              }`}
+            >
+              Solicitudes de Locales
+            </button>
+            <button
+              onClick={() => { setView('riders'); setExpanded(null) }}
+              className={`px-3 py-1.5 rounded-lg font-semibold transition-colors ${
+                view === 'riders'
+                  ? 'bg-[#FF6B35] text-white shadow-sm'
+                  : 'text-white/40 hover:text-white'
+              }`}
+            >
+              Verificación de Repartidores
+            </button>
+          </nav>
+        </div>
+
+        <div className="flex gap-3 items-center">
+          {view === 'inicio' && (
+            <div className="flex bg-white/5 rounded-lg border border-white/10 p-1">
+              {PERIODS.map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => setPeriod(p.value)}
+                  className={`px-3 py-1 text-xs rounded transition-colors ${
+                    period === p.value ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          )}
+
           <a
             href="/"
             target="_blank"
-            className="flex items-center gap-1 text-xs text-neutral-400 hover:text-[#FF6B35] transition-colors"
+            className="flex items-center gap-1 text-xs text-white/40 hover:text-[#FF6B35] transition-colors"
           >
             Ver app <ExternalLink size={11} />
           </a>
           <button
             onClick={() => load()}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full
-                       border border-neutral-200 text-neutral-500 hover:border-[#FF6B35]
+                       border border-white/10 text-white/40 hover:border-[#FF6B35]
                        hover:text-[#FF6B35] transition-colors"
           >
-            <RefreshCw size={11} />
+            <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
             Actualizar
           </button>
         </div>
       </header>
 
-      {/* Tabs */}
-      <div className="max-w-4xl mx-auto px-6 pt-6">
-        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
-          <div className="flex gap-1 bg-white rounded-xl border border-neutral-100 p-1 w-fit">
-            {STATUSES.map(s => (
-              <button
-                key={s}
-                onClick={() => { setTab(s); setExpanded(null); setSelected(new Set()) }}
-                className={[
-                  'px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all',
-                  tab === s
-                    ? 'bg-[#FF6B35] text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-[#1A1A2E]',
-                ].join(' ')}
-              >
-                {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Rechazados'}
-              </button>
-            ))}
-          </div>
+      {/* Main Container */}
+      <div className="max-w-6xl mx-auto px-6 py-6 space-y-6">
+        {view === 'inicio' && dashboardData && (() => {
+          const k = dashboardData.kpis
+          return (
+            <div className="space-y-6">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+                <KpiCard icon={Store}        label="Restaurantes activos" value={`${k.restaurants_active} / ${k.restaurants_total}`} />
+                <KpiCard icon={ShoppingBag}  label="Pedidos pagados"      value={k.orders_paid.toLocaleString('es-CL')} />
+                <KpiCard icon={TrendingUp}   label="Revenue total"        value={CLP(k.revenue_clp)}  accent />
+                <KpiCard icon={DollarSign}   label="Comisión 1% HiChapi"  value={CLP(k.commission_clp)} accent />
+                <KpiCard icon={Star}         label="Rating promedio"      value={k.avg_rating !== null ? `${k.avg_rating} ★` : '—'} />
+              </div>
 
-          {/* Bulk controls — only on pending tab */}
-          {tab === 'pending' && submissions.length > 0 && (
-            <div className="flex items-center gap-2">
-              <button
-                onClick={toggleSelectAll}
-                className="text-xs px-3 py-1.5 rounded-full border border-neutral-200
-                           text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors"
-              >
-                {selected.size === submissions.filter(s => s.status === 'pending').length
-                  ? 'Deseleccionar todo'
-                  : 'Seleccionar todo'}
-              </button>
-              {selected.size > 0 && (
-                <button
-                  onClick={handleBulkApprove}
-                  disabled={bulkLoading}
-                  className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full
-                             bg-green-500 hover:bg-green-600 disabled:bg-neutral-200
-                             text-white font-semibold transition-colors"
-                >
-                  <CheckCircle size={12} />
-                  {bulkLoading ? 'Aprobando…' : `Aprobar ${selected.size}`}
-                </button>
+              {/* Ticket alerts */}
+              {(() => {
+                const stale = dashboardData.recent_tickets.filter(t =>
+                  t.severity === 'critical'
+                  && (t.status === 'open' || t.status === 'investigating')
+                  && Date.now() - new Date(t.created_at).getTime() > 24 * 3600 * 1000
+                )
+                if (stale.length > 0) {
+                  return (
+                    <button
+                      onClick={() => setDashboardTab('tickets')}
+                      className="w-full flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:bg-red-500/15 transition-colors text-left"
+                    >
+                      <AlertTriangle size={18} className="text-red-400 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-sm text-red-200 font-semibold">
+                          {stale.length} ticket{stale.length > 1 ? 's' : ''} crítico{stale.length > 1 ? 's' : ''} sin respuesta hace &gt;24h
+                        </p>
+                        <p className="text-xs text-red-300/70 mt-0.5 truncate">
+                          {stale[0].subject}
+                        </p>
+                      </div>
+                      <span className="text-xs text-red-300/60">Ver →</span>
+                    </button>
+                  )
+                }
+                if (k.tickets_critical > 0) {
+                  return (
+                    <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
+                      <AlertTriangle size={18} className="text-amber-400 shrink-0" />
+                      <p className="text-sm text-amber-200">
+                        {k.tickets_critical} ticket{k.tickets_critical > 1 ? 's' : ''} crítico{k.tickets_critical > 1 ? 's' : ''} abierto{k.tickets_critical > 1 ? 's' : ''}.
+                      </p>
+                    </div>
+                  )
+                }
+                return null
+              })()}
+
+              {/* Registrations */}
+              <RegistrationsByDay
+                adminSecret={secret}
+                days={period === '7d' ? 7 : period === '90d' ? 90 : period === 'all' ? 90 : 30}
+              />
+
+              {/* Activation funnel */}
+              <ActivationFunnel
+                adminSecret={secret}
+                days={period === '7d' ? 7 : period === '90d' ? 90 : period === 'all' ? 365 : 30}
+              />
+
+              {/* Upgrades */}
+              <PlanUpgrades adminSecret={secret} weeks={8} />
+
+              {/* Restaurants at Risk */}
+              <RestaurantsAtRisk adminSecret={secret} />
+
+              {/* Sub-tabs Selector */}
+              <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit flex-wrap">
+                {([
+                  { id: 'restaurants', label: `Top restaurantes (${dashboardData.top_restaurants.length})` },
+                  { id: 'reviews',     label: `Feedback (${k.reviews_count})` },
+                  { id: 'tickets',     label: `Soporte (${k.tickets_open} abiertos)` },
+                  { id: 'analytics',   label: `Analytics` },
+                ] as const).map(t => (
+                  <button
+                    key={t.id}
+                    onClick={() => setDashboardTab(t.id)}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                      dashboardTab === t.id ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sub-tab content */}
+              {dashboardTab === 'restaurants' && (
+                <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+                  <table className="w-full text-sm">
+                    <thead className="bg-white/3 border-b border-white/8">
+                      <tr>
+                        <th className="px-4 py-3 text-left  text-white/40 text-xs font-medium">Restaurante</th>
+                        <th className="px-4 py-3 text-left  text-white/40 text-xs font-medium">Plan</th>
+                        <th className="px-4 py-3 text-right text-white/40 text-xs font-medium">Pedidos</th>
+                        <th className="px-4 py-3 text-right text-white/40 text-xs font-medium">Revenue</th>
+                        <th className="px-4 py-3 text-right text-white/40 text-xs font-medium">Comisión</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {dashboardData.top_restaurants.map(r => (
+                        <tr key={r.id} className="border-b border-white/5 hover:bg-white/3">
+                          <td className="px-4 py-3">
+                            <p className="font-medium">{r.name}</p>
+                            <p className="text-white/30 text-xs">{r.neighborhood ?? '—'}</p>
+                          </td>
+                          <td className="px-4 py-3 text-white/50 text-xs capitalize">{r.plan ?? 'free'}</td>
+                          <td className="px-4 py-3 text-right font-mono">{r.orders}</td>
+                          <td className="px-4 py-3 text-right font-mono text-white/70">{CLP(r.revenue)}</td>
+                          <td className="px-4 py-3 text-right font-mono text-[#FF6B35]">{CLP(r.commission)}</td>
+                        </tr>
+                      ))}
+                      {dashboardData.top_restaurants.length === 0 && (
+                        <tr><td colSpan={5} className="px-4 py-8 text-center text-white/30">Sin restaurantes en el período</td></tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {dashboardTab === 'reviews' && (
+                <div className="space-y-2">
+                  {dashboardData.recent_reviews.map(r => (
+                    <div key={r.id} className="p-4 rounded-xl border border-white/8 bg-white/3">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-[#FF6B35] font-mono text-sm">{'★'.repeat(r.rating)}<span className="text-white/15">{'★'.repeat(5 - r.rating)}</span></span>
+                          {r.sentiment && (
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
+                              r.sentiment === 'positive' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
+                              r.sentiment === 'negative' ? 'bg-red-500/10 border-red-500/30 text-red-300' :
+                              'bg-white/5 border-white/10 text-white/50'
+                            }`}>{r.sentiment}</span>
+                          )}
+                        </div>
+                        <span className="text-white/25 text-xs">{new Date(r.created_at).toLocaleDateString('es-CL')}</span>
+                      </div>
+                      {r.comment && <p className="text-sm text-white/80">{r.comment}</p>}
+                      {r.ai_summary && <p className="text-xs text-white/40 mt-1 italic">{r.ai_summary}</p>}
+                    </div>
+                  ))}
+                  {dashboardData.recent_reviews.length === 0 && (
+                    <div className="text-center py-10 text-white/30">Sin reseñas en el período</div>
+                  )}
+                </div>
+              )}
+
+              {dashboardTab === 'tickets' && (
+                <AdminTicketsTab
+                  tickets={dashboardData.recent_tickets}
+                  adminSecret={secret}
+                  onRefresh={() => load()}
+                />
+              )}
+
+              {dashboardTab === 'analytics' && (
+                <AnalyticsTab adminSecret={secret} period={period} />
               )}
             </div>
-          )}
-        </div>
+          )
+        })()}
 
-        {/* Content */}
-        {loading ? (
-          <div className="space-y-3">
-            {[0, 1, 2].map(i => (
-              <div key={i} className="bg-white rounded-2xl border border-neutral-100 h-20 animate-pulse" />
-            ))}
-          </div>
-        ) : submissions.length === 0 ? (
-          <div className="text-center py-20 text-neutral-300">
-            <Clock size={40} className="mx-auto mb-3" strokeWidth={1} />
-            <p className="text-sm">No hay solicitudes {tab === 'pending' ? 'pendientes' : tab === 'approved' ? 'aprobadas' : 'rechazadas'}</p>
-          </div>
-        ) : (
-          <div className="space-y-3 pb-12">
-            {submissions.map(sub => {
-              const isOpen   = expanded === sub.id
-              const Icon     = STATUS_ICONS[sub.status]
-              const isActing = actionLoading?.startsWith(sub.id)
+        {view === 'submissions' && (
+          <>
+            {/* Tabs for Submissions */}
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit">
+                {STATUSES.map(s => (
+                  <button
+                    key={s}
+                    onClick={() => { setTab(s); setExpanded(null); setSelected(new Set()) }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
+                      tab === s
+                        ? 'bg-[#FF6B35] text-white shadow-sm'
+                        : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {s === 'pending' ? 'Pendientes' : s === 'approved' ? 'Aprobados' : 'Rechazados'}
+                  </button>
+                ))}
+              </div>
 
-              return (
-                <div key={sub.id} className="bg-white rounded-2xl border border-neutral-100 shadow-sm overflow-hidden">
-                  {/* Row header */}
-                  <div className="w-full flex items-center gap-3 px-5 py-4 hover:bg-neutral-50 transition-colors">
-                    {/* Checkbox — only for pending */}
-                    {sub.status === 'pending' && (
-                      <input
-                        type="checkbox"
-                        checked={selected.has(sub.id)}
-                        onChange={() => toggleSelect(sub.id)}
-                        onClick={e => e.stopPropagation()}
-                        className="w-4 h-4 rounded accent-[#FF6B35] shrink-0 cursor-pointer"
-                      />
-                    )}
+              {/* Bulk controls — only on pending tab */}
+              {tab === 'pending' && submissions.length > 0 && (
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={toggleSelectAll}
+                    className="text-xs px-3 py-1.5 rounded-full border border-white/10
+                               text-white/40 hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors"
+                  >
+                    {selected.size === submissions.filter(s => s.status === 'pending').length
+                      ? 'Deseleccionar todo'
+                      : 'Seleccionar todo'}
+                  </button>
+                  {selected.size > 0 && (
                     <button
-                      className="flex-1 flex items-center gap-4 text-left min-w-0"
-                      onClick={() => setExpanded(isOpen ? null : sub.id)}
+                      onClick={handleBulkApprove}
+                      disabled={bulkLoading}
+                      className="flex items-center gap-1.5 text-xs px-4 py-1.5 rounded-full
+                                 bg-green-600 hover:bg-green-500 disabled:bg-white/10
+                                 text-white font-semibold transition-colors"
                     >
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <p className="font-semibold text-[#1A1A2E] text-sm truncate">{sub.name}</p>
-                        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[sub.status]}`}>
-                          {sub.status}
-                        </span>
-                      </div>
-                      <p className="text-xs text-neutral-400 truncate">
-                        {sub.neighborhood} · {sub.cuisine_type} · {PRICE_LABELS[sub.price_range] ?? sub.price_range}
-                      </p>
-                    </div>
-
-                    <div className="flex items-center gap-2 shrink-0">
-                      <p className="text-xs text-neutral-300 hidden sm:block">
-                        {new Date(sub.created_at).toLocaleDateString('es-CL')}
-                      </p>
-                      {isOpen ? <ChevronUp size={14} className="text-neutral-400" /> : <ChevronDown size={14} className="text-neutral-400" />}
-                    </div>
+                      <CheckCircle size={12} />
+                      {bulkLoading ? 'Aprobando…' : `Aprobar ${selected.size}`}
                     </button>
-                  </div>
+                  )}
+                </div>
+              )}
+            </div>
 
-                  {/* Detail panel */}
-                  {isOpen && (
-                    <div className="px-5 pb-5 border-t border-neutral-50">
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mt-4 mb-5">
-                        <Detail label="Dirección"   value={sub.address} />
-                        <Detail label="Barrio"      value={sub.neighborhood} />
-                        <Detail label="Cocina"      value={sub.cuisine_type} />
-                        <Detail label="Precio"      value={PRICE_LABELS[sub.price_range] ?? sub.price_range} />
-                        <Detail label="Dueño"       value={sub.owner_name} />
-                        <Detail label="Email"       value={sub.owner_email} />
-                        {sub.owner_phone   && <Detail label="Teléfono"   value={sub.owner_phone} />}
-                        {sub.instagram_url && (
-                          <div>
-                            <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-medium mb-0.5">Instagram</p>
-                            <a href={sub.instagram_url} target="_blank" rel="noopener noreferrer"
-                               className="text-sm text-[#FF6B35] hover:underline break-all">
-                              {sub.instagram_url}
-                            </a>
-                          </div>
+            {/* Submissions List */}
+            {loading ? (
+              <div className="space-y-3">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="bg-white/3 border border-white/8 rounded-2xl h-20 animate-pulse" />
+                ))}
+              </div>
+            ) : submissions.length === 0 ? (
+              <div className="text-center py-20 border border-white/8 bg-white/3 rounded-2xl text-white/30">
+                <Clock size={40} className="mx-auto mb-3" strokeWidth={1} />
+                <p className="text-sm">No hay solicitudes {tab === 'pending' ? 'pendientes' : tab === 'approved' ? 'aprobadas' : 'rechazadas'}</p>
+              </div>
+            ) : (
+              <div className="space-y-3 pb-12">
+                {submissions.map(sub => {
+                  const isOpen   = expanded === sub.id
+                  const isActing = actionLoading?.startsWith(sub.id)
+
+                  return (
+                    <div key={sub.id} className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+                      {/* Row header */}
+                      <div className="w-full flex items-center gap-3 px-5 py-4 hover:bg-white/5 transition-colors">
+                        {/* Checkbox — only for pending */}
+                        {sub.status === 'pending' && (
+                          <input
+                            type="checkbox"
+                            checked={selected.has(sub.id)}
+                            onChange={() => toggleSelect(sub.id)}
+                            onClick={e => e.stopPropagation()}
+                            className="w-4 h-4 rounded border-white/10 bg-white/5 accent-[#FF6B35] shrink-0 cursor-pointer"
+                          />
                         )}
-                        {sub.description && (
-                          <div className="sm:col-span-2">
-                            <Detail label="Descripción" value={sub.description} />
+                        <button
+                          className="flex-1 flex items-center gap-4 text-left min-w-0"
+                          onClick={() => setExpanded(isOpen ? null : sub.id)}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="font-semibold text-white text-sm truncate">{sub.name}</p>
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[sub.status]}`}>
+                                {sub.status}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/40 truncate">
+                              {sub.neighborhood} · {sub.cuisine_type} · {PRICE_LABELS[sub.price_range] ?? sub.price_range}
+                            </p>
                           </div>
-                        )}
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <p className="text-xs text-white/30 hidden sm:block">
+                              {new Date(sub.created_at).toLocaleDateString('es-CL')}
+                            </p>
+                            {isOpen ? <ChevronUp size={14} className="text-white/40" /> : <ChevronDown size={14} className="text-white/40" />}
+                          </div>
+                        </button>
                       </div>
 
-                      {/* Actions — only for pending */}
-                      {sub.status === 'pending' && (
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => handleAction(sub.id, 'approve')}
-                            disabled={!!isActing}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium
-                                       bg-green-500 hover:bg-green-600 disabled:bg-neutral-200
-                                       text-white transition-colors"
-                          >
-                            <CheckCircle size={14} />
-                            {actionLoading === sub.id + 'approve' ? 'Aprobando…' : 'Aprobar y publicar'}
-                          </button>
-                          <button
-                            onClick={() => handleAction(sub.id, 'reject')}
-                            disabled={!!isActing}
-                            className="flex items-center gap-1.5 px-4 py-2 rounded-xl text-sm font-medium
-                                       border border-red-200 text-red-400 hover:bg-red-50
-                                       disabled:opacity-50 transition-colors"
-                          >
-                            <XCircle size={14} />
-                            {actionLoading === sub.id + 'reject' ? 'Rechazando…' : 'Rechazar'}
-                          </button>
+                      {/* Detail panel */}
+                      {isOpen && (
+                        <div className="px-5 pb-5 border-t border-white/8 bg-black/20">
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 mt-4 mb-5">
+                            <Detail label="Dirección"   value={sub.address} />
+                            <Detail label="Barrio"      value={sub.neighborhood} />
+                            <Detail label="Cocina"      value={sub.cuisine_type} />
+                            <Detail label="Precio"      value={PRICE_LABELS[sub.price_range] ?? sub.price_range} />
+                            <Detail label="Dueño"       value={sub.owner_name} />
+                            <Detail label="Email"       value={sub.owner_email} />
+                            {sub.owner_phone   && <Detail label="Teléfono"   value={sub.owner_phone} />}
+                            {sub.instagram_url && (
+                              <div>
+                                <p className="text-[10px] text-white/40 uppercase tracking-wide font-medium mb-0.5">Instagram</p>
+                                <a href={sub.instagram_url} target="_blank" rel="noopener noreferrer"
+                                   className="text-sm text-[#FF6B35] hover:underline break-all">
+                                  {sub.instagram_url}
+                                </a>
+                              </div>
+                            )}
+                            {sub.description && (
+                              <div className="sm:col-span-2">
+                                <Detail label="Descripción" value={sub.description} />
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Actions — only for pending */}
+                          {sub.status === 'pending' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleAction(sub.id, 'approve')}
+                                disabled={!!isActing}
+                                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           bg-green-600 hover:bg-green-500 disabled:bg-white/10 disabled:text-white/30
+                                           text-white transition-colors shadow-sm"
+                              >
+                                <CheckCircle size={14} />
+                                {actionLoading === sub.id + 'approve' ? 'Aprobando…' : 'Aprobar y publicar'}
+                              </button>
+                              <button
+                                onClick={() => handleAction(sub.id, 'reject')}
+                                disabled={!!isActing}
+                                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           border border-red-500/30 text-red-400 hover:bg-red-500/10
+                                           disabled:opacity-50 transition-colors bg-transparent shadow-sm"
+                              >
+                                <XCircle size={14} />
+                                {actionLoading === sub.id + 'reject' ? 'Rechazando…' : 'Rechazar'}
+                              </button>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
-                  )}
-                </div>
-              )
-            })}
-          </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        )}
+
+        {view === 'riders' && (
+          <>
+            {/* Tabs for Riders */}
+            <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
+              <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit">
+                {(['documents_submitted', 'approved', 'rejected'] as const).map(s => (
+                  <button
+                    key={s}
+                    onClick={() => { setRiderTab(s); setExpanded(null) }}
+                    className={`px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all ${
+                      riderTab === s
+                        ? 'bg-[#FF6B35] text-white'
+                        : 'text-white/40 hover:text-white'
+                    }`}
+                  >
+                    {RIDER_STATUS_LABELS[s]}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Riders List */}
+            {loading ? (
+              <div className="space-y-3">
+                {[0, 1, 2].map(i => (
+                  <div key={i} className="bg-white/3 border border-white/8 rounded-2xl h-20 animate-pulse" />
+                ))}
+              </div>
+            ) : riders.length === 0 ? (
+              <div className="text-center py-20 border border-white/8 bg-white/3 rounded-2xl text-white/30">
+                <Clock size={40} className="mx-auto mb-3" strokeWidth={1} />
+                <p className="text-sm">No hay repartidores con documentos en estado {RIDER_STATUS_LABELS[riderTab].toLowerCase()}</p>
+              </div>
+            ) : (
+              <div className="space-y-3 pb-12">
+                {riders.map(rider => {
+                  const isOpen   = expanded === rider.id
+                  const isActing = actionLoading?.startsWith(rider.id)
+
+                  return (
+                    <div key={rider.id} className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+                      {/* Row Header */}
+                      <button
+                        className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors text-left"
+                        onClick={() => setExpanded(isOpen ? null : rider.id)}
+                      >
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] font-bold text-sm shrink-0">
+                            {rider.full_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <p className="font-semibold text-white text-sm truncate">{rider.full_name}</p>
+                              <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${RIDER_STATUS_STYLES[rider.document_status]}`}>
+                                {RIDER_STATUS_LABELS[rider.document_status]}
+                              </span>
+                            </div>
+                            <p className="text-xs text-white/40 truncate">
+                              Vehículo: {VEHICLE_LABELS[rider.vehicle_type] ?? rider.vehicle_type}
+                              {rider.vehicle_model ? ` (${rider.vehicle_model})` : ''}
+                              {rider.license_plate ? ` · Patente: ${rider.license_plate}` : ''}
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center gap-2 shrink-0">
+                          <p className="text-xs text-white/30 hidden sm:block">
+                            Actualizado: {new Date(rider.updated_at).toLocaleDateString('es-CL')}
+                          </p>
+                          {isOpen ? <ChevronUp size={14} className="text-white/40" /> : <ChevronDown size={14} className="text-white/40" />}
+                        </div>
+                      </button>
+
+                      {/* Detail Panel */}
+                      {isOpen && (
+                        <div className="px-5 pb-5 border-t border-white/8 bg-black/20">
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 mb-5">
+                            <Detail label="RUT" value={rider.national_id} />
+                            <Detail label="Teléfono" value={rider.phone} />
+                            <Detail label="ID de Usuario Supabase" value={rider.user_id} />
+                          </div>
+
+                          {/* Documents Grid */}
+                          <p className="text-xs text-white/40 uppercase tracking-wide font-bold mb-3">Documentos Cargados</p>
+                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                            <DocumentCard label="RUT (Cédula de Identidad)" url={rider.doc_national_id_url} />
+                            <DocumentCard label="Licencia de Conducir" url={rider.doc_license_url} />
+                            <DocumentCard label="Seguro / Padrón" url={rider.doc_insurance_url} />
+                            <DocumentCard label="Permiso de Circulación" url={rider.doc_permit_url} />
+                            <DocumentCard label="Revisión Técnica" url={rider.doc_inspection_url} />
+                            <DocumentCard label="Hoja de Vida del Conductor" url={rider.doc_driver_record_url} />
+                          </div>
+
+                          {/* Actions */}
+                          {rider.document_status === 'documents_submitted' && (
+                            <div className="flex gap-2">
+                              <button
+                                onClick={() => handleRiderAction(rider.id, 'approve')}
+                                disabled={!!isActing}
+                                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           bg-green-600 hover:bg-green-500 disabled:bg-white/10 disabled:text-white/30
+                                           text-white transition-colors shadow-sm"
+                              >
+                                <CheckCircle size={14} />
+                                {actionLoading === rider.id + 'approve' ? 'Aprobando…' : 'Aprobar Repartidor'}
+                              </button>
+                              <button
+                                onClick={() => handleRiderAction(rider.id, 'reject')}
+                                disabled={!!isActing}
+                                className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
+                                           border border-red-500/30 text-red-400 hover:bg-red-500/10
+                                           disabled:opacity-50 transition-colors bg-transparent shadow-sm"
+                              >
+                                <XCircle size={14} />
+                                {actionLoading === rider.id + 'reject' ? 'Rechazando…' : 'Rechazar Documentos'}
+                              </button>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </>
         )}
       </div>
 
@@ -384,7 +903,7 @@ export default function AdminPage() {
         <div className={[
           'fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg',
           'transition-all duration-200 z-50',
-          toast.ok ? 'bg-[#1A1A2E] text-white' : 'bg-red-500 text-white',
+          toast.ok ? 'bg-[#FF6B35] text-white' : 'bg-red-500 text-white',
         ].join(' ')}>
           {toast.msg}
         </div>
@@ -396,8 +915,54 @@ export default function AdminPage() {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-medium mb-0.5">{label}</p>
-      <p className="text-sm text-[#1A1A2E]">{value}</p>
+      <p className="text-[10px] text-white/40 uppercase tracking-wide font-medium mb-0.5">{label}</p>
+      <p className="text-sm text-white font-medium">{value}</p>
+    </div>
+  )
+}
+
+function DocumentCard({ label, url }: { label: string; url?: string }) {
+  return (
+    <div className="bg-white/3 rounded-xl p-3 border border-white/8 shadow-sm flex flex-col h-64">
+      <p className="text-xs text-white/40 font-semibold mb-2">{label}</p>
+      {url ? (
+        <div className="relative flex-1 rounded-lg overflow-hidden border border-white/5 bg-black/10 flex items-center justify-center group">
+          <img
+            src={url}
+            alt={label}
+            className="max-h-full max-w-full object-contain"
+          />
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity"
+          >
+            Abrir original <ExternalLink size={12} className="ml-1" />
+          </a>
+        </div>
+      ) : (
+        <div className="flex-1 rounded-lg border border-dashed border-white/10 flex flex-col items-center justify-center bg-black/5">
+          <ImageIcon className="text-white/20 mb-1" size={24} />
+          <p className="text-[11px] text-white/30">No cargado</p>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function KpiCard({ icon: Icon, label, value, accent }: {
+  icon: React.ElementType
+  label: string
+  value: string
+  accent?: boolean
+}) {
+  return (
+    <div className={`p-4 rounded-xl border ${accent ? 'bg-[#FF6B35]/10 border-[#FF6B35]/30' : 'bg-white/3 border-white/8'}`}>
+      <div className="flex items-center gap-1.5 text-white/40 text-xs mb-1">
+        <Icon size={12} className={accent ? 'text-[#FF6B35]' : 'text-white/40'} /> {label}
+      </div>
+      <p className={`text-xl font-bold ${accent ? 'text-[#FF6B35]' : 'text-white'}`}>{value}</p>
     </div>
   )
 }

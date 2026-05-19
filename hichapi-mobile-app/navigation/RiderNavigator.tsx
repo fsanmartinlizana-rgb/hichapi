@@ -12,6 +12,8 @@ import { createStackNavigator } from '@react-navigation/stack'
 import { Text, View, ActivityIndicator, TouchableOpacity } from 'react-native'
 import { useRiderStore, RiderStoreProvider } from '../services/rider/store'
 import RiderAuthScreen from '../screens/rider/RiderAuthScreen'
+import RiderOnboardingScreen from '../screens/rider/RiderOnboardingScreen'
+import RiderVerificationScreen from '../screens/rider/RiderVerificationScreen'
 import RiderMarketplaceScreen from '../screens/rider/RiderMarketplaceScreen'
 import ActiveOrdersList from '../screens/rider/ActiveOrdersList'
 import RiderActiveOrderScreen from '../screens/rider/RiderActiveOrderScreen'
@@ -88,7 +90,7 @@ function PedidosStack({ token, vehicleType }: { token: string; vehicleType: any 
 }
 
 function RiderTabs() {
-  const { authToken, riderProfile, setAuthToken, setRiderProfile, logout, loading } = useRiderStore()
+  const { authToken, riderProfile, setAuthToken, setRiderProfile, logout, loading, refreshProfile } = useRiderStore()
 
   if (loading) {
     return (
@@ -106,7 +108,30 @@ function RiderTabs() {
     )
   }
 
-  const vehicleType = riderProfile?.vehicle_type ?? 'motorcycle'
+  // Rider has an account but no profile created yet (Onboarding)
+  if (!riderProfile) {
+    return (
+      <RiderOnboardingScreen
+        token={authToken}
+        onProfileCreated={refreshProfile}
+        onLogout={logout}
+      />
+    )
+  }
+
+  // Rider has a profile but documents are pending (Verification)
+  if (riderProfile.document_status === 'pending' || riderProfile.document_status === 'documents_submitted') {
+    return (
+      <RiderVerificationScreen
+        profile={riderProfile}
+        token={authToken}
+        onLogout={logout}
+        onRefresh={refreshProfile}
+      />
+    )
+  }
+
+  const vehicleType = riderProfile.vehicle_type
 
   return (
     <Tab.Navigator
@@ -135,28 +160,14 @@ function RiderTabs() {
       </Tab.Screen>
 
       <Tab.Screen name="Perfil">
-        {() =>
-          riderProfile ? (
-            <RiderProfileScreen
-              rider={riderProfile}
-              token={authToken}
-              onStatusChanged={(status) => setRiderProfile({ ...riderProfile, status })}
-              onLogout={logout}
-            />
-          ) : (
-            <View style={{ flex: 1, backgroundColor: '#0A0A14', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-              <Text style={{ color: '#fff', fontSize: 16, marginBottom: 20, textAlign: 'center' }}>
-                No pudimos cargar tu perfil de Rider.
-              </Text>
-              <TouchableOpacity
-                style={{ backgroundColor: '#EF4444', padding: 16, borderRadius: 12 }}
-                onPress={logout}
-              >
-                <Text style={{ color: '#fff', fontWeight: 'bold' }}>Cerrar sesión</Text>
-              </TouchableOpacity>
-            </View>
-          )
-        }
+        {() => (
+          <RiderProfileScreen
+            rider={riderProfile}
+            token={authToken}
+            onStatusChanged={(status) => setRiderProfile({ ...riderProfile, status })}
+            onLogout={logout}
+          />
+        )}
       </Tab.Screen>
     </Tab.Navigator>
   )

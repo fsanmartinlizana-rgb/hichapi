@@ -49,8 +49,28 @@ function parseStep(step: Record<string, unknown>): RouteStep {
 
 async function geocodeAddress(address: string): Promise<{ lat: number; lng: number } | null> {
   try {
-    // Use structured Nominatim params for better accuracy with Chilean addresses
-    // Strip apartment/sector suffixes (e.g. "Mirador 2") that confuse the geocoder
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (mapboxToken) {
+      // Clean query and target specifically Ovalle
+      const query = address.replace(/\s+(mirador|depto|piso|local|of\.|apto|block|villa)\s+\S+$/i, '').trim()
+      const bbox = '-71.25,-30.63,-71.15,-30.55' // Ovalle city area bounding box
+      const url = `https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${mapboxToken}&country=cl&bbox=${bbox}`
+      console.log('[geocode] Querying Mapbox Geocoding:', query)
+      const res = await fetch(url)
+      if (res.ok) {
+        const data = await res.json()
+        const feature = data.features?.[0]
+        if (feature) {
+          const [lng, lat] = feature.geometry.coordinates
+          const result = { lat, lng }
+          console.log('[geocode] Mapbox Result for', query, '->', result)
+          return result
+        }
+      }
+      console.log('[geocode] Mapbox Geocoding failed or returned no results. Falling back to Nominatim.')
+    }
+
+    // Nominatim fallback
     const streetOnly = address.replace(/\s+(mirador|depto|piso|local|of\.|apto|block|villa)\s+\S+$/i, '').trim()
     const params = new URLSearchParams({
       street:       streetOnly,
@@ -72,7 +92,7 @@ async function geocodeAddress(address: string): Promise<{ lat: number; lng: numb
       return null
     }
     const result = { lat: parseFloat(data[0].lat), lng: parseFloat(data[0].lon) }
-    console.log('[geocode] Result for', streetOnly, '->', result)
+    console.log('[geocode] Nominatim Result for', streetOnly, '->', result)
     return result
   } catch (err) {
     console.log('[geocode] Error:', err)
@@ -97,7 +117,7 @@ export async function calculateRoute(
 ): Promise<RouteResult> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY
   if (!apiKey) {
-    // Geocode pickup and delivery addresses using Nominatim for real coordinates
+    // Geocode pickup and delivery addresses using Mapbox/Nominatim for real coordinates
     const [pickupGeo, deliveryGeo] = await Promise.all([
       geocodeAddress(pickupAddress),
       geocodeAddress(deliveryAddress),
@@ -111,9 +131,55 @@ export async function calculateRoute(
     const deliveryLat = deliveryGeo?.lat ?? origin.lat - 0.006
     const deliveryLng = deliveryGeo?.lng ?? origin.lng - 0.006
 
+    const mapboxToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+    if (mapboxToken) {
+      try {
+        const profile = (vehicleType === 'bicycle' || vehicleType === 'cargo_bike') ? 'cycling' : 'driving'
+        const directionsUrl = `https://api.mapbox.com/directions/v5/mapbox/${profile}/${origin.lng},${origin.lat};${pickupLng},${pickupLat};${deliveryLng},${deliveryLat}.json?access_token=${mapboxToken}&geometries=polyline&steps=true`
+        
+        console.log('[route] Querying Mapbox Directions:', profile)
+        const directionsRes = await fetch(directionsUrl)
+        if (directionsRes.ok) {
+          const directionsData = await directionsRes.json()
+          if (directionsData.code === 'Ok' && directionsData.routes?.[0]) {
+            const mbRoute = directionsData.routes[0]
+            const leg1 = mbRoute.legs?.[0]
+            const totalDurationS = mbRoute.duration
+            const now = Date.now()
+            
+            const planned: PlannedRoute = {
+              polyline:         mbRoute.geometry,
+              distance_km:      mbRoute.distance / 1000,
+              duration_minutes: Math.ceil(totalDurationS / 60),
+              steps:            (mbRoute.legs || []).flatMap((leg: any) => 
+                (leg.steps || []).map((s: any) => ({
+                  instruction: s.maneuver.instruction,
+                  distance_m:  Math.round(s.distance),
+                  duration_s:  Math.round(s.duration),
+                  maneuver:    s.maneuver.type || null
+                }))
+              ),
+              eta_pickup:   new Date(now + (leg1?.duration || 0) * 1000).toISOString(),
+              eta_delivery: new Date(now + totalDurationS * 1000).toISOString(),
+              bike_friendly: vehicleType === 'bicycle' || vehicleType === 'cargo_bike',
+              waypoints: {
+                origin:   { lat: origin.lat,  lng: origin.lng  },
+                pickup:   { lat: pickupLat,   lng: pickupLng   },
+                delivery: { lat: deliveryLat, lng: deliveryLng },
+              }
+            }
+            console.log('[route] Mapbox Directions routing succeeded!')
+            return { route: planned, fallback: geocodingFailed }
+          }
+        }
+      } catch (err) {
+        console.error('[route] Mapbox Directions routing error:', err)
+      }
+    }
+
+    console.log('[route] Mapbox Directions unavailable. Using straight-line fallback.')
     const dist1 = haversineDistance(origin.lat, origin.lng, pickupLat, pickupLng)
     const dist2 = haversineDistance(pickupLat, pickupLng, deliveryLat, deliveryLng)
-    // Use 2.5x winding factor for urban Ovalle streets (vs 1.3x straight-line)
     const totalDistanceM = (dist1 + dist2) * 2500
 
     const speedKmh = vehicleType === 'bicycle' || vehicleType === 'cargo_bike' ? 15 : 30
@@ -144,7 +210,6 @@ export async function calculateRoute(
       },
     }
 
-    // geocodingFailed = true means distances/times are rough estimates
     return { route: planned, fallback: geocodingFailed }
   }
 
@@ -187,6 +252,11 @@ export async function calculateRoute(
       eta_pickup:   new Date(now + (leg1.duration.value ?? 0) * 1000).toISOString(),
       eta_delivery: new Date(now + totalDurationS * 1000).toISOString(),
       bike_friendly: isBike,
+      waypoints: {
+        origin:   { lat: origin.lat,  lng: origin.lng },
+        pickup:   { lat: leg1.end_location.lat,   lng: leg1.end_location.lng },
+        delivery: { lat: leg2.end_location.lat,   lng: leg2.end_location.lng },
+      },
     }
 
     return { route: planned, fallback: false }

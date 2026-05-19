@@ -64,6 +64,9 @@ export interface RiderProfile {
   doc_national_id_url: string | null
   doc_license_url: string | null
   doc_insurance_url: string | null
+  doc_permit_url: string | null
+  doc_inspection_url: string | null
+  doc_driver_record_url: string | null
   avg_rating: number | null
   total_ratings: number
   created_at: string
@@ -271,6 +274,15 @@ export const UpdateDeliveryOrderSchema = z.object({
   { message: 'failure_reason es requerido cuando status es failed', path: ['failure_reason'] }
 )
 
+export const CreateRiderProfileSchema = z.object({
+  full_name:     z.string().min(1).max(100),
+  phone:         z.string().min(8).max(20),
+  national_id:   z.string().min(8).max(20),
+  vehicle_type:  z.enum(['bicycle', 'motorcycle', 'car', 'cargo_bike']),
+  license_plate: z.string().max(20).optional(),
+  vehicle_model: z.string().max(100).optional(),
+})
+
 export const UpdateRiderStatusSchema = z.object({
   status: z.enum(['available', 'offline']),
 })
@@ -317,6 +329,7 @@ export const AnalyticsQuerySchema = z.object({
 
 export type CreateDeliveryOrderInput  = z.infer<typeof CreateDeliveryOrderSchema>
 export type UpdateDeliveryOrderInput  = z.infer<typeof UpdateDeliveryOrderSchema>
+export type CreateRiderProfileInput   = z.infer<typeof CreateRiderProfileSchema>
 export type UpdateRiderStatusInput    = z.infer<typeof UpdateRiderStatusSchema>
 export type UpdateRiderProfileInput   = z.infer<typeof UpdateRiderProfileSchema>
 export type CreateRiderRatingInput    = z.infer<typeof CreateRiderRatingSchema>

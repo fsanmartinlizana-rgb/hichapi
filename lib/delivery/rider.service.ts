@@ -14,7 +14,7 @@ import type {
 
 // ── Profile ───────────────────────────────────────────────────────────────────
 
-export interface CreateRiderProfileInput {
+export interface CreateRiderProfileServiceInput {
   userId: string
   full_name: string
   phone: string
@@ -25,7 +25,7 @@ export interface CreateRiderProfileInput {
 }
 
 export async function createRiderProfile(
-  input: CreateRiderProfileInput,
+  input: CreateRiderProfileServiceInput,
 ): Promise<RiderProfile> {
   const supabase = createAdminClient()
   const { data, error } = await supabase
@@ -140,12 +140,15 @@ export async function updateRiderStatus(
 
 // ── Document management ───────────────────────────────────────────────────────
 
-export type DocType = 'national_id' | 'license' | 'insurance'
+export type DocType = 'national_id' | 'license' | 'insurance' | 'permit' | 'inspection' | 'driver_record'
 
 const DOC_COLUMN: Record<DocType, keyof RiderProfile> = {
-  national_id: 'doc_national_id_url',
-  license:     'doc_license_url',
-  insurance:   'doc_insurance_url',
+  national_id:   'doc_national_id_url',
+  license:       'doc_license_url',
+  insurance:     'doc_insurance_url',
+  permit:        'doc_permit_url',
+  inspection:    'doc_inspection_url',
+  driver_record: 'doc_driver_record_url',
 }
 
 export async function setDocumentUrl(
@@ -156,15 +159,19 @@ export async function setDocumentUrl(
   const supabase = createAdminClient()
   const column = DOC_COLUMN[docType]
 
-  await supabase
+  const { error: updateError } = await supabase
     .from('rider_profiles')
     .update({ [column]: url, updated_at: new Date().toISOString() })
     .eq('id', riderId)
 
-  // Check if all 3 docs are now uploaded → set document_status to documents_submitted
+  if (updateError) {
+    throw new Error(`Failed to update document url: ${updateError.message}`)
+  }
+
+  // Check if all 6 docs are now uploaded → set document_status to documents_submitted
   const { data: rider } = await supabase
     .from('rider_profiles')
-    .select('doc_national_id_url, doc_license_url, doc_insurance_url, document_status')
+    .select('doc_national_id_url, doc_license_url, doc_insurance_url, doc_permit_url, doc_inspection_url, doc_driver_record_url, document_status')
     .eq('id', riderId)
     .maybeSingle()
 
@@ -173,12 +180,19 @@ export async function setDocumentUrl(
     rider.doc_national_id_url &&
     rider.doc_license_url &&
     rider.doc_insurance_url &&
+    rider.doc_permit_url &&
+    rider.doc_inspection_url &&
+    rider.doc_driver_record_url &&
     rider.document_status === 'pending'
   ) {
-    await supabase
+    const { error: statusError } = await supabase
       .from('rider_profiles')
       .update({ document_status: 'documents_submitted' as DocumentStatus, updated_at: new Date().toISOString() })
       .eq('id', riderId)
+
+    if (statusError) {
+      throw new Error(`Failed to update document status: ${statusError.message}`)
+    }
   }
 }
 

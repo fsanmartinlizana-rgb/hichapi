@@ -175,7 +175,7 @@ LANGUAGE sql STABLE SECURITY DEFINER AS $$
   SELECT
     ROUND(rl.lat / 0.0045, 0) * 0.0045  AS cell_lat,   -- ~500m en latitud
     ROUND(rl.lng / 0.0045, 0) * 0.0045  AS cell_lng,
-    COUNT(*)                              AS order_count,
+    COUNT(DISTINCT do2.id)                AS order_count,
     ROUND(AVG(do2.delivery_fee_clp), 0)  AS avg_fee_clp
   FROM public.delivery_orders do2
   JOIN public.rider_locations rl ON rl.delivery_order_id = do2.id

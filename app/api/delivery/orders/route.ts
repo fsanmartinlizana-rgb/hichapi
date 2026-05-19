@@ -9,42 +9,45 @@ import { CreateDeliveryOrderSchema } from '@/lib/delivery/types'
 import { createDeliveryOrder, listOrdersForRestaurant } from '@/lib/delivery/delivery-order.service'
 import { createAdminClient } from '@/lib/supabase/server'
 export async function GET(req: NextRequest) {
-  // Try rider auth first
-  const { rider, error: riderError } = await requireRider()
-  if (!riderError && rider) {
+  const restaurantId = req.headers.get('x-restaurant-id')
+
+  // If restaurant header is present → restaurant admin view (takes priority)
+  if (restaurantId) {
+    const { error: authError } = await requireRestaurantRole(restaurantId, ['owner', 'admin', 'supervisor', 'super_admin'])
+    if (authError) return authError
+
+    const { searchParams } = req.nextUrl
+    const statusParam = searchParams.get('status')
+    const status = statusParam ? statusParam.split(',') : undefined
+    const from   = searchParams.get('from')   ?? undefined
+    const to     = searchParams.get('to')     ?? undefined
+
     try {
-      const supabase = createAdminClient()
-      const { data: orders, error } = await supabase
-        .from('delivery_orders')
-        .select('*')
-        .eq('rider_id', rider.id)
-        .order('created_at', { ascending: false })
-      if (error) throw new Error(error.message)
-      console.log('[GET /api/delivery/orders] returning rider orders count:', orders?.length)
+      const orders = await listOrdersForRestaurant(restaurantId, {
+        status: status as any,
+        from,
+        to,
+      })
       return NextResponse.json(orders)
     } catch (err: any) {
-      console.error('[GET /api/delivery/orders] error fetching rider orders:', err)
       return NextResponse.json({ error: err.message }, { status: 500 })
     }
   }
 
-  const restaurantId = req.headers.get('x-restaurant-id')
-  if (!restaurantId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
-
-  const { error: authError } = await requireRestaurantRole(restaurantId, ['owner', 'admin', 'supervisor', 'super_admin'])
-  if (authError) return authError
-
-  const { searchParams } = req.nextUrl
-  const status = searchParams.get('status') ?? undefined
-  const from   = searchParams.get('from')   ?? undefined
-  const to     = searchParams.get('to')     ?? undefined
+  // No restaurant header → try rider auth (mobile app)
+  const { rider, error: riderError } = await requireRider()
+  if (riderError || !rider) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
 
   try {
-    const orders = await listOrdersForRestaurant(restaurantId, {
-      status: status as any,
-      from,
-      to,
-    })
+    const supabase = createAdminClient()
+    const { data: orders, error } = await supabase
+      .from('delivery_orders')
+      .select('*')
+      .eq('rider_id', rider.id)
+      .order('created_at', { ascending: false })
+    if (error) throw new Error(error.message)
     return NextResponse.json(orders)
   } catch (err: any) {
     return NextResponse.json({ error: err.message }, { status: 500 })

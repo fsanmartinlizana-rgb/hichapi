@@ -32,7 +32,20 @@ export async function POST(req: NextRequest) {
 
   const { origin, pickup, delivery, vehicle_type, notes, with_briefing } = parsed.data
 
+  console.log('[API ROUTE] POST /api/delivery/routes received:', {
+    vehicle_type,
+    origin,
+    pickup,
+    delivery,
+  })
+
   const result = await calculateRoute(origin, pickup, delivery, vehicle_type as VehicleType)
+
+  console.log('[API ROUTE] calculateRoute result:', {
+    hasRoute: !!result.route,
+    polyline: result.route?.polyline ? result.route.polyline.substring(0, 30) + '...' : 'none',
+    fallback: result.fallback,
+  })
 
   let briefing: string | undefined
   if (with_briefing && result.route) {

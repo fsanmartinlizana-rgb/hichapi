@@ -17,7 +17,6 @@ export async function requireUser() {
   // 1. Try Bearer token from Authorization header (mobile app)
   const headerStore = await headers()
   const authHeader = headerStore.get('authorization') ?? headerStore.get('Authorization')
-  console.log('[requireUser] authHeader:', authHeader)
   if (authHeader?.startsWith('Bearer ')) {
     const token = authHeader.slice(7)
     const supabase = createClient(
@@ -25,7 +24,6 @@ export async function requireUser() {
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     )
     const { data: { user }, error } = await supabase.auth.getUser(token)
-    console.log('[requireUser] Bearer auth result user:', user?.email, 'error:', error?.message)
     if (user && !error) {
       return { user, error: null }
     }

@@ -50,7 +50,6 @@ export default function RiderMarketplaceScreen({ token, vehicleType, onBack }: P
 
   function handleRestaurantTap(restaurant: MarketplaceRestaurant) {
     if (restaurant.pending_orders_count === 0) return
-    if (riderProfile?.status !== 'available' && riderProfile?.status !== 'busy') return
     setSelectedRestaurant(restaurant)
   }
 

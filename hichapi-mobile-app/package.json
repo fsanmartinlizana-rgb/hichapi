@@ -20,6 +20,7 @@
     "@react-navigation/stack": "^7.9.2",
     "@supabase/supabase-js": "^2.46.2",
     "axios": "^1.12.2",
+    "base64-arraybuffer": "^1.0.2",
     "expo": "~54.0.33",
     "expo-camera": "~17.0.10",
     "expo-constants": "~18.0.12",

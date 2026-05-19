@@ -1,18 +1,12 @@
 import Link from 'next/link'
 import Image from 'next/image'
-import { Star, Clock, MapPin, Globe, DollarSign, Phone, AtSign, Users, Info } from 'lucide-react'
+import { Star, Clock, MapPin, Globe, DollarSign, Phone, AtSign, Users, Info, ShoppingBag } from 'lucide-react'
 import { createClient } from '@supabase/supabase-js'
 import { formatCurrency } from '@/lib/i18n'
 import { notFound } from 'next/navigation'
 import { BackButton } from './BackButton'
-import { CuisinePlaceholder } from '@/components/discovery/CuisinePlaceholder'
-
-interface GoogleReview {
-  author: string | null
-  rating: number | null
-  text:   string
-  time:   string | null
-}
+import CartPanel, { type OrderableItem } from '@/components/public/CartPanel'
+import PublicMenu from '@/components/public/PublicMenu'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -50,20 +44,13 @@ interface RestaurantData {
   price_range: string
   active: boolean
   claimed: boolean
-  /** El flag `claimed` sola no es confiable: hay rows heredadas de seeds
-   *  con `claimed=true` pero `owner_id=null` (regresión del default antiguo
-   *  `DEFAULT true`). Necesitamos el owner_id real para mostrar Reservar. */
   owner_id: string | null
-  data_source: 'manual' | 'agent_enriched' | 'owner_claimed' | null
   google_rating: number | null
   google_rating_count: number | null
-  google_reviews: GoogleReview[] | null
-  photo_source: 'google_places' | 'owner_upload' | 'placeholder' | null
-  google_photo_attribution: Array<{ displayName?: string; uri?: string }> | null
   menu_items: MenuItemData[]
 }
 
-// ── Supabase server client ──────────────────────────────────────────────────
+// ── Supabase ──────────────────────────────────────────────────────────────────
 
 function getSupabase() {
   return createClient(
@@ -72,22 +59,15 @@ function getSupabase() {
   )
 }
 
-// ── Data fetching (server component) ────────────────────────────────────────
-
 async function getRestaurant(slug: string): Promise<RestaurantData | null> {
   const supabase = getSupabase()
-
-  // Sprint 12 columns (phone/website/instagram/description/capacity/tags/hours)
-  // not yet migrated in this DB — query only the columns that exist and
-  // backfill the rest as null so the UI gracefully hides them.
   const { data, error } = await supabase
     .from('restaurants')
     .select(`
       id, name, slug, neighborhood, cuisine_type, rating, review_count,
       address, phone, website, instagram, description, capacity, tags, hours,
       photo_url, gallery_urls, price_range, active, claimed, owner_id,
-      data_source, google_rating, google_rating_count, google_reviews,
-      photo_source, google_photo_attribution, config_chapi,
+      google_rating, google_rating_count, config_chapi,
       menu_items (id, name, description, price, category, tags, available, photo_url)
     `)
     .eq('slug', slug)
@@ -95,148 +75,36 @@ async function getRestaurant(slug: string): Promise<RestaurantData | null> {
     .single()
 
   if (error || !data) return null
+
   const d = data as Record<string, unknown>
-
-  // ── Fallback config_chapi → columnas estructuradas ──────────────────────
-  // Para agent_enriched, las columnas phone/website/hours suelen estar en
-  // NULL pero la data SÍ vive en config_chapi (lo trajo el scrape de Google).
-  // Acá fusionamos: si la columna está vacía, leemos de config_chapi para
-  // que la ficha tenga toda la info útil que sí tenemos.
   const cfg = (d.config_chapi as Record<string, unknown> | null) ?? {}
-  const cfgPhone     = typeof cfg.phone === 'string' ? cfg.phone : null
-  const cfgWebsite   = typeof cfg.website === 'string' ? cfg.website : null
-  const cfgTipoLocal = typeof cfg.tipo_local === 'string' ? cfg.tipo_local : null
-  const cfgHorarios  = Array.isArray(cfg.horarios) ? (cfg.horarios as string[]) : null
-
-  // Si hours estructurado (Object {Lunes:{open,close,closed}}) no existe,
-  // intentamos parsear el array de Google "lunes: 12:30–17:00" al shape
-  // que la UI espera.
-  const colHours = d.hours as Record<string, DaySchedule> | null
-  const hoursMerged: Record<string, DaySchedule> | null =
-    colHours && Object.keys(colHours).length > 0
-      ? colHours
-      : cfgHorarios ? parseGoogleHorarios(cfgHorarios) : null
+  const cfgPhone   = typeof cfg.phone   === 'string' ? cfg.phone   : null
+  const cfgWebsite = typeof cfg.website === 'string' ? cfg.website : null
 
   return {
     ...data,
-    phone:        (d.phone as string | null)       || cfgPhone,
-    website:      (d.website as string | null)     || cfgWebsite,
-    instagram:    (d.instagram as string | null)   ?? null,
-    description: ((d.description as string | null) ?? null) ||
-                 (cfgTipoLocal ? `${cfgTipoLocal} — información tomada de Google Maps.` : null),
-    capacity:     (d.capacity as number | null)    ?? null,
-    tags:         (d.tags as string[] | null)      ?? null,
-    hours:        hoursMerged,
+    phone:        (d.phone   as string | null) || cfgPhone,
+    website:      (d.website as string | null) || cfgWebsite,
     gallery_urls: (d.gallery_urls as string[] | null) ?? [],
-    data_source:  (d.data_source as RestaurantData['data_source']) ?? 'manual',
-    google_rating:       (d.google_rating as number | null) ?? null,
+    google_rating:       (d.google_rating       as number | null) ?? null,
     google_rating_count: (d.google_rating_count as number | null) ?? null,
-    google_reviews:      (d.google_reviews as GoogleReview[] | null) ?? null,
-    photo_source:        (d.photo_source as RestaurantData['photo_source']) ?? null,
-    google_photo_attribution: (d.google_photo_attribution as RestaurantData['google_photo_attribution']) ?? null,
   } as RestaurantData
-}
-
-/** Convierte el array de Google ("lunes: 12:30–17:00", "martes: Cerrado")
- *  al shape `{Lunes: {open, close, closed}}` que espera la UI.
- *  Robusto contra variaciones (capitalización, separadores). */
-function parseGoogleHorarios(arr: string[]): Record<string, DaySchedule> {
-  const DAY_MAP: Record<string, string> = {
-    'lunes': 'Lunes', 'martes': 'Martes', 'miércoles': 'Miércoles',
-    'jueves': 'Jueves', 'viernes': 'Viernes', 'sábado': 'Sábado',
-    'domingo': 'Domingo',
-  }
-  const out: Record<string, DaySchedule> = {}
-  for (const line of arr) {
-    const colonIdx = line.indexOf(':')
-    if (colonIdx === -1) continue
-    const dayKey = line.slice(0, colonIdx).trim().toLowerCase()
-    const value  = line.slice(colonIdx + 1).trim()
-    const day = DAY_MAP[dayKey]
-    if (!day) continue
-    if (/cerrad|closed/i.test(value)) {
-      out[day] = { open: '00:00', close: '00:00', closed: true }
-      continue
-    }
-    // Separador "–" (en dash) o "-" (hyphen)
-    const range = value.split(/[–-]/).map(s => s.trim())
-    if (range.length !== 2) continue
-    // "12:30" o "0:30" → asegurar formato HH:MM
-    const norm = (t: string) => {
-      const m = t.match(/^(\d{1,2}):(\d{2})/)
-      if (!m) return null
-      return `${m[1].padStart(2, '0')}:${m[2]}`
-    }
-    const open = norm(range[0])
-    const close = norm(range[1])
-    if (!open || !close) continue
-    out[day] = { open, close, closed: false }
-  }
-  return out
-}
-
-async function getReviews(restaurantId: string) {
-  const supabase = getSupabase()
-  const { data } = await supabase
-    .from('reviews')
-    .select('id, rating, comment, created_at')
-    .eq('restaurant_id', restaurantId)
-    .order('created_at', { ascending: false })
-    .limit(10)
-
-  return data ?? []
-}
-
-// Sprint 2026-04-20: promos activas en la página pública del restaurant.
-// Solo las que tienen channel_chapi o channel_mesa activo (las que apuntan
-// solo a lista de espera no corresponde mostrarlas acá).
-async function getActivePromotions(restaurantId: string) {
-  const supabase = getSupabase()
-  const { data } = await supabase
-    .from('promotions')
-    .select('id, name, description, kind, value, time_start, time_end, days_of_week, valid_from, valid_until, channel_mesa, channel_espera, channel_chapi, menu_item_ids, active')
-    .eq('restaurant_id', restaurantId)
-    .eq('active', true)
-    .order('created_at', { ascending: false })
-
-  const { isPromoActiveNow } = await import('@/lib/promotions')
-  type Promo = import('@/lib/promotions').PromotionRow
-  return ((data ?? []) as Promo[]).filter(p =>
-    (p.channel_chapi || p.channel_mesa) && isPromoActiveNow(p)
-  )
 }
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 const formatPrice = (clp: number) => formatCurrency(clp)
 
-function RatingStars({ rating }: { rating: number }) {
-  const full  = Math.floor(rating)
-  const half  = rating - full >= 0.5
-  const empty = 5 - full - (half ? 1 : 0)
-  return (
-    <span className="flex items-center gap-0.5">
-      {Array.from({ length: full }).map((_, i) => (
-        <Star key={`f${i}`} size={14} className="text-[#FF6B35] fill-[#FF6B35]" />
-      ))}
-      {half && (
-        <span className="relative inline-block" style={{ width: 14, height: 14 }}>
-          <Star size={14} className="text-neutral-300 fill-neutral-200 absolute inset-0" />
-          <span className="absolute inset-0 overflow-hidden" style={{ width: '55%' }}>
-            <Star size={14} className="text-[#FF6B35] fill-[#FF6B35]" />
-          </span>
-        </span>
-      )}
-      {Array.from({ length: empty }).map((_, i) => (
-        <Star key={`e${i}`} size={14} className="text-neutral-300 fill-neutral-200" />
-      ))}
-    </span>
-  )
-}
-
 const CATEGORY_ORDER = ['Entrada', 'Principal', 'Postre', 'Bebida']
-
-function groupByCategory(items: MenuItemData[]): Record<string, MenuItemData[]> {
+const DAY_KEYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as const
+const DAY_TO_INDEX: Record<string, number> = {
+  Domingo: 0, Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5, Sábado: 6,
+}
+function todayName() {
+  const idx = new Date().getDay()
+  return DAY_KEYS.find(d => DAY_TO_INDEX[d] === idx) ?? 'Lunes'
+}
+function groupByCategory(items: MenuItemData[]) {
   const groups: Record<string, MenuItemData[]> = {}
   for (const item of items) {
     const cat = item.category || 'Otros'
@@ -245,8 +113,7 @@ function groupByCategory(items: MenuItemData[]): Record<string, MenuItemData[]> 
   }
   return groups
 }
-
-function sortedCategories(groups: Record<string, MenuItemData[]>): string[] {
+function sortedCategories(groups: Record<string, MenuItemData[]>) {
   const keys = Object.keys(groups)
   return [
     ...CATEGORY_ORDER.filter(c => keys.includes(c)),
@@ -254,83 +121,33 @@ function sortedCategories(groups: Record<string, MenuItemData[]>): string[] {
   ]
 }
 
-// ── Sub-components ────────────────────────────────────────────────────────────
+// ── Rating Stars ──────────────────────────────────────────────────────────────
 
-function DietaryTag({ tag }: { tag: string }) {
-  const colorMap: Record<string, string> = {
-    vegano: 'bg-green-100 text-green-700',
-    vegetariano: 'bg-lime-100 text-lime-700',
-    'sin gluten': 'bg-yellow-100 text-yellow-700',
-    promovido: 'bg-[#FF6B35]/10 text-[#FF6B35]',
-  }
-  const cls = colorMap[tag] ?? 'bg-neutral-100 text-neutral-500'
+function RatingStars({ rating }: { rating: number }) {
+  const full  = Math.floor(rating)
+  const empty = 5 - full
   return (
-    <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium capitalize ${cls}`}>
-      {tag}
+    <span className="flex items-center gap-0.5">
+      {Array.from({ length: full }).map((_, i) => (
+        <Star key={`f${i}`} size={13} className="text-[#FF6B35] fill-[#FF6B35]" />
+      ))}
+      {Array.from({ length: empty }).map((_, i) => (
+        <Star key={`e${i}`} size={13} className="text-neutral-300 fill-neutral-200" />
+      ))}
     </span>
   )
 }
 
-function MenuItemRow({ item }: { item: MenuItemData }) {
-  const isPromoted = item.tags?.includes('promovido')
-  return (
-    <div
-      className={`flex items-start justify-between gap-4 py-3 border-b border-neutral-100 last:border-0
-                  ${!item.available ? 'opacity-50' : ''}`}
-    >
-      <div className="flex-1 min-w-0">
-        <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
-          {isPromoted && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-semibold">
-              Chapi sugiere
-            </span>
-          )}
-          {!item.available && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-500 font-medium">
-              Agotado
-            </span>
-          )}
-        </div>
-        <p
-          className={`text-sm font-semibold text-[#1A1A2E] leading-tight
-                      ${!item.available ? 'line-through' : ''}`}
-        >
-          {item.name}
-        </p>
-        {item.description && (
-          <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed">{item.description}</p>
-        )}
-        {item.tags && item.tags.filter(t => t !== 'promovido').length > 0 && (
-          <div className="flex flex-wrap gap-1 mt-1.5">
-            {item.tags.filter(t => t !== 'promovido').map(t => <DietaryTag key={t} tag={t} />)}
-          </div>
-        )}
-      </div>
-      <p className="text-sm font-semibold font-mono text-[#1A1A2E] shrink-0 mt-0.5">
-        {formatPrice(item.price)}
-      </p>
-    </div>
-  )
-}
-
-const DAY_KEYS = ['Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo'] as const
-const DAY_TO_INDEX: Record<string, number> = {
-  Domingo: 0, Lunes: 1, Martes: 2, Miércoles: 3, Jueves: 4, Viernes: 5, Sábado: 6,
-}
-
-function todayName(): string {
-  const idx = new Date().getDay()
-  return DAY_KEYS.find(d => DAY_TO_INDEX[d] === idx) ?? 'Lunes'
-}
+// ── Quick Info Bar ────────────────────────────────────────────────────────────
 
 function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
   const priceLabel =
     restaurant.price_range === 'economico' || restaurant.price_range === '$'   ? '$'   :
     restaurant.price_range === 'premium'   || restaurant.price_range === '$$$' ? '$$$' :
-    restaurant.price_range === 'medio'     || restaurant.price_range === '$$'  ? '$$'  :
     '$$'
 
-  const today = restaurant.hours?.[todayName()]
+  const todayKey = todayName()
+  const today = restaurant.hours?.[todayKey]
   const todayLabel = today
     ? today.closed ? 'Hoy cerrado' : `Hoy ${today.open} – ${today.close}`
     : null
@@ -354,38 +171,22 @@ function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
   )
 }
 
-// ── Description, hours, contact ─────────────────────────────────────────────
+// ── About / Sidebar ───────────────────────────────────────────────────────────
 
 function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
   const hasContact = restaurant.phone || restaurant.website || restaurant.instagram
   const hasHours   = restaurant.hours && Object.keys(restaurant.hours).length > 0
-  // Si el restaurant es agent_enriched y todavía no fue reclamado por su
-  // dueño, la info de contacto/horarios viene de Google Maps. Atribuimos
-  // claramente para no presentar data scraped como verificada por HiChapi.
-  const isUnclaimedScrape =
-    restaurant.data_source === 'agent_enriched' &&
-    !(restaurant.claimed && restaurant.owner_id)
+  const todayKey   = todayName()
 
   if (!restaurant.description && !hasContact && !hasHours && (!restaurant.tags || restaurant.tags.length === 0)) {
     return null
   }
 
-  const todayKey = todayName()
-
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      {isUnclaimedScrape && (hasContact || hasHours) && (
-        <p className="text-[11px] text-amber-700 bg-amber-50 border border-amber-100 rounded-lg px-3 py-2 leading-relaxed">
-          📍 Información tomada de Google Maps. El dueño aún no la verificó —
-          podría estar desactualizada.
-        </p>
-      )}
-
       {restaurant.description && (
         <div>
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2">
-            Sobre el lugar
-          </h3>
+          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2">Sobre el lugar</h3>
           <p className="text-sm text-neutral-600 leading-relaxed">{restaurant.description}</p>
         </div>
       )}
@@ -393,10 +194,7 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
       {restaurant.tags && restaurant.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {restaurant.tags.map(t => (
-            <span
-              key={t}
-              className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-medium capitalize"
-            >
+            <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-medium capitalize">
               {t}
             </span>
           ))}
@@ -406,18 +204,14 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
       {hasHours && (
         <div>
           <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-            <Clock size={12} className="text-[#FF6B35]" />
-            Horarios
+            <Clock size={12} className="text-[#FF6B35]" /> Horarios
           </h3>
           <div className="space-y-1">
             {DAY_KEYS.map(day => {
               const s = restaurant.hours?.[day]
               const isToday = day === todayKey
               return (
-                <div
-                  key={day}
-                  className={`flex items-center justify-between text-xs ${isToday ? 'font-semibold text-[#1A1A2E]' : 'text-neutral-500'}`}
-                >
+                <div key={day} className={`flex items-center justify-between text-xs ${isToday ? 'font-semibold text-[#1A1A2E]' : 'text-neutral-500'}`}>
                   <span>{day}{isToday && ' · hoy'}</span>
                   <span>{s ? (s.closed ? 'Cerrado' : `${s.open} – ${s.close}`) : '—'}</span>
                 </div>
@@ -429,36 +223,21 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
 
       {hasContact && (
         <div className="pt-1 border-t border-neutral-100">
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 mt-3">
-            Contacto
-          </h3>
+          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 mt-3">Contacto</h3>
           <div className="space-y-1.5 text-sm">
             {restaurant.phone && (
               <a href={`tel:${restaurant.phone}`} className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
-                <Phone size={13} className="text-[#FF6B35]" />
-                {restaurant.phone}
+                <Phone size={13} className="text-[#FF6B35]" />{restaurant.phone}
               </a>
             )}
             {restaurant.website && (
-              <a
-                href={restaurant.website.startsWith('http') ? restaurant.website : `https://${restaurant.website}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors"
-              >
-                <Globe size={13} className="text-[#FF6B35]" />
-                {restaurant.website}
+              <a href={restaurant.website.startsWith('http') ? restaurant.website : `https://${restaurant.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
+                <Globe size={13} className="text-[#FF6B35]" />{restaurant.website.replace(/^https?:\/\//, '')}
               </a>
             )}
             {restaurant.instagram && (
-              <a
-                href={`https://instagram.com/${restaurant.instagram.replace(/^@/, '')}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors"
-              >
-                <AtSign size={13} className="text-[#FF6B35]" />
-                {restaurant.instagram}
+              <a href={`https://instagram.com/${restaurant.instagram.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
+                <AtSign size={13} className="text-[#FF6B35]" />{restaurant.instagram}
               </a>
             )}
           </div>
@@ -468,11 +247,9 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
   )
 }
 
+// ── Action Card ───────────────────────────────────────────────────────────────
+
 function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
-  // "Reclamado de verdad" requiere claimed=true Y owner_id presente.
-  // El flag `claimed` solo no es confiable: hay rows heredadas con
-  // claimed=true pero sin owner_id real (regresión de un default antiguo).
-  // Sin owner, no hay panel donde gestionar reservas — mejor no ofrecerlas.
   const hasRealOwner = restaurant.claimed && restaurant.owner_id != null
 
   if (!hasRealOwner) {
@@ -480,13 +257,8 @@ function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
       <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-3">
         <h3 className="font-bold text-[#1A1A2E] text-base">¿Querés ir?</h3>
         <p className="text-sm text-neutral-500 leading-relaxed">
-          Este restaurant aún no se sumó a HiChapi, así que no podemos confirmar
-          horarios ni tomar reservas online. Te recomendamos:
+          Este restaurant aún no se sumó a HiChapi. Te recomendamos llamarles antes de ir para confirmar disponibilidad.
         </p>
-        <ul className="text-xs text-neutral-500 space-y-1.5 pl-4 list-disc">
-          <li>Llamarles antes de ir para confirmar disponibilidad.</li>
-          <li>Revisar su Google Maps para horarios actualizados.</li>
-        </ul>
       </div>
     )
   }
@@ -494,16 +266,14 @@ function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
       <h3 className="font-bold text-[#1A1A2E] text-base">Listo para ir?</h3>
-
       <Link
         href={`/reservar/${restaurant.slug}`}
         className="flex items-center justify-center gap-2 w-full py-3 rounded-xl bg-[#FF6B35] text-white font-semibold text-sm hover:bg-[#e55a2b] transition-colors"
       >
         Reservar mesa
       </Link>
-
       <div className="bg-[#FAFAF8] rounded-xl p-4 space-y-2">
-        <p className="text-xs font-semibold text-[#1A1A2E]">Ya estas en el local?</p>
+        <p className="text-xs font-semibold text-[#1A1A2E]">Ya estás en el local?</p>
         <p className="text-xs text-neutral-400 leading-relaxed">
           Escanea el QR de tu mesa para pedir con Chapi sin esperar al mozo.
         </p>
@@ -512,104 +282,13 @@ function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
   )
 }
 
-function ReviewsSection({ reviews, rating, reviewCount, googleRating, googleRatingCount, googleReviews }: {
-  reviews: { id: string; rating: number; comment: string | null; created_at: string }[]
-  rating: number
-  reviewCount: number
-  googleRating?: number | null
-  googleRatingCount?: number | null
-  googleReviews?: GoogleReview[] | null
-}) {
-  // Si HiChapi todavía no tiene reviews propias pero hay reviews de Google,
-  // las mostramos siempre con atribución explícita — NUNCA como reviews
-  // propias de HiChapi.
-  const hasOwnReviews    = reviews.length > 0
-  const hasGoogleReviews = (googleReviews?.length ?? 0) > 0
-
-  return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
-        <h3 className="font-bold text-[#1A1A2E] text-base flex items-center gap-2">
-          <Star size={15} className="text-[#FF6B35]" />
-          Opiniones
-        </h3>
-        {hasOwnReviews ? (
-          <div className="flex items-center gap-1.5">
-            <span className="text-sm font-bold text-[#1A1A2E]">{rating.toFixed(1)}</span>
-            <RatingStars rating={rating} />
-            <span className="text-xs text-neutral-400">({reviewCount})</span>
-          </div>
-        ) : googleRating != null ? (
-          <div className="flex items-center gap-1.5 text-xs">
-            <RatingStars rating={googleRating} />
-            <span className="font-semibold text-[#1A1A2E]">{googleRating.toFixed(1)}</span>
-            <span className="text-neutral-400">en Google ({googleRatingCount ?? 0})</span>
-          </div>
-        ) : null}
-      </div>
-
-      {!hasOwnReviews && !hasGoogleReviews && (
-        <p className="text-sm text-neutral-400 text-center py-4">
-          Aun no hay opiniones. Se el primero!
-        </p>
-      )}
-
-      {hasOwnReviews && (
-        <div className="space-y-3">
-          {reviews.slice(0, 5).map(review => (
-            <div key={review.id} className="bg-[#FAFAF8] rounded-xl p-3">
-              <div className="flex items-center gap-2 mb-1">
-                <RatingStars rating={review.rating} />
-                <span className="text-[10px] text-neutral-400">
-                  {new Date(review.created_at).toLocaleDateString('es-CL')}
-                </span>
-              </div>
-              {review.comment && (
-                <p className="text-xs text-neutral-600 leading-relaxed">{review.comment}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-
-      {/* Google reviews con atribución obligatoria — son de Google Maps, no
-          se presentan jamás como reviews propias de HiChapi. */}
-      {hasGoogleReviews && (
-        <div className="space-y-3">
-          {!hasOwnReviews && (
-            <p className="text-[11px] text-neutral-400 leading-relaxed">
-              Reseñas importadas de Google Maps mientras HiChapi recopila las propias.
-            </p>
-          )}
-          {googleReviews!.map((r, i) => (
-            <div key={i} className="bg-[#FAFAF8] rounded-xl p-3 border-l-2 border-[#4285F4]/40">
-              <div className="flex items-center justify-between gap-2 mb-1">
-                <div className="flex items-center gap-2">
-                  {r.rating != null && <RatingStars rating={r.rating} />}
-                  <span className="text-[10px] text-neutral-500 font-medium">
-                    {r.author ?? 'Anónimo'}
-                  </span>
-                </div>
-                <span className="text-[10px] text-[#4285F4] font-semibold">
-                  Google Maps
-                </span>
-              </div>
-              {r.text && (
-                <p className="text-xs text-neutral-600 leading-relaxed">{r.text}</p>
-              )}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  )
-}
+// ── Claim Banner ──────────────────────────────────────────────────────────────
 
 function ClaimBanner({ slug }: { slug: string }) {
   return (
     <div className="bg-[#FF6B35]/5 border border-[#FF6B35]/20 rounded-2xl p-5 text-center space-y-2">
-      <p className="text-sm font-semibold text-[#1A1A2E]">Es tu restaurante?</p>
-      <p className="text-xs text-neutral-500">Reclama tu perfil para subir la carta, recibir pedidos y mas.</p>
+      <p className="text-sm font-semibold text-[#1A1A2E]">¿Es tu restaurante?</p>
+      <p className="text-xs text-neutral-500">Reclama tu perfil para subir la carta, recibir pedidos y más.</p>
       <Link
         href={`/reclamar/${slug}`}
         className="inline-flex items-center gap-2 px-5 py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors mt-1"
@@ -620,20 +299,7 @@ function ClaimBanner({ slug }: { slug: string }) {
   )
 }
 
-function NoMenuBanner() {
-  return (
-    <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-8 text-center">
-      <span className="text-5xl block mb-3">📋</span>
-      <h2 className="text-lg font-bold text-[#1A1A2E] mb-2">Carta no disponible</h2>
-      <p className="text-sm text-neutral-400 leading-relaxed">
-        Este restaurante aun no ha subido su carta a HiChapi.
-        Si eres el dueño, reclama tu perfil para publicarla.
-      </p>
-    </div>
-  )
-}
-
-// ── Page (Server Component) ──────────────────────────────────────────────────
+// ── Page ──────────────────────────────────────────────────────────────────────
 
 export default async function RestaurantPage({
   params,
@@ -642,30 +308,39 @@ export default async function RestaurantPage({
 }) {
   const { slug } = await params
   const restaurant = await getRestaurant(slug)
+  if (!restaurant) notFound()
 
-  if (!restaurant) {
-    notFound()
-  }
-
-  const reviews = await getReviews(restaurant.id)
-  const activePromos = await getActivePromotions(restaurant.id)
-  const availableItems = restaurant.menu_items.filter(i => i.available !== false)
-  const groups     = groupByCategory(availableItems)
-  const categories = sortedCategories(groups)
+  const allGroups  = groupByCategory(restaurant.menu_items)
+  const categories = sortedCategories(allGroups)
   const hasMenu    = restaurant.menu_items.length > 0
+  const todayKey   = todayName()
+  const today      = restaurant.hours?.[todayKey]
+  const isOpen     = today ? !today.closed : null
+  const displayRating = restaurant.review_count > 0
+    ? restaurant.rating
+    : restaurant.google_rating
 
   return (
-    <main
-      className="min-h-screen"
-      style={{ background: '#FAFAF8', fontFamily: 'var(--font-dm-sans), sans-serif', color: '#1A1A2E' }}
-    >
+    <main className="min-h-screen" style={{ background: '#FAFAF8', fontFamily: 'var(--font-dm-sans, system-ui), sans-serif', color: '#1A1A2E' }}>
+
       {/* ── Nav ── */}
       <nav className="sticky top-0 z-30 bg-[#FAFAF8]/90 backdrop-blur-md border-b border-neutral-100">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold text-xl tracking-tight text-[#1A1A2E]">
             hi<span className="text-[#FF6B35]">chapi</span>
           </Link>
-          <BackButton />
+          <div className="flex items-center gap-3">
+            {hasMenu && (
+              <a
+                href="#carta"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 text-[#FF6B35] text-sm font-semibold hover:bg-[#FF6B35]/20 transition-colors"
+              >
+                <ShoppingBag size={15} />
+                Pedir ahora
+              </a>
+            )}
+            <BackButton />
+          </div>
         </div>
       </nav>
 
@@ -683,146 +358,59 @@ export default async function RestaurantPage({
               priority
             />
           ) : (
-            <CuisinePlaceholder cuisine={restaurant.cuisine_type} />
+            <div className="w-full h-full bg-gradient-to-br from-neutral-200 to-neutral-300" />
           )}
-
-          {/* Atribución Google Photos cuando la foto viene del agente */}
-          {restaurant.photo_url && restaurant.photo_source === 'google_places' && (
-            <div className="absolute top-3 right-3 z-10 text-[11px] font-semibold text-white/95 bg-black/45 px-2 py-1 rounded backdrop-blur-sm">
-              Foto: Google Maps
-              {restaurant.google_photo_attribution?.[0]?.displayName && (
-                <span className="font-normal opacity-80"> · {restaurant.google_photo_attribution[0].displayName}</span>
-              )}
-            </div>
-          )}
-
-          <div
-            className="absolute inset-0"
-            style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }}
-          />
-
+          <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.2) 50%, transparent 100%)' }} />
           <div className="absolute bottom-0 left-0 right-0 p-6">
-            <h1 className="text-3xl font-bold text-white leading-tight mb-2">
-              {restaurant.name}
-            </h1>
+            {isOpen !== null && (
+              <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3 border ${
+                isOpen
+                  ? 'bg-green-500/20 border-green-400/40 text-green-300'
+                  : 'bg-red-500/20 border-red-400/40 text-red-300'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
+                {isOpen ? `Abierto · ${today!.open} – ${today!.close}` : 'Cerrado ahora'}
+              </span>
+            )}
+            <h1 className="text-3xl font-bold text-white leading-tight mb-2">{restaurant.name}</h1>
             <div className="flex flex-wrap items-center gap-3">
-              {/* Rating: si HiChapi tiene reviews propias, las mostramos.
-                  Si no y tenemos rating de Google, mostramos ese con atribución
-                  explícita. Nunca presentar Google rating como propio. */}
-              {restaurant.review_count > 0 ? (
+              {displayRating != null && (
                 <div className="flex items-center gap-1.5">
-                  <RatingStars rating={restaurant.rating} />
-                  <span className="text-white font-semibold text-sm">{restaurant.rating.toFixed(1)}</span>
-                  <span className="text-white/50 text-xs">({restaurant.review_count})</span>
-                </div>
-              ) : restaurant.google_rating != null ? (
-                <div className="flex items-center gap-1.5">
-                  <RatingStars rating={restaurant.google_rating} />
-                  <span className="text-white font-semibold text-sm">{restaurant.google_rating.toFixed(1)}</span>
-                  <span className="text-white/70 text-[11px]">
-                    en Google ({restaurant.google_rating_count ?? 0})
+                  <RatingStars rating={displayRating} />
+                  <span className="text-white font-semibold text-sm">{displayRating.toFixed(1)}</span>
+                  <span className="text-white/60 text-xs">
+                    {restaurant.review_count > 0
+                      ? `(${restaurant.review_count})`
+                      : restaurant.google_rating_count != null
+                      ? `en Google (${restaurant.google_rating_count})`
+                      : ''}
                   </span>
                 </div>
-              ) : null}
-              {(restaurant.review_count > 0 || restaurant.google_rating != null) && (
-                <span className="text-white/60 text-sm">·</span>
               )}
-              <span className="text-white/80 text-sm">{restaurant.neighborhood}</span>
-              {restaurant.cuisine_type && (
-                <>
-                  <span className="text-white/60 text-sm">·</span>
-                  <span className="text-white/80 text-sm">{restaurant.cuisine_type}</span>
-                </>
-              )}
+              {restaurant.neighborhood && <span className="text-white/70 text-sm">{restaurant.neighborhood}</span>}
+              {restaurant.cuisine_type && <span className="text-white/70 text-sm">· {restaurant.cuisine_type}</span>}
             </div>
           </div>
         </section>
 
-        {/* Badge de información generada automáticamente — el restaurant fue
-            descubierto por el agente de enriquecimiento, no por su dueño.
-            "Reclamado de verdad" = claimed + owner_id real (no flag heredado). */}
-        {restaurant.data_source === 'agent_enriched' &&
-          !(restaurant.claimed && restaurant.owner_id != null) && (
-          <div className="bg-amber-50 border border-amber-200 rounded-2xl px-5 py-3 flex items-start gap-3">
-            <Info size={16} className="text-amber-600 shrink-0 mt-0.5" />
-            <div className="space-y-1">
-              <p className="text-sm font-semibold text-amber-900">
-                Información generada automáticamente
-              </p>
-              <p className="text-xs text-amber-800 leading-relaxed">
-                Este perfil fue creado a partir de información pública (Google Maps).
-                Si eres el dueño, reclámalo abajo para corregir o ampliar los datos.
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* ── Promociones activas ── */}
-        {activePromos.length > 0 && (
-          <section className="space-y-2">
-            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest flex items-center gap-2">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-[#FF6B35] animate-pulse" />
-              Promociones activas ahora
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {activePromos.map(p => (
-                <div
-                  key={p.id}
-                  className="relative rounded-xl border-2 border-[#FF6B35]/40 bg-gradient-to-br from-[#FF6B35]/10 to-[#FFD4C2]/10 p-4 flex items-start gap-3"
-                >
-                  <div className="w-11 h-11 rounded-xl bg-[#FF6B35] text-white flex items-center justify-center shrink-0 font-bold text-sm shadow-md shadow-[#FF6B35]/30">
-                    {p.kind === 'discount_pct' && p.value != null
-                      ? `${p.value}%`
-                      : p.kind === '2x1'
-                      ? '2×1'
-                      : p.kind === 'combo'
-                      ? 'COMBO'
-                      : p.kind === 'happy_hour'
-                      ? 'HH'
-                      : '★'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <p className="font-bold text-[#1A1A2E] text-sm">{p.name}</p>
-                    {p.description && (
-                      <p className="text-neutral-500 text-xs mt-0.5 leading-relaxed">{p.description}</p>
-                    )}
-                    {p.time_start && p.time_end && (
-                      <p className="text-[#FF6B35] text-[11px] font-semibold mt-1.5">
-                        Hoy de {p.time_start} a {p.time_end}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-        )}
+        {/* ── Quick info bar ── */}
+        <QuickInfoBar restaurant={restaurant} />
 
         {/* ── Gallery ── */}
-        {restaurant.gallery_urls && restaurant.gallery_urls.length > 0 && (
+        {restaurant.gallery_urls.length > 0 && (
           <section>
             <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">Galería</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
               {restaurant.gallery_urls.map((url, idx) => (
                 <div key={url + idx} className="relative w-56 sm:w-64 aspect-[4/3] shrink-0 snap-start rounded-xl overflow-hidden bg-neutral-200 shadow-sm">
-                  <Image
-                    src={url}
-                    alt={`${restaurant.name} — foto ${idx + 1}`}
-                    fill
-                    className="object-cover"
-                    sizes="(max-width: 640px) 224px, 256px"
-                  />
+                  <Image src={url} alt={`${restaurant.name} — foto ${idx + 1}`} fill className="object-cover" sizes="256px" />
                 </div>
               ))}
             </div>
           </section>
         )}
 
-        {/* ── Quick info bar ── */}
-        <QuickInfoBar restaurant={restaurant} />
-
-        {/* Claim banner: ofrecemos reclamar también cuando claimed=true pero
-            sin owner real (data heredada de seeds antiguos). */}
+        {/* ── Claim banner ── */}
         {!(restaurant.claimed && restaurant.owner_id != null) && (
           <ClaimBanner slug={restaurant.slug} />
         )}
@@ -830,60 +418,69 @@ export default async function RestaurantPage({
         {/* ── Main 2-col layout ── */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
 
-          {/* Left: Carta completa (2/3) */}
-          <section className="lg:col-span-2">
-            {hasMenu ? (
-              <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-6">
-                <h2 className="text-lg font-bold text-[#1A1A2E] mb-5">Carta completa</h2>
-                <div className="space-y-7">
-                  {categories.map(category => (
-                    <div key={category}>
-                      <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3 pb-2 border-b border-neutral-100">
-                        {category}s
-                      </h3>
-                      <div>
-                        {groups[category].map(item => (
-                          <MenuItemRow key={item.id} item={item} />
-                        ))}
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Left: Carta (2/3) */}
+          <section id="carta" className="lg:col-span-2">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-bold text-[#1A1A2E] flex items-center gap-2">
+                <ShoppingBag size={17} className="text-[#FF6B35]" />
+                Carta
+              </h2>
+              {hasMenu && (
+                <span className="text-neutral-400 text-xs">{restaurant.menu_items.length} platos</span>
+              )}
+            </div>
+
+            {!hasMenu ? (
+              <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-10 text-center">
+                <span className="text-5xl block mb-4">📋</span>
+                <h3 className="text-lg font-bold text-[#1A1A2E] mb-2">Carta no disponible</h3>
+                <p className="text-sm text-neutral-400">Este restaurante aún no ha publicado su carta.</p>
               </div>
             ) : (
-              <NoMenuBanner />
+              <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
+                <PublicMenu
+                  initialItems={restaurant.menu_items.map(item => ({
+                    id:          item.id,
+                    name:        item.name,
+                    description: item.description,
+                    price:       item.price,
+                    category:    item.category || 'Otros',
+                    tags:        item.tags || [],
+                    available:   item.available,
+                    photo_url:   item.photo_url,
+                  }))}
+                  categories={categories}
+                  lightMode
+                />
+              </div>
             )}
           </section>
 
-          {/* Right: Actions + about + reviews (1/3) */}
-          <aside className="lg:col-span-1 space-y-4">
+          {/* Right: Actions + About (1/3) */}
+          <aside className="lg:col-span-1 space-y-4 lg:sticky lg:top-20">
             <ActionCard restaurant={restaurant} />
             <AboutSection restaurant={restaurant} />
-            <ReviewsSection
-              reviews={reviews}
-              rating={restaurant.rating}
-              reviewCount={restaurant.review_count}
-              googleRating={restaurant.google_rating}
-              googleRatingCount={restaurant.google_rating_count}
-              googleReviews={restaurant.google_reviews}
-            />
           </aside>
         </div>
       </div>
 
       {/* ── Footer ── */}
       <footer className="text-center py-10 text-xs text-neutral-300 space-y-1.5 border-t border-neutral-100 mt-8">
-        <p className="font-medium text-neutral-400">HiChapi · Santiago, Chile</p>
+        <p className="font-medium text-neutral-400">HiChapi · Chile</p>
         <p>
-          <Link
-            href="/register"
-            className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2"
-          >
-            Eres dueño de un restaurante? Sumate a Chapi
+          <Link href="/register" className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2">
+            ¿Eres dueño de un restaurante? Súmate a Chapi
           </Link>
         </p>
         <p className="text-neutral-300">&copy; {new Date().getFullYear()} HiChapi. Todos los derechos reservados.</p>
       </footer>
+
+      {/* ── Cart Panel ── */}
+      <CartPanel
+        restaurantId={restaurant.id}
+        restaurantName={restaurant.name}
+        restaurantAddress={restaurant.address || restaurant.name}
+      />
     </main>
   )
 }

@@ -28,7 +28,13 @@ export async function getMarketplaceListings(
     .eq('restaurants.active', true)
 
   if (zonesError) throw new Error(zonesError.message)
-  if (!zones || zones.length === 0) return []
+
+  // Also fetch restaurants that have pending orders but may not have delivery zones configured
+  const { data: pendingRestaurants } = await supabase
+    .from('delivery_orders')
+    .select('restaurant_id, restaurants!inner(id, name, cuisine_type, neighborhood, active)')
+    .eq('status', 'pending_assignment')
+    .eq('restaurants.active', true)
 
   // Group zones by restaurant
   const restaurantMap = new Map<string, {
@@ -36,7 +42,7 @@ export async function getMarketplaceListings(
     zones: DeliveryZone[]
   }>()
 
-  for (const z of zones) {
+  for (const z of zones ?? []) {
     const rest = z.restaurants as { id: string; name: string; cuisine_type: string | null; neighborhood: string | null }
     if (!restaurantMap.has(rest.id)) {
       restaurantMap.set(rest.id, { restaurant: rest, zones: [] })
@@ -51,6 +57,16 @@ export async function getMarketplaceListings(
       created_at:    z.created_at,
     })
   }
+
+  // Add restaurants with pending orders that aren't already in the map
+  for (const row of pendingRestaurants ?? []) {
+    if (!restaurantMap.has(row.restaurant_id)) {
+      const rest = row.restaurants as { id: string; name: string; cuisine_type: string | null; neighborhood: string | null }
+      restaurantMap.set(row.restaurant_id, { restaurant: rest, zones: [] })
+    }
+  }
+
+  if (restaurantMap.size === 0) return []
 
   const restaurantIds = [...restaurantMap.keys()]
 
@@ -110,11 +126,11 @@ export async function getMarketplaceListings(
 
   for (const [restaurantId, { restaurant, zones: restZones }] of restaurantMap) {
     const restTiers = tiersByRestaurant.get(restaurantId) ?? []
-    const primaryZone = restZones[0]
+    const primaryZone = restZones[0] ?? null
 
     // Vehicle type filter: if tiers specify vehicle_types, check compatibility
     if (filters.vehicle_type) {
-      const compatible = restTiers.some(
+      const compatible = restTiers.length === 0 || restTiers.some(
         t => t.vehicle_types.length === 0 || t.vehicle_types.includes(filters.vehicle_type!),
       )
       if (!compatible) continue
@@ -130,7 +146,7 @@ export async function getMarketplaceListings(
 
     // Distance from rider to restaurant zone center
     let distanceKm = 0
-    if (riderLat !== null && riderLng !== null) {
+    if (riderLat !== null && riderLng !== null && primaryZone) {
       distanceKm = haversineDistance(
         riderLat,
         riderLng,
@@ -138,8 +154,10 @@ export async function getMarketplaceListings(
         primaryZone.center_lng,
       )
 
-      // Strict enforcement: if rider is outside the restaurant's delivery zone, exclude it
-      if (distanceKm > primaryZone.radius_km) continue
+      // Only exclude if rider is outside zone AND there are no pending orders
+      // (if there are pending orders, always show the restaurant regardless of distance)
+      const hasPending = (pendingCountByRestaurant.get(restaurantId) ?? 0) > 0
+      if (!hasPending && distanceKm > primaryZone.radius_km) continue
     }
 
     listings.push({
@@ -150,7 +168,7 @@ export async function getMarketplaceListings(
       distance_km:          Math.round(distanceKm * 10) / 10,
       fee_range:            { min: feeMin, max: feeMax },
       pending_orders_count: pendingCountByRestaurant.get(restaurantId) ?? 0,
-      delivery_zone:        primaryZone,
+      delivery_zone:        primaryZone ?? restZones[0] ?? null,
       fee_tiers:            restTiers,
       avg_delivery_minutes: avgTimeByRestaurant.get(restaurantId) ?? null,
     })
