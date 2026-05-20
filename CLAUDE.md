@@ -67,7 +67,7 @@ actualiza al toque (versiones viejas siguen llamando APIs por días/semanas).
 - Prompts repetidos usan `cache_control: ephemeral`.
 - Chat siempre `stream: true`.
 
-## Estado de features (a 2026-05-18)
+## Estado de features (a 2026-05-19)
 
 | Dominio | Estado | Notas |
 |---|---|---|
@@ -78,13 +78,23 @@ actualiza al toque (versiones viejas siguen llamando APIs por días/semanas).
 | **Stock v1** (`/stock`) | ✅ | Foto import, FIFO simple con `lot_number`, alertas vencimiento |
 | **Stock v2** (FIFO real, transfers) | ⏳ Sprints 2 y 3 pendientes (ROADMAP) | Tabla `stock_batches` no creada |
 | **DTE Chile** | ✅ Robusto | Boletas + facturas + notas crédito/débito + exenta. Certificación SII, FAU rejection fix |
-| **Delivery con riders propios** | ✅ Nuevo (mayo) | `app/(restaurant)/delivery/*` + 12 endpoints `app/api/delivery/*` (orders, riders, marketplace, heatmap, analytics, route engine, ratings, tiers). Migrations 020-021 |
+| **Delivery con riders propios** | ✅ Robusto + flow rider (mayo) | `app/(restaurant)/delivery/*` + 12 endpoints `app/api/delivery/*` (orders, riders, marketplace, heatmap, analytics, route engine, ratings, tiers). Onboarding + verificación documental del rider (migration 065). Heatmap fix (migration 064) |
+| **Admin de riders** (`/admin/riders`) | 🆕 May 19 | Panel propio + tab "riders" en founder dashboard. Endpoint `/api/admin/riders` |
+| **Pedido público sin auth** | 🆕 May 19 | `/r/[slug]` refactor con `CartPanel` + `PublicMenu` + endpoint `/api/public/order` (cliente escanea, pide, paga, sin crear cuenta) |
 | **Delivery integrations** (Rappi/PedidosYa) | ✅ | Aparte del rider propio |
 | **Loyalty + cupones** | ✅ En uso | `customer_loyalty`, `loyalty_coupons`, `/mi-wallet` |
-| **Founder dashboard** (`/admin/dashboard`) | ✅ Sprint 4 cerrado | Funnel, restaurantes en riesgo, upgrades de plan (migration 062), nuevos restaurantes/día, tickets con suggest-reply y banner >24h |
+| **Founder dashboard** (`/admin/dashboard`) | ✅ + tab riders | 5 tabs: restaurantes / reviews / tickets / analytics / riders. Funnel, restaurantes en riesgo, upgrades de plan (migration 062), nuevos restaurantes/día, tickets con suggest-reply y banner >24h |
 | **Tickets / Soporte** | ✅ Con Chapi suggest-reply | Endpoint `/api/admin/support/tickets/[id]/suggest-reply` clasifica resolvable_now / needs_code_change / needs_call |
-| **App mobile** (React Native) | 🆕 Mayo | Garzón, comandas, cliente, admin. Tests Jest + property-based. OfflineQueue para wifi malo. **Estado de publicación en stores: verificar con Jorge** |
+| **App mobile** (React Native) | 🆕 Mayo (sigue creciendo) | Garzón, comandas, cliente, admin + ahora rider onboarding/verification/active-order. Tests Jest + property-based. OfflineQueue para wifi malo. **Estado en stores: verificar con Jorge** |
 | **user_preferences** (diners) | ⚠️ Huérfano | Tabla existe (migration 009) con todo el schema (dietary, favorite_cuisines, search_history, etc.) pero ningún código TS la usa |
+
+## Migrations pendientes de aplicar a mano
+
+Estas migrations existen en `supabase/migrations/` pero hay que pegarlas a mano en Supabase SQL Editor para que apliquen en prod (Vercel no toca DB):
+
+- `20260519_064_fix_heatmap_unique_orders.sql` — fix heatmap delivery
+- `20260519_065_add_rider_verification_docs.sql` — documentos verificación rider
+- (Pre-existentes) `20260426_add_subtotal_to_orders.sql`, `20260427_062_restaurant_audit.sql` — confirmar estado en prod
 
 ## Gotchas críticos
 
