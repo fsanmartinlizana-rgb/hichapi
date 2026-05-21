@@ -117,8 +117,8 @@ class APIClient {
   /**
    * Performs a DELETE request and returns the response data.
    */
-  async delete<T>(endpoint: string): Promise<T> {
-    const response = await this.axiosInstance.delete<T>(endpoint);
+  async delete<T>(endpoint: string, data?: unknown): Promise<T> {
+    const response = await this.axiosInstance.delete<T>(endpoint, { data });
     return response.data;
   }
 }

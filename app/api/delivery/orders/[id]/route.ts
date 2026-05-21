@@ -1,12 +1,14 @@
 /**
  * PATCH /api/delivery/orders/[id] — transition delivery order status
  * Accepts both rider (Bearer token) and restaurant admin auth.
- * Requirements: 3.3, 3.6
+ * Requirements: 3.3, 3.6, 3.9
  */
 import { NextRequest, NextResponse } from 'next/server'
 import { requireRider, requireRestaurantRole } from '@/lib/supabase/auth-guard'
 import { UpdateDeliveryOrderSchema } from '@/lib/delivery/types'
 import { transitionDeliveryOrder, getDeliveryOrderById } from '@/lib/delivery/delivery-order.service'
+import { notifyRestaurantDeliveryUpdate } from '@/lib/delivery/push-notifications'
+import { createAdminClient } from '@/lib/supabase/server'
 
 export async function PATCH(
   req: NextRequest,
@@ -28,8 +30,9 @@ export async function PATCH(
   const { rider, error: riderError } = await requireRider()
 
   // If not a rider, try restaurant admin auth
+  let restaurantId: string | null = null
   if (riderError) {
-    const restaurantId = req.headers.get('x-restaurant-id')
+    restaurantId = req.headers.get('x-restaurant-id')
     if (!restaurantId) return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
 
     const { error: authError } = await requireRestaurantRole(restaurantId, ['owner', 'admin', 'super_admin'])
@@ -45,6 +48,34 @@ export async function PATCH(
         failureReason: parsed.data.failure_reason,
       },
     )
+
+    // Send in-app notification to the restaurant (non-blocking)
+    const targetRestaurantId = updated.restaurant_id ?? restaurantId
+    if (targetRestaurantId && parsed.data.status !== 'assigned' || rider) {
+      // Fetch rider name if available
+      let riderName: string | undefined
+      if (rider?.id) {
+        const supabase = createAdminClient()
+        const { data: profile } = await supabase
+          .from('rider_profiles')
+          .select('full_name')
+          .eq('id', rider.id)
+          .single()
+        riderName = profile?.full_name ?? undefined
+      }
+
+      if (targetRestaurantId && ['assigned', 'picked_up', 'in_transit', 'delivered', 'failed', 'cancelled'].includes(parsed.data.status)) {
+        notifyRestaurantDeliveryUpdate({
+          restaurantId:    targetRestaurantId,
+          deliveryOrderId: updated.id,
+          orderId:         updated.order_id,
+          clientName:      updated.client_name,
+          newStatus:       parsed.data.status as 'assigned' | 'picked_up' | 'in_transit' | 'delivered' | 'failed' | 'cancelled',
+          riderName,
+        }).catch(err => console.error('[notify] restaurant delivery update failed:', err))
+      }
+    }
+
     return NextResponse.json(updated)
   } catch (err: any) {
     const isConflict = err.message?.includes('ya fue aceptado')

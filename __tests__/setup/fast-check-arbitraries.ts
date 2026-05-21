@@ -4,11 +4,17 @@
 //  Custom fast-check generators (arbitraries) for property-based testing.
 //  These generators produce random valid test data for domain objects.
 //
-//  Requirements: 1.1
+//  Requirements: 1.1, 9.7
 // ══════════════════════════════════════════════════════════════════════════════
 
 import * as fc from 'fast-check'
 import { z } from 'zod'
+import type {
+  CustomerProfile,
+  SavedAddress,
+  CustomerRating,
+  LoyaltyTransaction,
+} from '../../lib/customer/types'
 
 // ── UUID Generator ────────────────────────────────────────────────────────────
 
@@ -250,21 +256,24 @@ export function arbCashSession(): fc.Arbitrary<{
   expected_cash?: number
   difference?: number
 }> {
+  const minMs = new Date('2020-01-01T00:00:00.000Z').getTime()
+  const maxMs = new Date('2030-12-31T23:59:59.999Z').getTime()
+
   return fc
     .record({
       id: arbUuid(),
       restaurant_id: arbUuid(),
       opening_amount: fc.integer({ min: 0, max: 10_000_000 }),
       status: fc.constantFrom('open', 'closed'),
-      opened_at: fc.date({ min: new Date('2020-01-01'), max: new Date() }),
+      openedAtMs: fc.integer({ min: minMs, max: maxMs }),
     })
     .chain(base => {
-      const openedAtStr = base.opened_at.toISOString()
-      
+      const openedAtStr = new Date(base.openedAtMs).toISOString()
+
       if (base.status === 'closed') {
         return fc
           .record({
-            closed_at: fc.date({ min: base.opened_at, max: new Date() }),
+            closedAtMs: fc.integer({ min: base.openedAtMs, max: maxMs }),
             actual_cash: fc.integer({ min: 0, max: 20_000_000 }),
             expected_cash: fc.integer({ min: 0, max: 20_000_000 }),
           })
@@ -274,7 +283,7 @@ export function arbCashSession(): fc.Arbitrary<{
             opening_amount: base.opening_amount,
             status: base.status,
             opened_at: openedAtStr,
-            closed_at: extras.closed_at.toISOString(),
+            closed_at: new Date(extras.closedAtMs).toISOString(),
             actual_cash: extras.actual_cash,
             expected_cash: extras.expected_cash,
             difference: extras.actual_cash - extras.expected_cash,
@@ -472,4 +481,249 @@ function arbZodSchemaInternal(schema: z.ZodTypeAny): fc.Arbitrary<any> {
       console.warn(`arbZodSchema: Unsupported Zod type: ${typeName}. Returning fc.anything().`)
       return fc.anything()
   }
+}
+
+// ── Customer Module Arbitraries ───────────────────────────────────────────────
+// Requirements: 9.7
+
+/**
+ * Generates valid ISO 8601 timestamp strings (UTC).
+ * Internal helper used by customer module arbitraries.
+ * Uses integer epoch ms to avoid invalid date issues during shrinking.
+ */
+function arbIsoTimestamp(): fc.Arbitrary<string> {
+  const minMs = new Date('2020-01-01T00:00:00.000Z').getTime()
+  const maxMs = new Date('2030-12-31T23:59:59.999Z').getTime()
+  return fc
+    .integer({ min: minMs, max: maxMs })
+    .map(ms => new Date(ms).toISOString())
+}
+
+/**
+ * Generates valid `CustomerProfile` objects matching the `customer_profiles` table.
+ *
+ * Constraints:
+ * - `loyalty_points` ≥ 0 (CHECK constraint in DB)
+ * - `display_name` is non-empty
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbCustomerProfile(), (profile) => {
+ *     expect(profile.loyalty_points).toBeGreaterThanOrEqual(0)
+ *     expect(profile.display_name.length).toBeGreaterThan(0)
+ *   })
+ * )
+ * ```
+ */
+export function arbCustomerProfile(): fc.Arbitrary<CustomerProfile> {
+  return fc.record({
+    id: arbUuid(),
+    user_id: arbUuid(),
+    display_name: fc.string({ minLength: 1, maxLength: 100 }),
+    phone: fc.option(
+      fc.array(
+        fc.constantFrom('+', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', ' ', '(', ')', '-'),
+        { minLength: 8, maxLength: 20 }
+      ).map(chars => chars.join('')),
+      { nil: null }
+    ),
+    photo_url: fc.option(fc.webUrl(), { nil: null }),
+    loyalty_points: fc.integer({ min: 0, max: 1_000_000 }),
+    push_token: fc.option(fc.string({ minLength: 1, maxLength: 500 }), { nil: null }),
+    created_at: arbIsoTimestamp(),
+    updated_at: arbIsoTimestamp(),
+  })
+}
+
+/**
+ * Generates valid `SavedAddress` objects matching the `saved_addresses` table.
+ *
+ * Constraints:
+ * - `label` 1–50 chars
+ * - `street` 5–300 chars
+ * - `city` 1–100 chars
+ * - `notes` ≤ 300 chars (optional)
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbSavedAddress(), (addr) => {
+ *     expect(addr.label.length).toBeGreaterThanOrEqual(1)
+ *     expect(addr.street.length).toBeGreaterThanOrEqual(5)
+ *   })
+ * )
+ * ```
+ */
+export function arbSavedAddress(): fc.Arbitrary<SavedAddress> {
+  return fc.record({
+    id: arbUuid(),
+    customer_id: arbUuid(),
+    label: fc.string({ minLength: 1, maxLength: 50 }),
+    street: fc.string({ minLength: 5, maxLength: 300 }),
+    city: fc.string({ minLength: 1, maxLength: 100 }),
+    notes: fc.option(fc.string({ maxLength: 300 }), { nil: null }),
+    is_default: fc.boolean(),
+    created_at: arbIsoTimestamp(),
+    updated_at: arbIsoTimestamp(),
+  })
+}
+
+/**
+ * Generates valid `CustomerRating` objects matching the `customer_ratings` table.
+ *
+ * Constraints:
+ * - `stars` ∈ [1, 5]
+ * - `entity_type` ∈ ['rider', 'restaurant']
+ * - `order_type` ∈ ['delivery', 'presencial']
+ * - `comment` ≤ 500 chars (optional)
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbCustomerRating(), (rating) => {
+ *     expect(rating.stars).toBeGreaterThanOrEqual(1)
+ *     expect(rating.stars).toBeLessThanOrEqual(5)
+ *   })
+ * )
+ * ```
+ */
+export function arbCustomerRating(): fc.Arbitrary<CustomerRating> {
+  return fc.record({
+    id: arbUuid(),
+    customer_id: arbUuid(),
+    entity_type: fc.constantFrom('rider', 'restaurant') as fc.Arbitrary<'rider' | 'restaurant'>,
+    entity_id: arbUuid(),
+    order_id: arbUuid(),
+    order_type: fc.constantFrom('delivery', 'presencial') as fc.Arbitrary<'delivery' | 'presencial'>,
+    stars: fc.integer({ min: 1, max: 5 }),
+    comment: fc.option(fc.string({ maxLength: 500 }), { nil: null }),
+    created_at: arbIsoTimestamp(),
+  })
+}
+
+/**
+ * Generates valid `LoyaltyTransaction` objects matching the `loyalty_transactions` table.
+ *
+ * Constraints:
+ * - `balance_after` ≥ 0 (CHECK constraint in DB)
+ * - `points_delta` can be positive (earn) or negative (redeem)
+ * - `description` is non-empty
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbLoyaltyTransaction(), (tx) => {
+ *     expect(tx.balance_after).toBeGreaterThanOrEqual(0)
+ *   })
+ * )
+ * ```
+ */
+export function arbLoyaltyTransaction(): fc.Arbitrary<LoyaltyTransaction> {
+  return fc.record({
+    id: arbUuid(),
+    customer_id: arbUuid(),
+    order_id: fc.option(arbUuid(), { nil: null }),
+    order_type: fc.option(
+      fc.constantFrom('delivery', 'presencial') as fc.Arbitrary<'delivery' | 'presencial'>,
+      { nil: null }
+    ),
+    points_delta: fc.integer({ min: -100_000, max: 100_000 }),
+    balance_after: fc.integer({ min: 0, max: 1_000_000 }),
+    description: fc.string({ minLength: 1, maxLength: 200 }),
+    created_at: arbIsoTimestamp(),
+  })
+}
+
+/**
+ * Generates valid order totals in CLP (Chilean Peso).
+ * Produces non-negative integers representing the total amount in CLP.
+ *
+ * Used for testing loyalty points calculation: `floor(total_clp / 100) * multiplier`.
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbOrderTotal(), (total) => {
+ *     expect(total).toBeGreaterThanOrEqual(0)
+ *     expect(Number.isInteger(total)).toBe(true)
+ *   })
+ * )
+ * ```
+ */
+export function arbOrderTotal(): fc.Arbitrary<number> {
+  return fc.integer({ min: 0, max: 10_000_000 })
+}
+
+/**
+ * Generates valid loyalty points multipliers in the range [0.5, 5.0].
+ * Matches the `points_multiplier` column constraint in the `restaurants` table.
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbPointsMultiplier(), (m) => {
+ *     expect(m).toBeGreaterThanOrEqual(0.5)
+ *     expect(m).toBeLessThanOrEqual(5.0)
+ *   })
+ * )
+ * ```
+ */
+export function arbPointsMultiplier(): fc.Arbitrary<number> {
+  // Generate multiples of 0.5 in [0.5, 5.0] to match the numeric(3,1) DB column
+  return fc.integer({ min: 1, max: 10 }).map(n => n * 0.5)
+}
+
+/**
+ * Generates valid GPS coordinates with latitude ∈ [-90, 90] and longitude ∈ [-180, 180].
+ *
+ * Used for Property 7: Delivery tracking GPS coordinate invariants.
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbGpsCoordinate(), ({ lat, lng }) => {
+ *     expect(lat).toBeGreaterThanOrEqual(-90)
+ *     expect(lat).toBeLessThanOrEqual(90)
+ *     expect(lng).toBeGreaterThanOrEqual(-180)
+ *     expect(lng).toBeLessThanOrEqual(180)
+ *   })
+ * )
+ * ```
+ */
+export function arbGpsCoordinate(): fc.Arbitrary<{ lat: number; lng: number }> {
+  return fc.record({
+    lat: fc.float({ min: -90, max: 90, noNaN: true }),
+    lng: fc.float({ min: -180, max: 180, noNaN: true }),
+  })
+}
+
+/**
+ * Generates valid geofence configurations for a restaurant.
+ *
+ * Constraints:
+ * - `radius_m` ∈ [100, 2000] (matches `geofence_radius_m` CHECK constraint)
+ * - `center_lat` ∈ [-90, 90]
+ * - `center_lng` ∈ [-180, 180]
+ *
+ * @example
+ * ```typescript
+ * fc.assert(
+ *   fc.property(arbGeofenceConfig(), (cfg) => {
+ *     expect(cfg.radius_m).toBeGreaterThanOrEqual(100)
+ *     expect(cfg.radius_m).toBeLessThanOrEqual(2000)
+ *   })
+ * )
+ * ```
+ */
+export function arbGeofenceConfig(): fc.Arbitrary<{
+  radius_m: number
+  center_lat: number
+  center_lng: number
+}> {
+  return fc.record({
+    radius_m: fc.integer({ min: 100, max: 2000 }),
+    center_lat: fc.float({ min: -90, max: 90, noNaN: true }),
+    center_lng: fc.float({ min: -180, max: 180, noNaN: true }),
+  })
 }

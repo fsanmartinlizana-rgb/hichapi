@@ -88,7 +88,16 @@ export const STORAGE_KEYS = {
   ONBOARDING_COMPLETED: '@hichapi:onboarding_completed',
   PUSH_TOKEN: '@hichapi:push_token',
   OFFLINE_QUEUE: '@hichapi:offline_queue',
+  GEOLOCATION_OPT_OUT: '@hichapi:geolocation_opt_out',
 } as const;
+
+/** Delivery statuses with active tracking for comensal */
+export const ACTIVE_DELIVERY_STATUSES = new Set([
+  'pending_assignment',
+  'assigned',
+  'picked_up',
+  'in_transit',
+]);
 
 // ---------------------------------------------------------------------------
 // Alert Badge Types

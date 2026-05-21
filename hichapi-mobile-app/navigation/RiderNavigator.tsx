@@ -6,11 +6,14 @@
  * Guard: redirects to RiderAuthScreen if no auth token.
  * Requirements: 1.1, 3.1
  */
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createStackNavigator } from '@react-navigation/stack'
 import { Text, View, ActivityIndicator, TouchableOpacity } from 'react-native'
+import AsyncStorage from '@react-native-async-storage/async-storage'
 import { useRiderStore, RiderStoreProvider } from '../services/rider/store'
+import { registerForPushNotifications } from '../services/rider/notifications'
+import { syncPushToken, deletePushToken } from '../services/rider/api'
 import RiderAuthScreen from '../screens/rider/RiderAuthScreen'
 import RiderOnboardingScreen from '../screens/rider/RiderOnboardingScreen'
 import RiderVerificationScreen from '../screens/rider/RiderVerificationScreen'
@@ -133,6 +136,32 @@ function RiderTabs() {
 
   const vehicleType = riderProfile.vehicle_type
 
+  // Register / sync Expo push token once per approved rider session.
+  // We use AsyncStorage to avoid calling the backend on every render.
+  useEffect(() => {
+    let cancelled = false
+    const PUSH_TOKEN_KEY = '@hichapi_rider_push_token_synced'
+
+    async function registerPush() {
+      try {
+        const alreadySynced = await AsyncStorage.getItem(PUSH_TOKEN_KEY)
+        if (alreadySynced) return // already synced this session
+
+        const token = await registerForPushNotifications()
+        if (!token || cancelled) return
+
+        await syncPushToken(authToken, token)
+        await AsyncStorage.setItem(PUSH_TOKEN_KEY, token)
+      } catch (err) {
+        // Non-blocking — push is best-effort
+        console.warn('[push] Failed to register push token:', err)
+      }
+    }
+
+    registerPush()
+    return () => { cancelled = true }
+  }, [authToken])
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -165,7 +194,14 @@ function RiderTabs() {
             rider={riderProfile}
             token={authToken}
             onStatusChanged={(status) => setRiderProfile({ ...riderProfile, status })}
-            onLogout={logout}
+            onLogout={async () => {
+              // Revoke push token before logging out
+              try {
+                await deletePushToken(authToken)
+                await AsyncStorage.removeItem('@hichapi_rider_push_token_synced')
+              } catch { /* best-effort */ }
+              logout()
+            }}
           />
         )}
       </Tab.Screen>

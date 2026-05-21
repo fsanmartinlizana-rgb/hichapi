@@ -6,13 +6,14 @@
 // ══════════════════════════════════════════════════════════════════════════════
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
-import { requireUser, requireRestaurantRole } from '@/lib/supabase/auth-guard'
+import { requireUser, requireRestaurantRole, requireCustomer } from '@/lib/supabase/auth-guard'
 import { createAuthError } from '../../setup/supabase-mock'
 import { createTestUser } from '../../setup/test-helpers'
 
 // Mock next/headers
 vi.mock('next/headers', () => ({
-  cookies: vi.fn()
+  cookies: vi.fn(),
+  headers: vi.fn(),
 }))
 
 // Mock @supabase/ssr
@@ -20,13 +21,27 @@ vi.mock('@supabase/ssr', () => ({
   createServerClient: vi.fn()
 }))
 
+// Mock @supabase/supabase-js (for Bearer token path)
+vi.mock('@supabase/supabase-js', () => ({
+  createClient: vi.fn()
+}))
+
+// Mock the Supabase server module (for createAdminClient)
+vi.mock('@/lib/supabase/server', () => ({
+  createAdminClient: vi.fn()
+}))
+
 // Import after mocking
-import { cookies } from 'next/headers'
+import { cookies, headers } from 'next/headers'
 import { createServerClient } from '@supabase/ssr'
+import { createAdminClient } from '@/lib/supabase/server'
 
 describe('requireUser()', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Mock headers() to return no Authorization header by default
+    const mockHeaderStore = { get: vi.fn().mockReturnValue(null) }
+    vi.mocked(headers).mockResolvedValue(mockHeaderStore as any)
   })
 
   afterEach(() => {
@@ -221,6 +236,23 @@ describe('requireUser()', () => {
 describe('requireRestaurantRole()', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    // Mock headers() to return no Authorization header by default
+    const mockHeaderStore = { get: vi.fn().mockReturnValue(null) }
+    vi.mocked(headers).mockResolvedValue(mockHeaderStore as any)
+    // Default admin client mock (overridden per-test as needed)
+    vi.mocked(createAdminClient).mockReturnValue({
+      from: vi.fn().mockReturnValue({
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              eq: vi.fn().mockReturnValue({
+                maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+              }),
+            }),
+          }),
+        }),
+      }),
+    } as any)
   })
 
   afterEach(() => {
@@ -448,6 +480,7 @@ describe('requireRestaurantRole()', () => {
       }
 
       vi.mocked(createServerClient).mockReturnValue(mockSupabase as any)
+      vi.mocked(createAdminClient).mockReturnValue(mockSupabase as any)
 
       const result = await requireRestaurantRole(restaurantId, ['admin', 'owner'])
 
@@ -492,6 +525,7 @@ describe('requireRestaurantRole()', () => {
       }
 
       vi.mocked(createServerClient).mockReturnValue(mockSupabase as any)
+      vi.mocked(createAdminClient).mockReturnValue(mockSupabase as any)
 
       const result = await requireRestaurantRole(restaurantId)
 
@@ -727,6 +761,217 @@ describe('requireRestaurantRole()', () => {
 
       expect(result.role).toBe('supervisor')
       expect(result.error).toBeNull()
+    })
+  })
+})
+
+describe('requireCustomer()', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+    // Mock headers() to return no Authorization header by default
+    const mockHeaderStore = { get: vi.fn().mockReturnValue(null) }
+    vi.mocked(headers).mockResolvedValue(mockHeaderStore as any)
+  })
+
+  afterEach(() => {
+    vi.restoreAllMocks()
+  })
+
+  describe('No session — Requirements 9.4, 10.1', () => {
+    it('should return 401 when no user is authenticated', async () => {
+      const mockCookieStore = { getAll: vi.fn().mockReturnValue([]), setAll: vi.fn() }
+      vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
+      const mockSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: null },
+            error: createAuthError('No user found', 401),
+          }),
+        },
+      }
+      vi.mocked(createServerClient).mockReturnValue(mockSupabase as any)
+
+      const result = await requireCustomer()
+
+      expect(result.customer).toBeNull()
+      expect(result.error).toBeDefined()
+      const response = result.error as any
+      expect(response.status).toBe(401)
+    })
+
+    it('should return error message "No autorizado" when unauthenticated', async () => {
+      const mockCookieStore = { getAll: vi.fn().mockReturnValue([]), setAll: vi.fn() }
+      vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
+      const mockSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({
+            data: { user: null },
+            error: createAuthError('No user found', 401),
+          }),
+        },
+      }
+      vi.mocked(createServerClient).mockReturnValue(mockSupabase as any)
+
+      const result = await requireCustomer()
+      const response = result.error as any
+      const body = await response.json()
+
+      expect(body.error).toBe('No autorizado')
+    })
+  })
+
+  describe('Authenticated but no customer_profiles row — Requirements 9.4, 10.1', () => {
+    it('should return 403 when user has no customer_profiles record', async () => {
+      const testUser = createTestUser({ id: 'user-no-customer' })
+
+      const mockCookieStore = { getAll: vi.fn().mockReturnValue([]), setAll: vi.fn() }
+      vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
+      const mockAuthSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: testUser }, error: null }),
+        },
+      }
+      vi.mocked(createServerClient).mockReturnValue(mockAuthSupabase as any)
+
+      const mockAdminSupabase = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+      }
+      vi.mocked(createAdminClient).mockReturnValue(mockAdminSupabase as any)
+
+      const result = await requireCustomer()
+
+      expect(result.customer).toBeNull()
+      expect(result.error).toBeDefined()
+      const response = result.error as any
+      expect(response.status).toBe(403)
+    })
+
+    it('should return error message "Perfil de comensal no encontrado"', async () => {
+      const testUser = createTestUser({ id: 'user-no-customer' })
+
+      const mockCookieStore = { getAll: vi.fn().mockReturnValue([]), setAll: vi.fn() }
+      vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
+      const mockAuthSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: testUser }, error: null }),
+        },
+      }
+      vi.mocked(createServerClient).mockReturnValue(mockAuthSupabase as any)
+
+      const mockAdminSupabase = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+            }),
+          }),
+        }),
+      }
+      vi.mocked(createAdminClient).mockReturnValue(mockAdminSupabase as any)
+
+      const result = await requireCustomer()
+      const response = result.error as any
+      const body = await response.json()
+
+      expect(body.error).toBe('Perfil de comensal no encontrado')
+    })
+  })
+
+  describe('Authenticated with valid customer_profiles row — Requirements 9.4, 10.1', () => {
+    it('should return customer profile when user has a customer_profiles record', async () => {
+      const testUser = createTestUser({ id: 'user-with-customer' })
+      const mockCustomer = {
+        id: 'customer-123',
+        user_id: 'user-with-customer',
+        display_name: 'Jorge Test',
+        phone: null,
+        photo_url: null,
+        loyalty_points: 0,
+        push_token: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const mockCookieStore = { getAll: vi.fn().mockReturnValue([]), setAll: vi.fn() }
+      vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
+      const mockAuthSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: testUser }, error: null }),
+        },
+      }
+      vi.mocked(createServerClient).mockReturnValue(mockAuthSupabase as any)
+
+      const mockAdminSupabase = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: vi.fn().mockReturnValue({
+              maybeSingle: vi.fn().mockResolvedValue({ data: mockCustomer, error: null }),
+            }),
+          }),
+        }),
+      }
+      vi.mocked(createAdminClient).mockReturnValue(mockAdminSupabase as any)
+
+      const result = await requireCustomer()
+
+      expect(result.error).toBeNull()
+      expect(result.customer).toBeDefined()
+      expect(result.customer?.id).toBe('customer-123')
+      expect(result.customer?.user_id).toBe('user-with-customer')
+      expect(result.customer?.display_name).toBe('Jorge Test')
+    })
+
+    it('should query customer_profiles by user_id', async () => {
+      const testUser = createTestUser({ id: 'user-abc' })
+      const mockCustomer = {
+        id: 'customer-456',
+        user_id: 'user-abc',
+        display_name: 'Test Customer',
+        phone: '+56912345678',
+        photo_url: null,
+        loyalty_points: 150,
+        push_token: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      }
+
+      const mockCookieStore = { getAll: vi.fn().mockReturnValue([]), setAll: vi.fn() }
+      vi.mocked(cookies).mockResolvedValue(mockCookieStore as any)
+
+      const mockAuthSupabase = {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: testUser }, error: null }),
+        },
+      }
+      vi.mocked(createServerClient).mockReturnValue(mockAuthSupabase as any)
+
+      const eqMock = vi.fn().mockReturnValue({
+        maybeSingle: vi.fn().mockResolvedValue({ data: mockCustomer, error: null }),
+      })
+      const mockAdminSupabase = {
+        from: vi.fn().mockReturnValue({
+          select: vi.fn().mockReturnValue({
+            eq: eqMock,
+          }),
+        }),
+      }
+      vi.mocked(createAdminClient).mockReturnValue(mockAdminSupabase as any)
+
+      await requireCustomer()
+
+      // Verify it queried by user_id
+      expect(eqMock).toHaveBeenCalledWith('user_id', 'user-abc')
     })
   })
 })

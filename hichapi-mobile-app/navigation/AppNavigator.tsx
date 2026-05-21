@@ -17,11 +17,13 @@ import { createStackNavigator } from '@react-navigation/stack';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 import { useAuth } from '../hooks/useAuth';
+import { useAppRole } from '../hooks/useAppRole';
 import { STORAGE_KEYS } from '../utils/constants';
 import type { RootStackParamList } from '../types/navigation';
 
 import AuthNavigator from './AuthNavigator';
 import MainNavigator from './MainNavigator';
+import CustomerNavigator from './CustomerNavigator';
 import OnboardingNavigator from './OnboardingNavigator';
 import ClientNavigator from './ClientNavigator';
 import RiderNavigator from './RiderNavigator';
@@ -66,6 +68,26 @@ function LoadingScreen() {
 
 const Stack = createStackNavigator<RootStackParamList>();
 
+function AuthenticatedApp() {
+  const { role, loading: roleLoading } = useAppRole();
+
+  if (roleLoading) {
+    return <LoadingScreen />;
+  }
+
+  return (
+    <>
+      {role === 'customer' ? (
+        <Stack.Screen name="Customer" component={CustomerNavigator} />
+      ) : (
+        <Stack.Screen name="Main" component={MainNavigator} />
+      )}
+      <Stack.Screen name="Client" component={ClientNavigator} />
+      <Stack.Screen name="Rider" component={RiderNavigator} />
+    </>
+  );
+}
+
 export default function AppNavigator() {
   const { session, loading } = useAuth();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
@@ -109,11 +131,7 @@ export default function AppNavigator() {
             <Stack.Screen name="Rider" component={RiderNavigator} />
           </>
         ) : (
-          <>
-            <Stack.Screen name="Main" component={MainNavigator} />
-            <Stack.Screen name="Client" component={ClientNavigator} />
-            <Stack.Screen name="Rider" component={RiderNavigator} />
-          </>
+          <AuthenticatedApp />
         )}
       </Stack.Navigator>
     </NavigationContainer>

@@ -8,6 +8,7 @@ import { cookies, headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { canAccessModule } from '@/lib/plans'
 import type { RiderProfile } from '@/lib/delivery/types'
+import type { CustomerProfile } from '@/lib/customer/types'
 import { createAdminClient } from './server'
 
 /** Returns the authenticated user or an error response.
@@ -156,4 +157,37 @@ export async function requireRider(): Promise<
   }
 
   return { rider: rider as RiderProfile, error: null }
+}
+
+/** Returns the authenticated customer profile, or an error response.
+ *  Requires a valid authenticated user with an associated customer_profiles row.
+ *  Requirements: 9.4, 10.1
+ */
+export async function requireCustomer(): Promise<
+  { customer: CustomerProfile; error: null } | { customer: null; error: NextResponse }
+> {
+  const { user, error } = await requireUser()
+  if (error || !user) {
+    return {
+      customer: null,
+      error: error ?? NextResponse.json({ error: 'No autorizado' }, { status: 401 }),
+    }
+  }
+
+  const supabase = createAdminClient()
+
+  const { data: customer } = await supabase
+    .from('customer_profiles')
+    .select('*')
+    .eq('user_id', user.id)
+    .maybeSingle()
+
+  if (!customer) {
+    return {
+      customer: null,
+      error: NextResponse.json({ error: 'Perfil de comensal no encontrado' }, { status: 403 }),
+    }
+  }
+
+  return { customer: customer as CustomerProfile, error: null }
 }

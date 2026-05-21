@@ -1,29 +1,30 @@
-/**
- * proxy.ts
- *
- * Next.js Edge Proxy — JWT auth, role routing, and restaurant/rider context headers.
- *
- * Flow:
- *  1. Validate JWT via supabase.auth.getUser()
- *  2. For protected routes: query team_members to get role + restaurant_id
- *  3. If no team_members row found, check rider_profiles → set rider headers
- *  4. Propagate x-user-role, x-restaurant-id, x-user-id (or x-rider-id) to Server Components
- *  5. Redirect unauthenticated users to /login
- *  6. Redirect role-restricted users to their allowed home
- */
 import { createServerClient } from '@supabase/ssr'
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 // ── Route access config ───────────────────────────────────────────────────────
 
+// Routes that don't require authentication
+const PUBLIC_PREFIXES = [
+  '/', '/login', '/register', '/recuperar', '/update-password', '/unete', '/r/', '/espera/',
+  '/buscar', '/reservar', '/reclamar', '/auth/', '/api/chat', '/api/waitlist', '/api/orders',
+  '/api/tables', '/api/menu-features', '/api/stripe', '/api/search-ondemand', '/api/customer/tracking/',
+  '/_next/', '/favicon'
+]
+
+// Routes that require a customer_profiles record
+const CUSTOMER_PREFIXES = ['/cuenta']
+
+// Routes that require a team_members record (restaurant staff)
 const PROTECTED = [
   '/dashboard', '/comandas', '/mesas', '/carta', '/garzon',
   '/reporte', '/analytics', '/insights', '/restaurante',
   '/tono', '/mermas', '/stock', '/turnos', '/equipo',
-  '/delivery',
+  '/delivery', '/configuracion', '/clientes', '/agregar-sucursal',
+  '/caja', '/reservas', '/admin'
 ]
+
 const AUTH_ONLY  = ['/login', '/register', '/recuperar']
-const ADMIN_ONLY = ['/carta', '/reporte', '/analytics', '/restaurante', '/tono', '/mermas', '/stock', '/turnos', '/equipo']
+const ADMIN_ONLY = ['/carta', '/reporte', '/analytics', '/restaurante', '/tono', '/mermas', '/stock', '/turnos', '/equipo', '/configuracion', '/agregar-sucursal', '/admin']
 const ADMIN_ROLES = new Set(['owner', 'admin', 'super_admin'])
 
 // Where each role lands after login
@@ -44,8 +45,23 @@ const ROLE_ALLOWED: Record<string, string[]> = {
   anfitrion: ['/mesas', '/garzon', '/dashboard'],
 }
 
+function isPublic(pathname: string): boolean {
+  const segments = pathname.split('/').filter(Boolean)
+  if (segments.length === 2 && !PROTECTED.some(p => pathname.startsWith(p)) && !CUSTOMER_PREFIXES.some(p => pathname.startsWith(p))) {
+    return true
+  }
+  return PUBLIC_PREFIXES.some(prefix =>
+    prefix === '/' ? pathname === '/' : pathname.startsWith(prefix)
+  )
+}
+
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl
+
+  if (isPublic(pathname)) {
+    return NextResponse.next()
+  }
+
   let res = NextResponse.next({ request: req })
 
   const supabase = createServerClient(
@@ -67,38 +83,94 @@ export async function proxy(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
 
   const isProtected = PROTECTED.some(p => pathname.startsWith(p))
+  const isCustomerRoute = CUSTOMER_PREFIXES.some(p => pathname.startsWith(p))
   const isAuthOnly  = AUTH_ONLY.some(p => pathname.startsWith(p))
-  const isAdminOnly = ADMIN_ONLY.some(p => pathname.startsWith(p))
 
-  // Not authenticated → redirect to login
-  if (isProtected && !user) {
+  if (!user && (isProtected || isCustomerRoute)) {
     const url = req.nextUrl.clone()
     url.pathname = '/login'
     url.searchParams.set('redirect', pathname)
     return NextResponse.redirect(url)
   }
 
-  // Logged in → redirect away from auth pages
   if (isAuthOnly && user) {
     const url = req.nextUrl.clone()
     url.pathname = '/dashboard'
     return NextResponse.redirect(url)
   }
 
-  // Fetch role + restaurant from team_members.
-  // IMPORTANTE: un usuario puede ser miembro de varios restaurantes (super
-  // admin, owner con multi-local, etc.). Nunca usar .single() aquí: falla con
-  // >1 fila y deja membership=null, lo que redirige a todos como si fueran
-  // garzones. Traemos todas las memberships activas y elegimos el rol más
-  // privilegiado como rol efectivo para gating de rutas.
-  if (user && isProtected) {
-    const { data: memberships } = await supabase
+  // ── Customer route protection (/cuenta/*) ──────────────────────────────────
+  if (isCustomerRoute && user) {
+    const { createClient: createAdminSupabase } = await import('@supabase/supabase-js')
+    const admin = createAdminSupabase(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+
+    const { data: customerProfile } = await admin
+      .from('customer_profiles')
+      .select('id')
+      .eq('user_id', user.id)
+      .maybeSingle()
+
+    if (!customerProfile) {
+      const loginUrl = new URL('/login', req.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
+    res.headers.set('x-user-id', user.id)
+    res.headers.set('x-user-role', 'customer')
+    return res
+  }
+
+  // ── Restaurant staff / Rider route protection ──────────────────────────────────────
+  if (isProtected && user) {
+    const { createClient: createAdminSupabase } = await import('@supabase/supabase-js')
+    const admin = createAdminSupabase(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    )
+
+    const { data: memberships } = await admin
       .from('team_members')
       .select('role, restaurant_id')
       .eq('user_id', user.id)
       .eq('active', true)
 
     const list = memberships ?? []
+    
+    if (list.length === 0) {
+      // Check if rider
+      const { data: riderProfile } = await admin
+        .from('rider_profiles')
+        .select('id, status')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (riderProfile) {
+        res.headers.set('x-user-role', 'rider')
+        res.headers.set('x-rider-id', riderProfile.id)
+        res.headers.set('x-user-id', user.id)
+        return res
+      }
+
+      // Check if customer
+      const { data: customerProfile } = await admin
+        .from('customer_profiles')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle()
+
+      if (customerProfile) {
+        return NextResponse.redirect(new URL('/cuenta', req.url))
+      }
+
+      const loginUrl = new URL('/login', req.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+
     const ROLE_PRIORITY = ['super_admin', 'owner', 'admin', 'supervisor', 'cocina', 'anfitrion', 'garzon', 'waiter']
     const pickBest = (arr: { role: string | null }[]) =>
       arr
@@ -110,34 +182,14 @@ export async function proxy(req: NextRequest) {
     const restaurantId = list[0]?.restaurant_id ?? null
     const isSuperAdmin = role === 'super_admin'
     const isAdminLevel = role ? ADMIN_ROLES.has(role) : false
+    const isAdminOnly = ADMIN_ONLY.some(p => pathname.startsWith(p))
 
-    // No team_members row found → check if this user is a rider
-    if (list.length === 0) {
-      const { data: riderProfile } = await supabase
-        .from('rider_profiles')
-        .select('id, status')
-        .eq('user_id', user.id)
-        .maybeSingle()
-
-      if (riderProfile) {
-        // Rider authenticated: propagate headers for the mobile app.
-        // Do NOT redirect — the mobile app handles its own navigation.
-        const requestHeaders = new Headers(req.headers)
-        requestHeaders.set('x-user-role', 'rider')
-        requestHeaders.set('x-rider-id', riderProfile.id)
-        requestHeaders.set('x-user-id', user.id)
-        return NextResponse.next({ request: { headers: requestHeaders } })
-      }
-    }
-
-    // Admin-only routes → redirect non-admins to their home
     if (isAdminOnly && !isAdminLevel && !isSuperAdmin) {
       const url = req.nextUrl.clone()
       url.pathname = ROLE_HOME[role ?? ''] ?? '/garzon'
       return NextResponse.redirect(url)
     }
 
-    // Role-restricted routes (cocina, anfitrion)
     if (role && ROLE_ALLOWED[role]) {
       const allowed = ROLE_ALLOWED[role]
       const canAccess = allowed.some(p => pathname.startsWith(p))
@@ -148,16 +200,21 @@ export async function proxy(req: NextRequest) {
       }
     }
 
-    // Propagate context headers to Server Components
-    res = NextResponse.next({ request: req })
     res.headers.set('x-user-role',     role ?? '')
     res.headers.set('x-restaurant-id', restaurantId ?? '')
     res.headers.set('x-user-id',       user.id)
+  }
+
+  // Handle API routes under /api/customer/ that might need res passing through
+  if (pathname.startsWith('/api/customer/')) {
+    return res
   }
 
   return res
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|api/|auth/).*)'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico|woff|woff2|ttf|otf|eot|css|js)$).*)',
+  ],
 }

@@ -17,6 +17,14 @@ import {
   arbOrder,
   arbCashSession,
   arbZodSchema,
+  arbCustomerProfile,
+  arbSavedAddress,
+  arbCustomerRating,
+  arbLoyaltyTransaction,
+  arbOrderTotal,
+  arbPointsMultiplier,
+  arbGpsCoordinate,
+  arbGeofenceConfig,
 } from './fast-check-arbitraries'
 
 describe('Fast-Check Arbitraries', () => {
@@ -168,6 +176,166 @@ describe('Fast-Check Arbitraries', () => {
       const schema = z.boolean()
       const arb = arbZodSchema(schema)
       expect(arb).toBeDefined()
+    })
+  })
+
+  // ── Customer Module Arbitraries ─────────────────────────────────────────────
+  // Requirements: 9.7
+
+  describe('arbCustomerProfile', () => {
+    it('generates valid CustomerProfile objects', () => {
+      fc.assert(
+        fc.property(arbCustomerProfile(), (profile) => {
+          expect(profile.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(profile.user_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(profile.display_name.length).toBeGreaterThanOrEqual(1)
+          expect(profile.display_name.length).toBeLessThanOrEqual(100)
+          expect(profile.loyalty_points).toBeGreaterThanOrEqual(0)
+          expect(profile.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+          expect(profile.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+          if (profile.phone !== null) {
+            expect(profile.phone.length).toBeGreaterThanOrEqual(8)
+            expect(profile.phone.length).toBeLessThanOrEqual(20)
+          }
+          if (profile.push_token !== null) {
+            expect(profile.push_token.length).toBeGreaterThanOrEqual(1)
+            expect(profile.push_token.length).toBeLessThanOrEqual(500)
+          }
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbSavedAddress', () => {
+    it('generates valid SavedAddress objects', () => {
+      fc.assert(
+        fc.property(arbSavedAddress(), (addr) => {
+          expect(addr.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(addr.customer_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(addr.label.length).toBeGreaterThanOrEqual(1)
+          expect(addr.label.length).toBeLessThanOrEqual(50)
+          expect(addr.street.length).toBeGreaterThanOrEqual(5)
+          expect(addr.street.length).toBeLessThanOrEqual(300)
+          expect(addr.city.length).toBeGreaterThanOrEqual(1)
+          expect(addr.city.length).toBeLessThanOrEqual(100)
+          expect(typeof addr.is_default).toBe('boolean')
+          if (addr.notes !== null) {
+            expect(addr.notes.length).toBeLessThanOrEqual(300)
+          }
+          expect(addr.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+          expect(addr.updated_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbCustomerRating', () => {
+    it('generates valid CustomerRating objects', () => {
+      fc.assert(
+        fc.property(arbCustomerRating(), (rating) => {
+          expect(rating.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(rating.customer_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(['rider', 'restaurant']).toContain(rating.entity_type)
+          expect(['delivery', 'presencial']).toContain(rating.order_type)
+          expect(rating.stars).toBeGreaterThanOrEqual(1)
+          expect(rating.stars).toBeLessThanOrEqual(5)
+          expect(Number.isInteger(rating.stars)).toBe(true)
+          if (rating.comment !== null) {
+            expect(rating.comment.length).toBeLessThanOrEqual(500)
+          }
+          expect(rating.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbLoyaltyTransaction', () => {
+    it('generates valid LoyaltyTransaction objects', () => {
+      fc.assert(
+        fc.property(arbLoyaltyTransaction(), (tx) => {
+          expect(tx.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(tx.customer_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          expect(tx.balance_after).toBeGreaterThanOrEqual(0)
+          expect(Number.isInteger(tx.balance_after)).toBe(true)
+          expect(Number.isInteger(tx.points_delta)).toBe(true)
+          expect(tx.description.length).toBeGreaterThanOrEqual(1)
+          if (tx.order_id !== null) {
+            expect(tx.order_id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i)
+          }
+          if (tx.order_type !== null) {
+            expect(['delivery', 'presencial']).toContain(tx.order_type)
+          }
+          expect(tx.created_at).toMatch(/^\d{4}-\d{2}-\d{2}T/)
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbOrderTotal', () => {
+    it('generates non-negative integer order totals in CLP', () => {
+      fc.assert(
+        fc.property(arbOrderTotal(), (total) => {
+          expect(total).toBeGreaterThanOrEqual(0)
+          expect(Number.isInteger(total)).toBe(true)
+          expect(total).toBeLessThanOrEqual(10_000_000)
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbPointsMultiplier', () => {
+    it('generates multipliers in [0.5, 5.0]', () => {
+      fc.assert(
+        fc.property(arbPointsMultiplier(), (m) => {
+          expect(m).toBeGreaterThanOrEqual(0.5)
+          expect(m).toBeLessThanOrEqual(5.0)
+          // Should be a multiple of 0.5
+          expect((m * 10) % 5).toBe(0)
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbGpsCoordinate', () => {
+    it('generates GPS coordinates with valid lat/lng ranges', () => {
+      fc.assert(
+        fc.property(arbGpsCoordinate(), ({ lat, lng }) => {
+          expect(lat).toBeGreaterThanOrEqual(-90)
+          expect(lat).toBeLessThanOrEqual(90)
+          expect(lng).toBeGreaterThanOrEqual(-180)
+          expect(lng).toBeLessThanOrEqual(180)
+          expect(typeof lat).toBe('number')
+          expect(typeof lng).toBe('number')
+          expect(isNaN(lat)).toBe(false)
+          expect(isNaN(lng)).toBe(false)
+        }),
+        { numRuns: 100 }
+      )
+    })
+  })
+
+  describe('arbGeofenceConfig', () => {
+    it('generates valid geofence configurations', () => {
+      fc.assert(
+        fc.property(arbGeofenceConfig(), (cfg) => {
+          expect(cfg.radius_m).toBeGreaterThanOrEqual(100)
+          expect(cfg.radius_m).toBeLessThanOrEqual(2000)
+          expect(Number.isInteger(cfg.radius_m)).toBe(true)
+          expect(cfg.center_lat).toBeGreaterThanOrEqual(-90)
+          expect(cfg.center_lat).toBeLessThanOrEqual(90)
+          expect(cfg.center_lng).toBeGreaterThanOrEqual(-180)
+          expect(cfg.center_lng).toBeLessThanOrEqual(180)
+          expect(isNaN(cfg.center_lat)).toBe(false)
+          expect(isNaN(cfg.center_lng)).toBe(false)
+        }),
+        { numRuns: 100 }
+      )
     })
   })
 })

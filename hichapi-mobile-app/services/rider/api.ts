@@ -243,3 +243,30 @@ export async function submitRating(
     body: JSON.stringify(input),
   })
 }
+
+// ── Push token ────────────────────────────────────────────────────────────────
+
+/**
+ * Registers or updates the Expo push token for the authenticated rider.
+ * Call this after the rider logs in and push permissions are granted.
+ */
+export async function syncPushToken(
+  bearerToken: string,
+  expoPushToken: string,
+): Promise<void> {
+  await request<{ ok: boolean }>('/api/delivery/rider/push-token', {
+    method: 'PATCH',
+    token:  bearerToken,
+    body:   JSON.stringify({ token: expoPushToken }),
+  })
+}
+
+/**
+ * Removes the Expo push token from the backend (call on logout).
+ */
+export async function deletePushToken(bearerToken: string): Promise<void> {
+  await request<{ ok: boolean }>('/api/delivery/rider/push-token', {
+    method: 'DELETE',
+    token:  bearerToken,
+  })
+}

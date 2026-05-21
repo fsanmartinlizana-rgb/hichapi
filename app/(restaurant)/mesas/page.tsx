@@ -17,6 +17,8 @@ import { formatEta } from '@/lib/waitlist/eta'
 import { QRCodeCanvas } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
 import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
+import { CustomerMesaBadge } from '@/components/restaurant/CustomerMesaBadge'
+import type { TableCustomerBadge } from '@/lib/customer/restaurant-customers'
 
 // ── Mock data ─────────────────────────────────────────────────────────────────
 
@@ -219,6 +221,7 @@ function QrModal({ mesa, slug, onClose }: { mesa: Mesa; slug: string; onClose: (
 function MesaCard({
   mesa,
   orderAlert,
+  tableCustomer,
   onMarkClean,
   onAssign,
   onAutoRelease,
@@ -229,6 +232,7 @@ function MesaCard({
 }: {
   mesa: Mesa
   orderAlert?: 'new_order' | 'bill'
+  tableCustomer?: TableCustomerBadge
   onMarkClean: (id: string) => void
   onAssign: (id: string) => void
   onAutoRelease: (id: string) => void
@@ -394,6 +398,10 @@ function MesaCard({
           <span className="ml-1 normal-case text-violet-300/60">· {mesa.reservedFor}</span>
         )}
       </p>
+
+      {tableCustomer && (mesa.status === 'ocupada' || mesa.status === 'cuenta') && (
+        <CustomerMesaBadge customer={tableCustomer} />
+      )}
 
       {elapsed !== null && (
         <p className={`text-[9px] font-mono ${isLong ? 'text-red-400' : 'text-white/25'}`}>
@@ -1232,6 +1240,7 @@ export default function MesasPage() {
   const [mesas, setMesas]         = useState<Mesa[]>(MESAS_INIT)
   const [orderAlerts, setOrderAlerts] = useState<Record<string, 'new_order' | 'bill'>>({})
   const [activeOrdersByTable, setActiveOrdersByTable] = useState<Record<string, number>>({})
+  const [customerByTable, setCustomerByTable] = useState<Record<string, TableCustomerBadge>>({})
   const [online, setOnline]       = useState(true)
   const [waitlist, setWaitlist]   = useState<WaitlistEntry[]>(WAITLIST_INIT)
   const [assignModal, setAssignModal] = useState<{ mesaId: string } | null>(null)
@@ -1270,9 +1279,12 @@ export default function MesasPage() {
     if (!restId) return
 
     // Use select('*') to avoid column-not-found errors if schema hasn't been migrated
-    const [tablesRes, ordersRes] = await Promise.all([
+    const [tablesRes, ordersRes, customersRes] = await Promise.all([
       supabase.from('tables').select('*').eq('restaurant_id', restId).order('label'),
       supabase.from('orders').select('id, table_id, status').eq('restaurant_id', restId).not('status', 'in', '("paid","cancelled")'),
+      fetch('/api/restaurant/customers/active-by-table', {
+        headers: { 'x-restaurant-id': restId },
+      }).then(r => r.json()).catch(() => ({ by_table: {} })),
     ])
 
     if (tablesRes.error) {
@@ -1295,6 +1307,8 @@ export default function MesasPage() {
       setOrderAlerts(alerts)
       setActiveOrdersByTable(active)
     }
+
+    setCustomerByTable((customersRes?.by_table ?? {}) as Record<string, TableCustomerBadge>)
 
     setOnline(true)
   }, [supabase, restId])
@@ -1729,6 +1743,7 @@ export default function MesasPage() {
             <MesaCard
               mesa={m}
               orderAlert={orderAlerts[m.id]}
+              tableCustomer={customerByTable[m.id]}
               onMarkClean={markClean}
               onAssign={openAssign}
               onAutoRelease={autoReleaseMesa}

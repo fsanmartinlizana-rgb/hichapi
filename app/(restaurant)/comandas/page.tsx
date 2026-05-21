@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { Suspense } from 'react'
-import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine, RotateCcw } from 'lucide-react'
+import { Clock, ChevronRight, ChevronDown, Plus, Search, CheckCircle2, ChefHat, Bell, Bike, X, AlertTriangle, Package, RefreshCw, Wifi, WifiOff, Wine, RotateCcw, Truck } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
@@ -551,6 +551,7 @@ function OrderCard({
   onDevolucion,
   onCancel,
   onCharge,
+  onSendToDelivery,
 }: {
   order: Order
   col: typeof COLUMNS[0]
@@ -566,6 +567,7 @@ function OrderCard({
   onDevolucion: (orderId: string, itemIndex: number, itemName: string, reason: string) => void
   onCancel: (orderId: string, tableLabel: string) => void
   onCharge?: (orderId: string, amount: number, tableLabel: string) => void
+  onSendToDelivery?: (orderId: string, clientName: string, amount: number) => void
 }) {
   const [hoveredItem, setHoveredItem] = useState<number | null>(null)
   const [popoverItem, setPopoverItem] = useState<number | null>(null)
@@ -914,6 +916,18 @@ function OrderCard({
           )
         )
       )}
+
+      {/* Enviar a Delivery — visible para admin en pedidos activos */}
+      {onSendToDelivery && role === 'admin' && order.status !== 'entregada' && (
+        <button
+          onClick={() => onSendToDelivery(order.id, order.tableLabel, order.amount)}
+          className="w-full py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5
+                     bg-blue-500/12 text-blue-300 border border-blue-500/25 hover:bg-blue-500/20 mt-1"
+        >
+          <Truck size={12} />
+          Enviar a delivery
+        </button>
+      )}
     </div>
   )
 }
@@ -1198,6 +1212,7 @@ function ComandasPageInner() {
   const [realTables, setRealTables]   = useState<import('@/components/nueva-comanda/types').TableOption[]>([])
   const [cancellingOrder, setCancellingOrder] = useState<{ id: string; tableLabel: string } | null>(null)
   const [chargingOrder, setChargingOrder] = useState<{ id: string; amount: number; tableLabel: string; realTableId?: string } | null>(null)
+  const [sendingToDelivery, setSendingToDelivery] = useState<{ orderId: string; clientName: string; amount: number } | null>(null)
   const [billSplitGroup, setBillSplitGroup] = useState<{ 
     tableId: string; 
     tableLabel: string; 
@@ -1852,6 +1867,9 @@ function ComandasPageInner() {
                                 const order = orders.find(o => o.id === id)
                                 setChargingOrder({ id, amount, tableLabel: lbl, realTableId: order?.realTableId })
                               }}
+                              onSendToDelivery={(id, clientName, amount) =>
+                                setSendingToDelivery({ orderId: id, clientName, amount })
+                              }
                             />
                           )
                         }
@@ -1955,6 +1973,9 @@ function ComandasPageInner() {
                                   const order = orders.find(o => o.id === id)
                                   setChargingOrder({ id, amount, tableLabel: lbl, realTableId: order?.realTableId })
                                 }}
+                                onSendToDelivery={(id, clientName, amount) =>
+                                  setSendingToDelivery({ orderId: id, clientName, amount })
+                                }
                               />
                             ))}
 
@@ -2066,6 +2087,21 @@ function ComandasPageInner() {
           onClose={() => setBillSplitGroup(null)}
         />
       )}
+
+      {/* Enviar a delivery modal */}
+      {sendingToDelivery && restId && (
+        <SendToDeliveryModal
+          orderId={sendingToDelivery.orderId}
+          clientName={sendingToDelivery.clientName}
+          amount={sendingToDelivery.amount}
+          restaurantId={restId}
+          onClose={() => setSendingToDelivery(null)}
+          onSent={() => {
+            setSendingToDelivery(null)
+            pushToast('Pedido enviado a delivery ✓', 'info')
+          }}
+        />
+      )}
     </div>
   )
 }
@@ -2160,5 +2196,142 @@ export default function ComandasPage() {
     <Suspense fallback={null}>
       <ComandasPageInner />
     </Suspense>
+  )
+}
+
+// ── SendToDeliveryModal ───────────────────────────────────────────────────────
+// Modal que aparece al hacer clic en "Enviar a delivery" en una comanda.
+// Solicita dirección de entrega y teléfono del cliente, luego llama a
+// POST /api/delivery/orders vinculando el order_id de la comanda.
+
+function SendToDeliveryModal({
+  orderId,
+  clientName,
+  amount,
+  restaurantId,
+  onClose,
+  onSent,
+}: {
+  orderId:      string
+  clientName:   string
+  amount:       number
+  restaurantId: string
+  onClose:      () => void
+  onSent:       () => void
+}) {
+  const [deliveryAddress, setDeliveryAddress] = useState('')
+  const [clientPhone,     setClientPhone]     = useState('')
+  const [pickupAddress,   setPickupAddress]   = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error,  setError]  = useState('')
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    if (!deliveryAddress.trim()) { setError('La dirección de entrega es requerida'); return }
+    setSaving(true)
+    setError('')
+    try {
+      const res = await fetch('/api/delivery/orders', {
+        method:  'POST',
+        headers: {
+          'Content-Type':    'application/json',
+          'x-restaurant-id': restaurantId,
+        },
+        body: JSON.stringify({
+          order_id:         orderId,
+          pickup_address:   pickupAddress || 'Restaurante',
+          delivery_address: deliveryAddress,
+          client_name:      clientName || 'Cliente',
+          client_phone:     clientPhone || '—',
+          total_clp:        amount,
+        }),
+      })
+      if (!res.ok) {
+        const data = await res.json()
+        setError(typeof data.error === 'string' ? data.error : 'Error al crear el pedido de delivery')
+        return
+      }
+      onSent()
+    } catch {
+      setError('Error de conexión')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+      <div className="bg-[#1A1A2E] border border-blue-500/25 rounded-2xl p-6 w-full max-w-md space-y-4 shadow-2xl">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-white font-bold text-lg flex items-center gap-2">
+              <Truck size={18} className="text-blue-400" />
+              Enviar a delivery
+            </h2>
+            <p className="text-white/50 text-sm mt-0.5">
+              Pedido de {clientName} · ${amount.toLocaleString('es-CL')} CLP
+            </p>
+          </div>
+          <button onClick={onClose} className="text-white/30 hover:text-white/60 transition-colors">
+            <X size={18} />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3">
+          <div>
+            <label className="text-white/60 text-xs mb-1 block">Dirección de entrega *</label>
+            <input
+              type="text"
+              value={deliveryAddress}
+              onChange={e => setDeliveryAddress(e.target.value)}
+              placeholder="Av. Providencia 1234, Depto 5B"
+              autoFocus
+              className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/50"
+              required
+            />
+          </div>
+          <div>
+            <label className="text-white/60 text-xs mb-1 block">Teléfono del cliente</label>
+            <input
+              type="tel"
+              value={clientPhone}
+              onChange={e => setClientPhone(e.target.value)}
+              placeholder="+56 9 1234 5678"
+              className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/50"
+            />
+          </div>
+          <div>
+            <label className="text-white/60 text-xs mb-1 block">Dirección de recogida (restaurante)</label>
+            <input
+              type="text"
+              value={pickupAddress}
+              onChange={e => setPickupAddress(e.target.value)}
+              placeholder="Nombre del restaurante o dirección"
+              className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-blue-400/50"
+            />
+          </div>
+
+          {error && <p className="text-red-400 text-xs">{error}</p>}
+
+          <div className="flex gap-3 pt-1">
+            <button
+              type="button"
+              onClick={onClose}
+              className="flex-1 py-2 rounded-lg bg-white/8 text-white/60 text-sm hover:bg-white/12 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="flex-1 py-2 rounded-lg bg-blue-500 text-white text-sm font-medium hover:bg-blue-600 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            >
+              <Truck size={14} />
+              {saving ? 'Enviando…' : 'Enviar a delivery'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   )
 }

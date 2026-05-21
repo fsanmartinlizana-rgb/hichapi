@@ -26,9 +26,18 @@ import type { Table, Order } from '../types/models';
 // Props
 // ---------------------------------------------------------------------------
 
+/** Comensal reconocido en la mesa (solo datos públicos para staff). */
+export interface TableCustomerBadge {
+  display_name: string;
+  visit_count: number;
+  loyalty_points: number;
+}
+
 export interface TableCardProps {
   table: Table;
   orders?: Order[];
+  /** Comensal con cuenta HiChapi en la comanda activa de esta mesa */
+  customer?: TableCustomerBadge;
   onPress?: () => void;
   onQRPress?: () => void;
 }
@@ -68,7 +77,7 @@ const TABLE_STATUS_CONFIG = {
 // Component
 // ---------------------------------------------------------------------------
 
-function TableCardComponent({ table, orders = [], onPress, onQRPress }: TableCardProps) {
+function TableCardComponent({ table, orders = [], customer, onPress, onQRPress }: TableCardProps) {
   const hasBellAlert = orders.some(
     (o) => o.status === 'pending' || o.status === 'confirmed'
   );
@@ -103,6 +112,19 @@ function TableCardComponent({ table, orders = [], onPress, onQRPress }: TableCar
       <Text style={styles.seatsText}>
         {table.seats} {table.seats === 1 ? 'asiento' : 'asientos'}
       </Text>
+
+      {/* Comensal reconocido */}
+      {customer && (table.status === 'ocupada' || table.status === 'cuenta') && (
+        <View style={styles.customerBadge}>
+          <Text style={styles.customerName} numberOfLines={1}>
+            {customer.display_name}
+          </Text>
+          <Text style={styles.customerMeta}>
+            {customer.visit_count} visitas · {customer.loyalty_points} pts ·{' '}
+            {customer.visit_count > 5 ? 'Frecuente' : 'Nuevo'}
+          </Text>
+        </View>
+      )}
 
       {/* ------------------------------------------------------------------ */}
       {/* Status badge                                                        */}
@@ -186,6 +208,25 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 11,
     fontWeight: '600',
+  },
+  customerBadge: {
+    backgroundColor: '#EDE9FE',
+    borderRadius: 8,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: '#C4B5FD',
+  },
+  customerName: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#5B21B6',
+  },
+  customerMeta: {
+    fontSize: 10,
+    color: '#7C3AED',
+    marginTop: 2,
   },
   qrButton: {
     position: 'absolute',

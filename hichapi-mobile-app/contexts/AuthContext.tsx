@@ -9,6 +9,8 @@ import { authService } from '../services/auth/AuthService';
 import { apiClient } from '../services/api/APIClient';
 import { notificationService } from '../services/notifications/NotificationService';
 import { pushTokenManager } from '../services/notifications/PushTokenManager';
+import { resolveAppRole } from '../services/customer/roleResolver';
+import { registerPushToken } from '../services/customer/api';
 
 // ---------------------------------------------------------------------------
 // Context value interface
@@ -93,14 +95,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     setUser(newSession.user);
     apiClient.setAuthToken(newSession.access_token);
 
-    // Register push token after successful login (task 12.3)
+    // Register push token — staff vs comensal endpoints
     try {
       const token = await notificationService.registerForPushNotifications();
       if (token && newSession.user?.id) {
-        await pushTokenManager.syncTokenToBackend(token, newSession.user.id);
+        const role = await resolveAppRole(newSession.user.id);
+        if (role === 'customer') {
+          await registerPushToken(token);
+        } else {
+          await pushTokenManager.syncTokenToBackend(token, newSession.user.id);
+        }
       }
     } catch (error) {
-      // Non-critical — don't block login if push token registration fails
       console.warn('[AuthContext] Push token registration failed:', error);
     }
   };

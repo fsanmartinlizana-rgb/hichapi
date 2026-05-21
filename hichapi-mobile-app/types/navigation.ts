@@ -5,6 +5,7 @@
 
 import type { StackNavigationProp, StackScreenProps } from '@react-navigation/stack';
 import type { BottomTabNavigationProp } from '@react-navigation/bottom-tabs';
+import type { NavigatorScreenParams } from '@react-navigation/native';
 
 // ---------------------------------------------------------------------------
 // Auth Stack
@@ -175,6 +176,34 @@ export type SplitPaymentScreenProps = StackScreenProps<ClientStackParamList, 'Sp
 export type ClientChatScreenProps = StackScreenProps<ClientStackParamList, 'ClientChat'>;
 
 // ---------------------------------------------------------------------------
+// Customer (comensal) stacks
+// ---------------------------------------------------------------------------
+
+export type CustomerOrdersStackParamList = {
+  CustomerOrders: undefined;
+  CustomerOrderDetail: { orderId: string };
+};
+
+export type CustomerTrackingStackParamList = {
+  CustomerTrackingHub: undefined;
+  CustomerTracking: { deliveryOrderId: string };
+};
+
+export type CustomerProfileStackParamList = {
+  CustomerProfile: undefined;
+  CustomerAddresses: undefined;
+  CustomerSettings: undefined;
+};
+
+export type CustomerTabParamList = {
+  Home: undefined;
+  Pedidos: NavigatorScreenParams<CustomerOrdersStackParamList>;
+  Tracking: NavigatorScreenParams<CustomerTrackingStackParamList>;
+  Fidelidad: undefined;
+  Perfil: NavigatorScreenParams<CustomerProfileStackParamList>;
+};
+
+// ---------------------------------------------------------------------------
 // Main Bottom Tabs
 // ---------------------------------------------------------------------------
 
@@ -209,6 +238,8 @@ export type RootStackParamList = {
   Auth: undefined;
   /** Main app — hosts the MainTabNavigator */
   Main: undefined;
+  /** Authenticated comensal — CustomerNavigator */
+  Customer: undefined;
   /** Client flow — hosts the ClientStackNavigator */
   Client: undefined;
   /** Rider flow — hosts the RiderNavigator */

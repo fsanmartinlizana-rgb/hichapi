@@ -1,5 +1,7 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { createNotification } from '@/lib/notifications/server'
+import { createDeliveryOrder } from '@/lib/delivery/delivery-order.service'
+import { sendPushToRidersInZone } from '@/lib/delivery/push-notifications'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -26,21 +28,33 @@ const CartItemSchema = z.object({
 })
 
 const CreateOrderSchema = z.object({
-  restaurant_slug: z.string(),
-  table_id: z.string().min(1), // qr_token OR uuid
-  cart: z.array(CartItemSchema).min(1),
-  client_name: z.string().optional(),
-  notes: z.string().optional(),
-  tip: z.number().int().min(0).optional(), // Propina opcional (no va en DTE)
-})
+  restaurant_slug:       z.string(),
+  // table_id is optional when delivery_address is present (delivery orders have no table)
+  table_id:              z.string().min(1).optional(),
+  cart:                  z.array(CartItemSchema).min(1),
+  client_name:           z.string().optional(),
+  notes:                 z.string().optional(),
+  tip:                   z.number().int().min(0).optional(), // Propina opcional (no va en DTE)
+  // ── Delivery fields (all optional; presence triggers auto delivery_order creation) ──
+  delivery_address:      z.string().min(5).max(300).optional(),
+  delivery_client_name:  z.string().min(1).max(100).optional(),
+  delivery_client_phone: z.string().min(8).max(20).optional(),
+}).refine(
+  data => data.table_id || data.delivery_address,
+  { message: 'Se requiere table_id o delivery_address', path: ['table_id'] },
+)
 
 // ── POST /api/orders ──────────────────────────────────────────────────────────
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
-    const { restaurant_slug, table_id, cart, client_name, notes, tip } =
-      CreateOrderSchema.parse(body)
+    const {
+      restaurant_slug, table_id, cart, client_name, notes, tip,
+      delivery_address, delivery_client_name, delivery_client_phone,
+    } = CreateOrderSchema.parse(body)
+
+    const isDeliveryOrder = !!delivery_address
 
     // Use service-role client — table clients are anonymous
     const supabase = createAdminClient()
@@ -48,7 +62,7 @@ export async function POST(req: NextRequest) {
     // 1. Resolve restaurant_id from slug
     const { data: restaurant, error: restaurantErr } = await supabase
       .from('restaurants')
-      .select('id')
+      .select('id, name')
       .eq('slug', restaurant_slug)
       .single()
 
@@ -60,29 +74,34 @@ export async function POST(req: NextRequest) {
     }
 
     // 2. Resolve table — try qr_token first, then UUID
-    const { data: table, error: tableErr } = await (async () => {
-      const base = supabase.from('tables').select('id, status, label').eq('restaurant_id', restaurant.id)
-      // Always try qr_token first (URL param from QR scan)
-      const { data: byToken } = await base.eq('qr_token', table_id).single()
-      if (byToken) return { data: byToken, error: null }
-      // Fallback: try by UUID id
-      const { data: byId, error } = await supabase.from('tables').select('id, status, label').eq('restaurant_id', restaurant.id).eq('id', table_id).single()
-      return { data: byId, error }
-    })()
+    // Skip table resolution for delivery orders (no physical table)
+    let realTableId: string | null = null
 
-    if (tableErr || !table) {
-      return NextResponse.json(
-        { error: 'Mesa no encontrada' },
-        { status: 404 }
-      )
-    }
+    if (!isDeliveryOrder) {
+      if (!table_id) {
+        return NextResponse.json({ error: 'table_id requerido para pedidos en local' }, { status: 400 })
+      }
 
-    // Reject orders on "bloqueada" parent tables (tables that have been split into sub-tables).
-    if ((table as { status?: string }).status === 'bloqueada') {
-      return NextResponse.json(
-        { error: `${(table as { label?: string }).label ?? 'Esta mesa'} está dividida. Selecciona una sub-mesa (ej: 2a, 2b).` },
-        { status: 409 }
-      )
+      const { data: table, error: tableErr } = await (async () => {
+        const base = supabase.from('tables').select('id, status, label').eq('restaurant_id', restaurant.id)
+        const { data: byToken } = await base.eq('qr_token', table_id).single()
+        if (byToken) return { data: byToken, error: null }
+        const { data: byId, error } = await supabase.from('tables').select('id, status, label').eq('restaurant_id', restaurant.id).eq('id', table_id).single()
+        return { data: byId, error }
+      })()
+
+      if (tableErr || !table) {
+        return NextResponse.json({ error: 'Mesa no encontrada' }, { status: 404 })
+      }
+
+      if ((table as { status?: string }).status === 'bloqueada') {
+        return NextResponse.json(
+          { error: `${(table as { label?: string }).label ?? 'Esta mesa'} está dividida. Selecciona una sub-mesa (ej: 2a, 2b).` },
+          { status: 409 }
+        )
+      }
+
+      realTableId = table.id
     }
 
     // 2.5. Reject orders if caja is closed (gating obligatorio)
@@ -120,8 +139,6 @@ export async function POST(req: NextRequest) {
         )
       }
     }
-
-    const realTableId = table.id
 
     // 3. Calculate subtotal (sin propina) y total (con propina)
     // La propina NO debe incluirse en documentos tributarios (DTE)
@@ -277,16 +294,48 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // 7. Mark table as occupied — SOLO si los items se guardaron bien.
-    await supabase
-      .from('tables')
-      .update({ status: 'ocupada' })
-      .eq('id', realTableId)
+    // 7. Mark table as occupied — SOLO si los items se guardaron bien y es pedido en local.
+    if (realTableId) {
+      await supabase
+        .from('tables')
+        .update({ status: 'ocupada' })
+        .eq('id', realTableId)
+    }
+
+    // 8. Auto-create delivery_order if this is a delivery order.
+    // Non-blocking — failure doesn’t roll back the main order.
+    let deliveryOrderId: string | null = null
+    if (isDeliveryOrder && delivery_address) {
+      try {
+        const deliveryOrder = await createDeliveryOrder(restaurant.id, {
+          order_id:         order.id,
+          pickup_address:   restaurant.name ?? 'Restaurante',  // will show restaurant name as pickup
+          delivery_address: delivery_address,
+          client_name:      delivery_client_name ?? client_name ?? 'Cliente',
+          client_phone:     delivery_client_phone ?? '',
+          total_clp:        subtotal,
+        })
+        deliveryOrderId = deliveryOrder.id
+
+        // Notify available riders in zone (best-effort)
+        sendPushToRidersInZone(restaurant.id, {
+          title: '\uD83D\uDCE6 Nuevo pedido de delivery',
+          body:  `${client_name ?? 'Cliente'} necesita entrega. $${subtotal.toLocaleString('es-CL')} CLP`,
+          data:  { delivery_order_id: deliveryOrder.id, type: 'new_delivery_order' },
+        }).catch(err => console.error('[push] sendPushToRidersInZone failed:', err))
+      } catch (deliveryErr) {
+        console.error('[delivery] Auto-create delivery_order failed (non-blocking):', deliveryErr)
+      }
+    }
 
     return NextResponse.json({
       orderId: order.id,
+      deliveryOrderId,
       total,
       status: 'pending',
+      ...(deliveryOrderId && {
+        trackingUrl: `/r/${restaurant_slug}/track/${deliveryOrderId}`,
+      }),
     }, {
       headers: { 'Access-Control-Allow-Origin': '*' }
     })

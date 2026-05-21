@@ -1,0 +1,14 @@
+# Supabase local / deploy config (HiChapi)
+# Cron schedules for Edge Functions — aplicar al desplegar functions en el proyecto.
+
+[functions.purge-gps-history]
+verify_jwt = false
+
+[functions.purge-gps-history.schedule]
+cron = "0 3 * * *"
+
+[functions.purge-geofence-events]
+verify_jwt = false
+
+[functions.purge-geofence-events.schedule]
+cron = "0 4 * * *"
