@@ -1253,6 +1253,8 @@ export default function MesasPage() {
   const [editingLayout, setEditingLayout] = useState(false)
   const [zones, setZones] = useState<ZoneDef[]>([])
   const [showZonesManager, setShowZonesManager] = useState(false)
+  const [hasGarzon, setHasGarzon] = useState(true)
+  const [hasMenu, setHasMenu]     = useState(true)
   // Persistimos preferencia de lista de espera oculta en localStorage.
   // En mobile arranca SIEMPRE oculta para no tapar las mesas — el user
   // la abre con el botón cuando la necesita.
@@ -1279,12 +1281,14 @@ export default function MesasPage() {
     if (!restId) return
 
     // Use select('*') to avoid column-not-found errors if schema hasn't been migrated
-    const [tablesRes, ordersRes, customersRes] = await Promise.all([
+    const [tablesRes, ordersRes, customersRes, menuRes, garzonRes] = await Promise.all([
       supabase.from('tables').select('*').eq('restaurant_id', restId).order('label'),
       supabase.from('orders').select('id, table_id, status').eq('restaurant_id', restId).not('status', 'in', '("paid","cancelled")'),
       fetch('/api/restaurant/customers/active-by-table', {
         headers: { 'x-restaurant-id': restId },
       }).then(r => r.json()).catch(() => ({ by_table: {} })),
+      supabase.from('menu_items').select('id').eq('restaurant_id', restId).eq('available', true).limit(1),
+      supabase.from('team_members').select('id').eq('restaurant_id', restId).in('role', ['garzon', 'waiter', 'admin', 'owner', 'supervisor']).limit(1),
     ])
 
     if (tablesRes.error) {
@@ -1309,6 +1313,13 @@ export default function MesasPage() {
     }
 
     setCustomerByTable((customersRes?.by_table ?? {}) as Record<string, TableCustomerBadge>)
+
+    if (menuRes && menuRes.data) {
+      setHasMenu(menuRes.data.length > 0)
+    }
+    if (garzonRes && garzonRes.data) {
+      setHasGarzon(garzonRes.data.length > 0)
+    }
 
     setOnline(true)
   }, [supabase, restId])
@@ -1617,16 +1628,33 @@ export default function MesasPage() {
               {editingLayout ? 'Listo' : 'Editar plano'}
             </button>
             {/* Nueva comanda — atajo prominente para garzones que llegan acá */}
-            <Link
-              href="/comandas?nueva=1"
-              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e55a2b] transition-colors shadow-sm"
-              style={{ minHeight: 36 }}
-              title="Tomar una comanda manual"
-            >
-              <Plus size={12} />
-              <span className="hidden sm:inline">Nueva comanda</span>
-              <span className="sm:hidden">Comanda</span>
-            </Link>
+            {(!hasMenu || !hasGarzon) ? (
+              <div className="group relative hidden md:block">
+                <button
+                  disabled
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/30 text-xs font-semibold transition-colors shadow-sm cursor-not-allowed"
+                  style={{ minHeight: 36 }}
+                >
+                  <Plus size={12} />
+                  <span className="hidden sm:inline">Nueva comanda</span>
+                  <span className="sm:hidden">Comanda</span>
+                </button>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-[#1A1A2E] border border-white/10 rounded-lg shadow-xl text-xs text-white/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                  {!hasMenu ? 'Debes agregar al menos un ítem a la carta.' : 'Debes tener al menos una persona en el equipo.'}
+                </div>
+              </div>
+            ) : (
+              <Link
+                href="/comandas?nueva=1"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35] text-white text-xs font-semibold hover:bg-[#e55a2b] transition-colors shadow-sm"
+                style={{ minHeight: 36 }}
+                title="Tomar una comanda manual"
+              >
+                <Plus size={12} />
+                <span className="hidden sm:inline">Nueva comanda</span>
+                <span className="sm:hidden">Comanda</span>
+              </Link>
+            )}
             <Link
               href="/mesas/qrs"
               target="_blank"

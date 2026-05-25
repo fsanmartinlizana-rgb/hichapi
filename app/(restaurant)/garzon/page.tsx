@@ -178,6 +178,8 @@ export default function GarzonPage() {
   const [tables, setTables]       = useState<Table[]>([])
   const [orders, setOrders]       = useState<Order[]>([])
   const [menuItems, setMenuItems] = useState<MenuItemOption[]>([])
+  const [hasGarzon, setHasGarzon] = useState(true)
+  const [hasMenu, setHasMenu]     = useState(true)
   const [mode, setMode]           = useState<GarzonUIMode>({ type: 'map' })
   const [loading, setLoading]     = useState(true)
   const [advancing, setAdvancing] = useState(false)
@@ -209,7 +211,7 @@ export default function GarzonPage() {
 
   const loadData = useCallback(async () => {
     if (!restId) return
-    const [tablesRes, ordersRes, menuRes] = await Promise.all([
+    const [tablesRes, ordersRes, menuRes, garzonRes] = await Promise.all([
       // select('*') tolera bases sin pos_x/pos_y aún migradas
       supabase
         .from('tables')
@@ -229,6 +231,12 @@ export default function GarzonPage() {
         .eq('available', true)
         .order('category')
         .order('name'),
+      supabase
+        .from('team_members')
+        .select('id')
+        .eq('restaurant_id', restId)
+        .in('role', ['garzon', 'waiter', 'admin', 'owner', 'supervisor']) // Include roles that can take orders
+        .limit(1),
     ])
 
     if (tablesRes.error) {
@@ -270,6 +278,10 @@ export default function GarzonPage() {
         destination: m.destination ?? undefined,
       }))
       setMenuItems(mapped)
+      setHasMenu(mapped.length > 0)
+    }
+    if (garzonRes && garzonRes.data) {
+      setHasGarzon(garzonRes.data.length > 0)
     }
     setLastRefresh(new Date())
     setLoading(false)
@@ -654,15 +666,32 @@ export default function GarzonPage() {
         </div>
         <div className="flex items-center gap-2 flex-wrap justify-end">
           {/* Nueva comanda — el más usado, más prominente */}
-          <Link
-            href="/comandas?nueva=1"
-            className="flex items-center gap-1.5 px-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors shadow-sm"
-            style={{ minHeight: 44 }}
-          >
-            <Plus size={14} />
-            <span className="hidden sm:inline">Nueva comanda</span>
-            <span className="sm:hidden">Comanda</span>
-          </Link>
+          {(!hasMenu || !hasGarzon) ? (
+            <div className="group relative">
+              <button
+                disabled
+                className="flex items-center gap-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white/30 text-sm font-semibold transition-colors shadow-sm cursor-not-allowed"
+                style={{ minHeight: 44 }}
+              >
+                <Plus size={14} />
+                <span className="hidden sm:inline">Nueva comanda</span>
+                <span className="sm:hidden">Comanda</span>
+              </button>
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-[#1A1A2E] border border-white/10 rounded-lg shadow-xl text-xs text-white/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                {!hasMenu ? 'Debes agregar al menos un ítem a la carta.' : 'Debes tener al menos una persona en el equipo.'}
+              </div>
+            </div>
+          ) : (
+            <Link
+              href="/comandas?nueva=1"
+              className="flex items-center gap-1.5 px-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors shadow-sm"
+              style={{ minHeight: 44 }}
+            >
+              <Plus size={14} />
+              <span className="hidden sm:inline">Nueva comanda</span>
+              <span className="sm:hidden">Comanda</span>
+            </Link>
+          )}
           <button
             onClick={() => setShowCoupon(true)}
             className="flex items-center gap-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-colors"

@@ -13,10 +13,10 @@ const VALID_EXTENSIONS = ['.xlsx', '.csv']
 const VALID_UNITS = ['kg', 'g', 'l', 'ml', 'unidad', 'porcion', 'caja', 'onza'] as const
 
 type ImportError = {
-  row: number
-  field: string
-  value: unknown
-  reason: 'nombre_vacio' | 'cantidad_no_numerica' | 'unidad_no_reconocida' | 'producto_no_encontrado'
+  fila: number
+  campo: string
+  valor: unknown
+  razon: string
 }
 
 type ProductoPreview = {
@@ -40,7 +40,14 @@ function parseProductosSheet(sheet: XLSX.WorkSheet): {
   productos: ProductoPreview[]
   errores: ImportError[]
 } {
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+  const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+  const rows = rawRows.map(r => {
+    const norm: Record<string, unknown> = {}
+    for (const k in r) {
+      norm[k.toLowerCase().trim().replace(/\s+/g, '_')] = r[k]
+    }
+    return norm
+  })
   const productos: ProductoPreview[] = []
   const errores: ImportError[] = []
 
@@ -52,17 +59,17 @@ function parseProductosSheet(sheet: XLSX.WorkSheet): {
     const cantidad = Number(cantidadRaw)
 
     if (!nombre) {
-      errores.push({ row: rowNum, field: 'nombre', value: row['nombre'], reason: 'nombre_vacio' })
+      errores.push({ fila: rowNum, campo: 'nombre', valor: row['nombre'], razon: 'El nombre no puede estar vacío' })
       return
     }
 
     if (isNaN(cantidad) || cantidadRaw === '') {
-      errores.push({ row: rowNum, field: 'cantidad', value: cantidadRaw, reason: 'cantidad_no_numerica' })
+      errores.push({ fila: rowNum, campo: 'cantidad', valor: cantidadRaw, razon: 'La cantidad debe ser un número válido' })
       return
     }
 
     if (!VALID_UNITS.includes(unidad as typeof VALID_UNITS[number])) {
-      errores.push({ row: rowNum, field: 'unidad', value: row['unidad'], reason: 'unidad_no_reconocida' })
+      errores.push({ fila: rowNum, campo: 'unidad', valor: row['unidad'], razon: `Unidad no reconocida. Debe ser una de: ${VALID_UNITS.join(', ')}` })
       return
     }
 
@@ -84,7 +91,14 @@ function parseRecetasSheet(sheet: XLSX.WorkSheet): {
   recetas: RecetaPreview[]
   errores: ImportError[]
 } {
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+  const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+  const rows = rawRows.map(r => {
+    const norm: Record<string, unknown> = {}
+    for (const k in r) {
+      norm[k.toLowerCase().trim().replace(/\s+/g, '_')] = r[k]
+    }
+    return norm
+  })
   const recetas: RecetaPreview[] = []
   const errores: ImportError[] = []
 
@@ -96,17 +110,17 @@ function parseRecetasSheet(sheet: XLSX.WorkSheet): {
     const cantidad_por_porcion = Number(cantidadRaw)
 
     if (!nombre_preparacion) {
-      errores.push({ row: rowNum, field: 'nombre_preparacion', value: row['nombre_preparacion'], reason: 'nombre_vacio' })
+      errores.push({ fila: rowNum, campo: 'nombre_preparacion', valor: row['nombre_preparacion'], razon: 'El nombre de la preparación no puede estar vacío' })
       return
     }
 
     if (!nombre_producto) {
-      errores.push({ row: rowNum, field: 'nombre_producto', value: row['nombre_producto'], reason: 'nombre_vacio' })
+      errores.push({ fila: rowNum, campo: 'nombre_producto', valor: row['nombre_producto'], razon: 'El nombre del producto no puede estar vacío' })
       return
     }
 
     if (isNaN(cantidad_por_porcion) || cantidadRaw === '') {
-      errores.push({ row: rowNum, field: 'cantidad_por_porcion', value: cantidadRaw, reason: 'cantidad_no_numerica' })
+      errores.push({ fila: rowNum, campo: 'cantidad_por_porcion', valor: cantidadRaw, razon: 'La cantidad por porción debe ser numérica' })
       return
     }
 

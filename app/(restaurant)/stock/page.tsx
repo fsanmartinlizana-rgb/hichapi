@@ -51,7 +51,7 @@ function PlaceholderTab({ label }: { label: string }) {
 
 type ImportPreview = {
   import_id: string
-  productos_preview: { nombre: string; unidad: string; cantidad: number; costo: number }[]
+  productos_preview: { nombre: string; unidad: string; cantidad: number; costo_por_unidad: number }[]
   recetas_preview: { preparacion: string; producto: string; cantidad: number }[]
   errores: { fila: number; razon: string }[]
 }
@@ -291,7 +291,7 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
                         <td className="px-4 py-2.5 text-white">{p.nombre}</td>
                         <td className="px-3 py-2.5 text-white/50">{p.unidad}</td>
                         <td className="px-3 py-2.5 text-right text-white/70 font-mono">{p.cantidad}</td>
-                        <td className="px-4 py-2.5 text-right text-white/70">{formatCurrency(p.costo)}</td>
+                        <td className="px-4 py-2.5 text-right text-white/70">{formatCurrency(p.costo_por_unidad)}</td>
                       </tr>
                     ))}
                   </tbody>

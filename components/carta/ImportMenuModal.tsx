@@ -3,7 +3,7 @@
 import { useRef, useState } from 'react'
 import {
   X, Camera, FileText, ClipboardPaste, Loader2, Check, AlertCircle,
-  Trash2, Plus, Sparkles, Upload, RefreshCw,
+  Trash2, Plus, Sparkles, Upload, RefreshCw, Package,
 } from 'lucide-react'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -17,6 +17,7 @@ export interface ImportItem {
   category:    string
   tags:        string[]
   available:   boolean
+  rawRecipe?:  string
 }
 
 interface Props {
@@ -60,6 +61,7 @@ function parseTabular(text: string): ImportItem[] {
   const descIdx        = hasHeader ? headerRow.findIndex(h => /descr|desc/.test(h))         : 2
   const categoryIdx    = hasHeader ? headerRow.findIndex(h => /categ/.test(h))              : 3
   const tagsIdx        = hasHeader ? headerRow.findIndex(h => /tag/.test(h))                : 4
+  const recipeIdx      = hasHeader ? headerRow.findIndex(h => /receta|recipe|ingrediente/.test(h)) : 5
 
   const out: ImportItem[] = []
   for (let i = startIdx; i < lines.length; i++) {
@@ -78,6 +80,8 @@ function parseTabular(text: string): ImportItem[] {
       .map(t => t.trim().toLowerCase())
       .filter(Boolean)
 
+    const rawRecipe = cols[recipeIdx] ? cols[recipeIdx].trim() : undefined
+
     out.push({
       name:        cols[nameIdx] ?? '',
       description: cols[descIdx] ?? '',
@@ -85,6 +89,7 @@ function parseTabular(text: string): ImportItem[] {
       category,
       tags,
       available:   true,
+      rawRecipe,
     })
   }
   return out
@@ -134,6 +139,7 @@ export function ImportMenuModal({ restaurantId, onClose, onImported }: Props) {
         description: i.description ?? '',
         tags: i.tags ?? [],
         available: true,
+        rawRecipe: i.rawRecipe,
       })))
       setMode('review')
     } catch (err) {
@@ -187,7 +193,7 @@ export function ImportMenuModal({ restaurantId, onClose, onImported }: Props) {
 
   function addBlankItem() {
     setItems(prev => [...prev, {
-      name: '', description: '', price: 0, category: 'principal', tags: [], available: true,
+      name: '', description: '', price: 0, category: 'principal', tags: [], available: true, rawRecipe: ''
     }])
   }
 
@@ -277,14 +283,14 @@ export function ImportMenuModal({ restaurantId, onClose, onImported }: Props) {
                 <div className="space-y-3">
                   <div className="bg-white/3 border border-white/8 rounded-xl p-3 text-[11px] text-white/50 space-y-1">
                     <p className="text-white font-semibold">Formato esperado (una fila por plato)</p>
-                    <p>Columnas: <code className="text-[#FF6B35]">nombre · precio · descripción · categoría · tags</code></p>
+                    <p>Columnas: <code className="text-[#FF6B35]">nombre · precio · descripción · categoría · tags · receta</code></p>
                     <p className="text-white/35">Puedes pegar desde Excel / Google Sheets (tabulado) o CSV.</p>
                   </div>
                   <textarea
                     value={pasteText}
                     onChange={e => setPasteText(e.target.value)}
                     rows={10}
-                    placeholder={`Nombre\tPrecio\tDescripción\tCategoría\tTags\nLomo vetado\t18000\tCon papas rústicas\tprincipal\tpopular\nPisco sour\t6500\tClásico chileno\tbebida\tpopular`}
+                    placeholder={`Nombre\tPrecio\tDescripción\tCategoría\tTags\tReceta\nLomo vetado\t18000\tCon papas rústicas\tprincipal\tpopular\tLomo: 0.3, Papas: 0.2\nPisco sour\t6500\tClásico chileno\tbebida\tpopular\tPisco: 0.1`}
                     className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 font-mono resize-none"
                   />
                   <button
@@ -347,12 +353,25 @@ export function ImportMenuModal({ restaurantId, onClose, onImported }: Props) {
                         <Trash2 size={12} />
                       </button>
                     </div>
-                    <input
-                      value={item.description}
-                      onChange={e => updateItem(i, { description: e.target.value })}
-                      placeholder="Descripción (opcional)"
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-[11px] placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
-                    />
+                    <div className="flex gap-2">
+                      <input
+                        value={item.description}
+                        onChange={e => updateItem(i, { description: e.target.value })}
+                        placeholder="Descripción (opcional)"
+                        className="flex-1 bg-white/5 border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-[11px] placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+                      />
+                      <div className="flex-1 relative">
+                        <div className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[#FF6B35]/60" title="Ingredientes a descontar del stock">
+                          <Package size={12} />
+                        </div>
+                        <input
+                          value={item.rawRecipe || ''}
+                          onChange={e => updateItem(i, { rawRecipe: e.target.value })}
+                          placeholder="Stock a descontar (ej: Pan: 2, Carne: 0.2)"
+                          className="w-full bg-white/5 border border-white/10 rounded-lg pl-7 pr-2.5 py-1.5 text-white text-[11px] placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+                        />
+                      </div>
+                    </div>
                     {item.tags.length > 0 && (
                       <div className="flex flex-wrap gap-1">
                         {item.tags.map(t => (

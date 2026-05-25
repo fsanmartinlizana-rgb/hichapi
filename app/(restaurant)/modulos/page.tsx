@@ -4,7 +4,7 @@ import { useState } from 'react'
 import {
   Grid3X3, Monitor, Package, Banknote, Heart, Clock,
   BarChart2, MapPin, CalendarDays, Check, Lock, Crown,
-  Zap, ArrowRight, X, Loader2, Star,
+  Zap, ArrowRight, X, Loader2, Star, Receipt, Truck
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { PLANS, PLAN_HIERARCHY, getPlanLevel, canAccessModule, getUpgradePlan } from '@/lib/plans'
@@ -22,6 +22,8 @@ const MODULE_ICONS: Record<keyof ModulesConfig, typeof Grid3X3> = {
   daily_reports:   BarChart2,
   geofencing:      MapPin,
   staff_schedule:  CalendarDays,
+  dte:             Receipt,
+  delivery:        Truck,
 }
 
 const MODULE_DESCRIPTIONS: Record<keyof ModulesConfig, string> = {
@@ -34,6 +36,8 @@ const MODULE_DESCRIPTIONS: Record<keyof ModulesConfig, string> = {
   daily_reports:   'Reportes automáticos de ventas, stock y rendimiento.',
   geofencing:      'Zonas geográficas para delivery y notificaciones.',
   staff_schedule:  'Gestión de turnos, horarios y asistencia del equipo.',
+  dte:             'Emisión de boletas y facturas electrónicas.',
+  delivery:        'Gestión de despachos y pedidos a domicilio.',
 }
 
 // ── Upgrade Modal ────────────────────────────────────────────────────────────

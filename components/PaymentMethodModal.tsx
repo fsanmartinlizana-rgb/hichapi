@@ -15,6 +15,7 @@ import {
   validateFacturaData,
   getFieldErrors,
 } from '@/lib/manual-print/dte-validation'
+import { createClient } from '@/lib/supabase/client'
 
 const clp = (n: number) => formatCurrency(n)
 
@@ -61,6 +62,19 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
   const [method, setMethod]     = useState<'cash' | 'digital' | 'mixed' | null>(null)
   const [cashPart, setCashPart] = useState('')
   const [saving, setSaving]     = useState(false)
+
+  // Module check
+  const [dteActive, setDteActive] = useState(false)
+  const supabase = useRef(createClient()).current
+
+  useEffect(() => {
+    ;(async () => {
+      const { data } = await supabase.from('restaurants').select('modules_config').eq('id', restaurantId).single()
+      if (data?.modules_config?.dte) {
+        setDteActive(true)
+      }
+    })()
+  }, [restaurantId, supabase])
 
   // Receipt step — shown after payment details are confirmed for boleta payments
   // 'payment' = filling in payment details, 'receipt' = choosing print/email for boleta
@@ -236,8 +250,8 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
     // - Si no eligió email, mostrar el paso receipt para elegir imprimir o enviar
     if (!needsInvoice) {
       pendingPayment.current = { method, dte, cashAmount, digitalAmount }
-      if (sendByEmail && boletaEmail.trim()) {
-        // Ya tiene email — confirmar directamente sin paso intermedio
+      if ((sendByEmail && boletaEmail.trim()) || !dteActive) {
+        // Ya tiene email o no tiene DTE activo — confirmar directamente sin paso intermedio
         setSaving(true)
         try {
           await onConfirm(method, dte, cashAmount, digitalAmount)
@@ -501,7 +515,7 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
           )}
 
           {/* Email boleta toggle — visible for all payment methods when not invoice */}
-          {!needsInvoice && (
+          {!needsInvoice && dteActive && (
             <div className="mb-5 p-3.5 rounded-xl bg-[#FF6B35]/8 border border-[#FF6B35]/20">
               <label className="flex items-center justify-between cursor-pointer">
                 <div className="flex items-center gap-2.5">
@@ -553,29 +567,31 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
           )}
 
           {/* Invoice toggle - visible from the start */}
-          <div className="mb-5 p-3.5 rounded-xl bg-blue-500/8 border border-blue-500/20">
-            <label className="flex items-center justify-between cursor-pointer">
-              <div className="flex items-center gap-2.5">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                  <Building2 size={18} className="text-blue-400" />
+          {dteActive && (
+            <div className="mb-5 p-3.5 rounded-xl bg-blue-500/8 border border-blue-500/20">
+              <label className="flex items-center justify-between cursor-pointer">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
+                    <Building2 size={18} className="text-blue-400" />
+                  </div>
+                  <div>
+                    <p className="text-white text-sm font-medium">¿Necesitas factura?</p>
+                    <p className="text-white/30 text-xs">Para empresas con crédito fiscal</p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-white text-sm font-medium">¿Necesitas factura?</p>
-                  <p className="text-white/30 text-xs">Para empresas con crédito fiscal</p>
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={needsInvoice}
+                    onChange={e => setNeedsInvoice(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
+                  <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
                 </div>
-              </div>
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={needsInvoice}
-                  onChange={e => setNeedsInvoice(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
-                <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-              </div>
-            </label>
-          </div>
+              </label>
+            </div>
+          )}
 
           {/* Invoice form - shown conditionally */}
           {needsInvoice && (

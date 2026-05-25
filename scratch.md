@@ -1,0 +1,4 @@
+- Constraints for taking orders: check menu items length and waiters length.
+- DTE module payment logic: if DTE is not contracted, hide/disable boleta/factura in checkout.
+- Delivery module: hide it in free plan.
+- Welcome email: add sendWelcomeEmail to registration flow.

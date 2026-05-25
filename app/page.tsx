@@ -233,6 +233,8 @@ const PLANS = [
       'Caja con cierre de turno',
       'Lista de espera digital',
       'Turnos del personal',
+      'Emision de Boletas/Facturas Electronicas',
+      'Modulo Delivery propio',
     ],
     note: '+ 1% por transacción',
     cta: 'Empezar gratis 30 dias',
@@ -979,7 +981,9 @@ export default function LandingPage() {
   )
 
   return (
-    <main className="min-h-screen" style={{ background: '#FAFAF8', fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+    <main className="min-h-screen relative" style={{ background: '#FAFAF8', fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+      <div id="comensales" className="absolute top-0" />
+      <div id="restaurantes" className="absolute top-0" />
       <Navbar />
 
       {/* Hero + secciones segmentadas por audiencia */}

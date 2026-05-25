@@ -1201,6 +1201,8 @@ function ComandasPageInner() {
   const [orders, setOrders]           = useState<Order[]>([])
   const [loading, setLoading]         = useState(true)
   const [online, setOnline]           = useState(true)
+  const [hasGarzon, setHasGarzon]     = useState(true)
+  const [hasMenu, setHasMenu]         = useState(true)
   const [search, setSearch]           = useState('')
   const [role, setRole]               = useState<UserRole>('admin')
   const [station, setStation]         = useState<StationFilter>('todo')
@@ -1281,7 +1283,7 @@ function ComandasPageInner() {
 
     const itemsSelect = fullSchemaOK ? FULL_ITEMS_SELECT : LEGACY_ITEMS_SELECT
 
-    const [tablesRes, ownOrdersRes, crossOrdersRes, menuRes] = await Promise.all([
+    const [tablesRes, ownOrdersRes, crossOrdersRes, menuRes, garzonRes] = await Promise.all([
       supabase.from('tables').select('id, label, status, zone, seats').eq('restaurant_id', restId).order('label'),
       supabase
         .from('orders')
@@ -1302,6 +1304,12 @@ function ComandasPageInner() {
         .eq('restaurant_id', restId)
         .eq('available', true)
         .order('name'),
+      supabase
+        .from('team_members')
+        .select('id')
+        .eq('restaurant_id', restId)
+        .in('role', ['garzon', 'waiter', 'admin', 'owner', 'supervisor']) // Roles that can take orders
+        .limit(1),
     ])
 
     if (ownOrdersRes.error) {
@@ -1310,9 +1318,15 @@ function ComandasPageInner() {
     }
     setOnline(true)
 
-    const tables: DbTable[]  = tablesRes.data  ?? []
+    if (menuRes.data) {
+      setHasMenu(menuRes.data.length > 0)
+    }
+    
+    if (garzonRes && garzonRes.data) {
+      setHasGarzon(garzonRes.data.length > 0)
+    }
 
-    const myStationSet = new Set(myStationIds)
+    const tables: DbTable[]  = tablesRes.data  ?? []
 
     // Filtrar las OWN orders: mostrar solo items que se preparan ACÁ.
     // Regla (2026-04-21):
@@ -1775,12 +1789,27 @@ function ComandasPageInner() {
               className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-white/20 w-44"
             />
           </div>
-          <button
-            onClick={() => setShowNueva(true)}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
-            <Plus size={14} />
-            Nueva comanda
-          </button>
+          {(!hasMenu || !hasGarzon) ? (
+            <div className="group relative">
+              <button
+                disabled
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-white/30 text-sm font-semibold transition-colors shadow-sm cursor-not-allowed"
+              >
+                <Plus size={14} />
+                Nueva comanda
+              </button>
+              <div className="absolute top-full right-0 mt-2 px-3 py-2 bg-[#1A1A2E] border border-white/10 rounded-lg shadow-xl text-xs text-white/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+                {!hasMenu ? 'Debes agregar al menos un ítem a la carta.' : 'Debes tener al menos una persona en el equipo.'}
+              </div>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowNueva(true)}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] transition-colors">
+              <Plus size={14} />
+              Nueva comanda
+            </button>
+          )}
         </div>
       </div>
 

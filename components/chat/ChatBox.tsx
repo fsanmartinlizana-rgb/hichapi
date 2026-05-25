@@ -77,6 +77,9 @@ interface ChatBoxProps {
    *  allow_alternatives=true. El padre lo incrementa al clicar el botón
    *  "ver alternativas en {zone}". null/0 = no acción. */
   pendingAlternativeNonce?: number
+  /** Si el padre detecta una ciudad distinta por IP, la pasa acá para que 
+   * el chat sepa desde el inicio dónde buscar. */
+  defaultZone?: string
 }
 
 // ── Typing dots animation ────────────────────────────────────────────────────
@@ -119,11 +122,12 @@ export function ChatBox({
   onNoCuisineMatchInZone,
   onNoResultsDetail,
   pendingAlternativeNonce,
+  defaultZone,
 }: ChatBoxProps) {
   const [input, setInput]               = useState('')
   const [loading, setLoading]           = useState(false)
   const [waitingFirstToken, setWaiting] = useState(false)
-  const [intent, setIntent]             = useState<ChapiIntent>({})
+  const [intent, setIntent]             = useState<ChapiIntent>({ zone: defaultZone })
   const [chapiMessage, setChapiMessage] = useState('')
   const [needsLocation, setNeedsLocation] = useState(false)
   const [askingForZone, setAskingForZone] = useState(false)
@@ -138,6 +142,13 @@ export function ChatBox({
     sendMessage(lastQueryRef.current, { allowAlternatives: true })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pendingAlternativeNonce])
+
+  // Actualizar intent.zone si defaultZone se resuelve asíncronamente en el padre
+  useEffect(() => {
+    if (defaultZone && !intent.zone) {
+      setIntent(prev => ({ ...prev, zone: defaultZone }))
+    }
+  }, [defaultZone])
 
   async function requestLocation(): Promise<{ user_lat: number; user_lng: number } | null> {
     return new Promise((resolve) => {
@@ -526,7 +537,7 @@ export function ChatBox({
         <div className="mt-3">
           <p className="text-[11px] text-neutral-400 text-center mb-2">¿En qué barrio?</p>
           <div className="flex flex-wrap gap-2 justify-center">
-            {ZONE_CHIPS.map(zone => (
+            {(!defaultZone ? ZONE_CHIPS : ['Cerca de mí', `Centro de ${defaultZone}`]).map(zone => (
               <button
                 key={zone}
                 onClick={() => sendMessage(zone)}

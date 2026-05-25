@@ -51,7 +51,7 @@ const RequestSchema = z.object({
 })
 
 const SYSTEM_PROMPT = `Eres Chapi, el asistente gastronómico de HiChapi.
-Tu trabajo es entender qué quiere comer el usuario y encontrar las mejores opciones en Santiago.
+Tu trabajo es entender qué quiere comer el usuario y encontrar las mejores opciones gastronómicas, adaptándote a su ubicación actual (ciudad o zona).
 
 REGLAS:
 1. Extrae del mensaje: presupuesto (CLP), zonas (puede ser MÚLTIPLES), restricciones dietéticas, tipo de cocina, y opcionalmente un plato específico.

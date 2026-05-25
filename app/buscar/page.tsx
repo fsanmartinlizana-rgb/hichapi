@@ -328,6 +328,8 @@ export default function Home() {
   const [searchKey, setSearchKey]       = useState(0)
   const [searchEventId, setSearchEventId] = useState<string | null>(null)
   const [showMap, setShowMap]           = useState(false)
+  const [detectedCity, setDetectedCity] = useState<string>('Santiago')
+  const [cityLoading, setCityLoading]   = useState(true)
   const hydratedRef = useRef(false)
 
   // Rehidratar al montar — si el usuario viene de "Volver" desde /r/[slug],
@@ -344,6 +346,19 @@ export default function Home() {
         window.scrollTo({ top: persisted.scrollY, behavior: 'auto' })
       })
     }
+    
+    // IP Geolocation
+    fetch('https://get.geojs.io/v1/ip/geo.json')
+      .then(res => res.json())
+      .then(data => {
+        if (data.city) {
+          setDetectedCity(data.city)
+        }
+      })
+      .catch(() => {
+        // Fallback to Santiago if error
+      })
+      .finally(() => setCityLoading(false))
   }, [])
 
   // Persistir cada vez que cambian los resultados
@@ -461,8 +476,8 @@ export default function Home() {
             Dile a Chapi<br />
             <span style={{ color: '#FF6B35' }}>qué quieres comer</span>
           </h1>
-          <p className="text-neutral-400 text-lg" style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
-            Como un amigo que sabe todos los restaurantes de Santiago
+          <p className="text-neutral-400 text-lg" style={{ fontFamily: 'var(--font-dm-sans), sans-serif', minHeight: '28px' }}>
+            {cityLoading ? '...' : `Como un amigo que sabe todos los restaurantes de ${detectedCity}`}
           </p>
         </div>
 
@@ -475,6 +490,7 @@ export default function Home() {
           onNoCuisineMatchInZone={handleNoCuisineMatch}
           onNoResultsDetail={handleNoResultsDetail}
           pendingAlternativeNonce={pendingAltNonce}
+          defaultZone={detectedCity !== 'Santiago' ? detectedCity : undefined}
         />
 
         {/* Guía explícita: mostrar los 3 datos óptimos para una búsqueda

@@ -117,6 +117,7 @@ const NAV_PLAN_REQUIRED: Record<string, string> = {
   '/espera':    'starter',
   '/turnos':    'starter',
   '/reservas':  'starter',
+  '/delivery':  'starter',
 
   // Inteligencia operativa → pro+
   '/stock':        'pro',

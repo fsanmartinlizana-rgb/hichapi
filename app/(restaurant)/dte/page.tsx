@@ -618,6 +618,23 @@ export default function DtePage() {
       </div>
     )
   }
+
+  if (!restaurant?.rut || !restaurant?.razon_social || !restaurant?.giro || !restaurant?.direccion || !restaurant?.comuna || !restaurant?.acteco) {
+    return (
+      <div className="flex items-center justify-center h-full p-6">
+        <EmptyState
+          icon={AlertCircle}
+          title="Faltan datos tributarios"
+          description="Para activar el módulo DTE necesitas completar los datos tributarios (RUT, Razón social, Giro, Dirección, Comuna y Acteco) en la sección 'Mi restaurante'."
+          action={{
+            label: 'Completar datos',
+            onClick: () => { window.location.href = '/restaurante' }
+          }}
+        />
+      </div>
+    )
+  }
+
   // ── Render ─────────────────────────────────────────────────────────────────
 
   // Derived: filtered + searched emissions

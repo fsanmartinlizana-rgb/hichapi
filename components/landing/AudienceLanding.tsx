@@ -29,13 +29,37 @@ export default function AudienceLanding({
   useEffect(() => {
     const apply = () => {
       const h = (typeof window !== 'undefined' ? window.location.hash : '').toLowerCase()
-      if (h.includes('restaurant')) setAudience('restaurante')
-      else if (h.includes('comensal')) setAudience('comensal')
+      if (h.includes('restaurant')) {
+        setAudience('restaurante')
+        if (h === '#restaurantes') setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
+      } else if (h.includes('comensal')) {
+        setAudience('comensal')
+        if (h === '#comensales') setTimeout(() => window.scrollTo({ top: 0, behavior: 'smooth' }), 50)
+      } else if (h.includes('planes')) {
+        setAudience('restaurante')
+      }
     }
     apply()
     window.addEventListener('hashchange', apply)
     return () => window.removeEventListener('hashchange', apply)
   }, [])
+
+  // Efecto separado para hacer scroll a planes una vez que la audiencia cambia
+  // y la sección de restaurantes está renderizada en el DOM.
+  useEffect(() => {
+    if (audience === 'restaurante' && typeof window !== 'undefined' && window.location.hash.toLowerCase().includes('planes')) {
+      const scroll = () => {
+        const el = document.getElementById('planes')
+        if (el) {
+          el.scrollIntoView({ behavior: 'smooth' })
+        } else {
+          // Si aún no está en el DOM, reintentar en un momento
+          setTimeout(scroll, 50)
+        }
+      }
+      setTimeout(scroll, 50)
+    }
+  }, [audience])
 
   return (
     <>

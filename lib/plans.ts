@@ -41,6 +41,8 @@ const STARTER_MODULES = [
   'cash_register',   // Caja
   'waitlist',        // Lista de espera
   'staff_schedule',  // Turnos
+  'dte',             // Boletas y facturas
+  'delivery',        // Delivery propio
 ]
 
 // Pro agrega inteligencia operativa
@@ -106,6 +108,8 @@ export const PLANS: Record<string, PlanInfo> = {
       'Caja (abrir/cerrar + reporte de turno)',
       'Lista de espera digital',
       'Turnos del personal',
+      'Emisión de Boletas/Facturas Electrónicas',
+      'Módulo Delivery propio',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES],
   },
