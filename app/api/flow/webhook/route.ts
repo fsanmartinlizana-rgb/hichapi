@@ -1,6 +1,6 @@
 import { createAdminClient } from '@/lib/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { flowRequest } from '@/lib/flow'
+import { flowRequest, flowGet } from '@/lib/flow'
 
 export async function POST(req: NextRequest) {
   try {
@@ -11,8 +11,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Token no recibido' }, { status: 400 })
     }
 
-    // Consultar estado a Flow
-    const statusRes = await flowRequest<{
+    // Consultar estado a Flow (getStatus es GET)
+    const statusRes = await flowGet<{
       status: number
       amount: number
       optional: string
