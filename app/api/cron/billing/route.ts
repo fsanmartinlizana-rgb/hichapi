@@ -61,7 +61,7 @@ export async function GET(req: Request) {
       // Ignorar orders canceladas o pendientes de pago no cerrado
       .neq('status', 'cancelled')
 
-    const salesTotal = (orders || []).reduce((acc, o) => acc + (o.total || 0), 0)
+    const salesTotal = (orders || []).reduce((acc: number, o: any) => acc + (o.total || 0), 0)
     
     // Config de precios base 
     const PLAN_PRICES: Record<string, number> = {
