@@ -1,10 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   Grid3X3, Monitor, Package, Banknote, Heart, Clock,
   BarChart2, MapPin, CalendarDays, Check, Lock, Crown,
-  Zap, ArrowRight, X, Loader2, Star, Receipt, Truck
+  Zap, ArrowRight, X, Loader2, Star, Receipt, Truck, AlertTriangle
 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { PLANS, PLAN_HIERARCHY, getPlanLevel, canAccessModule, getUpgradePlan } from '@/lib/plans'
