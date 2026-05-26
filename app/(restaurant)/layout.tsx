@@ -10,7 +10,7 @@ import {
   Trash2, Package, CalendarDays, LogOut, ChevronDown, Check,
   ShieldCheck, Users, Banknote, HelpCircle, MessageSquare, Boxes,
   Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit,
-  Gift, MapPin, ChefHat, Tag,
+  Gift, MapPin, ChefHat, Tag, Lock,
 } from 'lucide-react'
 import { canAccessModule } from '@/lib/plans'
 import SupportModal from '@/components/SupportModal'
