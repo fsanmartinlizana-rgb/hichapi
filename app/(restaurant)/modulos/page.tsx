@@ -56,31 +56,29 @@ function UpgradeModal({
   const plan = PLANS[targetPlan]
   if (!plan) return null
 
-  const { restaurant } = useRestaurant()
+  const { restaurant, refresh } = useRestaurant()
 
   async function handleUpgrade() {
     if (!restaurant) return
     setSubmitting(true)
 
     try {
-      const res = await fetch('/api/flow/create-subscription', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          restaurant_id: restaurant.id,
-          target_plan: targetPlan,
-        }),
-      })
-
-      if (res.ok) {
-        const { url } = await res.json()
-        if (url) {
-          window.location.href = url // Redirect to Flow Payment
-          return
-        }
+      const { startFreeTrial } = await import('@/app/actions/billing')
+      const res = await startFreeTrial(restaurant.id, targetPlan)
+      
+      if (res.success) {
+        setSuccess(true)
+        // Refrescar el contexto global para habilitar los módulos
+        await refresh()
+        setTimeout(() => {
+          onClose()
+        }, 3000)
+      } else {
+        alert(res.error || 'Ocurrió un error')
       }
-    } catch {
-      // handle error
+    } catch (e) {
+      console.error(e)
+      alert('Error de conexión')
     }
     setSubmitting(false)
   }
@@ -99,8 +97,8 @@ function UpgradeModal({
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto">
               <Check size={28} className="text-emerald-400" />
             </div>
-            <p className="text-white font-bold text-lg">¡Plan activado!</p>
-            <p className="text-white/40 text-sm">Tu plan {plan.name} está activo. Recargando...</p>
+            <p className="text-white font-bold text-lg">¡Piloto activado!</p>
+            <p className="text-white/40 text-sm">Disfruta 30 días gratis del plan {plan.name}.</p>
           </div>
         ) : (
           <>
@@ -108,28 +106,27 @@ function UpgradeModal({
               <div className="w-14 h-14 rounded-2xl bg-[#FF6B35]/20 flex items-center justify-center mx-auto">
                 <Crown size={24} className="text-[#FF6B35]" />
               </div>
-              <h2 className="text-white font-bold text-xl">Activar {plan.name}</h2>
+              <h2 className="text-white font-bold text-xl">Activar {plan.name} (Piloto)</h2>
               <p className="text-white/40 text-sm">{plan.description}</p>
             </div>
 
             <div className="bg-white/3 rounded-xl p-4 space-y-2">
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-white/40 text-xs">Precio mensual</p>
+                  <p className="text-white/40 text-xs">Hoy pagas</p>
                   <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
-                    {plan.priceLabel}
+                    $0
                   </p>
                 </div>
-                {currentPlan !== 'free' && (
-                  <span className="text-xs text-[#FF6B35] bg-[#FF6B35]/10 px-2 py-1 rounded-lg">
-                    Upgrade desde {PLANS[currentPlan]?.name}
-                  </span>
-                )}
+                <div className="text-right">
+                  <p className="text-white/40 text-xs">Después de 30 días</p>
+                  <p className="text-white/80 text-sm font-semibold">{plan.priceLabel} + 1% ventas</p>
+                </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-white/50 text-xs font-medium">Incluye:</p>
+              <p className="text-white/50 text-xs font-medium">Incluye durante el piloto:</p>
               {plan.features.map(f => (
                 <div key={f} className="flex items-center gap-2">
                   <Check size={12} className="text-emerald-400 shrink-0" />
@@ -144,9 +141,9 @@ function UpgradeModal({
               className="w-full py-3 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] disabled:opacity-40 transition-colors flex items-center justify-center gap-2"
             >
               {submitting ? (
-                <><Loader2 size={14} className="animate-spin" /> Procesando...</>
+                <><Loader2 size={14} className="animate-spin" /> Activando...</>
               ) : (
-                <><Zap size={14} /> {plan.cta}</>
+                <><Zap size={14} /> Empezar 30 días gratis</>
               )}
             </button>
 
@@ -167,13 +164,77 @@ export default function ModulosPage() {
   const currentPlan = restaurant?.plan || 'free'
   const [upgradeTarget, setUpgradeTarget] = useState<string | null>(null)
   const [view, setView] = useState<'modules' | 'plans'>('modules')
+  
+  // Facturación pendiente
+  const [pendingInvoice, setPendingInvoice] = useState<any>(null)
+  useEffect(() => {
+    if (restaurant?.subscription_status === 'past_due') {
+      import('@/app/actions/billing').then(m => {
+        m.getPendingInvoice(restaurant.id).then(res => setPendingInvoice(res.invoice))
+      })
+    }
+  }, [restaurant])
 
   const currentLevel = getPlanLevel(currentPlan)
   const nextPlan = getUpgradePlan(currentPlan)
   const allModules = Object.keys(MODULE_LABELS) as (keyof ModulesConfig)[]
 
+  async function handlePayInvoice() {
+    if (!restaurant || !pendingInvoice) return
+    try {
+      const res = await fetch('/api/flow/create-subscription', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          restaurant_id: restaurant.id,
+          target_plan: currentPlan,
+          invoice_id: pendingInvoice.id, // Pasamos el invoice_id
+        }),
+      })
+      if (res.ok) {
+        const { url } = await res.json()
+        if (url) window.location.href = url
+      } else {
+        alert('Error al generar pago')
+      }
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
   return (
     <div className="p-6 space-y-6">
+      {/* Pending Invoice Banner */}
+      {pendingInvoice && (
+        <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-5 flex flex-col md:flex-row items-center justify-between gap-4">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-red-500/20 flex items-center justify-center text-red-500">
+              <AlertTriangle size={24} />
+            </div>
+            <div>
+              <h3 className="text-red-400 font-bold text-lg">Tienes una factura pendiente</h3>
+              <p className="text-red-400/80 text-sm">
+                Membresía: ${pendingInvoice.plan_base_price.toLocaleString('es-CL')} + 
+                1% Ventas: ${pendingInvoice.sales_commission.toLocaleString('es-CL')} 
+                (Total Ventas calculadas: ${(Number(pendingInvoice.sales_total) || 0).toLocaleString('es-CL')})
+              </p>
+            </div>
+          </div>
+          <div className="text-right flex items-center gap-4">
+            <div>
+              <p className="text-white/60 text-xs">Total a pagar</p>
+              <p className="text-white font-bold text-xl">${pendingInvoice.total_amount.toLocaleString('es-CL')}</p>
+            </div>
+            <button
+              onClick={handlePayInvoice}
+              className="px-6 py-2.5 bg-[#FF6B35] rounded-xl font-bold hover:bg-[#FF6B35]/90 transition-colors"
+            >
+              Pagar ahora
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>

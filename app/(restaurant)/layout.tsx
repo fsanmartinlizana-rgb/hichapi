@@ -521,8 +521,54 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
  * export, que monta los providers.
  */
 function LayoutInner({ children }: { children: React.ReactNode }) {
-  const { profile } = useRestaurant()
+  const { profile, restaurant, isSuperAdmin } = useRestaurant()
   const role = profile?.role ?? 'admin'
+
+  // Lógica de bloqueo por falta de pago / fin de piloto
+  const isPastDue = useMemo(() => {
+    if (isSuperAdmin) return false
+    if (!restaurant) return false
+    if (restaurant.subscription_status === 'past_due') return true
+    
+    // Si estaba en prueba y la fecha ya pasó
+    if (restaurant.subscription_status === 'trialing' && restaurant.trial_ends_at) {
+      const endsAt = new Date(restaurant.trial_ends_at)
+      if (endsAt < new Date()) return true
+    }
+    
+    // Si estaba activo y venció el plan
+    if (restaurant.subscription_status === 'active' && restaurant.plan_next_billing) {
+      const nextBilling = new Date(restaurant.plan_next_billing)
+      if (nextBilling < new Date()) return true
+    }
+
+    return false
+  }, [restaurant, isSuperAdmin])
+
+  const pathname = usePathname()
+  const isBillingPage = pathname.startsWith('/facturacion') || pathname.startsWith('/modulos')
+
+  if (isPastDue && !isBillingPage) {
+    return (
+      <div className="flex h-screen bg-[#0A0A14] text-white flex-col items-center justify-center p-6 text-center" style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+        <div className="w-20 h-20 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6">
+          <Lock size={32} className="text-red-500" />
+        </div>
+        <h1 className="text-3xl font-bold mb-4">Acceso bloqueado</h1>
+        <p className="text-white/60 mb-8 max-w-md">
+          Tu periodo de prueba ha finalizado o tienes un pago pendiente. 
+          Por favor, regulariza tu suscripción para continuar usando HiChapi.
+        </p>
+        <Link 
+          href="/modulos" 
+          className="px-6 py-3 bg-[#FF6B35] rounded-xl font-semibold hover:bg-[#FF6B35]/90 transition-colors flex items-center gap-2"
+        >
+          <Banknote size={18} />
+          Ir a Facturación
+        </Link>
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-screen bg-[#0A0A14] text-white overflow-hidden"

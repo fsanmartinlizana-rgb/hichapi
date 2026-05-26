@@ -11,8 +11,10 @@ const CheckoutSchema = z.object({
 
 export async function POST(req: NextRequest) {
   try {
-    const { restaurant_id, target_plan } = CheckoutSchema.parse(await req.json())
-    const planConfig = PLANS[target_plan]
+    const { restaurant_id, target_plan, invoice_id } = await req.json()
+    if (!restaurant_id || !target_plan) {
+      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
+    }
 
     const supabase = createAdminClient()
     const { data: restaurant } = await supabase
@@ -25,11 +27,36 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Restaurante no encontrado' }, { status: 404 })
     }
 
-    const currentLevel = getPlanLevel(restaurant.plan || 'free')
-    const targetLevel = getPlanLevel(target_plan)
+    let amount = 0
+    let subject = ''
 
-    if (targetLevel <= currentLevel) {
-      return NextResponse.json({ error: 'Solo se permite upgrade a un plan superior por este medio' }, { status: 400 })
+    if (invoice_id) {
+      // Es un pago de factura diferida (membresía + comisión)
+      const { data: invoice } = await supabase
+        .from('invoices')
+        .select('*')
+        .eq('id', invoice_id)
+        .single()
+        
+      if (!invoice) return NextResponse.json({ error: 'Factura no encontrada' }, { status: 404 })
+      amount = invoice.total_amount
+      subject = `Factura HiChapi - ${restaurant.name}`
+    } else {
+      // Pago normal / upfront
+      const PLAN_PRICES: Record<string, number> = {
+        starter: 0,
+        pro: 59990,
+        enterprise: 120000
+      }
+      amount = PLAN_PRICES[target_plan]
+      if (amount === undefined) {
+        return NextResponse.json({ error: 'Plan no válido' }, { status: 400 })
+      }
+      subject = `Plan ${target_plan.toUpperCase()} - HiChapi`
+    }
+
+    if (amount === 0) {
+      return NextResponse.json({ error: 'Monto inválido para Flow' }, { status: 400 })
     }
 
     // Obtener email del dueño
@@ -54,7 +81,8 @@ export async function POST(req: NextRequest) {
       urlReturn: `${baseUrl}/modulos?success=true`,
       optional: JSON.stringify({
         restaurant_id: restaurant.id,
-        target_plan: target_plan
+        target_plan: target_plan,
+        invoice_id: invoice_id || undefined,
       })
     })
 

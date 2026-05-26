@@ -27,55 +27,65 @@ export async function POST(req: NextRequest) {
       if (typeof statusRes.optional === 'string') {
         optionalData = JSON.parse(statusRes.optional || '{}')
       } else if (typeof statusRes.optional === 'object' && statusRes.optional !== null) {
-        optionalData = statusRes.optional
+        optionalData = statusRes.optional as unknown as Record<string, string>
       }
       
       const restaurant_id: string = optionalData.restaurant_id
       const target_plan: string   = optionalData.target_plan
+      const invoice_id: string    = optionalData.invoice_id
 
-      console.log('[flow/webhook] Pago confirmado → restaurant:', restaurant_id, 'plan:', target_plan)
+      if (!restaurant_id) {
+        throw new Error('No se encontró restaurant_id en optional data')
+      }
 
-      if (restaurant_id && target_plan) {
-        const supabase = createAdminClient()
+      const supabase = createAdminClient()
 
-        // Leer el plan actual ANTES de cambiarlo
-        const { data: restaurant } = await supabase
-          .from('restaurants')
-          .select('plan')
-          .eq('id', restaurant_id)
-          .single()
+      // Si viene invoice_id, es un pago de factura pendiente (membresía + comisión)
+      if (invoice_id) {
+        // 1. Marcar invoice como pagado
+        await supabase.from('invoices').update({
+          status: 'paid',
+          flow_token: token,
+          flow_url: null, // ya no se necesita
+          paid_at: new Date().toISOString()
+        }).eq('id', invoice_id)
 
-        const from_plan = restaurant?.plan || 'free'
-
-        const paidAt      = new Date()
-        const nextBilling = new Date(paidAt)
+        // 2. Reactivar restaurante y setear proximo vencimiento en 30 dias
+        const nextBilling = new Date()
         nextBilling.setDate(nextBilling.getDate() + 30)
 
-        // 1. Actualizar plan + fechas de suscripción.
-        // Si las columnas plan_paid_at / plan_next_billing aún no existen
-        // (migración pendiente), el update fallará silenciosamente y se reintenta
-        // con solo el plan para que al menos el upgrade quede registrado.
+        await supabase.from('restaurants').update({
+          subscription_status: 'active',
+          plan_next_billing: nextBilling.toISOString()
+        }).eq('id', restaurant_id)
+        
+        console.log(`[flow/webhook] Factura ${invoice_id} pagada para restaurante ${restaurant_id}`)
+      } else {
+        // Flujo antiguo / Upfront pago de plan normal (o si quisieran volver al modelo viejo)
+        const from_plan = 'free' // Podriamos buscar el viejo, pero dejémoslo simple
+        
+        const paidAt = new Date()
+        const nextBilling = new Date()
+        nextBilling.setDate(nextBilling.getDate() + 30)
+
+        // 1. Actualizar plan del restaurante
         const { error: updateErr } = await supabase
           .from('restaurants')
           .update({
-            plan:              target_plan,
-            plan_paid_at:      paidAt.toISOString(),
+            plan: target_plan,
+            plan_paid_at: paidAt.toISOString(),
             plan_next_billing: nextBilling.toISOString(),
+            subscription_status: 'active'
           })
           .eq('id', restaurant_id)
 
         if (updateErr) {
-          console.warn('[flow/webhook] update con fechas falló, intentando solo plan:', updateErr.message)
-          // Fallback: solo actualizar el plan
-          await supabase
-            .from('restaurants')
-            .update({ plan: target_plan })
-            .eq('id', restaurant_id)
+          throw updateErr
         }
 
         console.log('[flow/webhook] Plan actualizado a:', target_plan, 'desde:', from_plan)
 
-        // 2. Registrar el pago en el historial (no crítico — no interrumpe el flujo)
+        // 2. Registrar el pago en el historial
         const { error: insertErr } = await supabase.from('plan_payments').insert({
           restaurant_id,
           from_plan,
