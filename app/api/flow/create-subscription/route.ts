@@ -39,6 +39,9 @@ export async function POST(req: NextRequest) {
     const baseUrl = process.env.NEXT_PUBLIC_APP_URL || process.env.NEXT_PUBLIC_SITE_URL || 'https://hichapi.com'
     const orderId = `HICHAPI-${restaurant_id.slice(0,8)}-${Date.now()}`
 
+    console.log('[flow/create-subscription] baseUrl:', baseUrl)
+    console.log('[flow/create-subscription] urlConfirmation:', `${baseUrl}/api/flow/webhook`)
+
     // API Flow: /api/payment/create
     const response = await flowRequest<{ url: string; token: string }>('/payment/create', {
       commerceOrder: orderId,
@@ -54,6 +57,8 @@ export async function POST(req: NextRequest) {
         target_plan: target_plan
       })
     })
+
+    console.log('[flow/create-subscription] Flow response token:', response.token)
 
     return NextResponse.json({ url: `${response.url}?token=${response.token}` })
 
