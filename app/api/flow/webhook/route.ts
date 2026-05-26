@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
         console.log('[flow/webhook] Plan actualizado a:', target_plan, 'desde:', from_plan)
 
         // 2. Registrar el pago en el historial (no crítico — no interrumpe el flujo)
-        await supabase.from('plan_payments').insert({
+        const { error: insertErr } = await supabase.from('plan_payments').insert({
           restaurant_id,
           from_plan,
           to_plan:         target_plan,
@@ -85,11 +85,11 @@ export async function POST(req: NextRequest) {
           flow_order:      statusRes.commerceOrder,
           paid_at:         paidAt.toISOString(),
           next_billing_at: nextBilling.toISOString(),
-        }).catch((e: unknown) => {
-          // Si la tabla plan_payments no existe aún (migración pendiente), lo ignoramos.
-          // El plan ya quedó actualizado arriba.
-          console.warn('[flow/webhook] No se pudo insertar en plan_payments:', e)
         })
+
+        if (insertErr) {
+          console.warn('[flow/webhook] No se pudo insertar en plan_payments:', insertErr.message)
+        }
       }
     } else {
       console.log('[flow/webhook] Pago NO confirmado, status:', statusRes.status)
