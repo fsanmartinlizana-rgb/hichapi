@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     const statusRes = await flowGet<{
       status: number
       amount: number
-      optional: string
+      optional: string | Record<string, string>
       commerceOrder: string
     }>('/payment/getStatus', { token })
 
@@ -23,7 +23,13 @@ export async function POST(req: NextRequest) {
 
     // status 2 = Pagado
     if (statusRes.status === 2) {
-      const optionalData = JSON.parse(statusRes.optional || '{}')
+      let optionalData: Record<string, string> = {}
+      if (typeof statusRes.optional === 'string') {
+        optionalData = JSON.parse(statusRes.optional || '{}')
+      } else if (typeof statusRes.optional === 'object' && statusRes.optional !== null) {
+        optionalData = statusRes.optional
+      }
+      
       const restaurant_id: string = optionalData.restaurant_id
       const target_plan: string   = optionalData.target_plan
 
