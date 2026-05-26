@@ -72,9 +72,9 @@ export async function POST(req: NextRequest) {
     // API Flow: /api/payment/create
     const response = await flowRequest<{ url: string; token: string }>('/payment/create', {
       commerceOrder: orderId,
-      subject: `Plan ${planConfig.name} - HiChapi`,
+      subject: subject,
       currency: 'CLP',
-      amount: planConfig.price,
+      amount: amount,
       email: email,
       paymentMethod: 9, // Todos los medios de pago
       urlConfirmation: `${baseUrl}/api/flow/webhook`,
