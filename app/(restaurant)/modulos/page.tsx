@@ -63,7 +63,7 @@ function UpgradeModal({
     setSubmitting(true)
 
     try {
-      const res = await fetch('/api/restaurants/upgrade', {
+      const res = await fetch('/api/flow/create-subscription', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,8 +73,11 @@ function UpgradeModal({
       })
 
       if (res.ok) {
-        setSuccess(true)
-        setTimeout(() => window.location.reload(), 1500)
+        const { url } = await res.json()
+        if (url) {
+          window.location.href = url // Redirect to Flow Payment
+          return
+        }
       }
     } catch {
       // handle error
@@ -212,6 +215,33 @@ export default function ModulosPage() {
         >
           Comparar planes
         </button>
+
+        {currentPlan !== 'free' && (
+          <button
+            onClick={async () => {
+              if (!restaurant) return
+              if (!confirm('¿Estás seguro de cancelar tu suscripción? Volverás al plan Gratis inmediatamente.')) return
+              
+              try {
+                const res = await fetch('/api/flow/cancel-subscription', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({ restaurant_id: restaurant.id }),
+                })
+                if (res.ok) {
+                  window.location.reload()
+                } else {
+                  alert('Hubo un error al cancelar la suscripción.')
+                }
+              } catch (e) {
+                console.error(e)
+              }
+            }}
+            className="px-4 py-2 rounded-xl text-xs bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium transition-colors"
+          >
+            Cancelar suscripción
+          </button>
+        )}
       </div>
 
       {view === 'modules' ? (

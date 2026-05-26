@@ -1281,7 +1281,8 @@ function ComandasPageInner() {
       fullSchemaOK = false
     }
 
-    const itemsSelect = fullSchemaOK ? FULL_ITEMS_SELECT : LEGACY_ITEMS_SELECT
+    const itemsSelect  = fullSchemaOK ? FULL_ITEMS_SELECT : LEGACY_ITEMS_SELECT
+    const myStationSet = new Set(myStationIds)
 
     const [tablesRes, ownOrdersRes, crossOrdersRes, menuRes, garzonRes] = await Promise.all([
       supabase.from('tables').select('id, label, status, zone, seats').eq('restaurant_id', restId).order('label'),
