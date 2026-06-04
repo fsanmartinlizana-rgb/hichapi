@@ -33,6 +33,7 @@ const CreateOrderSchema = z.object({
   table_id:              z.string().min(1).optional(),
   cart:                  z.array(CartItemSchema).min(1),
   client_name:           z.string().optional(),
+  customer_id:           z.string().uuid().optional(),
   notes:                 z.string().optional(),
   tip:                   z.number().int().min(0).optional(), // Propina opcional (no va en DTE)
   // ── Delivery fields (all optional; presence triggers auto delivery_order creation) ──
@@ -50,7 +51,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json()
     const {
-      restaurant_slug, table_id, cart, client_name, notes, tip,
+      restaurant_slug, table_id, cart, client_name, customer_id, notes, tip,
       delivery_address, delivery_client_name, delivery_client_phone,
     } = CreateOrderSchema.parse(body)
 
@@ -146,30 +147,75 @@ export async function POST(req: NextRequest) {
     const tipAmount = tip ?? 0
     const total = subtotal + tipAmount
 
-    // 4. Create order
-    // La check constraint orders_total_equals_subtotal_plus_tip exige
-    // total = subtotal + tip. Sin tip → tip=0 → total = subtotal.
-    const { data: order, error: orderErr } = await supabase
-      .from('orders')
-      .insert({
-        restaurant_id: restaurant.id,
-        table_id: realTableId,
-        status: 'pending',
-        subtotal,  // Monto sin propina (para DTE)
-        tip: tipAmount,  // Propina (no va en DTE)
-        total,  // subtotal + tip
-        client_name: client_name ?? null,
-        notes: notes ?? null,
-      })
-      .select('id')
-      .single()
+    // 3.5. Resolve customer_profile.id from auth user_id (customer_id from payload)
+    let finalCustomerId = customer_id ?? null
+    if (finalCustomerId) {
+      const { data: profile } = await supabase
+        .from('customer_profiles')
+        .select('id')
+        .eq('user_id', finalCustomerId)
+        .maybeSingle()
+      if (profile) {
+        finalCustomerId = profile.id
+      }
+    }
 
-    if (orderErr || !order) {
-      console.error('Order insert error:', orderErr)
-      return NextResponse.json(
-        { error: 'No se pudo crear el pedido' },
-        { status: 500 }
-      )
+    // 4. Create order or add to existing
+    let orderId: string = ''
+    let isAddingToExisting = false
+
+    if (realTableId) {
+      const { data: activeOrder } = await supabase
+        .from('orders')
+        .select('id, total, subtotal, tip')
+        .eq('table_id', realTableId)
+        .eq('restaurant_id', restaurant.id)
+        .in('status', ['pending', 'en_proceso', 'preparing', 'ready', 'delivered'])
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .maybeSingle()
+
+      if (activeOrder) {
+        orderId = activeOrder.id
+        isAddingToExisting = true
+
+        const newTotal = (activeOrder.total ?? 0) + total
+        const newSubtotal = (activeOrder.subtotal ?? 0) + subtotal
+        const newTip = (activeOrder.tip ?? 0) + tipAmount
+
+        await supabase.from('orders').update({
+          subtotal: newSubtotal,
+          tip: newTip,
+          total: newTotal
+        }).eq('id', orderId)
+      }
+    }
+
+    if (!isAddingToExisting) {
+      const { data: order, error: orderErr } = await supabase
+        .from('orders')
+        .insert({
+          restaurant_id: restaurant.id,
+          table_id: realTableId,
+          status: 'pending',
+          subtotal,  // Monto sin propina (para DTE)
+          tip: tipAmount,  // Propina (no va en DTE)
+          total,  // subtotal + tip
+          client_name: client_name ?? null,
+          customer_id: finalCustomerId,
+          notes: notes ?? null,
+        })
+        .select('id')
+        .single()
+
+      if (orderErr || !order) {
+        console.error('Order insert error:', orderErr)
+        return NextResponse.json(
+          { error: 'No se pudo crear el pedido' },
+          { status: 500 }
+        )
+      }
+      orderId = order.id
     }
 
     // 5. Resolve destination + station_id for each cart item.
@@ -239,7 +285,7 @@ export async function POST(req: NextRequest) {
     // Si ambos fallan, borramos la order padre y devolvemos error claro
     // al cliente para que no quede la mesa ocupada con comanda fantasma.
     const baseRow = (item: typeof cart[number]) => ({
-      order_id:    order.id,
+      order_id:    orderId,
       menu_item_id: item.menu_item_id,
       name:        item.name,
       quantity:    item.quantity,
@@ -280,7 +326,9 @@ export async function POST(req: NextRequest) {
         })
         // Última línea de defensa: rollback de la order padre para que
         // la mesa no quede ocupada con un pedido fantasma.
-        await supabase.from('orders').delete().eq('id', order.id)
+        if (!isAddingToExisting) {
+          await supabase.from('orders').delete().eq('id', orderId)
+        }
         return NextResponse.json(
           {
             error:      'No se pudo guardar los items del pedido',
@@ -308,7 +356,7 @@ export async function POST(req: NextRequest) {
     if (isDeliveryOrder && delivery_address) {
       try {
         const deliveryOrder = await createDeliveryOrder(restaurant.id, {
-          order_id:         order.id,
+          order_id:         orderId,
           pickup_address:   restaurant.name ?? 'Restaurante',  // will show restaurant name as pickup
           delivery_address: delivery_address,
           client_name:      delivery_client_name ?? client_name ?? 'Cliente',
@@ -329,7 +377,7 @@ export async function POST(req: NextRequest) {
     }
 
     return NextResponse.json({
-      orderId: order.id,
+      orderId: orderId,
       deliveryOrderId,
       total,
       status: 'pending',

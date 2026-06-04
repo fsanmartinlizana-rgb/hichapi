@@ -16,8 +16,10 @@ import {
 } from '../../services/customer/api'
 import { customerStyles } from '../../components/customer/customerStyles'
 import type { SavedAddress } from '../../types/customer'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function CustomerAddressesScreen() {
+  const insets = useSafeAreaInsets()
   const [addresses, setAddresses] = useState<SavedAddress[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -71,7 +73,10 @@ export default function CustomerAddressesScreen() {
   }
 
   return (
-    <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
+    <ScrollView 
+      style={[customerStyles.screen, { paddingTop: insets.top }]} 
+      contentContainerStyle={customerStyles.scroll}
+    >
       <Text style={customerStyles.title}>Direcciones</Text>
 
       {loading ? (

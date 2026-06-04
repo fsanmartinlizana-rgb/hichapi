@@ -177,7 +177,9 @@ export default function ModulosPage() {
 
   const currentLevel = getPlanLevel(currentPlan)
   const nextPlan = getUpgradePlan(currentPlan)
-  const allModules = Object.keys(MODULE_LABELS) as (keyof ModulesConfig)[]
+  const allModules = (Object.keys(MODULE_LABELS) as (keyof ModulesConfig)[]).filter(key => 
+    key !== 'delivery' || process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true'
+  )
 
   async function handlePayInvoice() {
     if (!restaurant || !pendingInvoice) return

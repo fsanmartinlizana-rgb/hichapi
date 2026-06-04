@@ -474,6 +474,14 @@ export default function ClientChatScreen({ route, navigation }: ClientChatScreen
         {/* Header */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
+            <TouchableOpacity 
+              onPress={() => {
+                navigation.navigate('Customer');
+              }}
+              style={{ marginRight: 12, paddingVertical: 4, paddingRight: 8 }}
+            >
+              <Text style={{ color: '#fff', fontSize: 28, lineHeight: 30 }}>‹</Text>
+            </TouchableOpacity>
             <View style={styles.headerAvatar}>
                <Text style={styles.headerAvatarText}>{(restaurantName || 'H').charAt(0)}</Text>
             </View>

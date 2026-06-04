@@ -57,7 +57,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Stock',         href: '/stock',     icon: Package,         roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Mermas',        href: '/mermas',    icon: Trash2,          roles: ['admin','owner','supervisor','super_admin'] },
       { label: 'Caja',          href: '/caja',      icon: Banknote,        roles: ['owner','admin','supervisor','super_admin'] },
-      { label: 'Delivery',      href: '/delivery',  icon: Bike,            roles: ['owner','admin','super_admin'] },
+      ...(process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' ? [{ label: 'Delivery',      href: '/delivery',  icon: Bike,            roles: ['owner','admin','super_admin'] }] : []),
       { label: 'Turnos',        href: '/turnos',    icon: CalendarDays,    roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },
@@ -87,7 +87,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },
       { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },
       { label: 'Tono de Chapi',  href: '/tono',          icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
-      { label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] },
+      ...(process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' ? [{ label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] }] : []),
       { label: 'Fidelización',   href: '/fidelizacion',  icon: Gift,              roles: ['admin','owner','super_admin'] },
       { label: 'Promociones',    href: '/promociones',   icon: Tag,               roles: ['admin','owner','supervisor','super_admin'] },
     ],
@@ -110,9 +110,9 @@ const ALL_NAV: NavSection[] = [
 
 const NAV_PLAN_REQUIRED: Record<string, string> = {
   // Operación del salón → starter (módulo tables)
-  '/mesas':     'free',
+  '/mesas':     'starter',
   '/comandas':  'starter',
-  '/garzon':    'free',
+  '/garzon':    'starter',
   '/caja':      'starter',
   '/espera':    'starter',
   '/turnos':    'starter',

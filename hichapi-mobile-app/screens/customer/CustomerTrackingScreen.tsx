@@ -16,12 +16,14 @@ import { DeliveryProgressBar } from '../../components/customer/DeliveryProgressB
 import { customerStyles } from '../../components/customer/customerStyles'
 import { DARK_MAP_STYLE } from '../../utils/theme'
 import type { TrackingData } from '../../types/customer'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Route = RouteProp<CustomerTrackingStackParamList, 'CustomerTracking'>
 
 export default function CustomerTrackingScreen() {
   const { params } = useRoute<Route>()
   const mapRef = useRef<MapView | null>(null)
+  const insets = useSafeAreaInsets()
   const [data, setData] = useState<TrackingData | null>(null)
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -95,11 +97,12 @@ export default function CustomerTrackingScreen() {
   const showMap = data.status === 'in_transit' && location
 
   return (
-    <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
-      <Text style={customerStyles.title}>Seguimiento</Text>
-      <Text style={customerStyles.subtitle} numberOfLines={2}>
-        {data.delivery_address}
-      </Text>
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA', paddingTop: insets.top }}>
+      <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
+        <Text style={customerStyles.title}>Seguimiento</Text>
+        <Text style={customerStyles.subtitle} numberOfLines={2}>
+          {data.delivery_address}
+        </Text>
 
       <View style={[customerStyles.card, { marginTop: 16 }]}>
         <DeliveryProgressBar status={data.status} />
@@ -174,7 +177,8 @@ export default function CustomerTrackingScreen() {
         <Text style={{ textAlign: 'center', color: '#9CA3AF', marginTop: 16 }}>
           Esperando ubicación del repartidor…
         </Text>
-      )}
-    </ScrollView>
+        )}
+      </ScrollView>
+    </View>
   )
 }

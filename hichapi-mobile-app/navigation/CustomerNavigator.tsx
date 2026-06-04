@@ -15,25 +15,36 @@ import CustomerOrdersScreen from '../screens/customer/CustomerOrdersScreen'
 import CustomerOrderDetailScreen from '../screens/customer/CustomerOrderDetailScreen'
 import CustomerTrackingHubScreen from '../screens/customer/CustomerTrackingHubScreen'
 import CustomerTrackingScreen from '../screens/customer/CustomerTrackingScreen'
-import CustomerLoyaltyScreen from '../screens/customer/CustomerLoyaltyScreen'
 import CustomerProfileScreen from '../screens/customer/CustomerProfileScreen'
 import CustomerAddressesScreen from '../screens/customer/CustomerAddressesScreen'
 import CustomerSettingsScreen from '../screens/customer/CustomerSettingsScreen'
+import CustomerSearchScreen from '../screens/customer/CustomerSearchScreen'
+import CustomerRestaurantMenuScreen from '../screens/customer/CustomerRestaurantMenuScreen'
 
 const Tab = createBottomTabNavigator<CustomerTabParamList>()
 const OrdersStack = createStackNavigator<CustomerOrdersStackParamList>()
 const TrackingStack = createStackNavigator<CustomerTrackingStackParamList>()
 const ProfileStack = createStackNavigator<CustomerProfileStackParamList>()
+const SearchStack = createStackNavigator<CustomerSearchStackParamList>()
 
 function TabIcon({ label, focused }: { label: string; focused: boolean }) {
   const icons: Record<string, string> = {
     Home: '🏠',
+    Buscar: '🔍',
     Pedidos: '📦',
     Tracking: '📍',
-    Fidelidad: '⭐',
     Perfil: '👤',
   }
   return <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.5 }}>{icons[label] ?? '●'}</Text>
+}
+
+function SearchStackNavigator() {
+  return (
+    <SearchStack.Navigator screenOptions={{ headerShown: false }}>
+      <SearchStack.Screen name="CustomerSearch" component={CustomerSearchScreen} />
+      <SearchStack.Screen name="CustomerRestaurantMenu" component={CustomerRestaurantMenuScreen} />
+    </SearchStack.Navigator>
+  )
 }
 
 function OrdersStackNavigator() {
@@ -82,9 +93,9 @@ export default function CustomerNavigator() {
       })}
     >
       <Tab.Screen name="Home" component={CustomerHomeScreen} options={{ title: 'Inicio' }} />
+      <Tab.Screen name="Buscar" component={SearchStackNavigator} options={{ title: 'Buscar' }} />
       <Tab.Screen name="Pedidos" component={OrdersStackNavigator} options={{ title: 'Pedidos' }} />
       <Tab.Screen name="Tracking" component={TrackingStackNavigator} options={{ title: 'Tracking' }} />
-      <Tab.Screen name="Fidelidad" component={CustomerLoyaltyScreen} options={{ title: 'Fidelidad' }} />
       <Tab.Screen name="Perfil" component={ProfileStackNavigator} options={{ title: 'Perfil' }} />
     </Tab.Navigator>
   )

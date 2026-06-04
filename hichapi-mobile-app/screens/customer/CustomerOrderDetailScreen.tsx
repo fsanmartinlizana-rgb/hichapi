@@ -20,6 +20,7 @@ import { getOrder, listRatings, submitRating } from '../../services/customer/api
 import { customerStyles, formatClp } from '../../components/customer/customerStyles'
 import { ACTIVE_DELIVERY_STATUSES } from '../../utils/constants'
 import type { UnifiedOrder } from '../../types/customer'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Route = RouteProp<CustomerOrdersStackParamList, 'CustomerOrderDetail'>
 type Nav = CompositeNavigationProp<
@@ -30,6 +31,7 @@ type Nav = CompositeNavigationProp<
 export default function CustomerOrderDetailScreen() {
   const { params } = useRoute<Route>()
   const navigation = useNavigation<Nav>()
+  const insets = useSafeAreaInsets()
   const [order, setOrder] = useState<UnifiedOrder | null>(null)
   const [rated, setRated] = useState(false)
   const [stars, setStars] = useState(0)
@@ -85,10 +87,11 @@ export default function CustomerOrderDetailScreen() {
   }
 
   return (
-    <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
-      <TouchableOpacity onPress={() => navigation.goBack()}>
-        <Text style={{ color: '#FF6B35', marginBottom: 12 }}>← Volver</Text>
-      </TouchableOpacity>
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA', paddingTop: insets.top }}>
+      <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
+        <TouchableOpacity onPress={() => navigation.goBack()}>
+          <Text style={{ color: '#FF6B35', marginBottom: 12 }}>← Volver</Text>
+        </TouchableOpacity>
 
       <Text style={customerStyles.title}>{order.restaurant_name}</Text>
       <Text style={customerStyles.subtitle}>
@@ -175,6 +178,7 @@ export default function CustomerOrderDetailScreen() {
           </TouchableOpacity>
         </View>
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }

@@ -22,6 +22,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import * as Haptics from 'expo-haptics';
 import { supabase } from '../../config/supabase';
 import { parseQRCode } from '../../utils/qrParser';
@@ -160,7 +161,16 @@ export default function QRScannerScreen({ navigation }: QRScannerScreenProps) {
 
       {/* Viewfinder overlay */}
       <View style={styles.overlay}>
-        <View style={styles.topOverlay} />
+        <View style={styles.topOverlay}>
+          <SafeAreaView edges={['top']}>
+            <TouchableOpacity 
+              style={styles.closeButton} 
+              onPress={() => navigation.navigate('Customer')}
+            >
+              <Text style={styles.closeButtonText}>✕</Text>
+            </TouchableOpacity>
+          </SafeAreaView>
+        </View>
         <View style={styles.middleRow}>
           <View style={styles.sideOverlay} />
           <View style={styles.viewfinder}>
@@ -273,6 +283,17 @@ const styles = StyleSheet.create({
   topOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
+  },
+  closeButton: {
+    alignSelf: 'flex-start',
+    padding: 16,
+    marginTop: 8,
+    marginLeft: 8,
+  },
+  closeButtonText: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: 'bold',
   },
   middleRow: {
     flexDirection: 'row',

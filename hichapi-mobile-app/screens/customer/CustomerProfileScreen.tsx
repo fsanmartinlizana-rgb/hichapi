@@ -6,17 +6,20 @@ import {
   TextInput,
   TouchableOpacity,
   ActivityIndicator,
+  Alert,
 } from 'react-native'
 import { useNavigation } from '@react-navigation/native'
 import type { StackNavigationProp } from '@react-navigation/stack'
 import type { CustomerProfileStackParamList } from '../../types/navigation'
 import { getCustomerProfile, updateCustomerProfile } from '../../services/customer/api'
 import { customerStyles } from '../../components/customer/customerStyles'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Nav = StackNavigationProp<CustomerProfileStackParamList, 'CustomerProfile'>
 
 export default function CustomerProfileScreen() {
   const navigation = useNavigation<Nav>()
+  const insets = useSafeAreaInsets()
   const [displayName, setDisplayName] = useState('')
   const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(true)
@@ -39,14 +42,23 @@ export default function CustomerProfileScreen() {
   }, [load])
 
   async function save() {
+    const trimmedName = displayName.trim()
+    if (!trimmedName) {
+      Alert.alert('Atención', 'El nombre no puede estar vacío.')
+      return
+    }
+
     setSaving(true)
     setSaved(false)
     try {
       await updateCustomerProfile({
-        display_name: displayName.trim(),
+        display_name: trimmedName,
         phone: phone.trim() || undefined,
       })
       setSaved(true)
+    } catch (error: any) {
+      console.warn('[CustomerProfile]', error)
+      Alert.alert('Error', 'No se pudo guardar el perfil. Inténtalo nuevamente.')
     } finally {
       setSaving(false)
     }
@@ -61,7 +73,7 @@ export default function CustomerProfileScreen() {
   }
 
   return (
-    <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
+    <ScrollView style={[customerStyles.screen, { paddingTop: insets.top + 10 }]} contentContainerStyle={customerStyles.scroll}>
       <Text style={customerStyles.title}>Mi perfil</Text>
 
       <Text style={customerStyles.label}>Nombre</Text>

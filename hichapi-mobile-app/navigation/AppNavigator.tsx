@@ -66,30 +66,13 @@ function LoadingScreen() {
 // Root stack
 // ---------------------------------------------------------------------------
 
+import Constants from 'expo-constants';
+
 const Stack = createStackNavigator<RootStackParamList>();
-
-function AuthenticatedApp() {
-  const { role, loading: roleLoading } = useAppRole();
-
-  if (roleLoading) {
-    return <LoadingScreen />;
-  }
-
-  return (
-    <>
-      {role === 'customer' ? (
-        <Stack.Screen name="Customer" component={CustomerNavigator} />
-      ) : (
-        <Stack.Screen name="Main" component={MainNavigator} />
-      )}
-      <Stack.Screen name="Client" component={ClientNavigator} />
-      <Stack.Screen name="Rider" component={RiderNavigator} />
-    </>
-  );
-}
 
 export default function AppNavigator() {
   const { session, loading } = useAuth();
+  const { role, loading: roleLoading } = useAppRole();
   const [onboardingChecked, setOnboardingChecked] = useState(false);
   const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
@@ -107,8 +90,8 @@ export default function AppNavigator() {
       });
   }, []);
 
-  // Show loading indicator while auth state or onboarding check is pending
-  if (loading || !onboardingChecked) {
+  // Show loading indicator while auth state, onboarding check, or role is pending
+  if (loading || !onboardingChecked || (session !== null && roleLoading)) {
     return <LoadingScreen />;
   }
 
@@ -121,17 +104,28 @@ export default function AppNavigator() {
     );
   }
 
+  const IS_STAFF = Constants.expoConfig?.extra?.variant === 'staff';
+
   return (
     <NavigationContainer linking={linking}>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {session === null ? (
           <>
             <Stack.Screen name="Auth" component={AuthNavigator} />
-            <Stack.Screen name="Client" component={ClientNavigator} />
+            {!IS_STAFF && (
+              <Stack.Screen name="Client" component={ClientNavigator} />
+            )}
+          </>
+        ) : IS_STAFF ? (
+          <>
+            <Stack.Screen name="Main" component={MainNavigator} />
             <Stack.Screen name="Rider" component={RiderNavigator} />
           </>
         ) : (
-          <AuthenticatedApp />
+          <>
+            <Stack.Screen name="Customer" component={CustomerNavigator} />
+            <Stack.Screen name="Client" component={ClientNavigator} />
+          </>
         )}
       </Stack.Navigator>
     </NavigationContainer>

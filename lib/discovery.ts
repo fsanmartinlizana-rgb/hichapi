@@ -329,17 +329,27 @@ async function fetchAndFilter(
     baseSelect = baseSelect.in('id', ids)
   }
 
-  const { data, error } = await baseSelect.limit(300)
+  // Pre-filter by neighborhood at the DB level to avoid dropping results due to .limit()
+  if (withZone) {
+    const allZones = (intent.zones && intent.zones.length > 0)
+      ? intent.zones
+      : (intent.zone ? [intent.zone] : [])
+    if (allZones.length > 0) {
+      const orConditions = allZones.map(z => `neighborhood.ilike.%${z}%`).join(',')
+      baseSelect = baseSelect.or(orConditions)
+    }
+  }
+
+  const { data, error } = await baseSelect.limit(500)
   if (error || !data) return []
   const restaurants = data as unknown as RawRow[]
 
   let filtered = restaurants
   if (withZone) {
-    // Multi-zona OR: si intent.zones tiene >0 items, matchea cualquiera.
-    // Si solo viene zone (legacy), trata como zones=[zone].
     const allZones = (intent.zones && intent.zones.length > 0)
       ? intent.zones
       : (intent.zone ? [intent.zone] : [])
+
     if (allZones.length > 0) {
       const normZones = allZones.map(z => stripAccents(z)).filter(Boolean)
       filtered = filtered.filter(r => {

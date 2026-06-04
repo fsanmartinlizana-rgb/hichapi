@@ -16,8 +16,10 @@ import {
 } from '../../services/customer/geofence'
 import { clearPushToken, deleteAccount } from '../../services/customer/api'
 import { customerStyles } from '../../components/customer/customerStyles'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 export default function CustomerSettingsScreen() {
+  const insets = useSafeAreaInsets()
   const { logout } = useAuth()
   const [geoOptOut, setGeoOptOut] = useState(false)
   const [pushEnabled, setPushEnabled] = useState(true)
@@ -78,7 +80,10 @@ export default function CustomerSettingsScreen() {
   }
 
   return (
-    <ScrollView style={customerStyles.screen} contentContainerStyle={customerStyles.scroll}>
+    <ScrollView 
+      style={[customerStyles.screen, { paddingTop: insets.top }]} 
+      contentContainerStyle={customerStyles.scroll}
+    >
       <Text style={customerStyles.title}>Configuración</Text>
 
       <View style={customerStyles.card}>

@@ -13,11 +13,13 @@ import type { CustomerTrackingStackParamList } from '../../types/navigation'
 import { listOrders } from '../../services/customer/api'
 import { customerStyles } from '../../components/customer/customerStyles'
 import { ACTIVE_DELIVERY_STATUSES } from '../../utils/constants'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Nav = StackNavigationProp<CustomerTrackingStackParamList, 'CustomerTrackingHub'>
 
 export default function CustomerTrackingHubScreen() {
   const navigation = useNavigation<Nav>()
+  const insets = useSafeAreaInsets()
   const [orders, setOrders] = useState<
     Array<{ id: string; restaurant_name: string; status: string }>
   >([])
@@ -46,11 +48,12 @@ export default function CustomerTrackingHubScreen() {
   }, [load])
 
   return (
-    <ScrollView
-      style={customerStyles.screen}
-      contentContainerStyle={customerStyles.scroll}
-      refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
-    >
+    <View style={{ flex: 1, backgroundColor: '#FAFAFA', paddingTop: insets.top }}>
+      <ScrollView
+        style={customerStyles.screen}
+        contentContainerStyle={customerStyles.scroll}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={load} />}
+      >
       <Text style={customerStyles.title}>Tracking en vivo</Text>
       <Text style={customerStyles.subtitle}>Pedidos delivery activos</Text>
 
@@ -77,6 +80,7 @@ export default function CustomerTrackingHubScreen() {
           </TouchableOpacity>
         ))
       )}
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }

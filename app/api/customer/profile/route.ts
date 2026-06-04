@@ -8,6 +8,8 @@ import { requireCustomer } from '@/lib/supabase/auth-guard'
 import { getProfile, updateProfile } from '@/lib/customer/customer-service'
 import { UpdateCustomerProfileSchema } from '@/lib/customer/schemas'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   const { customer, error } = await requireCustomer()
   if (error) return error

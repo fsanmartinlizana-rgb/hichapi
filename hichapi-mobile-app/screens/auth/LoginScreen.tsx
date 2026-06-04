@@ -17,8 +17,11 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { z } from 'zod';
+import Constants from 'expo-constants';
 import { useAuth } from '../../hooks/useAuth';
 import type { LoginScreenProps } from '../../types/navigation';
+
+const IS_STAFF = Constants.expoConfig?.extra?.variant === 'staff';
 
 // ---------------------------------------------------------------------------
 // Validation schema
@@ -224,28 +227,45 @@ export default function LoginScreen({ navigation }: LoginScreenProps) {
           </View>
 
           {/* Client flow entry point */}
-          <TouchableOpacity
-            style={styles.guestButton}
-            onPress={() => navigation.navigate('Client')}
-            accessibilityLabel="Escanear QR de mesa"
-            accessibilityHint="Toca para escanear el código QR de tu mesa y ver el menú"
-            accessibilityRole="button"
-          >
-            <Ionicons name="qr-code-outline" size={20} color="#FF6B35" style={styles.buttonIcon} />
-            <Text style={styles.guestButtonText}>Escanear QR de mesa</Text>
-          </TouchableOpacity>
+          {!IS_STAFF && (
+            <View>
+              <TouchableOpacity
+                style={styles.guestButton}
+                onPress={() => navigation.navigate('Client')}
+                accessibilityLabel="Escanear QR de mesa"
+                accessibilityHint="Toca para escanear el código QR de tu mesa y ver el menú"
+                accessibilityRole="button"
+              >
+                <Ionicons name="qr-code-outline" size={20} color="#FF6B35" style={styles.buttonIcon} />
+                <Text style={styles.guestButtonText}>Escanear QR de mesa</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity
+                style={[styles.guestButton, { marginTop: 12, borderColor: '#374151', backgroundColor: '#F9FAFB' }]}
+                onPress={() => navigation.navigate('Register')}
+                accessibilityLabel="Crear nueva cuenta"
+                accessibilityHint="Toca para registrarte como comensal"
+                accessibilityRole="button"
+              >
+                <Ionicons name="person-add-outline" size={20} color="#374151" style={styles.buttonIcon} />
+                <Text style={[styles.guestButtonText, { color: '#374151' }]}>¿No tienes cuenta? Regístrate</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Rider flow entry point */}
-          <TouchableOpacity
-            style={[styles.guestButton, { marginTop: 12, borderColor: '#10B981' }]}
-            onPress={() => navigation.navigate('Rider' as any)}
-            accessibilityLabel="Soy Rider"
-            accessibilityHint="Toca para ingresar como repartidor"
-            accessibilityRole="button"
-          >
-            <Ionicons name="bicycle-outline" size={20} color="#10B981" style={styles.buttonIcon} />
-            <Text style={[styles.guestButtonText, { color: '#10B981' }]}>Soy Rider</Text>
-          </TouchableOpacity>
+          {IS_STAFF && (
+            <TouchableOpacity
+              style={[styles.guestButton, { marginTop: 12, borderColor: '#10B981' }]}
+              onPress={() => navigation.navigate('Rider' as any)}
+              accessibilityLabel="Soy Rider"
+              accessibilityHint="Toca para ingresar como repartidor"
+              accessibilityRole="button"
+            >
+              <Ionicons name="bicycle-outline" size={20} color="#10B981" style={styles.buttonIcon} />
+              <Text style={[styles.guestButtonText, { color: '#10B981' }]}>Soy Rider</Text>
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
     </KeyboardAvoidingView>

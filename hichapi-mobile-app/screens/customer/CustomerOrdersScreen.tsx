@@ -13,10 +13,12 @@ import { listOrders } from '../../services/customer/api'
 import { customerStyles, formatClp } from '../../components/customer/customerStyles'
 import { ACTIVE_DELIVERY_STATUSES } from '../../utils/constants'
 import type { UnifiedOrder, CustomerOrderType } from '../../types/customer'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
 
 type Nav = StackNavigationProp<CustomerOrdersStackParamList, 'CustomerOrders'>
 
 export default function CustomerOrdersScreen() {
+  const insets = useSafeAreaInsets()
   const navigation = useNavigation<Nav>()
   const [orders, setOrders] = useState<UnifiedOrder[]>([])
   const [type, setType] = useState<'all' | CustomerOrderType>('all')
@@ -37,7 +39,7 @@ export default function CustomerOrdersScreen() {
   }, [load])
 
   return (
-    <View style={customerStyles.screen}>
+    <View style={[customerStyles.screen, { paddingTop: insets.top }]}>
       <View style={{ padding: 16, paddingBottom: 0 }}>
         <Text style={customerStyles.title}>Mis pedidos</Text>
         <View style={{ flexDirection: 'row', marginTop: 12, gap: 8 }}>

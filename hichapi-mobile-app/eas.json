@@ -19,8 +19,23 @@
         "buildType": "apk"
       }
     },
-    "production": {
+    "production-comensal": {
       "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "comensal"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "production-staff": {
+      "autoIncrement": true,
+      "env": {
+        "APP_VARIANT": "staff"
+      },
       "ios": {
         "simulator": false
       },
@@ -30,6 +45,7 @@
     }
   },
   "submit": {
-    "production": {}
+    "production-comensal": {},
+    "production-staff": {}
   }
 }

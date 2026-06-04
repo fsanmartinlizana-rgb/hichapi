@@ -94,7 +94,8 @@ class APIClient {
    * Performs a GET request and returns the response data.
    */
   async get<T>(endpoint: string, params?: Record<string, unknown>): Promise<T> {
-    const response = await this.axiosInstance.get<T>(endpoint, { params });
+    const finalParams = { ...params, _t: Date.now() };
+    const response = await this.axiosInstance.get<T>(endpoint, { params: finalParams });
     return response.data;
   }
 

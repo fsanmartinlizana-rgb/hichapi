@@ -195,11 +195,19 @@ export type CustomerProfileStackParamList = {
   CustomerSettings: undefined;
 };
 
+export type CustomerSearchStackParamList = {
+  CustomerSearch: undefined;
+  CustomerRestaurantMenu: {
+    restaurant: any;
+    menu_items: any[];
+  };
+};
+
 export type CustomerTabParamList = {
   Home: undefined;
+  Buscar: NavigatorScreenParams<CustomerSearchStackParamList>;
   Pedidos: NavigatorScreenParams<CustomerOrdersStackParamList>;
   Tracking: NavigatorScreenParams<CustomerTrackingStackParamList>;
-  Fidelidad: undefined;
   Perfil: NavigatorScreenParams<CustomerProfileStackParamList>;
 };
 

@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { CartItemCard } from '../../components/CartItemCard';
 import { useCart } from '../../hooks/useCart';
+import { useAuth } from '../../hooks/useAuth';
 import { apiClient } from '../../services/api/APIClient';
 import { formatCLP } from '../../utils/formatters';
 import type { CartItem } from '../../types/ui';
@@ -21,6 +22,7 @@ import type { CartScreenProps } from '../../types/navigation';
 
 export default function CartScreen({ navigation }: CartScreenProps) {
   const { cart, total, itemCount, updateQuantity, removeItem, clearCart } = useCart();
+  const { session } = useAuth();
   const [confirming, setConfirming] = useState(false);
 
   const handleConfirmOrder = useCallback(async () => {
@@ -30,7 +32,8 @@ export default function CartScreen({ navigation }: CartScreenProps) {
       const order = await apiClient.post('/api/orders', {
         restaurant_slug: cart.restaurant_slug,
         table_id: cart.table_id,
-        client_name: 'Cliente App',
+        client_name: session?.user?.user_metadata?.full_name || 'Cliente App',
+        customer_id: session?.user?.id || undefined,
         notes: '',
         cart: cart.items.map((ci) => ({
           menu_item_id: ci.menu_item.id,
@@ -97,14 +100,6 @@ export default function CartScreen({ navigation }: CartScreenProps) {
 
       {/* Actions */}
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={styles.splitButton}
-          onPress={() => navigation.navigate('SplitPayment', { orderId: '', total })}
-          accessibilityLabel="Dividir cuenta"
-          accessibilityRole="button"
-        >
-          <Text style={styles.splitButtonText}>Dividir cuenta</Text>
-        </TouchableOpacity>
 
         <TouchableOpacity
           style={[styles.confirmButton, confirming && styles.confirmButtonDisabled]}
@@ -146,14 +141,6 @@ const styles = StyleSheet.create({
   totalLabel: { fontSize: 16, fontWeight: '600', color: '#374151' },
   totalAmount: { fontSize: 22, fontWeight: '800', color: '#111827' },
   actions: { padding: 16, gap: 10, backgroundColor: '#fff' },
-  splitButton: {
-    borderWidth: 1,
-    borderColor: '#FF6B35',
-    borderRadius: 10,
-    paddingVertical: 12,
-    alignItems: 'center',
-  },
-  splitButtonText: { color: '#FF6B35', fontSize: 15, fontWeight: '600' },
   confirmButton: { backgroundColor: '#FF6B35', borderRadius: 10, paddingVertical: 14, alignItems: 'center' },
   confirmButtonDisabled: { backgroundColor: '#FF6B3580' },
   confirmButtonText: { color: '#fff', fontSize: 15, fontWeight: '700' },

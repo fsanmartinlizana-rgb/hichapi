@@ -918,7 +918,7 @@ function OrderCard({
       )}
 
       {/* Enviar a Delivery — visible para admin en pedidos activos */}
-      {onSendToDelivery && role === 'admin' && order.status !== 'entregada' && (
+      {process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' && onSendToDelivery && role === 'admin' && order.status !== 'entregada' && (
         <button
           onClick={() => onSendToDelivery(order.id, order.tableLabel, order.amount)}
           className="w-full py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5
