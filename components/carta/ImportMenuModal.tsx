@@ -130,9 +130,21 @@ export function ImportMenuModal({ restaurantId, onClose, onImported }: Props) {
         return
       }
       if (!data.items || data.items.length === 0) {
-        setError('No encontramos platos en la imagen. Intenta con una foto más nítida.')
+        // El backend distingue 2 casos vía el flag `truncated`:
+        // - truncated=true: la IA se quedó sin tokens procesando una carta
+        //   muy larga (el tool_use JSON quedó cortado a mitad y parsed.items
+        //   vino vacío). Mensaje específico para que el usuario sepa qué hacer.
+        // - truncated=false: la imagen no era legible o no había precios claros.
+        setError(data.truncated
+          ? 'Tu carta es muy larga y la IA se quedó sin espacio para procesarla. Probá subiendo menos páginas a la vez (1-2 imágenes en lugar de todas juntas).'
+          : 'No encontramos platos en la imagen. Intenta con una foto más nítida.')
         setMode('error')
         return
+      }
+      if (data.truncated) {
+        // Procesamiento parcial — log para diagnóstico, el usuario igual entra
+        // a review con lo que se pudo extraer. Puede subir el resto en otra tanda.
+        console.warn(`[ImportMenuModal] respuesta truncada — procesados ${data.items.length} platos, puede que falten más`)
       }
       setItems(data.items.map((i: ImportItem) => ({
         ...i,

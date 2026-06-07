@@ -9,6 +9,11 @@ import { requireUser } from '@/lib/supabase/auth-guard'
 // de platos detectados. No escribe en DB — el usuario puede revisar/editar y
 // luego llamar al bulk insert.
 
+// Sonnet con vision para cartas largas tarda 1-3 min. Default de Vercel (10s
+// Hobby / 60s Pro) puede no alcanzar. Forzamos 60s explícito para no depender
+// del plan.
+export const maxDuration = 60
+
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
 const BodySchema = z.object({
@@ -133,7 +138,12 @@ export async function POST(req: NextRequest) {
     // de un string como pasaba con max_tokens=3000 + carta larga).
     const response = await anthropic.messages.create({
       model:       'claude-sonnet-4-5-20250929',
-      max_tokens:  8000,            // Subir tope para cartas largas (PDFs)
+      // 16384 = máx output de Sonnet 4.5. Antes era 8000 → con cartas de 40+
+      // platos, el tool_use se truncaba a mitad de JSON y items quedaba vacío.
+      // El frontend mostraba "foto poco nítida" cuando en realidad la carta
+      // era buena pero muy larga. Diagnóstico real en JUN 06 prod (request
+      // zzxz8-1780801343949-a4aeedc1cfd7). Doblar tokens cubre cartas grandes.
+      max_tokens:  16384,
       tools:       [EXTRACT_TOOL],
       tool_choice: { type: 'tool', name: EXTRACT_TOOL.name },
       messages:    [{ role: 'user', content }],
