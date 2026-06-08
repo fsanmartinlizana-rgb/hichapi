@@ -10,8 +10,37 @@
         "simulator": true
       }
     },
-    "preview": {
+    "preview-comensal": {
       "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "comensal",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rtdryqujuywwaetzjxdo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0ZHJ5cXVqdXl3d2FldHpqeGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzQwNTQsImV4cCI6MjA5MDg1MDA1NH0.6SPpZ68jrs6SM0GfZ93nQ8He-d6sM6-zC9L4s33REfA",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hichapi.com",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_your-stripe-publishable-key",
+        "EXPO_PUBLIC_NOTIFIER_URL": "https://api.notifier.realdev.cl",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dje2bgurr",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "hichapi_riders"
+      },
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "preview-staff": {
+      "distribution": "internal",
+      "env": {
+        "APP_VARIANT": "staff",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rtdryqujuywwaetzjxdo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0ZHJ5cXVqdXl3d2FldHpqeGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzQwNTQsImV4cCI6MjA5MDg1MDA1NH0.6SPpZ68jrs6SM0GfZ93nQ8He-d6sM6-zC9L4s33REfA",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hichapi.com",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_your-stripe-publishable-key",
+        "EXPO_PUBLIC_NOTIFIER_URL": "https://api.notifier.realdev.cl",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dje2bgurr",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "hichapi_riders"
+      },
       "ios": {
         "simulator": false
       },
@@ -22,7 +51,14 @@
     "production-comensal": {
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "comensal"
+        "APP_VARIANT": "comensal",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rtdryqujuywwaetzjxdo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0ZHJ5cXVqdXl3d2FldHpqeGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzQwNTQsImV4cCI6MjA5MDg1MDA1NH0.6SPpZ68jrs6SM0GfZ93nQ8He-d6sM6-zC9L4s33REfA",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hichapi.com",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_your-stripe-publishable-key",
+        "EXPO_PUBLIC_NOTIFIER_URL": "https://api.notifier.realdev.cl",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dje2bgurr",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "hichapi_riders"
       },
       "ios": {
         "simulator": false
@@ -34,7 +70,14 @@
     "production-staff": {
       "autoIncrement": true,
       "env": {
-        "APP_VARIANT": "staff"
+        "APP_VARIANT": "staff",
+        "EXPO_PUBLIC_SUPABASE_URL": "https://rtdryqujuywwaetzjxdo.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJ0ZHJ5cXVqdXl3d2FldHpqeGRvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUyNzQwNTQsImV4cCI6MjA5MDg1MDA1NH0.6SPpZ68jrs6SM0GfZ93nQ8He-d6sM6-zC9L4s33REfA",
+        "EXPO_PUBLIC_API_BASE_URL": "https://hichapi.com",
+        "EXPO_PUBLIC_STRIPE_PUBLISHABLE_KEY": "pk_test_your-stripe-publishable-key",
+        "EXPO_PUBLIC_NOTIFIER_URL": "https://api.notifier.realdev.cl",
+        "EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME": "dje2bgurr",
+        "EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET": "hichapi_riders"
       },
       "ios": {
         "simulator": false

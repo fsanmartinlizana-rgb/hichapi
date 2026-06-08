@@ -238,6 +238,59 @@ export function welcomeEmail(opts: WelcomeEmailOpts): { subject: string; html: s
   }
 }
 
+// ── Bienvenida al comensal (App Móvil) ───────────────────────────────────────
+
+interface CustomerWelcomeEmailOpts {
+  customerName: string
+}
+
+export function customerWelcomeEmail(opts: CustomerWelcomeEmailOpts): { subject: string; html: string; text: string } {
+  const subject = `¡Bienvenido a HiChapi, ${opts.customerName}!`
+
+  const bodyHtml = `
+    <h1 style="margin:0 0 12px;font-size:22px;font-weight:700;color:#fff;">¡Hola ${escapeHtml(opts.customerName)}! 👋</h1>
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      Tu cuenta en <strong style="color:${BRAND_ORANGE};">HiChapi</strong> ha sido creada con éxito. 
+      Ya estás listo para pedir de forma rápida, ganar puntos y disfrutar de la mejor experiencia en tus restaurantes favoritos.
+    </p>
+
+    <div style="background:rgba(255,107,53,0.08);border:1px solid rgba(255,107,53,0.25);border-radius:12px;padding:16px 18px;margin-bottom:22px;">
+      <p style="margin:0 0 10px;font-size:13px;color:#fff;font-weight:600;">¿Qué puedes hacer con la app?</p>
+      <ul style="margin:0;padding-left:18px;font-size:13px;line-height:1.7;color:rgba(255,255,255,0.75);">
+        <li>Escanear códigos QR en los locales para ver el menú y hacer tu pedido.</li>
+        <li>Hacer pedidos con delivery o para retirar en el local.</li>
+        <li>Acumular puntos en tus restaurantes favoritos y canjear premios.</li>
+      </ul>
+    </div>
+
+    <p style="margin:0 0 20px;font-size:15px;line-height:1.6;color:rgba(255,255,255,0.7);">
+      Abre la aplicación para descubrir lugares nuevos y empezar a pedir.
+    </p>
+  `
+
+  const text = [
+    `¡Hola ${opts.customerName}!`,
+    ``,
+    `Tu cuenta en HiChapi ha sido creada con éxito.`,
+    ``,
+    `Con la app puedes:`,
+    `• Escanear códigos QR en los locales para pedir.`,
+    `• Pedir delivery o retiro en local.`,
+    `• Acumular puntos y ganar recompensas.`,
+    ``,
+    `¡Disfruta la experiencia!`,
+    ``,
+    `— Equipo HiChapi`,
+  ].join('\n')
+
+  return {
+    subject,
+    html: baseLayout({ title: subject, preview: `Tu cuenta en HiChapi está lista`, bodyHtml }),
+    text,
+  }
+}
+
+
 // ── Claim de restaurant: magic link al owner ─────────────────────────────────
 
 interface ClaimWelcomeEmailOpts {

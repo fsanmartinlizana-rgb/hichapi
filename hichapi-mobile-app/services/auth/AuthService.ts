@@ -78,10 +78,25 @@ class AuthService {
    * @throws Error with descriptive message on failure.
    */
   async recoverPassword(email: string): Promise<void> {
-    const { error } = await supabase.auth.resetPasswordForEmail(email);
+    const apiUrl = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+    
+    const response = await fetch(`${apiUrl}/api/auth/recover-password`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ email }),
+    });
 
-    if (error) {
-      throw new Error(`Password recovery failed: ${error.message}`);
+    if (!response.ok) {
+      let errorMessage = 'Error al enviar instrucciones';
+      try {
+        const errorData = await response.json();
+        if (errorData.error) errorMessage = errorData.error;
+      } catch (e) {
+        // Fallback to default message
+      }
+      throw new Error(`Password recovery failed: ${errorMessage}`);
     }
   }
 

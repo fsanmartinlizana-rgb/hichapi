@@ -14,7 +14,7 @@ export function useAuth() {
 
   const registerCustomer = async (displayName: string, email: string, password: string) => {
     // 1. Call API to create user & profile
-    const response = await fetch(`${process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000'}/api/auth/register-customer`, {
+    const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:3000'}/api/auth/register-customer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ display_name: displayName, email, password })
