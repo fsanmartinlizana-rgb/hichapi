@@ -123,10 +123,13 @@ export async function PATCH(req: NextRequest) {
   const { error: authErr } = await requireUser()
   if (authErr) return authErr
 
+  // child_ids es opcional: si la mesa se dividió antes de que existiera la
+  // columna split_into_ids (migration 032), el frontend no conoce los ids de
+  // las hijas. En ese caso igual reactivamos la mesa madre para desbloquearla.
   const MergeSchema = z.object({
     parent_id:     z.string().uuid(),
     restaurant_id: z.string().uuid(),
-    child_ids:     z.array(z.string().uuid()).min(1),
+    child_ids:     z.array(z.string().uuid()).default([]),
   })
 
   try {
@@ -134,30 +137,33 @@ export async function PATCH(req: NextRequest) {
 
     const supabase = createAdminClient()
 
-    // Ensure no active orders in children
-    const { data: active } = await supabase
-      .from('orders')
-      .select('id')
-      .in('table_id', body.child_ids)
-      .not('status', 'in', '("paid","cancelled")')
-      .limit(1)
+    // Solo validamos pedidos activos y eliminamos hijas si conocemos sus ids.
+    if (body.child_ids.length > 0) {
+      // Ensure no active orders in children
+      const { data: active } = await supabase
+        .from('orders')
+        .select('id')
+        .in('table_id', body.child_ids)
+        .not('status', 'in', '("paid","cancelled")')
+        .limit(1)
 
-    if (active && active.length > 0) {
-      return NextResponse.json(
-        { error: 'Una sub-mesa tiene pedidos activos. Ciérralos primero.' },
-        { status: 409 }
-      )
-    }
+      if (active && active.length > 0) {
+        return NextResponse.json(
+          { error: 'Una sub-mesa tiene pedidos activos. Ciérralos primero.' },
+          { status: 409 }
+        )
+      }
 
-    // Delete children
-    const { error: delErr } = await supabase
-      .from('tables')
-      .delete()
-      .in('id', body.child_ids)
-      .eq('restaurant_id', body.restaurant_id)
+      // Delete children
+      const { error: delErr } = await supabase
+        .from('tables')
+        .delete()
+        .in('id', body.child_ids)
+        .eq('restaurant_id', body.restaurant_id)
 
-    if (delErr) {
-      console.error('merge delete error:', delErr)
+      if (delErr) {
+        console.error('merge delete error:', delErr)
+      }
     }
 
     // Reactivate parent

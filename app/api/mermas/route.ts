@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { requireUser } from '@/lib/supabase/auth-guard'
+import { buildWasteSummary, type WasteRow } from '@/lib/mermas/summary'
 
 function getSupabaseClient() {
   return createClient(
@@ -34,38 +35,25 @@ export async function GET(req: NextRequest) {
   const to_date = searchParams.get('to_date') ?? new Date().toISOString()
 
   const supabase = getSupabaseClient()
+  // Incluimos TODAS las mermas (stock Y platos). Las devoluciones desde comandas
+  // se registran con item_type='plato' (bug 2026-06: el filtro item_type='stock'
+  // las excluía del contador aunque sí se guardaban en waste_log).
   const { data: entries, error } = await supabase
     .from('waste_log')
-    .select('id, stock_item_id, qty_lost, reason, cost_lost, logged_at, stock_items(name, unit)')
+    .select('id, stock_item_id, menu_item_id, item_type, qty_lost, reason, cost_lost, logged_at, stock_items(name, unit), menu_items(name)')
     .eq('restaurant_id', restaurant_id)
-    .eq('item_type', 'stock')
     .gte('logged_at', from_date)
     .lte('logged_at', to_date)
     .order('logged_at', { ascending: false })
 
   if (error) return NextResponse.json({ error: error.message }, { status: 400 })
 
-  // Weekly summary: group by product
-  const byProduct: Record<string, { name: string; unit: string; qty_total: number; cost_total: number }> = {}
-  let total_cost = 0
-
-  for (const e of entries ?? []) {
-    const si = Array.isArray(e.stock_items) ? e.stock_items[0] : e.stock_items
-    const name = (si as { name: string; unit: string } | null)?.name ?? 'Desconocido'
-    const unit = (si as { name: string; unit: string } | null)?.unit ?? ''
-    if (!byProduct[name]) byProduct[name] = { name, unit, qty_total: 0, cost_total: 0 }
-    byProduct[name].qty_total += e.qty_lost ?? 0
-    byProduct[name].cost_total += e.cost_lost ?? 0
-    total_cost += e.cost_lost ?? 0
-  }
+  // Resumen semanal: agrupa stock + platos (devoluciones). Ver lib/mermas/summary.
+  const summary = buildWasteSummary((entries ?? []) as WasteRow[])
 
   return NextResponse.json({
     entries: entries ?? [],
-    summary: {
-      total_products_affected: Object.keys(byProduct).length,
-      total_cost,
-      by_product: Object.values(byProduct).sort((a, b) => b.cost_total - a.cost_total),
-    },
+    summary,
   })
 }
 

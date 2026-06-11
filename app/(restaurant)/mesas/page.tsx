@@ -14,6 +14,7 @@ import { EmptyState } from '@/components/ui/EmptyState'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatEta } from '@/lib/waitlist/eta'
+import { buildWhatsappWaitlistUrl } from '@/lib/waitlist/whatsapp'
 import { QRCodeCanvas } from 'qrcode.react'
 import { createClient } from '@/lib/supabase/client'
 import { MesasFloorplan } from '@/components/restaurant/MesasFloorplan'
@@ -290,9 +291,9 @@ function MesaCard({
       <div className="absolute top-1.5 right-1.5">
         <button
           onClick={e => { e.stopPropagation(); setMenuOpen(v => !v) }}
-          className="w-5 h-5 flex items-center justify-center rounded text-white/25 hover:text-white/60 hover:bg-white/10 transition-colors"
+          className="w-7 h-7 flex items-center justify-center rounded-lg text-white/55 hover:text-white hover:bg-white/15 transition-colors"
         >
-          <MoreVertical size={11} />
+          <MoreVertical size={16} />
         </button>
         {menuOpen && (
           <>
@@ -384,9 +385,9 @@ function MesaCard({
             <button
               onClick={e => { e.stopPropagation(); onShowQr(mesa) }}
               title="Ver QR de mesa"
-              className="w-5 h-5 flex items-center justify-center rounded text-white/20 hover:text-[#FF6B35]/80 hover:bg-[#FF6B35]/10 transition-colors"
+              className="w-7 h-7 flex items-center justify-center rounded-lg text-white/50 hover:text-[#FF6B35] hover:bg-[#FF6B35]/15 transition-colors"
             >
-              <QrCode size={11} />
+              <QrCode size={16} />
             </button>
           )}
         </div>
@@ -518,7 +519,7 @@ function WaitlistCard({
             onClick={() => onNotify(entry.id)}
             className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-[#FF6B35]/15 text-[#FF6B35] text-[10px] font-semibold border border-[#FF6B35]/20 hover:bg-[#FF6B35]/25 transition-colors"
           >
-            <MessageCircle size={10} /> Notificar vía WhatsApp
+            <MessageCircle size={10} /> {entry.phone ? 'Avisar por WhatsApp' : 'Marcar como avisado'}
           </button>
           <button
             onClick={() => onCancel(entry.id)}
@@ -562,9 +563,6 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
     e.preventDefault()
     if (!name.trim() || !phone.trim()) return
     setSubmitting(true)
-
-    // Mock WhatsApp trigger
-    console.log(`[Mock WhatsApp] Sending to ${phone}: "Hola ${name}, Chapi te reservó un lugar. ¿Qué te gustaría pedir?"`)
 
     const newEntry: WaitlistEntry = {
       id: `w${Date.now()}`,
@@ -1417,9 +1415,18 @@ export default function MesasPage() {
   }
 
   function notifyEntry(id: string) {
+    const entry = waitlist.find(e => e.id === id)
     setWaitlist(prev => prev.map(e =>
       e.id === id ? { ...e, status: 'notified', notified_at: new Date().toISOString() } : e
     ))
+    // Aviso real vía deep-link de WhatsApp (wa.me). No requiere integración de
+    // API: abre WhatsApp del anfitrión con el mensaje pre-escrito hacia el
+    // cliente. Si no hay teléfono válido, solo marcamos como avisado (el
+    // anfitrión llama al cliente por su nombre en persona).
+    if (entry) {
+      const waUrl = buildWhatsappWaitlistUrl(entry.phone, entry.name, restaurant?.name ?? 'el restaurante')
+      if (waUrl) window.open(waUrl, '_blank', 'noopener,noreferrer')
+    }
   }
 
   function seatEntry(id: string) {
@@ -1508,14 +1515,19 @@ export default function MesasPage() {
   }
 
   async function mergeBack(parent: Mesa) {
-    if (!restaurant?.id || !parent.splitIntoIds?.length) return
+    if (!restaurant?.id) return
+    // child_ids puede venir vacío si la mesa se dividió antes de que existiera
+    // la columna split_into_ids (migration 032). En ese caso el endpoint igual
+    // reactiva la mesa madre para desbloquearla — el botón nunca debe quedar
+    // sin efecto. Si hay hijos conocidos, también se eliminan.
+    const childIds = parent.splitIntoIds ?? []
     const res = await fetch('/api/tables/split', {
       method:  'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body:    JSON.stringify({
         parent_id:     parent.id,
         restaurant_id: restaurant.id,
-        child_ids:     parent.splitIntoIds,
+        child_ids:     childIds,
       }),
     })
     const data = await res.json()
@@ -1523,12 +1535,14 @@ export default function MesasPage() {
       showToast(data.error ?? 'No se pudo volver a unir la mesa')
       return
     }
-    const childSet = new Set(parent.splitIntoIds)
+    const childSet = new Set(childIds)
     setMesas(prev => prev
       .filter(m => !childSet.has(m.id))
       .map(m => m.id === parent.id ? { ...m, isBlocked: false, splitIntoIds: undefined, status: 'libre' as MesaStatus } : m)
     )
-    showToast(`Mesa ${parent.label} restablecida`)
+    showToast(childIds.length > 0
+      ? `Mesa ${parent.label} restablecida`
+      : `Mesa ${parent.label} desbloqueada. Si quedaron sub-mesas sueltas, eliminálas manualmente.`)
   }
 
   // Persist mesa positions after drag in floorplan mode.
