@@ -1678,7 +1678,10 @@ function ComandasPageInner() {
           next.delete(key)
           return next
         })
-        pushToast('Error al registrar devolución. Intenta nuevamente.', 'break')
+        // Mostramos el error REAL del backend (no un genérico) para que el
+        // usuario y el equipo sepan exactamente por qué falló la merma.
+        const data = await res.json().catch(() => ({} as { error?: string }))
+        pushToast(data.error ?? 'Error al registrar devolución. Intenta nuevamente.', 'break')
         return
       }
     } catch {
