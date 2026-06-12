@@ -5,54 +5,69 @@ import {
 } from './steps'
 
 const facts = (over: Partial<OnboardingFacts> = {}): OnboardingFacts => ({
-  menuItems: 0, tables: 0, hasProfile: false, teamMembers: 1, ...over,
+  menuItems: 0, tables: 0, hasProfile: false, teamMembers: 1, stockItems: 0, ...over,
 })
 
-describe('computeOnboardingSteps', () => {
-  it('restaurante vacío → todos pendientes', () => {
-    const steps = computeOnboardingSteps(facts())
-    expect(steps.map(s => s.done)).toEqual([false, false, false, false])
-    expect(steps.map(s => s.id)).toEqual(['carta', 'mesas', 'perfil', 'equipo'])
+describe('computeOnboardingSteps — por plan (matriz 2026-06)', () => {
+  it('FREE: solo perfil + carta, en ese orden', () => {
+    const steps = computeOnboardingSteps(facts(), 'free')
+    expect(steps.map(s => s.id)).toEqual(['perfil', 'carta'])
   })
 
-  it('con carta → solo carta done', () => {
-    const steps = computeOnboardingSteps(facts({ menuItems: 5 }))
+  it('FREE: la carta lleva directo al importador', () => {
+    const carta = computeOnboardingSteps(facts(), 'free').find(s => s.id === 'carta')!
+    expect(carta.href).toBe('/carta?import=1')
+  })
+
+  it('STARTER: + mesas + equipo', () => {
+    const steps = computeOnboardingSteps(facts(), 'starter')
+    expect(steps.map(s => s.id)).toEqual(['perfil', 'carta', 'mesas', 'equipo'])
+  })
+
+  it('PRO: + stock', () => {
+    const steps = computeOnboardingSteps(facts(), 'pro')
+    expect(steps.map(s => s.id)).toEqual(['perfil', 'carta', 'mesas', 'equipo', 'stock'])
+  })
+
+  it('PILOTO: mismo onboarding que Pro (alias de nivel)', () => {
+    const piloto = computeOnboardingSteps(facts(), 'piloto').map(s => s.id)
+    const pro    = computeOnboardingSteps(facts(), 'pro').map(s => s.id)
+    expect(piloto).toEqual(pro)
+  })
+
+  it('ENTERPRISE: igual que Pro', () => {
+    const steps = computeOnboardingSteps(facts(), 'enterprise')
+    expect(steps.map(s => s.id)).toEqual(['perfil', 'carta', 'mesas', 'equipo', 'stock'])
+  })
+
+  it('plan desconocido o vacío → trata como free', () => {
+    expect(computeOnboardingSteps(facts(), 'cualquiercosa').map(s => s.id)).toEqual(['perfil', 'carta'])
+  })
+
+  it('marca done según los datos', () => {
+    const steps = computeOnboardingSteps(facts({ menuItems: 5, hasProfile: true }), 'free')
+    expect(steps.find(s => s.id === 'perfil')?.done).toBe(true)
     expect(steps.find(s => s.id === 'carta')?.done).toBe(true)
-    expect(steps.find(s => s.id === 'mesas')?.done).toBe(false)
   })
 
-  it('con mesas → mesas done', () => {
-    expect(computeOnboardingSteps(facts({ tables: 8 })).find(s => s.id === 'mesas')?.done).toBe(true)
-  })
-
-  it('perfil done solo si hasProfile', () => {
-    expect(computeOnboardingSteps(facts({ hasProfile: true })).find(s => s.id === 'perfil')?.done).toBe(true)
-  })
-
-  it('equipo done solo con MÁS de 1 miembro (el dueño solo no cuenta)', () => {
-    expect(computeOnboardingSteps(facts({ teamMembers: 1 })).find(s => s.id === 'equipo')?.done).toBe(false)
-    expect(computeOnboardingSteps(facts({ teamMembers: 2 })).find(s => s.id === 'equipo')?.done).toBe(true)
-  })
-
-  it('cada paso tiene href y cta', () => {
-    for (const s of computeOnboardingSteps(facts())) {
-      expect(s.href).toMatch(/^\//)
-      expect(s.cta.length).toBeGreaterThan(0)
-    }
+  it('equipo done solo con MÁS de 1 miembro; stock done con stockItems>0', () => {
+    const steps = computeOnboardingSteps(facts({ teamMembers: 2, stockItems: 3 }), 'pro')
+    expect(steps.find(s => s.id === 'equipo')?.done).toBe(true)
+    expect(steps.find(s => s.id === 'stock')?.done).toBe(true)
   })
 })
 
-describe('onboardingProgress', () => {
-  it('0% vacío, 100% completo, 50% mitad', () => {
-    expect(onboardingProgress(computeOnboardingSteps(facts()))).toBe(0)
-    expect(onboardingProgress(computeOnboardingSteps(facts({ menuItems: 1, tables: 1, hasProfile: true, teamMembers: 3 })))).toBe(100)
-    expect(onboardingProgress(computeOnboardingSteps(facts({ menuItems: 1, tables: 1 })))).toBe(50)
+describe('onboardingProgress / isOnboardingComplete', () => {
+  it('FREE completo con solo perfil + carta', () => {
+    const steps = computeOnboardingSteps(facts({ menuItems: 1, hasProfile: true }), 'free')
+    expect(onboardingProgress(steps)).toBe(100)
+    expect(isOnboardingComplete(steps)).toBe(true)
   })
-})
 
-describe('isOnboardingComplete', () => {
-  it('true solo cuando todo está done', () => {
-    expect(isOnboardingComplete(computeOnboardingSteps(facts()))).toBe(false)
-    expect(isOnboardingComplete(computeOnboardingSteps(facts({ menuItems: 1, tables: 1, hasProfile: true, teamMembers: 2 })))).toBe(true)
+  it('PRO a mitad de camino', () => {
+    // perfil ✓, carta ✓, mesas ✗, equipo ✗, stock ✗ → 2/5 = 40%
+    const steps = computeOnboardingSteps(facts({ menuItems: 1, hasProfile: true }), 'pro')
+    expect(onboardingProgress(steps)).toBe(40)
+    expect(isOnboardingComplete(steps)).toBe(false)
   })
 })

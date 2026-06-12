@@ -11,6 +11,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
+import { useRestaurant } from '@/lib/restaurant-context'
 import { Rocket, Check, ChevronRight, X, RefreshCw } from 'lucide-react'
 import {
   computeOnboardingSteps, onboardingProgress, isOnboardingComplete,
@@ -19,6 +20,8 @@ import {
 
 export default function OnboardingChecklist({ restaurantId }: { restaurantId: string | undefined }) {
   const supabase = useMemo(() => createClient(), [])
+  const { restaurant } = useRestaurant()
+  const plan = (restaurant?.plan as string) ?? 'free'
   const [steps, setSteps]     = useState<OnboardingStep[] | null>(null)
   const [hidden, setHidden]   = useState(false)
 
@@ -32,10 +35,11 @@ export default function OnboardingChecklist({ restaurantId }: { restaurantId: st
 
   const load = useCallback(async () => {
     if (!restaurantId) return
-    const [menuRes, tablesRes, teamRes, restRes] = await Promise.all([
+    const [menuRes, tablesRes, teamRes, stockRes, restRes] = await Promise.all([
       supabase.from('menu_items').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       supabase.from('tables').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       supabase.from('team_members').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId).eq('active', true),
+      supabase.from('stock_items').select('id', { count: 'exact', head: true }).eq('restaurant_id', restaurantId),
       supabase.from('restaurants').select('neighborhood, address').eq('id', restaurantId).maybeSingle(),
     ])
     const rest = restRes.data as { neighborhood: string | null; address: string | null } | null
@@ -44,9 +48,10 @@ export default function OnboardingChecklist({ restaurantId }: { restaurantId: st
       menuItems:   menuRes.count ?? 0,
       tables:      tablesRes.count ?? 0,
       teamMembers: teamRes.count ?? 0,
+      stockItems:  stockRes.count ?? 0,
       hasProfile,
-    }))
-  }, [restaurantId, supabase])
+    }, plan))
+  }, [restaurantId, supabase, plan])
 
   useEffect(() => { load() }, [load])
 

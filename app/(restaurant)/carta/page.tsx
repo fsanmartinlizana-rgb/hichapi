@@ -934,6 +934,19 @@ export default function CartaPage() {
   const [importing, setImporting] = useState(false)
   const [recipeItem, setRecipeItem] = useState<MenuItem | null>(null)
 
+  // Deep-link al importador: /carta?import=1 abre el modal directo (lo usa el
+  // onboarding para que cargar la carta sea 1 click). Leemos window.location
+  // en un efecto para no requerir el Suspense boundary de useSearchParams.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('import') === '1') {
+      setImporting(true)
+      // Limpiar el query param para que un refresh no reabra el modal
+      window.history.replaceState({}, '', window.location.pathname)
+    }
+  }, [])
+
   // ── Load stock items (for ingredient association + cálculo de margen) ───
   useEffect(() => {
     if (!restId) return
