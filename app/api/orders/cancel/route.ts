@@ -2,13 +2,19 @@ import { createAdminClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/auth-guard'
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { buildOrderItemWasteRow } from '@/lib/mermas/order-waste'
+import type { MenuCandidate, StockCandidate } from '@/lib/mermas/resolve'
 
 // ── POST /api/orders/cancel ───────────────────────────────────────────────────
 // Cancel an order with a reason. Frees the table if no other active orders
-// exist for it. If reason is 'merma' or 'perdida', logs waste against each
-// ingredient/stock_item so inventory stays consistent — but avoids double-
-// counting when stock was already deducted by deduct_order_stock (status was
-// confirmed/preparing/ready/paying).
+// exist for it.
+//
+// Regla de merma (2026-06): si el pedido YA estaba preparado (stock descontado:
+// confirmed/preparing/ready/paying) y se cancela, la comida se desechó → cada
+// plato queda en mermas como item_type='plato' (con already_deducted=true para
+// no re-descontar stock). También se registra si el motivo es merma/perdida
+// aunque no estuviera preparado. Antes solo se logueaba contra stock_item_id,
+// y los platos sin receta no entraban (violaban el CHECK waste_log_item_presence).
 
 const BodySchema = z.object({
   order_id: z.string().uuid(),
@@ -18,6 +24,13 @@ const BodySchema = z.object({
 
 // Statuses at which `deduct_order_stock` has already run
 const STOCK_DEDUCTED_STATUSES = new Set(['confirmed', 'preparing', 'ready', 'paying'])
+
+// Mapea el motivo de cancelación a un reason válido de waste_log.
+function wasteReasonFor(reason: string): string {
+  if (reason === 'merma' || reason === 'perdida') return reason
+  if (reason === 'error_cocina') return 'error_prep'
+  return 'merma' // cliente_cancelo / otro sobre pedido preparado = desecho
+}
 
 export async function POST(req: NextRequest) {
   const { user, error: authErr } = await requireUser()
@@ -64,69 +77,45 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'No se pudo cancelar el pedido' }, { status: 500 })
     }
 
-    // 3. If cancellation is merma/perdida, log waste.
-    //    If stock was already deducted (order was past "new"), we mark
-    //    `already_deducted=true` so the trigger does NOT double-deduct.
+    // 3. Registrar merma: si el pedido ya estaba preparado (desecho real) o si
+    //    el motivo es merma/perdida. Cada ítem se loguea como plato (o insumo)
+    //    vía el resolver compartido, garantizando que satisface el CHECK y que
+    //    aparece en /mermas. already_deducted=true cuando el stock ya se descontó
+    //    al preparar (no re-descuenta).
     let mermaCount = 0
-    if (reason === 'merma' || reason === 'perdida') {
+    const shouldLogMerma = stockWasAlreadyDeducted || reason === 'merma' || reason === 'perdida'
+    if (shouldLogMerma) {
       type Item = { name: string; quantity: number; unit_price: number; menu_item_id: string | null }
       const items = (order.order_items ?? []) as Item[]
 
-      // Pre-fetch all menu_items with ingredients to avoid N+1
-      const menuIds = items.map(i => i.menu_item_id).filter(Boolean) as string[]
-      let menuMap: Record<string, Array<{ stock_item_id: string; qty: number }>> = {}
-      if (menuIds.length > 0) {
-        const { data: mis } = await supabase
-          .from('menu_items')
-          .select('id, ingredients')
-          .in('id', menuIds)
-        for (const mi of mis ?? []) {
-          if (Array.isArray((mi as { ingredients?: unknown }).ingredients)) {
-            menuMap[(mi as { id: string }).id] =
-              (mi as { ingredients: Array<{ stock_item_id: string; qty: number }> }).ingredients
-          }
-        }
-      }
+      // Traemos carta + inventario una vez para resolver los ítems.
+      const [menuRes, stockRes] = await Promise.all([
+        supabase.from('menu_items').select('id, name, cost_price').eq('restaurant_id', order.restaurant_id),
+        supabase.from('stock_items').select('id, name, cost_per_unit').eq('restaurant_id', order.restaurant_id),
+      ])
+      const menu  = (menuRes.data  ?? []) as MenuCandidate[]
+      const stock = (stockRes.data ?? []) as StockCandidate[]
+      const wReason = wasteReasonFor(reason)
 
       for (const item of items) {
-        const ings = item.menu_item_id ? menuMap[item.menu_item_id] : null
-
-        if (ings && ings.length > 0) {
-          // Log waste per ingredient (accurate inventory accounting)
-          for (const ing of ings) {
-            const lossQty = ing.qty * item.quantity
-            if (lossQty <= 0 || !ing.stock_item_id) continue
-            const { error: wErr } = await supabase.from('waste_log').insert({
-              restaurant_id: order.restaurant_id,
-              stock_item_id: ing.stock_item_id,
-              qty_lost:      lossQty,
-              reason:        reason === 'merma' ? 'merma' : 'perdida',
-              notes:         `Cancelación de pedido: ${item.name}${notes ? ` - ${notes}` : ''}`,
-              already_deducted: stockWasAlreadyDeducted,
-            })
-            if (!wErr) mermaCount++
-          }
-        } else {
-          // Fallback: match stock_item by dish name (legacy items without ingredients)
-          const { data: stockItem } = await supabase
-            .from('stock_items')
-            .select('id, cost_per_unit')
-            .eq('restaurant_id', order.restaurant_id)
-            .ilike('name', item.name)
-            .maybeSingle()
-
-          const cost = stockItem?.cost_per_unit ?? item.unit_price
-          const { error: wErr } = await supabase.from('waste_log').insert({
-            restaurant_id: order.restaurant_id,
-            stock_item_id: stockItem?.id ?? null,
-            qty_lost:      item.quantity,
-            reason:        reason === 'merma' ? 'merma' : 'perdida',
-            notes:         `Cancelación de pedido: ${item.name}${notes ? ` - ${notes}` : ''}`,
-            cost_lost:     Math.round(cost * item.quantity),
+        const row = buildOrderItemWasteRow(
+          { name: item.name, menu_item_id: item.menu_item_id, quantity: item.quantity, unit_price: item.unit_price },
+          menu, stock,
+          {
+            restaurant_id:    order.restaurant_id,
+            reason:           wReason,
             already_deducted: stockWasAlreadyDeducted,
-          })
-          if (!wErr) mermaCount++
+            logged_by:        user.id,
+            note:             `Cancelación de pedido: ${item.name}${notes ? ` - ${notes}` : ''}`,
+          },
+        )
+        if (!row) {
+          console.warn(`[orders/cancel] ítem sin resolver para merma: "${item.name}" (restaurant ${order.restaurant_id})`)
+          continue
         }
+        const { error: wErr } = await supabase.from('waste_log').insert(row)
+        if (wErr) console.error('[orders/cancel] waste_log insert error:', wErr.code, wErr.message)
+        else mermaCount++
       }
     }
 

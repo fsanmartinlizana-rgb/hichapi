@@ -298,6 +298,8 @@ export function MesaDetailPanel({
   onPrintRequest,
 }: MesaDetailPanelProps) {
   const [busyItemId, setBusyItemId]   = useState<string | null>(null)
+  // Confirmación al quitar un producto: ¿se desechó (merma) o solo se quita?
+  const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string } | null>(null)
   const [showAddProducts, setShowAddProducts] = useState(false)
   const [pendingLines, setPendingLines]       = useState<OrderLine[]>([])
   const [savingAdd, setSavingAdd]             = useState(false)
@@ -326,13 +328,14 @@ export function MesaDetailPanel({
     }
   }, [restaurantId, onRefresh])
 
-  const handleDeleteItem = useCallback(async (itemId: string) => {
+  const performDelete = useCallback(async (itemId: string, logMerma: boolean) => {
     setBusyItemId(itemId)
+    setDeleteConfirm(null)
     try {
       await fetch('/api/orders/items', {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ restaurant_id: restaurantId, order_item_id: itemId, quantity: 0 }),
+        body: JSON.stringify({ restaurant_id: restaurantId, order_item_id: itemId, quantity: 0, log_merma: logMerma }),
       })
       onRefresh()
     } finally {
@@ -508,7 +511,7 @@ export function MesaDetailPanel({
                 key={item.id}
                 item={item}
                 onChangeQty={qty => handleChangeQty(item.id, qty)}
-                onDelete={() => handleDeleteItem(item.id)}
+                onDelete={() => setDeleteConfirm({ id: item.id, name: item.name })}
                 busy={busyItemId === item.id}
               />
             ) : (
@@ -620,6 +623,47 @@ export function MesaDetailPanel({
           onConfirm={handleConfirmAdd}
           onClose={handleCloseModal}
         />
+      )}
+
+      {/* Confirmación al quitar producto: ¿se desechó (merma) o solo se quita? */}
+      {deleteConfirm && createPortal(
+        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
+          <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-5">
+            <div className="flex items-start gap-3 mb-4">
+              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-red-400 shrink-0">
+                <Trash2 size={16} />
+              </div>
+              <div>
+                <h3 className="text-white font-bold text-base">Quitar {deleteConfirm.name}</h3>
+                <p className="text-white/40 text-xs mt-0.5">
+                  ¿El producto ya estaba preparado y se desechó? Si es así lo registramos en mermas.
+                </p>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <button
+                onClick={() => performDelete(deleteConfirm.id, true)}
+                className="w-full py-2.5 rounded-xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-sm font-semibold hover:bg-amber-500/25 transition-colors flex items-center justify-center gap-2"
+              >
+                <Trash2 size={14} /> Sí, se desechó → enviar a merma
+              </button>
+              <button
+                onClick={() => performDelete(deleteConfirm.id, false)}
+                className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-sm font-semibold hover:bg-white/10 transition-colors"
+              >
+                No, solo quitarlo
+              </button>
+              <button
+                onClick={() => setDeleteConfirm(null)}
+                className="w-full py-2 rounded-xl text-white/40 text-xs hover:text-white/70 transition-colors"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>,
+        document.body,
       )}
     </>
   )

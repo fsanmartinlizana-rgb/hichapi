@@ -2,17 +2,24 @@ import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireRestaurantRole } from '@/lib/supabase/auth-guard'
+import { buildOrderItemWasteRow } from '@/lib/mermas/order-waste'
+import type { MenuCandidate, StockCandidate } from '@/lib/mermas/resolve'
 
 // ── PATCH /api/orders/items ───────────────────────────────────────────────────
 // Actualiza la cantidad de un ítem de una comanda.
 // Si qty llega a 0, elimina el ítem (equivalente a DELETE).
+// Si log_merma=true, registra el ítem como merma (plato desechado) antes de
+// quitarlo — útil cuando el producto ya estaba preparado y se descarta.
 // Recalcula el total de la orden padre.
 
 const PatchSchema = z.object({
   restaurant_id:  z.string().uuid(),
   order_item_id:  z.string().uuid(),
   quantity:       z.number().int().min(0),
+  log_merma:      z.boolean().optional(),  // registrar como merma al quitar
 })
+
+const STOCK_DEDUCTED_STATUSES = new Set(['confirmed', 'preparing', 'ready', 'paying'])
 
 export async function PATCH(req: NextRequest) {
   let body: z.infer<typeof PatchSchema>
@@ -35,19 +42,19 @@ export async function PATCH(req: NextRequest) {
   // Verificar que el ítem pertenece a una orden de este restaurant
   const { data: item, error: itemErr } = await supabase
     .from('order_items')
-    .select('id, order_id, unit_price, quantity')
+    .select('id, order_id, unit_price, quantity, name, menu_item_id')
     .eq('id', body.order_item_id)
     .maybeSingle()
 
   if (itemErr || !item) {
     return NextResponse.json({ error: 'Ítem no encontrado' }, { status: 404 })
   }
-  const it = item as { id: string; order_id: string; unit_price: number; quantity: number }
+  const it = item as { id: string; order_id: string; unit_price: number; quantity: number; name: string; menu_item_id: string | null }
 
   // Verificar que la orden pertenece al restaurant
   const { data: order, error: orderErr } = await supabase
     .from('orders')
-    .select('id, total, restaurant_id')
+    .select('id, total, restaurant_id, status')
     .eq('id', it.order_id)
     .eq('restaurant_id', body.restaurant_id)
     .maybeSingle()
@@ -55,9 +62,31 @@ export async function PATCH(req: NextRequest) {
   if (orderErr || !order) {
     return NextResponse.json({ error: 'Orden no encontrada en este restaurant' }, { status: 404 })
   }
-  const ord = order as { id: string; total: number; restaurant_id: string }
+  const ord = order as { id: string; total: number; restaurant_id: string; status: string }
 
   if (body.quantity === 0) {
+    // Registrar merma si se pidió (producto desechado). Se hace ANTES de borrar
+    // el ítem. already_deducted=true si el pedido ya estaba preparado.
+    if (body.log_merma) {
+      const alreadyDeducted = STOCK_DEDUCTED_STATUSES.has(ord.status)
+      const [menuRes, stockRes] = await Promise.all([
+        supabase.from('menu_items').select('id, name, cost_price').eq('restaurant_id', ord.restaurant_id),
+        supabase.from('stock_items').select('id, name, cost_per_unit').eq('restaurant_id', ord.restaurant_id),
+      ])
+      const row = buildOrderItemWasteRow(
+        { name: it.name, menu_item_id: it.menu_item_id, quantity: it.quantity, unit_price: it.unit_price },
+        (menuRes.data ?? []) as MenuCandidate[],
+        (stockRes.data ?? []) as StockCandidate[],
+        { restaurant_id: ord.restaurant_id, reason: 'merma', already_deducted: alreadyDeducted, logged_by: null, note: `Producto retirado de comanda: ${it.name}` },
+      )
+      if (row) {
+        const { error: wErr } = await supabase.from('waste_log').insert(row)
+        if (wErr) console.error('[orders/items] waste_log insert error:', wErr.code, wErr.message)
+      } else {
+        console.warn(`[orders/items] no se pudo resolver "${it.name}" para merma`)
+      }
+    }
+
     // Eliminar el ítem
     const { error: delErr } = await supabase
       .from('order_items')
