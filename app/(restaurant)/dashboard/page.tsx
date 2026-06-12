@@ -10,6 +10,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useRestaurant } from '@/lib/restaurant-context'
 import { formatCurrency, formatCompactCurrency } from '@/lib/i18n'
 import TrialBanner from '@/components/restaurant/TrialBanner'
+import OnboardingChecklist from '@/components/restaurant/OnboardingChecklist'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -348,6 +349,9 @@ export default function DashboardPage() {
 
       {/* Trial banner — solo aparece si el restaurant esta en trial activo */}
       <TrialBanner />
+
+      {/* Primeros pasos — onboarding guiado, se oculta solo al completarse */}
+      <OnboardingChecklist restaurantId={restId} />
 
       {/* Header */}
       <div className="flex items-start justify-between">
