@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/server'
+import { PLAN_COMMISSION_RATE } from '@/lib/plans'
 
 export async function GET(req: Request) {
   // Asegurar que solo pueda ser llamado por Vercel Cron
@@ -63,16 +64,18 @@ export async function GET(req: Request) {
 
     const salesTotal = (orders || []).reduce((acc: number, o: any) => acc + (o.total || 0), 0)
     
-    // Config de precios base 
+    // Config de precios base
     const PLAN_PRICES: Record<string, number> = {
+      piloto: 0,        // Plan Piloto: $0 fijo, monetiza solo por comisión 2%
       starter: 0,
       pro: 59990,
       enterprise: 120000
     }
     const planBasePrice = PLAN_PRICES[restaurant.plan || 'pro'] || 59990
 
-    // Comisión del 1%
-    const salesCommission = Math.round(salesTotal * 0.01)
+    // Comisión por transacción según plan: 1% todos, 2% Piloto (ver lib/plans).
+    const commissionRate = PLAN_COMMISSION_RATE[restaurant.plan ?? ''] ?? 0.01
+    const salesCommission = Math.round(salesTotal * commissionRate)
     const totalAmount = planBasePrice + salesCommission
 
     // 1. Bloquear restaurante (past_due)

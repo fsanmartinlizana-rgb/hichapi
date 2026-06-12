@@ -216,9 +216,28 @@ const PLANS = [
       'Apareces en busquedas de Chapi',
       'Configuracion del restaurante',
     ],
+    note: '+ 1% por transacción',
     cta: 'Crear cuenta gratis',
     href: '/register?plan=free',
     highlighted: false,
+  },
+  {
+    name: 'Plan Piloto',
+    badge: 'Lanzamiento · cupos limitados',
+    price: '$0',
+    period: 'sin costo fijo',
+    description: 'Todo el nivel Pro sin pagar mensualidad. Solo comision 2%.',
+    features: [
+      'Todo lo del plan Pro',
+      'Sin costo mensual',
+      'Stock, mermas e inteligencia incluidos',
+      'Fidelizacion y dashboards configurables',
+      'Cupos limitados de lanzamiento',
+    ],
+    note: '+ 2% por transacción',
+    cta: 'Postular al Piloto',
+    href: '/register?plan=piloto',
+    highlighted: true,
   },
   {
     name: 'Starter',
@@ -228,13 +247,13 @@ const PLANS = [
     description: 'Digitaliza el salon: mesas, comandas, caja y turnos.',
     features: [
       'Todo lo de Free',
-      'Mesas + QR por mesa',
+      'Mesas + QR por mesa (Garzon 24/7)',
       'Comandas (cocina + garzon en vivo)',
       'Caja con cierre de turno',
       'Lista de espera digital',
       'Turnos del personal',
-      'Emision de Boletas/Facturas Electronicas',
-      'Modulo Delivery propio',
+      'Reservas y Promociones',
+      'Emision de Boletas/Facturas (DTE)',
     ],
     note: '+ 1% por transacción',
     cta: 'Empezar gratis 30 dias',
@@ -243,40 +262,39 @@ const PLANS = [
   },
   {
     name: 'Pro',
-    badge: 'Mas popular',
+    badge: 'Mas completo',
     price: '$59.990',
     period: '/ mes',
     description: 'Inteligencia operativa: stock, reportes IA y fidelizacion.',
     features: [
       'Todo lo de Starter',
       'Stock + control de mermas',
-      'Analytics unificado con IA',
+      'Seccion de inteligencia (Analytics + Chapi Insights)',
+      'Comensales (CRM de tus clientes)',
+      'Fidelizacion',
       'Dashboards configurables',
-      'Fidelizacion y promociones',
-      'Chapi Insights con datos reales',
     ],
     note: '+ 1% por transacción',
     cta: 'Empezar gratis 30 dias',
     href: '/register?plan=pro',
-    highlighted: true,
+    highlighted: false,
   },
   {
     name: 'Enterprise',
     badge: 'Multi-local',
-    price: '$129.990',
-    period: '/ 2 locales / mes',
-    description: 'Para holdings con 2+ locales. Cada local adicional $29.990.',
+    price: '$79.990',
+    period: '/ mes',
+    description: 'Para holdings: multi-local, API publica y soporte dedicado.',
     features: [
       'Todo lo de Pro',
-      'Dashboard consolidado de todos los locales',
+      'Geofencing',
       'Transferencia de stock entre locales',
-      'Importacion de carta por IA sin tope',
       'API publica con keys y scopes',
-      'Geofencing y check-in automatico',
       'Agente IA de soporte 24/7',
-      'Comision escalonada segun volumen del holding',
+      'Dashboard consolidado multi-local',
+      '+$29.990 por cada local adicional',
     ],
-    note: '+ $29.990 por cada local adicional',
+    note: '+ 1% por transacción · +$29.990 por local adicional',
     cta: 'Contactar ventas',
     href: '/contacto?plan=enterprise',
     highlighted: false,
@@ -286,7 +304,7 @@ const PLANS = [
 const FAQ_ITEMS = [
   {
     question: 'Que es el 1% de comision?',
-    answer: 'Es 1% por cada transaccion registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital. Aplica a planes Starter y Pro. Enterprise no tiene comision. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
+    answer: 'Es 1% por cada transaccion registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital. Aplica a todos los planes. La excepcion es el Plan Piloto: no tiene costo fijo mensual y su comision es 2%. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
   },
   {
     question: 'Puedo cancelar cuando quiera?',
@@ -754,7 +772,7 @@ function PricingSection() {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5 lg:gap-6 max-w-7xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-5 lg:gap-6 max-w-[88rem] mx-auto">
           {PLANS.map(plan => (
             <PricingCard key={plan.name} {...plan} />
           ))}

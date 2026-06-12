@@ -110,7 +110,8 @@ const ALL_NAV: NavSection[] = [
 // Rutas no listadas abajo son accesibles con el plan base ('free' o todos).
 
 const NAV_PLAN_REQUIRED: Record<string, string> = {
-  // Operación del salón → starter (módulo tables)
+  // Operación del salón → starter. Free solo ve: Dashboard, Carta digital,
+  // Mi restaurante y Módulos y Plan (matriz 2026-06 definida por el founder).
   '/mesas':     'starter',
   '/comandas':  'starter',
   '/garzon':    'starter',
@@ -120,15 +121,21 @@ const NAV_PLAN_REQUIRED: Record<string, string> = {
   '/mis-turnos': 'starter',
   '/reservas':  'starter',
   '/delivery':  'starter',
+  '/promociones': 'starter',   // movido desde Pro (matriz 2026-06)
+  '/dte':       'starter',
+  '/equipo':    'starter',
+  '/impresoras': 'starter',
+  '/tono':      'starter',     // tono de Chapi en mesa = parte del QR Garzón 24/7
 
-  // Inteligencia operativa → pro+
+  // Inteligencia operativa → pro+ (Piloto accede: alias de nivel pro)
   '/stock':        'pro',
   '/mermas':       'pro',
   '/reporte':      'pro',
   '/analytics':    'pro',
   '/insights':     'pro',
   '/fidelizacion': 'pro',
-  '/promociones':  'pro',
+  '/clientes':     'pro',      // Comensales (CRM) — sección inteligencia
+  '/configuracion/comensales': 'pro',
 
   // Locales (single o multi) → starter+
   // Enterprise desbloquea AGREGAR locales; planes inferiores solo ven/editan
@@ -142,9 +149,8 @@ const NAV_PLAN_REQUIRED: Record<string, string> = {
   '/configuracion/api-keys':   'enterprise',
   '/configuracion/geofencing': 'enterprise',
 
-  // Nota: /carta, /restaurante, /modulos, /equipo, /dashboard, /perfil-publico
-  // quedan abiertos a todos los planes (incluye free) porque son la presencia
-  // digital base.
+  // Nota: /carta, /restaurante, /modulos, /dashboard quedan abiertos a todos
+  // los planes (incluye free): presencia digital base + home + upgrade.
 }
 
 // PLAN_LABEL removido: los módulos bloqueados ya no se renderizan en el sidebar,

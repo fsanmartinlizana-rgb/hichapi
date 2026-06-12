@@ -30,6 +30,23 @@ export interface PlanInfo {
 export const PLAN_HIERARCHY = ['free', 'starter', 'pro', 'enterprise'] as const
 export type PlanId = typeof PLAN_HIERARCHY[number]
 
+// Piloto es un plan especial de lanzamiento: cuesta $0 pero da acceso de nivel
+// Pro. No está en PLAN_HIERARCHY (no es un escalón de upgrade); su nivel de
+// acceso se resuelve como 'pro' vía PLAN_LEVEL_ALIAS.
+export const PLAN_LEVEL_ALIAS: Record<string, PlanId> = {
+  piloto: 'pro',
+}
+
+// Comisión por transacción registrada en la plataforma (decimal).
+// Todos los planes 1%, excepto Piloto que es 2% (contraparte del $0).
+export const PLAN_COMMISSION_RATE: Record<string, number> = {
+  free:       0.01,
+  piloto:     0.02,
+  starter:    0.01,
+  pro:        0.01,
+  enterprise: 0.01,
+}
+
 // Módulos base disponibles en TODOS los planes (incluso free):
 // página pública, carta digital, perfil, configuración básica.
 const BASE_MODULES = ['public_page', 'menu_digital', 'public_profile', 'config_basic']
@@ -41,17 +58,23 @@ const STARTER_MODULES = [
   'cash_register',   // Caja
   'waitlist',        // Lista de espera
   'staff_schedule',  // Turnos
+  'reservations',    // Reservas
+  'promotions',      // Promociones (movido desde Pro)
   'dte',             // Boletas y facturas
-  'delivery',        // Delivery propio
+  // 'delivery' removido de la lista visible (2026-06): el módulo existe pero
+  // queda oculto en software + landing + discovery hasta cerrarse al 100%.
+  // El nav ya lo esconde vía NEXT_PUBLIC_ENABLE_DELIVERY.
 ]
 
 // Pro agrega inteligencia operativa
 const PRO_MODULES = [
   'inventory',       // Stock + Mermas
-  'loyalty',         // Fidelización y promos
+  'loyalty',         // Fidelización
+  'customers',       // Comensales (CRM de clientes) — en la sección inteligencia
   'analytics',       // Analytics + Reporte IA unificado
   // 'daily_reports' queda como alias histórico; nueva key canonical = 'analytics'
   'daily_reports',
+  'configurable_dashboard', // Dashboards configurables
   'menu_import_ai',  // Importación de carta por foto/PDF (con tope mensual)
 ]
 
@@ -71,6 +94,7 @@ const ENTERPRISE_MODULES = [
 // Lectura desde código: lookup por plan → MENU_IMPORT_AI_LIMIT[plan]
 export const MENU_IMPORT_AI_LIMIT: Record<string, number> = {
   free:       0,
+  piloto:     200,  // nivel Pro
   starter:    40,
   pro:        200,
   enterprise: Infinity,
@@ -93,6 +117,23 @@ export const PLANS: Record<string, PlanInfo> = {
     ],
     modules: [...BASE_MODULES],
   },
+  piloto: {
+    id: 'piloto',
+    name: 'Plan Piloto',
+    price: 0,
+    priceLabel: '$0',
+    transactionFeeLabel: '+ 2% por transacción registrada en la plataforma',
+    description: 'Plan de lanzamiento: todo el nivel Pro sin costo fijo. Cupos limitados.',
+    highlighted: true,
+    cta: 'Postular al Piloto',
+    features: [
+      'Todo lo del plan Pro',
+      'Sin costo mensual',
+      'Comisión 2% por transacción registrada',
+      'Cupos limitados de lanzamiento',
+    ],
+    modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES],
+  },
   starter: {
     id: 'starter',
     name: 'Starter',
@@ -103,13 +144,14 @@ export const PLANS: Record<string, PlanInfo> = {
     cta: 'Activar Starter',
     features: [
       'Todo lo de Gratis',
-      'Mesas + código QR por mesa',
+      'Mesas + código QR por mesa (Garzón 24/7)',
       'Comandas (cocina + garzón en tiempo real)',
       'Caja (abrir/cerrar + reporte de turno)',
       'Lista de espera digital',
       'Turnos del personal',
-      'Emisión de Boletas/Facturas Electrónicas',
-      'Módulo Delivery propio',
+      'Reservas',
+      'Promociones',
+      'Emisión de Boletas/Facturas Electrónicas (DTE)',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES],
   },
@@ -120,37 +162,37 @@ export const PLANS: Record<string, PlanInfo> = {
     priceLabel: '$59.990',
     transactionFeeLabel: '+ 1% por transacción registrada en la plataforma',
     description: 'Inteligencia operativa: stock, reportes IA y fidelización.',
-    highlighted: true,
     cta: 'Activar Pro',
     features: [
       'Todo lo de Starter',
       'Stock + control de mermas',
-      'Analytics unificado (reporte del día + métricas con IA)',
+      'Sección de inteligencia (Analytics + Chapi Insights)',
+      'Comensales (CRM de tus clientes)',
+      'Fidelización',
       'Dashboards configurables',
-      'Fidelización y promociones',
-      'Chapi Insights con datos reales',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES],
   },
   enterprise: {
     id: 'enterprise',
     name: 'Enterprise',
-    // Precio "desde" — el real depende del tramo (ver ENTERPRISE_TIERS).
-    price: 29990,
-    priceLabel: 'Desde $29.990',
-    transactionFeeLabel: 'Comisión escalonada según volumen del holding',
-    description: 'Multi-local con precio que baja según cantidad de locales. Negociado.',
+    // Precio de lista: $79.990 (incluye 1 local) + $29.990 por local adicional.
+    // El modelo escalonado interno (ENTERPRISE_TIERS) sigue vigente para
+    // negociación de holdings grandes — no se muestra en la landing.
+    price: 79990,
+    priceLabel: '$79.990',
+    transactionFeeLabel: '+ 1% por transacción · +$29.990 por local adicional',
+    description: 'Para holdings: multi-local, API pública y soporte dedicado.',
     cta: 'Contactar ventas',
     features: [
       'Todo lo de Pro',
-      'Multi-local sin límite — precio por local que baja con escala',
-      'Dashboard consolidado de todos los locales',
+      'Geofencing',
       'Transferencia de stock entre locales',
-      'Importación de carta por IA sin tope',
       'API pública con keys y scopes',
-      'Geofencing y check-in automático',
       'Agente IA de soporte 24/7',
-      'Comisión escalonada (1% / 0.7% / 0.5%) según volumen',
+      'Dashboard consolidado multi-local',
+      'Importación de carta por IA sin tope',
+      '+$29.990 por cada local adicional',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES, ...ENTERPRISE_MODULES],
   },
@@ -258,7 +300,9 @@ export function computeEnterpriseCommission(monthlyDigitalCLP: number): number {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 export function getPlanLevel(planId: string): number {
-  const idx = PLAN_HIERARCHY.indexOf(planId as PlanId)
+  // Piloto y otros alias resuelven a su nivel de acceso real (piloto → pro).
+  const resolved = PLAN_LEVEL_ALIAS[planId] ?? planId
+  const idx = PLAN_HIERARCHY.indexOf(resolved as PlanId)
   return idx >= 0 ? idx : 0
 }
 

@@ -14,7 +14,7 @@ import { resolveAppUrl } from '@/lib/app-url'
 //      cargue el restaurante automáticamente al hacer login.
 // ─────────────────────────────────────────────────────────────────────────────
 
-const PlanSchema = z.enum(['free', 'starter', 'pro', 'enterprise'])
+const PlanSchema = z.enum(['free', 'piloto', 'starter', 'pro', 'enterprise'])
 type PlanId = z.infer<typeof PlanSchema>
 
 const BodySchema = z.object({
@@ -82,12 +82,15 @@ export async function POST(req: NextRequest) {
 
     // Determinar plan inicial:
     // - free       → free (sin trial)
+    // - piloto     → piloto (sin trial: es $0 permanente con comisión 2%)
     // - starter    → starter (con trial 30 dias)
     // - pro        → pro (con trial 30 dias)
     // - enterprise → free (requiere contacto manual; igual marcamos interés)
     const requestedPlan: PlanId = body.plan
     const plan: PlanId =
-      requestedPlan === 'starter' || requestedPlan === 'pro' ? requestedPlan : 'free'
+      requestedPlan === 'starter' || requestedPlan === 'pro' || requestedPlan === 'piloto'
+        ? requestedPlan
+        : 'free'
     const isOnTrial = plan === 'starter' || plan === 'pro'
 
     // feature_flags guarda metadata del trial e intent original.

@@ -8,7 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 
 // ── Plan que se va a activar tras el registro ────────────────────────────────
 
-type PlanId = 'free' | 'starter' | 'pro' | 'enterprise'
+type PlanId = 'free' | 'piloto' | 'starter' | 'pro' | 'enterprise'
 
 const PLAN_INFO: Record<PlanId, {
   name: string
@@ -21,6 +21,12 @@ const PLAN_INFO: Record<PlanId, {
     trial: false,
     description: 'Tu presencia digital sin costo.',
     bullets: ['Página pública', 'Carta digital', 'Apareces en Chapi'],
+  },
+  piloto: {
+    name: 'Plan Piloto',
+    trial: false,
+    description: 'Lanzamiento: nivel Pro sin costo fijo, comisión 2% por transacción.',
+    bullets: ['Todo lo del plan Pro', 'Sin costo mensual', 'Comisión 2% por transacción'],
   },
   starter: {
     name: 'Starter',
@@ -37,13 +43,13 @@ const PLAN_INFO: Record<PlanId, {
   enterprise: {
     name: 'Enterprise',
     trial: false,
-    description: 'Para holdings con 2+ locales. Precio por local baja con la escala.',
-    bullets: ['Dashboard consolidado', 'Transferencia de stock', 'Comisión desde 1% hasta 0.5%'],
+    description: '$79.990 incluye 1 local · +$29.990 por local adicional.',
+    bullets: ['Todo lo de Pro', 'API pública + Geofencing', 'Soporte 24/7 con agente IA'],
   },
 }
 
 function isPlanId(v: string | null): v is PlanId {
-  return v === 'free' || v === 'starter' || v === 'pro' || v === 'enterprise'
+  return v === 'free' || v === 'piloto' || v === 'starter' || v === 'pro' || v === 'enterprise'
 }
 
 // ── Rate limiting (client-side guard) ─────────────────────────────────────────
