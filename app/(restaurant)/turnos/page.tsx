@@ -124,6 +124,8 @@ export default function TurnosPage() {
   const [loading,    setLoading]    = useState(true)
   const [showForm,   setShowForm]   = useState(false)
   const [showPresets, setShowPresets] = useState(false)
+  // Planificador de día (se abre al tocar un día en la vista de mes)
+  const [plannerDate, setPlannerDate] = useState<string | null>(null)
 
   // Form state
   const [form, setForm] = useState({
@@ -267,6 +269,24 @@ export default function TurnosPage() {
       status:        'scheduled',
     })
     setAssigning(null)
+    if (!error) await load()
+  }
+
+  // Asignar un turno a una fecha específica (usado por el planificador de mes).
+  async function assignToDate(staffId: string, dateStr: string, preset: typeof PRESET_SHIFTS[number]) {
+    if (!restId) return
+    const r = preset.ranges[0]
+    const { error } = await supabase.from('shifts').insert({
+      restaurant_id: restId,
+      staff_id:      staffId,
+      shift_date:    dateStr,
+      start_time:    r.start,
+      end_time:      r.end,
+      notes:         preset.ranges.length > 1
+        ? `${preset.name}: ${preset.ranges.map(rr => `${rr.start}-${rr.end}`).join(', ')}`
+        : preset.name,
+      status:        'scheduled',
+    })
     if (!error) await load()
   }
 
@@ -597,25 +617,37 @@ export default function TurnosPage() {
               const dayShifts = shifts.filter(s => s.shift_date === dateStr)
               return (
                 <div key={dateStr}
-                  onClick={() => { setAnchor(new Date(date)); setViewMode('day') }}
-                  className={`rounded-xl border p-2 min-h-[70px] cursor-pointer transition-colors hover:bg-white/5
+                  onClick={() => setPlannerDate(dateStr)}
+                  title="Planificar este día"
+                  className={`rounded-xl border p-2 min-h-[78px] cursor-pointer transition-colors hover:bg-white/8 hover:border-[#FF6B35]/30
                     ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-white/5 bg-white/2'}
-                    ${!isCurrentMonth ? 'opacity-30' : ''}`}>
-                  <p className={`text-xs font-bold ${isToday ? 'text-[#FF6B35]' : 'text-white/60'}`}>
-                    {date.getDate()}
-                  </p>
+                    ${!isCurrentMonth ? 'opacity-40' : ''}`}>
+                  <div className="flex items-center justify-between">
+                    <p className={`text-xs font-bold ${isToday ? 'text-[#FF6B35]' : 'text-white/60'}`}>
+                      {date.getDate()}
+                    </p>
+                    {dayShifts.length > 0 && (
+                      <span className="text-[8px] text-white/40 font-mono">{dayShifts.length}</span>
+                    )}
+                  </div>
                   {dayShifts.length > 0 && (
-                    <div className="flex flex-wrap gap-0.5 mt-1">
-                      {dayShifts.slice(0, 3).map(s => (
-                        <div key={s.id}
-                          className={`w-1.5 h-1.5 rounded-full ${
-                            s.status === 'open' ? 'bg-emerald-400' :
-                            s.status === 'scheduled' ? 'bg-blue-400' :
-                            s.status === 'no_show' ? 'bg-red-400' : 'bg-white/20'
-                          }`} />
-                      ))}
+                    <div className="flex flex-col gap-0.5 mt-1">
+                      {dayShifts.slice(0, 3).map(s => {
+                        const m = team.find(tm => tm.id === s.staff_id)
+                        const dot = s.status === 'open' ? 'bg-emerald-400'
+                          : s.status === 'scheduled' ? 'bg-blue-400'
+                          : s.status === 'no_show' ? 'bg-red-400' : 'bg-white/20'
+                        return (
+                          <div key={s.id} className="flex items-center gap-1 min-w-0">
+                            <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
+                            <span className="text-[9px] text-white/60 truncate leading-tight">
+                              {m ? memberName(m).split(' ')[0] : s.team_members?.role ?? '—'}
+                            </span>
+                          </div>
+                        )
+                      })}
                       {dayShifts.length > 3 && (
-                        <span className="text-[8px] text-white/30">+{dayShifts.length - 3}</span>
+                        <span className="text-[8px] text-white/30">+{dayShifts.length - 3} más</span>
                       )}
                     </div>
                   )}
@@ -786,6 +818,98 @@ export default function TurnosPage() {
           </div>
         </div>
       )}
+
+      {/* Planificador de día (vista de mes) */}
+      {plannerDate && (() => {
+        const [py, pm, pd] = plannerDate.split('-').map(Number)
+        const pdate = new Date(py, pm - 1, pd)
+        const dayShifts = shifts.filter(s => s.shift_date === plannerDate)
+        const assignedIds = new Set(dayShifts.map(s => s.staff_id))
+        return (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setPlannerDate(null)}>
+            <div className="bg-[#1A1A2E] rounded-2xl border border-white/12 w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col"
+              onClick={e => e.stopPropagation()}>
+              {/* Header */}
+              <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between shrink-0">
+                <div>
+                  <h3 className="text-white font-bold capitalize">
+                    {DAYS_FULL[pdate.getDay()]} {pd} {MONTHS_ES[pm - 1]}
+                  </h3>
+                  <p className="text-white/40 text-xs">{dayShifts.length} turno(s) asignado(s)</p>
+                </div>
+                <button onClick={() => setPlannerDate(null)} className="text-white/40 hover:text-white transition-colors">
+                  <X size={18} />
+                </button>
+              </div>
+
+              <div className="overflow-y-auto p-5 space-y-4">
+                {/* Turnos existentes */}
+                {dayShifts.length > 0 && (
+                  <div className="space-y-2">
+                    <p className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Asignados</p>
+                    {dayShifts.map(s => {
+                      const m = team.find(tm => tm.id === s.staff_id)
+                      const cfg = STATUS_CONFIG[s.status]
+                      return (
+                        <div key={s.id} className="flex items-center gap-2 rounded-xl bg-white/4 border border-white/8 px-3 py-2">
+                          <div className="flex-1 min-w-0">
+                            <p className="text-white text-sm font-medium truncate">{m ? memberName(m) : (s.team_members?.role ?? '—')}</p>
+                            <p className="text-white/40 text-[11px] font-mono">{s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}</p>
+                          </div>
+                          <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
+                          <button onClick={() => deleteShift(s.id)} title="Quitar turno"
+                            className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                            <X size={13} />
+                          </button>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Asignar */}
+                <div className="space-y-2">
+                  <p className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">
+                    Asignar turno · elegí persona y horario
+                  </p>
+                  {team.length === 0 ? (
+                    <p className="text-white/30 text-xs py-2">No hay miembros en el equipo. Agregá personal en Equipo.</p>
+                  ) : (
+                    team.map(m => (
+                      <div key={m.id} className="rounded-xl border border-white/8 bg-white/2 p-2.5">
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className="w-6 h-6 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[9px] font-bold text-[#FF6B35]">
+                            {memberInitials(m)}
+                          </div>
+                          <span className="text-white text-sm font-medium truncate">{memberName(m)}</span>
+                          {assignedIds.has(m.id) && <Check size={12} className="text-emerald-400 ml-auto" />}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {PRESET_SHIFTS.map(preset => (
+                            <button key={preset.name}
+                              onClick={() => assignToDate(m.id, plannerDate, preset)}
+                              className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 text-[10px] hover:bg-[#FF6B35]/15 hover:border-[#FF6B35]/30 hover:text-[#FF6B35] transition-colors">
+                              + {preset.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+
+              <div className="px-5 py-3 border-t border-white/8 shrink-0">
+                <button onClick={() => setPlannerDate(null)}
+                  className="w-full py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-colors">
+                  Listo
+                </button>
+              </div>
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }

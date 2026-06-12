@@ -59,6 +59,7 @@ const ALL_NAV: NavSection[] = [
       { label: 'Caja',          href: '/caja',      icon: Banknote,        roles: ['owner','admin','supervisor','super_admin'] },
       ...(process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' ? [{ label: 'Delivery',      href: '/delivery',  icon: Bike,            roles: ['owner','admin','super_admin'] }] : []),
       { label: 'Turnos',        href: '/turnos',    icon: CalendarDays,    roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Mis turnos',    href: '/mis-turnos', icon: CalendarDays,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
     ],
   },
   {
@@ -116,6 +117,7 @@ const NAV_PLAN_REQUIRED: Record<string, string> = {
   '/caja':      'starter',
   '/espera':    'starter',
   '/turnos':    'starter',
+  '/mis-turnos': 'starter',
   '/reservas':  'starter',
   '/delivery':  'starter',
 
