@@ -37,14 +37,37 @@ export const PLAN_LEVEL_ALIAS: Record<string, PlanId> = {
   piloto: 'pro',
 }
 
-// Comisión por transacción registrada en la plataforma (decimal).
-// Todos los planes 1%, excepto Piloto que es 2% (contraparte del $0).
+// Comisión por transacción registrada en la plataforma (decimal flat).
+// Reglas:
+//   - free / starter / pro:  1% plano
+//   - piloto:                2% plano (contraparte del $0)
+//   - enterprise:            ESCALONADA según volumen mensual del holding
+//                            (ver ENTERPRISE_COMMISSION_TIERS + computeEnterpriseCommission).
+//                            La tasa "efectiva" varía entre 1.0% y 0.5% según mes.
+//                            En este mapa figura 0.01 como tasa nominal de referencia,
+//                            pero el billing real NO debe leer de acá para Enterprise.
+//                            Usar getCommissionForPlan() o computeEnterpriseCommission().
 export const PLAN_COMMISSION_RATE: Record<string, number> = {
   free:       0.01,
   piloto:     0.02,
   starter:    0.01,
   pro:        0.01,
-  enterprise: 0.01,
+  enterprise: 0.01,  // referencial; el real es escalonado, no usar directo
+}
+
+/**
+ * Calcula el monto de comisión en CLP para un plan y un volumen mensual dado.
+ * Para Enterprise aplica la escala (ENTERPRISE_COMMISSION_TIERS); para el resto
+ * usa la tasa flat de PLAN_COMMISSION_RATE.
+ *
+ * Usar este helper desde el cron de billing y todo lugar que cobre comisión —
+ * leer PLAN_COMMISSION_RATE.enterprise directo da el resultado equivocado para
+ * cualquier holding con ventas digitales > $30M/mes.
+ */
+export function computeCommissionForPlan(plan: string, monthlySalesCLP: number): number {
+  if (plan === 'enterprise') return computeEnterpriseCommission(monthlySalesCLP)
+  const rate = PLAN_COMMISSION_RATE[plan] ?? 0.01
+  return Math.round(Math.max(0, monthlySalesCLP) * rate)
 }
 
 // Módulos base disponibles en TODOS los planes (incluso free):
@@ -177,11 +200,12 @@ export const PLANS: Record<string, PlanInfo> = {
     id: 'enterprise',
     name: 'Enterprise',
     // Precio de lista: $79.990 (incluye 1 local) + $29.990 por local adicional.
-    // El modelo escalonado interno (ENTERPRISE_TIERS) sigue vigente para
-    // negociación de holdings grandes — no se muestra en la landing.
+    // Único plan con COMISIÓN ESCALONADA por volumen mensual del holding:
+    // 1.0% / 0.7% / 0.5% (ver ENTERPRISE_COMMISSION_TIERS). El resto de los
+    // planes paga 1% flat (o 2% en el caso del Piloto).
     price: 79990,
     priceLabel: '$79.990',
-    transactionFeeLabel: '+ 1% por transacción · +$29.990 por local adicional',
+    transactionFeeLabel: 'Comisión escalonada (1.0% / 0.7% / 0.5%) · +$29.990 por local adicional',
     description: 'Para holdings: multi-local, API pública y soporte dedicado.',
     cta: 'Contactar ventas',
     features: [
@@ -192,6 +216,7 @@ export const PLANS: Record<string, PlanInfo> = {
       'Agente IA de soporte 24/7',
       'Dashboard consolidado multi-local',
       'Importación de carta por IA sin tope',
+      'Comisión escalonada (1.0% / 0.7% / 0.5%) por volumen',
       '+$29.990 por cada local adicional',
     ],
     modules: [...BASE_MODULES, ...STARTER_MODULES, ...PRO_MODULES, ...ENTERPRISE_MODULES],

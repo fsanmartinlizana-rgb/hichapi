@@ -13,6 +13,8 @@ import {
   Gift, MapPin, ChefHat, Tag, Lock,
 } from 'lucide-react'
 import { canAccessModule } from '@/lib/plans'
+import { ROUTE_PLAN_REQUIRED } from '@/lib/plans-gating'
+import PlanGate from '@/components/restaurant/PlanGate'
 import SupportModal from '@/components/SupportModal'
 import NpsModal from '@/components/NpsModal'
 import { ChapiAssistant } from '@/components/restaurant/ChapiAssistant'
@@ -106,52 +108,8 @@ const ALL_NAV: NavSection[] = [
 ]
 
 // ── Plan-based route gating ──────────────────────────────────────────────────
-// Rebalanceado Sprint 2 (2026-04-19). Matriz: ver lib/plans.ts.
-// Rutas no listadas abajo son accesibles con el plan base ('free' o todos).
-
-const NAV_PLAN_REQUIRED: Record<string, string> = {
-  // Operación del salón → starter. Free solo ve: Dashboard, Carta digital,
-  // Mi restaurante y Módulos y Plan (matriz 2026-06 definida por el founder).
-  '/mesas':     'starter',
-  '/comandas':  'starter',
-  '/garzon':    'starter',
-  '/caja':      'starter',
-  '/espera':    'starter',
-  '/turnos':    'starter',
-  '/mis-turnos': 'starter',
-  '/reservas':  'starter',
-  '/delivery':  'starter',
-  '/promociones': 'starter',   // movido desde Pro (matriz 2026-06)
-  '/dte':       'starter',
-  '/equipo':    'starter',
-  '/impresoras': 'starter',
-  '/tono':      'starter',     // tono de Chapi en mesa = parte del QR Garzón 24/7
-
-  // Inteligencia operativa → pro+ (Piloto accede: alias de nivel pro)
-  '/stock':        'pro',
-  '/mermas':       'pro',
-  '/reporte':      'pro',
-  '/analytics':    'pro',
-  '/insights':     'pro',
-  '/fidelizacion': 'pro',
-  '/clientes':     'pro',      // Comensales (CRM) — sección inteligencia
-  '/configuracion/comensales': 'pro',
-
-  // Locales (single o multi) → starter+
-  // Enterprise desbloquea AGREGAR locales; planes inferiores solo ven/editan
-  // el local único. La UI de "+ Agregar local" checkea plan por su cuenta.
-  '/configuracion/locations':  'starter',
-  '/configuracion/estaciones': 'starter',
-  '/configuracion/categorias': 'starter',
-
-  // Escala → enterprise
-  '/agregar-sucursal':         'enterprise',
-  '/configuracion/api-keys':   'enterprise',
-  '/configuracion/geofencing': 'enterprise',
-
-  // Nota: /carta, /restaurante, /modulos, /dashboard quedan abiertos a todos
-  // los planes (incluye free): presencia digital base + home + upgrade.
-}
+// Matriz 2026-06 vivía duplicada acá. Ahora es lib/plans-gating: ROUTE_PLAN_REQUIRED.
+// Misma fuente de verdad para sidebar + URL enforcement (PlanGate).
 
 // PLAN_LABEL removido: los módulos bloqueados ya no se renderizan en el sidebar,
 // sólo en /modulos y /restaurante.
@@ -209,7 +167,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
       .map(section => ({
         ...section,
         items: section.items.filter(item => {
-          const required = NAV_PLAN_REQUIRED[item.href] ?? 'free'
+          const required = ROUTE_PLAN_REQUIRED[item.href] ?? 'free'
           return canAccessModule(currentPlan, required)
         }),
       }))
@@ -407,7 +365,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                   <div className="space-y-0.5 pt-1 pb-1.5 pl-1">
                     {items.map(({ label, href, icon: Icon }) => {
                       const active = pathname === href || pathname.startsWith(href + '/')
-                      const requiredPlan = NAV_PLAN_REQUIRED[href] ?? 'free'
+                      const requiredPlan = ROUTE_PLAN_REQUIRED[href] ?? 'free'
                       const locked = !canAccessModule(currentPlan, requiredPlan)
 
                       // Módulos inactivos no se muestran en el sidebar:
@@ -584,7 +542,10 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
       {/* Sidebar desktop — el componente decide internamente con `hidden md:flex` */}
       <SidebarContent />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
-        {children}
+        {/* URL enforcement: si la ruta requiere un plan superior, PlanGate
+            renderea el panel de upgrade en vez del contenido. La matriz
+            (ROUTE_PLAN_REQUIRED) es compartida con el sidebar. */}
+        <PlanGate>{children}</PlanGate>
       </main>
       {/* Chapi flotante — disponible en todas las páginas del panel */}
       <ChapiAssistant />

@@ -292,9 +292,10 @@ const PLANS = [
       'API publica con keys y scopes',
       'Agente IA de soporte 24/7',
       'Dashboard consolidado multi-local',
+      'Comision escalonada (1.0% / 0.7% / 0.5%) por volumen',
       '+$29.990 por cada local adicional',
     ],
-    note: '+ 1% por transacción · +$29.990 por local adicional',
+    note: 'Comisión escalonada según volumen · +$29.990 por local adicional',
     cta: 'Contactar ventas',
     href: '/contacto?plan=enterprise',
     highlighted: false,
@@ -304,7 +305,7 @@ const PLANS = [
 const FAQ_ITEMS = [
   {
     question: 'Que es el 1% de comision?',
-    answer: 'Es 1% por cada transaccion registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital. Aplica a todos los planes. La excepcion es el Plan Piloto: no tiene costo fijo mensual y su comision es 2%. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
+    answer: 'Es 1% por cada transaccion registrada en la plataforma, sin importar el medio de pago — efectivo, tarjeta o digital. Aplica a Free, Starter y Pro. El Plan Piloto cobra 2% (a cambio de no pagar mensualidad). Enterprise es el unico con comision escalonada segun volumen del holding: 1.0% hasta $30M/mes, 0.7% hasta $100M/mes, 0.5% sobre eso. Es nuestra forma de alinearnos con tu exito: si vendes mas, ganamos juntos.',
   },
   {
     question: 'Puedo cancelar cuando quiera?',
