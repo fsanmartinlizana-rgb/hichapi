@@ -313,14 +313,26 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                   ))}
                 </div>
               )}
+              {/* Agregar OTRO restaurante (cuenta única, locales independientes).
+                  Disponible para cualquier plan — un dueño puede tener Restaurante
+                  A en Pro y Restaurante B en Free bajo el mismo correo. */}
+              <Link
+                href="/agregar-restaurante"
+                onClick={() => setPickerOpen(false)}
+                className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-[#FF6B35] hover:bg-white/5 transition-colors flex items-center gap-2"
+              >
+                <span className="w-4 h-4 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold">+</span>
+                Agregar otro restaurante
+              </Link>
+              {/* Agregar SUCURSAL (mismo brand_id) — solo Enterprise. */}
               {canAddSuc && (
                 <Link
                   href="/agregar-sucursal"
                   onClick={() => setPickerOpen(false)}
-                  className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-[#FF6B35] hover:bg-white/5 transition-colors flex items-center gap-2"
+                  className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-white/60 hover:bg-white/5 transition-colors flex items-center gap-2"
                 >
-                  <span className="w-4 h-4 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold">+</span>
-                  Agregar sucursal
+                  <span className="w-4 h-4 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white/60 text-[10px] font-bold">+</span>
+                  Agregar sucursal (mismo brand)
                 </Link>
               )}
             </div>

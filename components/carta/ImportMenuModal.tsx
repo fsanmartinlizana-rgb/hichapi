@@ -5,6 +5,7 @@ import {
   X, Camera, FileText, ClipboardPaste, Loader2, Check, AlertCircle,
   Trash2, Plus, Sparkles, Upload, RefreshCw, Package,
 } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -42,6 +43,47 @@ async function fileToBase64(file: File): Promise<string> {
     reader.readAsDataURL(file)
   })
 }
+
+/**
+ * Sube un archivo a Supabase Storage usando una URL firmada y devuelve la URL
+ * pública. Evita el límite de 4.5 MB de Vercel cuando se trata de PDFs largos
+ * o fotos pesadas (bug 2026-06: PDF de 27 páginas → 413 content_too_large).
+ */
+async function uploadToStorage(file: File): Promise<string> {
+  // 1. Pedir URL firmada al backend
+  const ext = (file.name.split('.').pop() ?? 'bin').toLowerCase().slice(0, 10)
+  const signRes = await fetch('/api/upload/signed', {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body:    JSON.stringify({
+      bucket: 'menu-imports',
+      folder: 'extract',
+      ext,
+      mime:   file.type || 'application/octet-stream',
+    }),
+  })
+  if (!signRes.ok) {
+    const e = await signRes.json().catch(() => ({}))
+    throw new Error(e.error ?? 'No se pudo iniciar la subida')
+  }
+  const signed: { uploadUrl: string; token: string; path: string; publicUrl: string; bucket: string } =
+    await signRes.json()
+
+  // 2. PUT directo al storage (sin pasar por la función serverless)
+  const sb = createClient()
+  const up = await sb.storage.from(signed.bucket).uploadToSignedUrl(signed.path, signed.token, file, {
+    contentType: file.type || 'application/octet-stream',
+    upsert: true,
+  })
+  if (up.error) throw new Error(up.error.message ?? 'No se pudo subir el archivo')
+
+  return signed.publicUrl
+}
+
+// Umbral conservador para evitar 413 de Vercel (límite real 4.5 MB) por el
+// inflado de base64 (~33%) + el resto del JSON. Si el TOTAL del lote supera
+// esto, vamos por Storage URL en vez de base64.
+const BASE64_TOTAL_THRESHOLD = 3 * 1024 * 1024  // 3 MB de archivos crudos
 
 function parseTabular(text: string): ImportItem[] {
   // Accept CSV, TSV, or pasted Excel (tab-separated). Auto-detect delimiter.
@@ -114,14 +156,24 @@ export function ImportMenuModal({ restaurantId, onClose, onImported }: Props) {
     setMode('importing')
 
     try {
-      const base64s = await Promise.all(arr.map(fileToBase64))
+      const totalBytes = arr.reduce((s, f) => s + f.size, 0)
+      const useStorage = totalBytes > BASE64_TOTAL_THRESHOLD
+      // Si el lote es chico, mantenemos el path base64 (1 request).
+      // Si es grande (o hay PDFs), subimos a Storage y mandamos URLs públicas
+      // — Anthropic acepta tanto base64 como URL para document/image, así que
+      // el endpoint extract construye el block correcto.
+      let payload: { images?: string[]; file_urls?: string[]; mime: string }
+      if (useStorage) {
+        const urls = await Promise.all(arr.map(uploadToStorage))
+        payload = { file_urls: urls, mime: arr[0].type || 'image/jpeg' }
+      } else {
+        const base64s = await Promise.all(arr.map(fileToBase64))
+        payload = { images: base64s, mime: arr[0].type || 'image/jpeg' }
+      }
       const res = await fetch('/api/menu-items/extract', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({
-          images: base64s,
-          mime:   arr[0].type || 'image/jpeg',
-        }),
+        body:    JSON.stringify(payload),
       })
       const data = await res.json()
       if (!res.ok || data.error) {

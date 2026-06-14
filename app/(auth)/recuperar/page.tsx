@@ -3,7 +3,6 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Shield, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
-import { createClient } from '@/lib/supabase/client'
 
 export default function RecuperarPage() {
   const [email, setEmail]   = useState('')
@@ -17,22 +16,24 @@ export default function RecuperarPage() {
     setLoading(true)
 
     try {
-      const supabase = createClient()
-      const { error: resetErr } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
-        {
-          // After clicking the link → callback exchanges code → redirects to /update-password
-          redirectTo: `${window.location.origin}/auth/callback?type=recovery`,
-        }
-      )
-
-      if (resetErr) {
-        setError('No pudimos enviar el correo. Intenta de nuevo.')
+      // Llamamos a nuestro endpoint server-side, NO a supabase.auth.resetPasswordForEmail
+      // directo. Razones:
+      //   1. Usa la plantilla de marca HiChapi vía Resend (no el email genérico
+      //      de Supabase con "noreply@projectid.supabase.co").
+      //   2. Evita el rate-limit nativo de Supabase (36s por email) — Resend
+      //      tiene límites mucho más altos.
+      //   3. Centraliza el control del redirectTo y logs.
+      const res = await fetch('/api/auth/recover-password', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ email: email.trim().toLowerCase() }),
+      })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) {
+        setError(data.error ?? 'No pudimos enviar el correo. Intenta de nuevo.')
         return
       }
-
       setSent(true)
-
     } catch {
       setError('Error de conexión. Revisa tu internet.')
     } finally {

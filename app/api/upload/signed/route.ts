@@ -16,11 +16,17 @@ const BodySchema = z.object({
   bucket: z.string().default('restaurant-photos'),
   folder: z.string().default('photos'),
   ext:    z.string().max(10).default('jpg'),
-  mime:   z.enum(['image/jpeg', 'image/png', 'image/webp']).default('image/jpeg'),
+  // Aceptamos también application/pdf y image/gif para el flujo de
+  // ImportMenuModal: PDFs de 27+ páginas sobrepasan el límite 4.5MB de Vercel
+  // si se mandan en base64 al endpoint extract. Subir a Storage y mandar URL
+  // a Anthropic evita el 413 entero.
+  mime:   z.enum(['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']).default('image/jpeg'),
 })
 
-const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp']
-const MAX_SIZE = 10 * 1024 * 1024 // 10 MB ceiling at the storage level
+const ALLOWED_MIME = ['image/jpeg', 'image/png', 'image/webp', 'image/gif', 'application/pdf']
+// 32 MB techo a nivel storage: alineado con el límite de Anthropic para
+// documents (32 MB). Imágenes individuales raramente pasan de 10 MB.
+const MAX_SIZE = 32 * 1024 * 1024
 
 export async function POST(req: NextRequest) {
   const { user, error: authErr } = await requireUser()

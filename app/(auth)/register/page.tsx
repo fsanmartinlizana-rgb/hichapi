@@ -163,6 +163,10 @@ function RegisterPageInner() {
 
   const [loading, setLoading]     = useState(false)
   const [error, setError]         = useState('')
+  // Cuando el backend devuelve code='email_already_registered', mostramos un
+  // CTA específico que lleva al login → /agregar-restaurante. Es el flujo
+  // correcto para el dueño que ya tiene cuenta y quiere sumar otro local.
+  const [accountExists, setAccountExists] = useState(false)
   const [blocked, setBlocked]     = useState(false)
 
   const passwordOk = RULES.every(r => r.test(password))
@@ -209,6 +213,7 @@ function RegisterPageInner() {
 
       if (!res.ok) {
         if (res.status === 409) {
+          setAccountExists(json.code === 'email_already_registered')
           setError(json.error ?? 'Este email ya tiene una cuenta.')
           setStep(0)
         } else {
@@ -327,10 +332,35 @@ function RegisterPageInner() {
       {/* Card */}
       <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
 
-        {error && (
+        {error && !accountExists && (
           <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
             <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
             <p className="text-red-400 text-sm">{error}</p>
+          </div>
+        )}
+        {accountExists && (
+          <div className="bg-amber-500/8 border border-amber-500/25 rounded-xl px-4 py-3 mb-4 space-y-2">
+            <p className="text-amber-200 text-sm font-semibold">
+              Este correo ya tiene cuenta en HiChapi.
+            </p>
+            <p className="text-amber-100/70 text-xs">
+              Iniciá sesión y agregá este nuevo restaurante a tu cuenta — vas a poder
+              cambiar entre locales desde la barra lateral.
+            </p>
+            <div className="flex flex-col gap-1.5 pt-1">
+              <Link
+                href={`/login?redirect=${encodeURIComponent('/agregar-restaurante')}&email=${encodeURIComponent(email)}`}
+                className="block text-center py-2 rounded-lg bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors"
+              >
+                Iniciar sesión y agregar restaurante
+              </Link>
+              <Link
+                href="/recuperar"
+                className="block text-center text-amber-200/60 text-[11px] hover:text-amber-100 transition-colors py-1"
+              >
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
           </div>
         )}
 

@@ -16,34 +16,57 @@ export const maxDuration = 60
 
 const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY! })
 
+// Hay 2 modos de entrada (xor):
+//   - images:    array base64 (legacy). Bueno para fotos chicas; falla con 413
+//                en Vercel si el conjunto supera ~4 MB.
+//   - file_urls: array de URLs públicas de Supabase Storage (preferido).
+//                Sin límite de Vercel, soporta PDFs grandes (27+ páginas).
 const BodySchema = z.object({
-  // Cada archivo en base64 (sin el prefijo "data:..."). Acepta imágenes o PDF.
-  images: z.array(z.string().min(1)).min(1).max(6),
-  mime: z.string().default('image/jpeg'),
-})
+  images:    z.array(z.string().min(1)).max(6).optional(),
+  file_urls: z.array(z.string().url()).max(6).optional(),
+  mime:      z.string().default('image/jpeg'),
+}).refine(
+  v => (v.images && v.images.length > 0) || (v.file_urls && v.file_urls.length > 0),
+  { message: 'Se requiere al menos una imagen o file_url' },
+)
+
+/** Detecta si una URL apunta a un PDF por extensión. Pdf/jpg/png explícitos
+ *  ganan; default = imagen jpeg. */
+function inferMimeFromUrl(url: string, fallback: string): string {
+  const lower = url.toLowerCase().split('?')[0]
+  if (lower.endsWith('.pdf'))  return 'application/pdf'
+  if (lower.endsWith('.png'))  return 'image/png'
+  if (lower.endsWith('.webp')) return 'image/webp'
+  if (lower.endsWith('.gif'))  return 'image/gif'
+  if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg'
+  return fallback
+}
 
 /** Anthropic acepta image/* como vision, application/pdf como document.
- * Convierte el mime del browser al formato del block correcto. */
-function buildContentBlock(b64: string, mime: string): Anthropic.ContentBlockParam {
+ *  Construye el block según mime, eligiendo source URL si está disponible. */
+function buildContentBlock(
+  source: { kind: 'b64'; data: string } | { kind: 'url'; url: string },
+  mime: string,
+): Anthropic.ContentBlockParam {
   if (mime === 'application/pdf') {
     return {
-      type: 'document',
-      source: {
-        type:       'base64',
-        media_type: 'application/pdf',
-        data:       b64,
-      },
+      type:   'document',
+      source: source.kind === 'url'
+        ? { type: 'url', url: source.url }
+        : { type: 'base64', media_type: 'application/pdf', data: source.data },
     }
   }
-  // Default: imagen. Normalizar mime a uno soportado por Vision.
+  // Imagen: normalizamos mime al subset que Vision acepta.
   const imageMime: 'image/jpeg' | 'image/png' | 'image/webp' | 'image/gif' =
     mime === 'image/png'  ? 'image/png'
     : mime === 'image/webp' ? 'image/webp'
     : mime === 'image/gif'  ? 'image/gif'
     : 'image/jpeg'
   return {
-    type: 'image',
-    source: { type: 'base64', media_type: imageMime, data: b64 },
+    type:   'image',
+    source: source.kind === 'url'
+      ? { type: 'url', url: source.url }
+      : { type: 'base64', media_type: imageMime, data: source.data },
   }
 }
 
@@ -127,10 +150,20 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'IA no configurada' }, { status: 503 })
     }
 
-    // Build content blocks — image vs document según el mime
+    // Build content blocks — preferimos URLs (Storage) si vinieron; sino base64.
+    const useUrls = !!(body.file_urls && body.file_urls.length > 0)
     const content: Anthropic.ContentBlockParam[] = [
       { type: 'text', text: EXTRACTION_PROMPT },
-      ...body.images.map(b64 => buildContentBlock(b64, body.mime)),
+      ...(useUrls
+        ? body.file_urls!.map(url => buildContentBlock(
+            { kind: 'url', url },
+            inferMimeFromUrl(url, body.mime),
+          ))
+        : body.images!.map(b64 => buildContentBlock(
+            { kind: 'b64', data: b64 },
+            body.mime,
+          ))
+      ),
     ]
 
     // Forzamos tool_use para que la respuesta sea SIEMPRE JSON válido

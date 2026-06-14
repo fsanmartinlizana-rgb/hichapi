@@ -65,9 +65,14 @@ export async function POST(req: NextRequest) {
     if (userErr || !userData?.user) {
       const msg = userErr?.message ?? ''
       if (msg.includes('already been registered') || msg.includes('already exists')) {
+        // Code machine-readable: el frontend lo usa para mostrar el CTA
+        // "Iniciá sesión y agregá este restaurante a tu cuenta".
         return NextResponse.json(
-          { error: 'Este email ya tiene una cuenta. Inicia sesión.' },
-          { status: 409 }
+          {
+            error: 'Este email ya tiene cuenta en HiChapi. Iniciá sesión y agregá este restaurante desde tu panel.',
+            code:  'email_already_registered',
+          },
+          { status: 409 },
         )
       }
       console.error('register-restaurant create user error:', userErr)
