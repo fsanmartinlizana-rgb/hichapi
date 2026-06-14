@@ -253,7 +253,11 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
       {(() => {
         const canPick      = isSuperAdmin || restaurants.length > 1
         const canAddSuc    = !isSuperAdmin && (role === 'owner' || role === 'admin')
-        const showDropdown = canPick || canAddSuc
+        // "Agregar otro restaurante" (cuenta única, locales independientes)
+        // solo para owner. Un garzón o cocinero invitado a otro local no debe
+        // tener un CTA desde el panel ajeno para abrir su propio negocio.
+        const canAddOther  = !isSuperAdmin && role === 'owner'
+        const showDropdown = canPick || canAddSuc || canAddOther
         return (
         <div className="mx-3 mb-3 relative">
           <button
@@ -314,16 +318,18 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                 </div>
               )}
               {/* Agregar OTRO restaurante (cuenta única, locales independientes).
-                  Disponible para cualquier plan — un dueño puede tener Restaurante
-                  A en Pro y Restaurante B en Free bajo el mismo correo. */}
-              <Link
-                href="/agregar-restaurante"
-                onClick={() => setPickerOpen(false)}
-                className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-[#FF6B35] hover:bg-white/5 transition-colors flex items-center gap-2"
-              >
-                <span className="w-4 h-4 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold">+</span>
-                Agregar otro restaurante
-              </Link>
+                  Solo para owner — un garzón invitado en otro local no debe
+                  poder usar este CTA desde un panel ajeno. */}
+              {canAddOther && (
+                <Link
+                  href="/agregar-restaurante"
+                  onClick={() => setPickerOpen(false)}
+                  className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-[#FF6B35] hover:bg-white/5 transition-colors flex items-center gap-2"
+                >
+                  <span className="w-4 h-4 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold">+</span>
+                  Agregar otro restaurante
+                </Link>
+              )}
               {/* Agregar SUCURSAL (mismo brand_id) — solo Enterprise. */}
               {canAddSuc && (
                 <Link

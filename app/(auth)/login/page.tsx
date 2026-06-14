@@ -21,7 +21,10 @@ function checkRateLimit(): boolean {
 
 function LoginForm() {
   const searchParams = useSearchParams()
-  const redirectTo   = searchParams.get('redirect') ?? '/dashboard'
+  // Default: pasamos por /seleccionar-restaurante. Si el usuario tiene 1 solo
+  // restaurante, esa página redirige automático a su home según rol; si tiene
+  // varios, muestra el picker. Si vino con ?redirect=… específico, lo respeta.
+  const redirectTo   = searchParams.get('redirect') ?? '/seleccionar-restaurante'
 
   const [email, setEmail]       = useState('')
   const [password, setPassword] = useState('')

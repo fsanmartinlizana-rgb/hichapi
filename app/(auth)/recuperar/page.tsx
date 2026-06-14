@@ -96,20 +96,24 @@ export default function RecuperarPage() {
               <CheckCircle2 size={26} className="text-emerald-400" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Correo enviado!</h2>
+              <h2 className="text-white font-bold text-lg">Revisá tu correo</h2>
+              {/* Mensaje uniforme: NO confirmamos si el email existe en la
+                  base. Si existe, le llega un link en minutos; si no existe,
+                  no le llega nada — pero al usuario le decimos lo mismo para
+                  evitar user enumeration. */}
               <p className="text-white/40 text-sm mt-1 leading-relaxed">
-                Revisa tu bandeja de entrada en{' '}
-                <span className="text-white/60">{email}</span>.
-                El enlace expira en 1 hora.
+                Si <span className="text-white/60">{email}</span> tiene una cuenta en
+                HiChapi, te enviamos un link para restablecer la contraseña.
+                Llega en algunos minutos y expira en 1 hora.
               </p>
             </div>
             <p className="text-white/25 text-xs">
-              ¿No llegó? Revisa la carpeta de spam o{' '}
+              ¿No llegó? Revisá la carpeta de spam o{' '}
               <button
                 onClick={() => { setSent(false); setEmail('') }}
                 className="text-[#FF6B35]/70 hover:text-[#FF6B35] underline"
               >
-                intenta con otro email
+                intentá con otro email
               </button>.
             </p>
           </div>
