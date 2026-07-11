@@ -70,7 +70,7 @@ export function LoyaltyWallet({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 text-white/30 text-xs py-2">
+      <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs py-2">
         <Loader2 size={12} className="animate-spin" /> Cargando tu cuenta…
       </div>
     )
@@ -85,35 +85,35 @@ export function LoyaltyWallet({
   return (
     <div className={`bg-gradient-to-br from-[#FF6B35]/10 via-[#FF6B35]/5 to-transparent border border-[#FF6B35]/20 rounded-2xl ${compact ? 'p-3' : 'p-4'} space-y-3`}>
       <div className="flex items-center gap-2">
-        <div className="w-7 h-7 rounded-xl bg-[#FF6B35]/20 text-[#FF6B35] flex items-center justify-center">
+        <div className="w-7 h-7 rounded-xl bg-[#FF6B35]/20 text-[#E55A2B] flex items-center justify-center">
           <Gift size={14} />
         </div>
         <div>
-          <p className="text-white text-sm font-bold leading-tight">{program.name}</p>
-          <p className="text-white/40 text-[10px]">Tu progreso en este restaurante</p>
+          <p className="text-[var(--text-strong)] text-sm font-bold leading-tight">{program.name}</p>
+          <p className="text-[var(--text-muted)] text-[10px]">Tu progreso en este restaurante</p>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         {hasStamps && (
-          <div className="bg-white/5 border border-white/8 rounded-xl p-3">
-            <p className="text-white/40 text-[10px] uppercase tracking-wide font-semibold">Sellos</p>
-            <p className="text-white font-bold text-lg leading-none mt-0.5" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+          <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-3">
+            <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wide font-semibold">Sellos</p>
+            <p className="text-[var(--text-strong)] font-bold text-lg leading-none mt-0.5" style={{ fontFamily: 'var(--font-dm-mono)' }}>
               {stamps?.current_stamps ?? 0}
-              <span className="text-white/40 text-xs font-normal"> / {program.stamps_per_reward}</span>
+              <span className="text-[var(--text-muted)] text-xs font-normal"> / {program.stamps_per_reward}</span>
             </p>
             <StampProgress current={stamps?.current_stamps ?? 0} total={program.stamps_per_reward} />
           </div>
         )}
         {hasPoints && (
-          <div className="bg-white/5 border border-white/8 rounded-xl p-3">
-            <p className="text-white/40 text-[10px] uppercase tracking-wide font-semibold flex items-center gap-1">
-              <Sparkles size={9} className="text-[#FF6B35]" /> Puntos
+          <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-3">
+            <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wide font-semibold flex items-center gap-1">
+              <Sparkles size={9} className="text-[#E55A2B]" /> Puntos
             </p>
-            <p className="text-white font-bold text-lg leading-none mt-0.5" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+            <p className="text-[var(--text-strong)] font-bold text-lg leading-none mt-0.5" style={{ fontFamily: 'var(--font-dm-mono)' }}>
               {(points?.points_balance ?? 0).toLocaleString('es-CL')}
             </p>
-            <p className="text-white/30 text-[10px] mt-0.5">
+            <p className="text-[var(--text-muted)] text-[10px] mt-0.5">
               Total histórico: {(points?.lifetime_points ?? 0).toLocaleString('es-CL')}
             </p>
           </div>
@@ -122,18 +122,18 @@ export function LoyaltyWallet({
 
       {coupons.length > 0 && (
         <div className="space-y-1.5">
-          <p className="text-white/50 text-[10px] uppercase tracking-wide font-semibold flex items-center gap-1">
+          <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wide font-semibold flex items-center gap-1">
             <Ticket size={10} /> Cupones disponibles
           </p>
           {coupons.slice(0, 3).map(c => (
             <div key={c.id} className="flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/10 border border-emerald-500/25">
-              <Check size={11} className="text-emerald-400 shrink-0" />
+              <Check size={11} className="text-emerald-700 shrink-0" />
               <div className="flex-1 min-w-0">
                 <p className="text-emerald-200 text-xs font-semibold truncate">{c.reward?.name ?? 'Recompensa'}</p>
-                <p className="text-emerald-300/60 text-[10px] font-mono">{c.code}</p>
+                <p className="text-emerald-700/60 text-[10px] font-mono">{c.code}</p>
               </div>
               {c.expires_at && (
-                <span className="text-emerald-300/60 text-[9px] shrink-0">
+                <span className="text-emerald-700/60 text-[9px] shrink-0">
                   expira {new Date(c.expires_at).toLocaleDateString('es-CL')}
                 </span>
               )}
@@ -148,7 +148,7 @@ export function LoyaltyWallet({
 function StampProgress({ current, total }: { current: number; total: number }) {
   const pct = Math.min(100, Math.round((current / total) * 100))
   return (
-    <div className="w-full h-1 bg-white/10 rounded-full mt-1.5 overflow-hidden">
+    <div className="w-full h-1 bg-[var(--surface-sunken)] rounded-full mt-1.5 overflow-hidden">
       <div
         className="h-full bg-[#FF6B35] rounded-full transition-all"
         style={{ width: `${pct}%` }}

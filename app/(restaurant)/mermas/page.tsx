@@ -235,7 +235,7 @@ export default function MermasPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-white/40">
+      <div className="flex items-center justify-center h-full text-[var(--text-muted)]">
         <RefreshCw size={20} className="animate-spin mr-2" />Cargando...
       </div>
     )
@@ -247,41 +247,41 @@ export default function MermasPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold">Control de Mermas</h1>
-          <p className="text-white/40 text-sm mt-0.5">Registro de pérdidas e inventario bajo mínimo</p>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Control de Mermas</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">Registro de pérdidas e inventario bajo mínimo</p>
         </div>
-        <button onClick={load} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+        <button onClick={load} className="p-2 rounded-lg hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
           <RefreshCw size={16} />
         </button>
       </div>
 
       {/* KPI strip */}
       <div className="grid grid-cols-3 gap-4">
-        <div className="bg-white/5 rounded-2xl p-4 border border-white/8">
-          <p className="text-white/40 text-xs mb-1">Pérdida esta semana</p>
-          <p className="text-white text-2xl font-bold">{CLP(weeklySummary?.total_cost ?? weeklyLoss)}</p>
-          <p className="text-white/30 text-xs mt-1">{weeklyWaste.length} registros</p>
+        <div className="bg-[var(--surface-sunken)] rounded-2xl p-4 border border-[var(--border-subtle)]">
+          <p className="text-[var(--text-muted)] text-xs mb-1">Pérdida esta semana</p>
+          <p className="text-[var(--text-strong)] text-2xl font-bold">{CLP(weeklySummary?.total_cost ?? weeklyLoss)}</p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">{weeklyWaste.length} registros</p>
         </div>
-        <div className={`rounded-2xl p-4 border ${lowStockItems.length > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/8'}`}>
-          <p className="text-white/40 text-xs mb-1">Productos afectados</p>
-          <p className={`text-2xl font-bold ${(weeklySummary?.total_products_affected ?? 0) > 0 ? 'text-amber-400' : 'text-white'}`}>
+        <div className={`rounded-2xl p-4 border ${lowStockItems.length > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'}`}>
+          <p className="text-[var(--text-muted)] text-xs mb-1">Productos afectados</p>
+          <p className={`text-2xl font-bold ${(weeklySummary?.total_products_affected ?? 0) > 0 ? 'text-amber-700' : 'text-[var(--text-strong)]'}`}>
             {weeklySummary?.total_products_affected ?? Object.keys(topItems).length}
           </p>
-          <p className="text-white/30 text-xs mt-1">esta semana</p>
+          <p className="text-[var(--text-muted)] text-xs mt-1">esta semana</p>
         </div>
-        <div className="bg-white/5 rounded-2xl p-4 border border-white/8">
-          <p className="text-white/40 text-xs mb-1">Top pérdida (semana)</p>
+        <div className="bg-[var(--surface-sunken)] rounded-2xl p-4 border border-[var(--border-subtle)]">
+          <p className="text-[var(--text-muted)] text-xs mb-1">Top pérdida (semana)</p>
           {(weeklySummary?.by_product ?? topItems.map(([name, cost_total]) => ({ name, cost_total, qty_total: 0, unit: '' }))).slice(0, 3).length > 0 ? (
             <div className="space-y-1 mt-1">
               {(weeklySummary?.by_product ?? topItems.map(([name, cost_total]) => ({ name, cost_total, qty_total: 0, unit: '' }))).slice(0, 3).map((item) => (
                 <div key={item.name} className="flex justify-between text-xs">
-                  <span className="text-white/70 truncate mr-2">{item.name}</span>
-                  <span className="text-amber-400 font-medium shrink-0">{CLP(item.cost_total)}</span>
+                  <span className="text-[var(--text-body)] truncate mr-2">{item.name}</span>
+                  <span className="text-amber-700 font-medium shrink-0">{CLP(item.cost_total)}</span>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="text-white text-sm mt-1">Sin registros</p>
+            <p className="text-[var(--text-strong)] text-sm mt-1">Sin registros</p>
           )}
         </div>
       </div>
@@ -289,10 +289,10 @@ export default function MermasPage() {
       {/* Low stock alert */}
       {lowStockItems.length > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+          <AlertTriangle size={18} className="text-red-700 shrink-0 mt-0.5" />
           <div>
-            <p className="text-red-300 font-semibold text-sm">Stock bajo mínimo</p>
-            <p className="text-red-300/70 text-xs mt-0.5">
+            <p className="text-red-700 font-semibold text-sm">Stock bajo mínimo</p>
+            <p className="text-red-700/70 text-xs mt-0.5">
               {lowStockItems.map(i => `${i.name} (${i.current_qty} ${i.unit})`).join(' · ')}
             </p>
           </div>
@@ -302,10 +302,10 @@ export default function MermasPage() {
       <div className="grid grid-cols-[1fr_360px] gap-6">
 
         {/* Waste log table */}
-        <div className="bg-white/5 rounded-2xl border border-white/8 overflow-hidden">
-          <div className="px-4 py-3 border-b border-white/8 flex items-center gap-2">
-            <TrendingDown size={14} className="text-white/40" />
-            <span className="text-white text-sm font-medium">Registros recientes</span>
+        <div className="bg-[var(--surface-sunken)] rounded-2xl border border-[var(--border-subtle)] overflow-hidden">
+          <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-2">
+            <TrendingDown size={14} className="text-[var(--text-muted)]" />
+            <span className="text-[var(--text-strong)] text-sm font-medium">Registros recientes</span>
           </div>
           <div className="overflow-y-auto max-h-[480px]">
             {wasteLog.length === 0 ? (
@@ -317,12 +317,12 @@ export default function MermasPage() {
             ) : (
               <table className="w-full text-sm">
                 <thead>
-                  <tr className="border-b border-white/5">
-                    <th className="px-4 py-2.5 text-left text-white/30 text-xs font-medium">Ítem</th>
-                    <th className="px-4 py-2.5 text-left text-white/30 text-xs font-medium">Cantidad</th>
-                    <th className="px-4 py-2.5 text-left text-white/30 text-xs font-medium">Razón</th>
-                    <th className="px-4 py-2.5 text-right text-white/30 text-xs font-medium">Pérdida</th>
-                    <th className="px-4 py-2.5 text-right text-white/30 text-xs font-medium">Fecha</th>
+                  <tr className="border-b border-[var(--border-subtle)]">
+                    <th className="px-4 py-2.5 text-left text-[var(--text-muted)] text-xs font-medium">Ítem</th>
+                    <th className="px-4 py-2.5 text-left text-[var(--text-muted)] text-xs font-medium">Cantidad</th>
+                    <th className="px-4 py-2.5 text-left text-[var(--text-muted)] text-xs font-medium">Razón</th>
+                    <th className="px-4 py-2.5 text-right text-[var(--text-muted)] text-xs font-medium">Pérdida</th>
+                    <th className="px-4 py-2.5 text-right text-[var(--text-muted)] text-xs font-medium">Fecha</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -333,32 +333,32 @@ export default function MermasPage() {
                       : (w.stock_items?.name ?? '—')
                     const unit = isPlate ? 'platos' : (w.stock_items?.unit ?? '')
                     return (
-                      <tr key={w.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
+                      <tr key={w.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-colors">
                         <td className="px-4 py-3 align-top">
                           <div className="flex items-center gap-2">
-                            <span className="text-white font-medium">{name}</span>
+                            <span className="text-[var(--text-strong)] font-medium">{name}</span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
                               isPlate
-                                ? 'bg-purple-500/15 text-purple-300 border-purple-500/30'
-                                : 'bg-blue-500/10 text-blue-300 border-blue-500/25'
+                                ? 'bg-purple-500/15 text-purple-700 border-purple-500/30'
+                                : 'bg-blue-500/10 text-blue-700 border-blue-500/25'
                             }`}>
                               {isPlate ? 'plato' : 'stock'}
                             </span>
                           </div>
                           {w.notes && (
-                            <p className="text-white/40 text-xs mt-1 italic leading-snug max-w-[260px]" title={w.notes}>
+                            <p className="text-[var(--text-muted)] text-xs mt-1 italic leading-snug max-w-[260px]" title={w.notes}>
                               &ldquo;{w.notes}&rdquo;
                             </p>
                           )}
                         </td>
-                        <td className="px-4 py-3 text-white/60">{w.qty_lost} {unit}</td>
+                        <td className="px-4 py-3 text-[var(--text-muted)]">{w.qty_lost} {unit}</td>
                         <td className="px-4 py-3">
-                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-400 border border-amber-500/20">
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/20">
                             {REASONS.find(r => r.value === w.reason)?.label ?? w.reason}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-red-400 font-medium">{CLP(w.cost_lost ?? 0)}</td>
-                        <td className="px-4 py-3 text-right text-white/30 text-xs">
+                        <td className="px-4 py-3 text-right text-red-700 font-medium">{CLP(w.cost_lost ?? 0)}</td>
+                        <td className="px-4 py-3 text-right text-[var(--text-muted)] text-xs">
                           {new Date(w.logged_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </td>
                       </tr>
@@ -371,14 +371,14 @@ export default function MermasPage() {
         </div>
 
         {/* Register form */}
-        <div className="bg-white/5 rounded-2xl border border-white/8 p-5">
+        <div className="bg-[var(--surface-sunken)] rounded-2xl border border-[var(--border-subtle)] p-5">
           <div className="flex items-center gap-2 mb-4">
-            <Plus size={14} className="text-white/40" />
-            <span className="text-white text-sm font-medium">Registrar merma</span>
+            <Plus size={14} className="text-[var(--text-muted)]" />
+            <span className="text-[var(--text-strong)] text-sm font-medium">Registrar merma</span>
           </div>
 
           {/* Type tabs */}
-          <div className="flex gap-1 bg-white/4 border border-white/8 rounded-xl p-1 mb-4">
+          <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1 mb-4">
             {([
               { v: 'stock' as const, label: 'Stock', icon: Package },
               { v: 'plato' as const, label: 'Plato', icon: UtensilsCrossed },
@@ -395,7 +395,7 @@ export default function MermasPage() {
                     setReason(t.v === 'stock' ? 'deterioro' : 'plato_quemado')
                   }}
                   className={`flex-1 py-2 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 ${
-                    active ? 'bg-[#FF6B35] text-white' : 'text-white/50 hover:text-white'
+                    active ? 'bg-[#FF6B35] text-white' : 'text-[var(--text-muted)] hover:text-white'
                   }`}
                 >
                   <Icon size={12} />
@@ -409,7 +409,7 @@ export default function MermasPage() {
 
             {/* Item selector */}
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">
                 {itemType === 'stock' ? 'Ítem de stock' : 'Plato de la carta'}
               </label>
               <div className="relative">
@@ -417,7 +417,7 @@ export default function MermasPage() {
                   value={selectedItem}
                   onChange={e => setSelectedItem(e.target.value)}
                   required
-                  className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-[#FF6B35]/50"
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm appearance-none focus:outline-none focus:border-[#FF6B35]/50"
                 >
                   <option value="">Selecciona {itemType === 'stock' ? 'un ítem' : 'un plato'}...</option>
                   {itemType === 'stock'
@@ -433,12 +433,12 @@ export default function MermasPage() {
                       ))
                   }
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-3 text-white/30 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-3 text-[var(--text-muted)] pointer-events-none" />
               </div>
               {selectedItem && itemType === 'stock' && (() => {
                 const item = stockItems.find(i => i.id === selectedItem)
                 return item ? (
-                  <p className="text-white/30 text-xs mt-1">
+                  <p className="text-[var(--text-muted)] text-xs mt-1">
                     Stock actual: {item.current_qty} {item.unit} · {CLP(item.cost_per_unit)}/{item.unit}
                   </p>
                 ) : null
@@ -446,7 +446,7 @@ export default function MermasPage() {
               {selectedItem && itemType === 'plato' && (() => {
                 const plate = menuItems.find(m => m.id === selectedItem)
                 return plate ? (
-                  <p className="text-white/30 text-xs mt-1">
+                  <p className="text-[var(--text-muted)] text-xs mt-1">
                     Precio de venta: {CLP(plate.price)} · {plate.category ?? 'sin categoría'}
                   </p>
                 ) : null
@@ -455,7 +455,7 @@ export default function MermasPage() {
 
             {/* Quantity */}
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">
                 {itemType === 'stock' ? 'Cantidad perdida' : 'Platos botados'}
               </label>
               <div className="flex gap-2">
@@ -467,9 +467,9 @@ export default function MermasPage() {
                   onChange={e => setQty(e.target.value)}
                   required
                   placeholder={itemType === 'stock' ? '0.0' : '1'}
-                  className="flex-1 bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50"
+                  className="flex-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50"
                 />
-                <span className="flex items-center px-3 bg-white/5 border border-white/8 rounded-xl text-white/40 text-sm">
+                <span className="flex items-center px-3 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl text-[var(--text-muted)] text-sm">
                   {itemType === 'stock' ? (stockItems.find(i => i.id === selectedItem)?.unit ?? '—') : 'platos'}
                 </span>
               </div>
@@ -478,42 +478,42 @@ export default function MermasPage() {
                   const item = stockItems.find(i => i.id === selectedItem)
                   if (!item) return null
                   const loss = Math.round(parseFloat(qty || '0') * item.cost_per_unit)
-                  return <p className="text-amber-400 text-xs mt-1">Pérdida estimada: {CLP(loss)}</p>
+                  return <p className="text-amber-700 text-xs mt-1">Pérdida estimada: {CLP(loss)}</p>
                 } else {
                   const plate = menuItems.find(m => m.id === selectedItem)
                   if (!plate) return null
                   const loss = Math.round(parseFloat(qty || '0') * plate.price)
-                  return <p className="text-amber-400 text-xs mt-1">Pérdida (precio venta): {CLP(loss)}</p>
+                  return <p className="text-amber-700 text-xs mt-1">Pérdida (precio venta): {CLP(loss)}</p>
                 }
               })()}
             </div>
 
             {/* Reason */}
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Razón</label>
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Razón</label>
               <div className="relative">
                 <select
                   value={reason}
                   onChange={e => setReason(e.target.value)}
-                  className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-[#FF6B35]/50"
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm appearance-none focus:outline-none focus:border-[#FF6B35]/50"
                 >
                   {(itemType === 'stock' ? STOCK_REASONS : PLATE_REASONS).map(r => (
                     <option key={r.value} value={r.value}>{r.label}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-3 text-white/30 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-3 text-[var(--text-muted)] pointer-events-none" />
               </div>
             </div>
 
             {/* Notes */}
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Notas (opcional)</label>
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Notas (opcional)</label>
               <textarea
                 value={notes}
                 onChange={e => setNotes(e.target.value)}
                 rows={2}
                 placeholder="Observaciones adicionales..."
-                className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm resize-none focus:outline-none focus:border-[#FF6B35]/50 placeholder-white/20"
+                className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm resize-none focus:outline-none focus:border-[#FF6B35]/50 placeholder-white/20"
               />
             </div>
 

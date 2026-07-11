@@ -87,50 +87,50 @@ function UpgradeModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative bg-[#161622] rounded-2xl border border-white/10 w-full max-w-md p-6 space-y-5 shadow-2xl">
-        <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded-lg text-white/30 hover:text-white/60">
+      <div className="relative bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] w-full max-w-md p-6 space-y-5 shadow-2xl">
+        <button onClick={onClose} className="absolute top-4 right-4 p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-muted)]">
           <X size={16} />
         </button>
 
         {success ? (
           <div className="text-center py-8 space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto">
-              <Check size={28} className="text-emerald-400" />
+              <Check size={28} className="text-emerald-700" />
             </div>
-            <p className="text-white font-bold text-lg">¡Piloto activado!</p>
-            <p className="text-white/40 text-sm">Disfruta 30 días gratis del plan {plan.name}.</p>
+            <p className="text-[var(--text-strong)] font-bold text-lg">¡Piloto activado!</p>
+            <p className="text-[var(--text-muted)] text-sm">Disfruta 30 días gratis del plan {plan.name}.</p>
           </div>
         ) : (
           <>
             <div className="text-center space-y-2">
               <div className="w-14 h-14 rounded-2xl bg-[#FF6B35]/20 flex items-center justify-center mx-auto">
-                <Crown size={24} className="text-[#FF6B35]" />
+                <Crown size={24} className="text-[#E55A2B]" />
               </div>
-              <h2 className="text-white font-bold text-xl">Activar {plan.name} (Piloto)</h2>
-              <p className="text-white/40 text-sm">{plan.description}</p>
+              <h2 className="text-[var(--text-strong)] font-bold text-xl">Activar {plan.name} (Piloto)</h2>
+              <p className="text-[var(--text-muted)] text-sm">{plan.description}</p>
             </div>
 
-            <div className="bg-white/3 rounded-xl p-4 space-y-2">
+            <div className="bg-[var(--surface-sunken)] rounded-xl p-4 space-y-2">
               <div className="flex items-end justify-between">
                 <div>
-                  <p className="text-white/40 text-xs">Hoy pagas</p>
-                  <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                  <p className="text-[var(--text-muted)] text-xs">Hoy pagas</p>
+                  <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                     $0
                   </p>
                 </div>
                 <div className="text-right">
-                  <p className="text-white/40 text-xs">Después de 30 días</p>
-                  <p className="text-white/80 text-sm font-semibold">{plan.priceLabel} + 1% ventas</p>
+                  <p className="text-[var(--text-muted)] text-xs">Después de 30 días</p>
+                  <p className="text-[var(--text-body)] text-sm font-semibold">{plan.priceLabel} + 1% ventas</p>
                 </div>
               </div>
             </div>
 
             <div className="space-y-2">
-              <p className="text-white/50 text-xs font-medium">Incluye durante el piloto:</p>
+              <p className="text-[var(--text-muted)] text-xs font-medium">Incluye durante el piloto:</p>
               {plan.features.map(f => (
                 <div key={f} className="flex items-center gap-2">
-                  <Check size={12} className="text-emerald-400 shrink-0" />
-                  <span className="text-white/60 text-sm">{f}</span>
+                  <Check size={12} className="text-emerald-700 shrink-0" />
+                  <span className="text-[var(--text-muted)] text-sm">{f}</span>
                 </div>
               ))}
             </div>
@@ -147,7 +147,7 @@ function UpgradeModal({
               )}
             </button>
 
-            <p className="text-white/20 text-[10px] text-center">
+            <p className="text-[var(--text-muted)] text-[10px] text-center">
               Sin compromiso. Cancela cuando quieras.
             </p>
           </>
@@ -214,8 +214,8 @@ export default function ModulosPage() {
               <AlertTriangle size={24} />
             </div>
             <div>
-              <h3 className="text-red-400 font-bold text-lg">Tienes una factura pendiente</h3>
-              <p className="text-red-400/80 text-sm">
+              <h3 className="text-red-700 font-bold text-lg">Tienes una factura pendiente</h3>
+              <p className="text-red-700/80 text-sm">
                 Membresía: ${pendingInvoice.plan_base_price.toLocaleString('es-CL')} + 
                 1% Ventas: ${pendingInvoice.sales_commission.toLocaleString('es-CL')} 
                 (Total Ventas calculadas: ${(Number(pendingInvoice.sales_total) || 0).toLocaleString('es-CL')})
@@ -224,12 +224,12 @@ export default function ModulosPage() {
           </div>
           <div className="text-right flex items-center gap-4">
             <div>
-              <p className="text-white/60 text-xs">Total a pagar</p>
-              <p className="text-white font-bold text-xl">${pendingInvoice.total_amount.toLocaleString('es-CL')}</p>
+              <p className="text-[var(--text-muted)] text-xs">Total a pagar</p>
+              <p className="text-[var(--text-strong)] font-bold text-xl">${pendingInvoice.total_amount.toLocaleString('es-CL')}</p>
             </div>
             <button
               onClick={handlePayInvoice}
-              className="px-6 py-2.5 bg-[#FF6B35] rounded-xl font-bold hover:bg-[#FF6B35]/90 transition-colors"
+              className="px-6 py-2.5 bg-[#FF6B35] rounded-xl font-bold hover:bg-[#FF6B35] transition-colors"
             >
               Pagar ahora
             </button>
@@ -240,12 +240,12 @@ export default function ModulosPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold">Módulos y Plan</h1>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Módulos y Plan</h1>
           <div className="flex items-center gap-2 mt-1">
-            <span className="text-xs px-2.5 py-1 rounded-lg bg-[#FF6B35]/15 text-[#FF6B35] font-semibold">
+            <span className="text-xs px-2.5 py-1 rounded-lg bg-[#FF6B35]/15 text-[#E55A2B] font-semibold">
               Plan {PLANS[currentPlan]?.name || currentPlan}
             </span>
-            <span className="text-white/30 text-xs">
+            <span className="text-[var(--text-muted)] text-xs">
               {PLANS[currentPlan]?.modules.length || 0} módulos incluidos
             </span>
           </div>
@@ -261,11 +261,11 @@ export default function ModulosPage() {
       </div>
 
       {/* View toggle */}
-      <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1 w-fit">
+      <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1 w-fit">
         <button
           onClick={() => setView('modules')}
           className={`px-4 py-1.5 rounded-lg text-sm transition-all ${
-            view === 'modules' ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/40 hover:text-white/60'
+            view === 'modules' ? 'bg-[#FF6B35] text-white font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'
           }`}
         >
           Módulos
@@ -273,7 +273,7 @@ export default function ModulosPage() {
         <button
           onClick={() => setView('plans')}
           className={`px-4 py-1.5 rounded-lg text-sm transition-all ${
-            view === 'plans' ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/40 hover:text-white/60'
+            view === 'plans' ? 'bg-[#FF6B35] text-white font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'
           }`}
         >
           Comparar planes
@@ -300,7 +300,7 @@ export default function ModulosPage() {
                 console.error(e)
               }
             }}
-            className="px-4 py-2 rounded-xl text-xs bg-white/5 border border-white/10 hover:bg-white/10 text-white font-medium transition-colors"
+            className="px-4 py-2 rounded-xl text-xs bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] text-[var(--text-strong)] font-medium transition-colors"
           >
             Cancelar suscripción
           </button>
@@ -321,36 +321,36 @@ export default function ModulosPage() {
                 key={key}
                 className={`rounded-2xl border p-5 space-y-3 transition-all ${
                   hasAccess
-                    ? 'bg-[#161622] border-white/8 hover:border-white/15'
-                    : 'bg-white/2 border-white/5 opacity-70'
+                    ? 'bg-[var(--surface-card)] border-[var(--border-subtle)] hover:border-[var(--border-subtle)]'
+                    : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] opacity-70'
                 }`}
               >
                 <div className="flex items-start justify-between">
                   <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                    hasAccess ? 'bg-[#FF6B35]/15 text-[#FF6B35]' : 'bg-white/5 text-white/20'
+                    hasAccess ? 'bg-[#FF6B35]/15 text-[#E55A2B]' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
                   }`}>
                     <Icon size={18} />
                   </div>
                   {hasAccess ? (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-400 bg-emerald-500/10 px-2 py-1 rounded-lg">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-500/10 px-2 py-1 rounded-lg">
                       <Check size={10} /> Activo
                     </span>
                   ) : (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-white/30 bg-white/5 px-2 py-1 rounded-lg">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--text-muted)] bg-[var(--surface-sunken)] px-2 py-1 rounded-lg">
                       <Lock size={10} /> {planInfo?.name}
                     </span>
                   )}
                 </div>
 
                 <div>
-                  <p className="text-white text-sm font-semibold">{MODULE_LABELS[key]}</p>
-                  <p className="text-white/30 text-xs mt-1 leading-relaxed">{MODULE_DESCRIPTIONS[key]}</p>
+                  <p className="text-[var(--text-strong)] text-sm font-semibold">{MODULE_LABELS[key]}</p>
+                  <p className="text-[var(--text-muted)] text-xs mt-1 leading-relaxed">{MODULE_DESCRIPTIONS[key]}</p>
                 </div>
 
                 {!hasAccess && (
                   <button
                     onClick={() => setUpgradeTarget(requiredPlan)}
-                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/10 transition-colors"
+                    className="w-full flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[#FF6B35]/30 text-[#E55A2B] text-xs font-semibold hover:bg-[#FF6B35]/10 transition-colors"
                   >
                     <Zap size={12} /> Desbloquear con {planInfo?.name}
                   </button>
@@ -375,8 +375,8 @@ export default function ModulosPage() {
                   plan.highlighted
                     ? 'bg-[#FF6B35]/5 border-[#FF6B35]/30'
                     : isCurrent
-                    ? 'bg-[#161622] border-[#FF6B35]/20'
-                    : 'bg-[#161622] border-white/8'
+                    ? 'bg-[var(--surface-card)] border-[#FF6B35]/20'
+                    : 'bg-[var(--surface-card)] border-[var(--border-subtle)]'
                 }`}
               >
                 {plan.highlighted && (
@@ -396,25 +396,25 @@ export default function ModulosPage() {
                 )}
 
                 <div className="space-y-1 pt-1">
-                  <p className="text-white font-bold text-lg">{plan.name}</p>
-                  <p className="text-white text-xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                  <p className="text-[var(--text-strong)] font-bold text-lg">{plan.name}</p>
+                  <p className="text-[var(--text-strong)] text-xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                     {plan.price === 0 ? 'Gratis' : plan.priceLabel}
                   </p>
-                  <p className="text-white/30 text-xs">{plan.description}</p>
+                  <p className="text-[var(--text-muted)] text-xs">{plan.description}</p>
                 </div>
 
                 <div className="space-y-2">
                   {plan.features.map(f => (
                     <div key={f} className="flex items-start gap-2">
-                      <Check size={12} className="text-emerald-400 shrink-0 mt-0.5" />
-                      <span className="text-white/50 text-xs">{f}</span>
+                      <Check size={12} className="text-emerald-700 shrink-0 mt-0.5" />
+                      <span className="text-[var(--text-muted)] text-xs">{f}</span>
                     </div>
                   ))}
                 </div>
 
                 <div className="pt-2">
                   {isCurrent ? (
-                    <div className="w-full py-2.5 rounded-xl border border-emerald-500/30 text-emerald-400 text-sm font-semibold text-center">
+                    <div className="w-full py-2.5 rounded-xl border border-emerald-500/30 text-emerald-700 text-sm font-semibold text-center">
                       Plan actual
                     </div>
                   ) : isUpgrade ? (
@@ -425,7 +425,7 @@ export default function ModulosPage() {
                       {plan.cta} <ArrowRight size={14} />
                     </button>
                   ) : isDowngrade ? (
-                    <div className="w-full py-2.5 rounded-xl border border-white/8 text-white/20 text-sm text-center">
+                    <div className="w-full py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm text-center">
                       Incluido
                     </div>
                   ) : null}

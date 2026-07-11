@@ -122,7 +122,7 @@ export default function NuevaComandaFlow({
   return (
     <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0D0D1A' }}>
       {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-3 sm:px-6" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
+      <header className="flex items-center justify-between border-b px-4 py-3 sm:px-6" style={{ borderColor: 'rgba(26, 26, 46, 0.10)' }}>
         <div className="flex-1">
           <FlowProgressBar currentStep={step} />
         </div>
@@ -131,7 +131,7 @@ export default function NuevaComandaFlow({
           onClick={onClose}
           disabled={saving}
           aria-label="Cerrar"
-          className="ml-4 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-white/40 hover:bg-white/8 hover:text-white/80 disabled:cursor-not-allowed disabled:opacity-40 text-xl transition-colors"
+          className="ml-4 flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-full text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-body)] disabled:cursor-not-allowed disabled:opacity-40 text-xl transition-colors"
         >
           ×
         </button>

@@ -183,22 +183,22 @@ function CircularKPI({
   const dashOffset = circumf - (clamped / 100) * circumf
 
   return (
-    <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 flex flex-col items-center gap-3">
+    <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5 flex flex-col items-center gap-3">
       <div className="flex items-center gap-1.5 self-start">
         <div
           className="w-5 h-5 rounded-md flex items-center justify-center"
           style={{ background: accent }}
         >
-          <Icon size={11} strokeWidth={2.4} className="text-white" />
+          <Icon size={11} strokeWidth={2.4} className="text-[var(--text-strong)]" />
         </div>
-        <p className="text-white/45 text-[11px] font-medium uppercase tracking-wide">{label}</p>
+        <p className="text-[var(--text-muted)] text-[11px] font-medium uppercase tracking-wide">{label}</p>
       </div>
 
       <div className="relative" style={{ width: size, height: size }}>
         <svg width={size} height={size} className="-rotate-90">
           <circle
             cx={size / 2} cy={size / 2} r={radius}
-            stroke="rgba(255,255,255,0.06)" strokeWidth={stroke} fill="none"
+            stroke="rgba(26, 26, 46, 0.07)" strokeWidth={stroke} fill="none"
           />
           <circle
             cx={size / 2} cy={size / 2} r={radius}
@@ -211,7 +211,7 @@ function CircularKPI({
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
           <p
-            className="text-white text-[22px] font-bold leading-none"
+            className="text-[var(--text-strong)] text-[22px] font-bold leading-none"
             style={{ fontFamily: 'var(--font-dm-mono)' }}
           >
             {value}
@@ -225,18 +225,18 @@ function CircularKPI({
 }
 
 const MESA_STYLES: Record<string, { bg: string; border: string; text: string }> = {
-  ocupada:   { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#FF6B35]' },
-  cuenta:    { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-400' },
-  libre:     { bg: 'bg-white/3',       border: 'border-white/8',       text: 'text-white/30'  },
-  reservada: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-400' },
-  bloqueada: { bg: 'bg-white/5',       border: 'border-white/10',      text: 'text-white/20'  },
+  ocupada:   { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#E55A2B]' },
+  cuenta:    { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-700' },
+  libre:     { bg: 'bg-[var(--surface-sunken)]',       border: 'border-[var(--border-subtle)]',       text: 'text-[var(--text-muted)]'  },
+  reservada: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-700' },
+  bloqueada: { bg: 'bg-[var(--surface-sunken)]',       border: 'border-[var(--border-subtle)]',      text: 'text-[var(--text-muted)]'  },
 }
 
 function MesaCell({ mesa }: { mesa: { id: string; label: string; status: string } }) {
   const s = MESA_STYLES[mesa.status] ?? MESA_STYLES.libre
   return (
     <div className={`${s.bg} border ${s.border} rounded-xl p-3 flex flex-col items-center gap-1`}>
-      <p className="text-white font-bold text-lg leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className="text-[var(--text-strong)] font-bold text-lg leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {mesa.label.replace('Mesa ', '')}
       </p>
       <p className={`text-[9px] font-medium ${s.text}`}>{mesa.status}</p>
@@ -254,7 +254,7 @@ function OrderRow({ order }: { order: DashboardData['activeOrders'][0] }) {
   return (
     <Link
       href="/garzon"
-      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-white/3 transition-colors"
+      className="flex items-center gap-4 px-4 py-3.5 rounded-xl hover:bg-[var(--surface-sunken)] transition-colors"
     >
       <div
         className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-[10px] font-bold border"
@@ -263,14 +263,14 @@ function OrderRow({ order }: { order: DashboardData['activeOrders'][0] }) {
         {order.table_label.replace('Mesa ', 'M')}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-semibold">{order.table_label}</p>
-        <p className="text-white/35 text-xs truncate">{order.items_text || 'Sin ítems'}</p>
+        <p className="text-[var(--text-strong)] text-sm font-semibold">{order.table_label}</p>
+        <p className="text-[var(--text-muted)] text-xs truncate">{order.items_text || 'Sin ítems'}</p>
       </div>
       <div className="text-right shrink-0">
-        <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+        <p className="text-[var(--text-strong)] font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
           {clp(order.total)}
         </p>
-        <p className="text-white/30 text-[10px]">{order.mins} min</p>
+        <p className="text-[var(--text-muted)] text-[10px]">{order.mins} min</p>
       </div>
     </Link>
   )
@@ -289,7 +289,7 @@ export default function DashboardPage() {
   if (loading || ctxLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+        <RefreshCw size={20} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -298,10 +298,10 @@ export default function DashboardPage() {
     return (
       <div className="flex flex-col items-center justify-center h-screen gap-4 px-6 text-center">
         <div className="w-16 h-16 rounded-2xl bg-[#FF6B35]/15 flex items-center justify-center">
-          <DollarSign size={28} className="text-[#FF6B35]" />
+          <DollarSign size={28} className="text-[#E55A2B]" />
         </div>
-        <h2 className="text-white text-xl font-bold">Sin restaurante asociado</h2>
-        <p className="text-white/50 text-sm max-w-sm">
+        <h2 className="text-[var(--text-strong)] text-xl font-bold">Sin restaurante asociado</h2>
+        <p className="text-[var(--text-muted)] text-sm max-w-sm">
           Tu cuenta aún no está vinculada a un restaurante. Pide al administrador que te agregue al equipo o registra tu restaurante.
         </p>
         <Link
@@ -356,17 +356,17 @@ export default function DashboardPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold">Resumen del dia</h1>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Resumen del dia</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-white/40 text-sm capitalize">{dateStr}</p>
-            <span className="flex items-center gap-1 text-emerald-400 text-xs font-medium">
+            <p className="text-[var(--text-muted)] text-sm capitalize">{dateStr}</p>
+            <span className="flex items-center gap-1 text-emerald-700 text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               En vivo
             </span>
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={refresh} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
+          <button onClick={refresh} className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
             <RefreshCw size={14} />
           </button>
           <Link
@@ -382,21 +382,21 @@ export default function DashboardPage() {
       {/* KPI Cards — flat values */}
       <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
         {[
-          { label: 'Ventas hoy', value: clp(data.salesToday), sub: `${data.ordersToday} pedidos`, icon: DollarSign, color: '#FF6B35' },
-          { label: 'Ticket promedio', value: clp(ticketPromedio), sub: 'por pedido', icon: Receipt, color: '#60A5FA' },
-          { label: 'Ocupación', value: `${occupationPct}%`, sub: `${mesaStats.ocupadas}/${data.tables.length} mesas`, icon: Grid3X3, color: '#34D399' },
-          { label: 'NPS / Rating', value: data.avgRating > 0 ? data.avgRating.toFixed(1) : '—', sub: `${data.reviewCount} opiniones`, icon: Star, color: '#FBBF24' },
-          { label: 'En cocina', value: String(data.statusBreakdown.preparing), sub: `${data.statusBreakdown.ready} listos`, icon: TrendingUp, color: '#A78BFA' },
+          { label: 'Ventas hoy', value: clp(data.salesToday), sub: `${data.ordersToday} pedidos`, icon: DollarSign, color: '#E55A2B' },
+          { label: 'Ticket promedio', value: clp(ticketPromedio), sub: 'por pedido', icon: Receipt, color: '#1D4ED8' },
+          { label: 'Ocupación', value: `${occupationPct}%`, sub: `${mesaStats.ocupadas}/${data.tables.length} mesas`, icon: Grid3X3, color: '#15803D' },
+          { label: 'NPS / Rating', value: data.avgRating > 0 ? data.avgRating.toFixed(1) : '—', sub: `${data.reviewCount} opiniones`, icon: Star, color: '#B45309' },
+          { label: 'En cocina', value: String(data.statusBreakdown.preparing), sub: `${data.statusBreakdown.ready} listos`, icon: TrendingUp, color: '#6D28D9' },
         ].map(kpi => (
-          <div key={kpi.label} className="bg-[#161622] rounded-2xl border border-white/5 p-4 space-y-2">
+          <div key={kpi.label} className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-4 space-y-2">
             <div className="flex items-center gap-1.5">
               <div className="w-5 h-5 rounded-md flex items-center justify-center" style={{ background: kpi.color + '25' }}>
                 <kpi.icon size={11} strokeWidth={2.4} style={{ color: kpi.color }} />
               </div>
-              <p className="text-white/45 text-[10px] font-medium uppercase tracking-wide">{kpi.label}</p>
+              <p className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">{kpi.label}</p>
             </div>
-            <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>{kpi.value}</p>
-            <p className="text-white/30 text-[11px]">{kpi.sub}</p>
+            <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>{kpi.value}</p>
+            <p className="text-[var(--text-muted)] text-[11px]">{kpi.sub}</p>
           </div>
         ))}
       </div>
@@ -406,15 +406,15 @@ export default function DashboardPage() {
 
         {/* Mesa grid + top dishes */}
         <div className="lg:col-span-2 flex flex-col gap-4">
-          <div className="bg-[#161622] rounded-2xl border border-white/5 p-4">
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-4">
             <div className="flex items-center justify-between mb-3">
-              <p className="text-white text-sm font-semibold">Estado de mesas</p>
-              <Link href="/mesas" className="text-white/35 text-xs hover:text-white/60 flex items-center gap-0.5">
+              <p className="text-[var(--text-strong)] text-sm font-semibold">Estado de mesas</p>
+              <Link href="/mesas" className="text-[var(--text-muted)] text-xs hover:text-[var(--text-muted)] flex items-center gap-0.5">
                 Ver todas <ChevronRight size={11} />
               </Link>
             </div>
             {data.tables.length === 0 ? (
-              <p className="text-white/25 text-sm text-center py-4">Sin mesas configuradas</p>
+              <p className="text-[var(--text-muted)] text-sm text-center py-4">Sin mesas configuradas</p>
             ) : (
               <div className="grid grid-cols-4 gap-2">
                 {data.tables.map(m => <MesaCell key={m.id} mesa={m} />)}
@@ -425,31 +425,31 @@ export default function DashboardPage() {
                 { color: 'bg-[#FF6B35]', label: `${mesaStats.ocupadas} ocupadas` },
                 { color: 'bg-yellow-400', label: `${mesaStats.pagando} pagando` },
                 { color: 'bg-violet-400', label: `${mesaStats.reservadas} reservadas` },
-                { color: 'bg-white/20', label: `${mesaStats.libres} libres` },
+                { color: 'bg-[var(--surface-sunken)]', label: `${mesaStats.libres} libres` },
               ].map(({ color, label }) => (
                 <div key={label} className="flex items-center gap-1.5">
                   <span className={`w-1.5 h-1.5 rounded-full ${color}`} />
-                  <span className="text-white/35 text-[10px]">{label}</span>
+                  <span className="text-[var(--text-muted)] text-[10px]">{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Top platos */}
-          <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
-            <p className="text-white text-sm font-semibold mb-4">Top platos hoy</p>
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5">
+            <p className="text-[var(--text-strong)] text-sm font-semibold mb-4">Top platos hoy</p>
             {data.topDishes.length === 0 ? (
-              <p className="text-white/25 text-xs text-center py-3">Sin datos aun</p>
+              <p className="text-[var(--text-muted)] text-xs text-center py-3">Sin datos aun</p>
             ) : (
               <div className="space-y-2.5">
                 {data.topDishes.map((p, i) => {
                   const maxCount = data.topDishes[0]?.count || 1
                   return (
                     <div key={p.name} className="flex items-center gap-2.5">
-                      <span className="text-white/25 text-xs w-3 shrink-0">{i + 1}</span>
-                      <span className="text-white/70 text-xs flex-1 truncate">{p.name}</span>
+                      <span className="text-[var(--text-muted)] text-xs w-3 shrink-0">{i + 1}</span>
+                      <span className="text-[var(--text-body)] text-xs flex-1 truncate">{p.name}</span>
                       <div className="flex items-center gap-1.5">
-                        <div className="w-20 h-1.5 rounded-full bg-white/5 overflow-hidden">
+                        <div className="w-20 h-1.5 rounded-full bg-[var(--surface-sunken)] overflow-hidden">
                           <div
                             className="h-full rounded-full"
                             style={{
@@ -458,7 +458,7 @@ export default function DashboardPage() {
                             }}
                           />
                         </div>
-                        <span className="text-white/30 text-[10px] w-4 text-right">{p.count}</span>
+                        <span className="text-[var(--text-muted)] text-[10px] w-4 text-right">{p.count}</span>
                       </div>
                     </div>
                   )
@@ -471,42 +471,42 @@ export default function DashboardPage() {
         {/* Right column — NPS & Reviews */}
         <div className="flex flex-col gap-4">
           {/* NPS Card */}
-          <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 space-y-4">
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5 space-y-4">
             <div className="flex items-center gap-2">
-              <Star size={14} className="text-[#FBBF24]" />
-              <p className="text-white text-sm font-semibold">NPS del restaurante</p>
+              <Star size={14} className="text-[#B45309]" />
+              <p className="text-[var(--text-strong)] text-sm font-semibold">NPS del restaurante</p>
             </div>
             <div className="text-center py-3">
-              <p className="text-4xl font-bold text-white" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+              <p className="text-4xl font-bold text-[var(--text-strong)]" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                 {data.avgRating > 0 ? data.avgRating.toFixed(1) : '—'}
               </p>
               <div className="flex items-center justify-center gap-0.5 mt-2">
                 {[1, 2, 3, 4, 5].map(s => (
-                  <Star key={s} size={14} className={s <= Math.round(data.avgRating) ? 'text-[#FBBF24] fill-[#FBBF24]' : 'text-white/15'} />
+                  <Star key={s} size={14} className={s <= Math.round(data.avgRating) ? 'text-[#B45309] fill-[#FBBF24]' : 'text-[var(--text-muted)]'} />
                 ))}
               </div>
-              <p className="text-white/30 text-xs mt-1">{data.reviewCount} opiniones</p>
+              <p className="text-[var(--text-muted)] text-xs mt-1">{data.reviewCount} opiniones</p>
             </div>
           </div>
 
           {/* Recent reviews */}
-          <div className="bg-[#161622] rounded-2xl border border-white/5 p-5 space-y-3">
-            <p className="text-white text-sm font-semibold">Opiniones recientes</p>
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5 space-y-3">
+            <p className="text-[var(--text-strong)] text-sm font-semibold">Opiniones recientes</p>
             {data.recentReviews.length === 0 ? (
-              <p className="text-white/25 text-xs text-center py-3">Sin opiniones aún</p>
+              <p className="text-[var(--text-muted)] text-xs text-center py-3">Sin opiniones aún</p>
             ) : (
               <div className="space-y-2.5">
                 {data.recentReviews.map(r => (
-                  <div key={r.id} className="bg-white/3 rounded-xl p-3 space-y-1">
+                  <div key={r.id} className="bg-[var(--surface-sunken)] rounded-xl p-3 space-y-1">
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map(s => (
-                        <Star key={s} size={10} className={s <= r.rating ? 'text-[#FBBF24] fill-[#FBBF24]' : 'text-white/10'} />
+                        <Star key={s} size={10} className={s <= r.rating ? 'text-[#B45309] fill-[#FBBF24]' : 'text-[var(--text-muted)]'} />
                       ))}
-                      <span className="text-white/20 text-[9px] ml-auto">
+                      <span className="text-[var(--text-muted)] text-[9px] ml-auto">
                         {new Date(r.created_at).toLocaleDateString('es-CL')}
                       </span>
                     </div>
-                    {r.comment && <p className="text-white/50 text-xs leading-relaxed">{r.comment}</p>}
+                    {r.comment && <p className="text-[var(--text-muted)] text-xs leading-relaxed">{r.comment}</p>}
                   </div>
                 ))}
               </div>

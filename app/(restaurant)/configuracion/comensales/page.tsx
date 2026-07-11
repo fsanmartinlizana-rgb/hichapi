@@ -82,7 +82,7 @@ export default function ComensalesConfigPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -92,29 +92,29 @@ export default function ComensalesConfigPage() {
   return (
     <div className="p-6 max-w-2xl space-y-6">
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-4 py-2 rounded-xl text-sm">
+        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-4 py-2 rounded-xl text-sm">
           {toast}
         </div>
       )}
 
       <div>
-        <h1 className="text-xl font-bold text-white flex items-center gap-2">
-          <Gift size={20} className="text-[#FF6B35]" />
+        <h1 className="text-xl font-bold text-[var(--text-strong)] flex items-center gap-2">
+          <Gift size={20} className="text-[#E55A2B]" />
           Comensales — Geofence y Fidelidad
         </h1>
-        <p className="text-white/40 text-sm mt-1">
+        <p className="text-[var(--text-muted)] text-sm mt-1">
           Configuración para la app de comensales: notificaciones de proximidad y acumulación de puntos.
         </p>
       </div>
 
       {/* Fidelidad */}
-      <section className="bg-white/[0.02] border border-white/8 rounded-2xl p-5 space-y-4">
-        <h2 className="text-white text-sm font-semibold">Multiplicador de puntos</h2>
-        <p className="text-white/40 text-xs">
-          Los comensales ganan <code className="text-white/60">floor(total/100) × multiplicador</code> puntos por pedido.
+      <section className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
+        <h2 className="text-[var(--text-strong)] text-sm font-semibold">Multiplicador de puntos</h2>
+        <p className="text-[var(--text-muted)] text-xs">
+          Los comensales ganan <code className="text-[var(--text-muted)]">floor(total/100) × multiplicador</code> puntos por pedido.
         </p>
         <label className="block">
-          <span className="text-white/50 text-xs mb-1 block">
+          <span className="text-[var(--text-muted)] text-xs mb-1 block">
             Multiplicador ({config.points_multiplier.toFixed(1)}×)
           </span>
           <input
@@ -128,7 +128,7 @@ export default function ComensalesConfigPage() {
             }
             className="w-full accent-[#FF6B35]"
           />
-          <div className="flex justify-between text-[10px] text-white/30 mt-1">
+          <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1">
             <span>0.5×</span>
             <span>5.0×</span>
           </div>
@@ -136,11 +136,11 @@ export default function ComensalesConfigPage() {
       </section>
 
       {/* Geofence comensal */}
-      <section className="bg-white/[0.02] border border-white/8 rounded-2xl p-5 space-y-4">
+      <section className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <MapPin size={16} className="text-[#FF6B35]" />
-            <h2 className="text-white text-sm font-semibold">Geofence (app comensal)</h2>
+            <MapPin size={16} className="text-[#E55A2B]" />
+            <h2 className="text-[var(--text-strong)] text-sm font-semibold">Geofence (app comensal)</h2>
           </div>
           <button
             type="button"
@@ -149,8 +149,8 @@ export default function ComensalesConfigPage() {
             }
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border ${
               config.geofence_enabled
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                : 'bg-white/5 text-white/40 border-white/10'
+                ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'
             }`}
           >
             {config.geofence_enabled ? (
@@ -162,13 +162,13 @@ export default function ComensalesConfigPage() {
         </div>
 
         {!hasCoords && (
-          <p className="text-amber-400/90 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          <p className="text-amber-700/90 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
             Configurá la ubicación del local en Mi restaurante para activar el geofence.
           </p>
         )}
 
         <label className="block">
-          <span className="text-white/50 text-xs mb-1 block">
+          <span className="text-[var(--text-muted)] text-xs mb-1 block">
             Radio ({config.geofence_radius_m ?? 300} m)
           </span>
           <input
@@ -186,7 +186,7 @@ export default function ComensalesConfigPage() {
         </label>
 
         <label className="block">
-          <span className="text-white/50 text-xs mb-1 block">
+          <span className="text-[var(--text-muted)] text-xs mb-1 block">
             Mensaje push (máx. 140 caracteres)
           </span>
           <textarea
@@ -198,9 +198,9 @@ export default function ComensalesConfigPage() {
             rows={2}
             placeholder="¡Estás cerca! Pasa por un café de cortesía…"
             disabled={!config.geofence_enabled}
-            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm resize-none focus:outline-none focus:border-[#FF6B35]/40 disabled:opacity-50"
+            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm resize-none focus:outline-none focus:border-[#FF6B35]/40 disabled:opacity-50"
           />
-          <p className="text-white/25 text-[10px] mt-1 text-right">
+          <p className="text-[var(--text-muted)] text-[10px] mt-1 text-right">
             {(config.geofence_message ?? '').length}/140
           </p>
         </label>

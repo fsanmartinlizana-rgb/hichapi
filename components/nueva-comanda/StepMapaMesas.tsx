@@ -5,10 +5,10 @@ import { groupByZone } from './utils'
 import Link from 'next/link'
 
 const STATUS_CLASSES: Record<TableOption['status'], string> = {
-  libre:     'bg-emerald-500/15 border-emerald-500/40 text-emerald-300 hover:bg-emerald-500/25',
-  ocupada:   'bg-amber-500/15  border-amber-500/50  text-amber-300   hover:bg-amber-500/25',
-  reservada: 'bg-blue-500/10   border-blue-500/30   text-blue-400/50   pointer-events-none opacity-50',
-  bloqueada: 'bg-white/5       border-white/10      text-white/25      pointer-events-none opacity-50',
+  libre:     'bg-emerald-500/15 border-emerald-500/40 text-emerald-700 hover:bg-emerald-500/25',
+  ocupada:   'bg-amber-500/15  border-amber-500/50  text-amber-700   hover:bg-amber-500/25',
+  reservada: 'bg-blue-500/10   border-blue-500/30   text-blue-700/50   pointer-events-none opacity-50',
+  bloqueada: 'bg-[var(--surface-sunken)]       border-[var(--border-subtle)]      text-[var(--text-muted)]      pointer-events-none opacity-50',
 }
 
 function TableCard({ table, selected, onSelect }: { table: TableOption; selected: boolean; onSelect: (t: TableOption) => void }) {
@@ -29,7 +29,7 @@ function TableCard({ table, selected, onSelect }: { table: TableOption; selected
     >
       {table.label}
       {table.status === 'ocupada' && (
-        <span className="mt-1 text-[10px] font-normal text-amber-400/70">ocupada</span>
+        <span className="mt-1 text-[10px] font-normal text-amber-700/70">ocupada</span>
       )}
     </button>
   )
@@ -38,20 +38,20 @@ function TableCard({ table, selected, onSelect }: { table: TableOption; selected
 function PaxSelector({ pax, onChange }: { pax: number; onChange: (p: number) => void }) {
   return (
     <div className="flex items-center gap-3 mt-4">
-      <span className="text-sm font-medium text-white/60">Personas:</span>
+      <span className="text-sm font-medium text-[var(--text-muted)]">Personas:</span>
       <button
         type="button"
         onClick={() => onChange(pax - 1)}
         disabled={pax <= 1}
-        className="w-8 h-8 rounded-full border border-white/20 bg-white/8 flex items-center justify-center text-lg font-bold text-white/80 disabled:opacity-30 hover:bg-white/15 transition-colors"
+        className="w-8 h-8 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] flex items-center justify-center text-lg font-bold text-[var(--text-body)] disabled:opacity-30 hover:bg-[var(--surface-sunken)] transition-colors"
         aria-label="Reducir personas"
       >−</button>
-      <span className="w-6 text-center font-semibold text-white">{pax}</span>
+      <span className="w-6 text-center font-semibold text-[var(--text-strong)]">{pax}</span>
       <button
         type="button"
         onClick={() => onChange(pax + 1)}
         disabled={pax >= 20}
-        className="w-8 h-8 rounded-full border border-white/20 bg-white/8 flex items-center justify-center text-lg font-bold text-white/80 disabled:opacity-30 hover:bg-white/15 transition-colors"
+        className="w-8 h-8 rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] flex items-center justify-center text-lg font-bold text-[var(--text-body)] disabled:opacity-30 hover:bg-[var(--surface-sunken)] transition-colors"
         aria-label="Aumentar personas"
       >+</button>
     </div>
@@ -61,8 +61,8 @@ function PaxSelector({ pax, onChange }: { pax: number; onChange: (p: number) => 
 function EmptyState() {
   return (
     <div className="flex flex-col items-center justify-center py-16 text-center">
-      <p className="text-base font-medium text-white/50 mb-2">No hay mesas disponibles</p>
-      <Link href="/mesas" className="text-sm text-indigo-400 hover:underline">
+      <p className="text-base font-medium text-[var(--text-muted)] mb-2">No hay mesas disponibles</p>
+      <Link href="/mesas" className="text-sm text-indigo-700 hover:underline">
         Ir a configuración de mesas
       </Link>
     </div>
@@ -82,7 +82,7 @@ export default function StepMapaMesas({ tables, selectedTable, pax, onSelectTabl
       {keys.map(zone => (
         <div key={zone}>
           {hasZones && zone && (
-            <h3 className="text-xs font-semibold uppercase tracking-widest text-white/35 mb-3">{zone}</h3>
+            <h3 className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-3">{zone}</h3>
           )}
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
             {grouped[zone].map(table => (
@@ -95,7 +95,7 @@ export default function StepMapaMesas({ tables, selectedTable, pax, onSelectTabl
       {selectedTable !== null && !isOcupada && <PaxSelector pax={pax} onChange={onChangePax} />}
 
       {isOcupada && (
-        <p className="text-xs text-amber-400/70 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2">
+        <p className="text-xs text-amber-700/70 bg-amber-500/10 border border-amber-500/20 rounded-lg px-4 py-2">
           Esta mesa tiene una comanda activa. Los productos se agregarán a esa comanda.
         </p>
       )}
@@ -105,7 +105,7 @@ export default function StepMapaMesas({ tables, selectedTable, pax, onSelectTabl
         onClick={onConfirm}
         disabled={selectedTable === null || (!isOcupada && pax < 1)}
         className={[
-          'mt-2 w-full sm:w-auto sm:self-end rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors',
+          'mt-2 w-full sm:w-auto sm:self-end rounded-xl px-6 py-3 text-sm font-semibold text-[var(--text-strong)] shadow-sm disabled:opacity-30 disabled:cursor-not-allowed transition-colors',
           isOcupada
             ? 'bg-amber-600 hover:bg-amber-500'
             : 'bg-emerald-600 hover:bg-emerald-500',

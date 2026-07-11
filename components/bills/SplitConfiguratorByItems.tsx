@@ -24,12 +24,12 @@ interface SplitConfiguratorByItemsProps {
 
 // Colores por persona
 const PERSON_COLORS = [
-  { bg: 'bg-blue-500/20',   border: 'border-blue-500/40',   text: 'text-blue-300',   dot: 'bg-blue-400'   },
-  { bg: 'bg-violet-500/20', border: 'border-violet-500/40', text: 'text-violet-300', dot: 'bg-violet-400' },
-  { bg: 'bg-emerald-500/20',border: 'border-emerald-500/40',text: 'text-emerald-300',dot: 'bg-emerald-400'},
-  { bg: 'bg-amber-500/20',  border: 'border-amber-500/40',  text: 'text-amber-300',  dot: 'bg-amber-400'  },
-  { bg: 'bg-pink-500/20',   border: 'border-pink-500/40',   text: 'text-pink-300',   dot: 'bg-pink-400'   },
-  { bg: 'bg-cyan-500/20',   border: 'border-cyan-500/40',   text: 'text-cyan-300',   dot: 'bg-cyan-400'   },
+  { bg: 'bg-blue-500/20',   border: 'border-blue-500/40',   text: 'text-blue-700',   dot: 'bg-blue-400'   },
+  { bg: 'bg-violet-500/20', border: 'border-violet-500/40', text: 'text-violet-700', dot: 'bg-violet-400' },
+  { bg: 'bg-emerald-500/20',border: 'border-emerald-500/40',text: 'text-emerald-700',dot: 'bg-emerald-400'},
+  { bg: 'bg-amber-500/20',  border: 'border-amber-500/40',  text: 'text-amber-700',  dot: 'bg-amber-400'  },
+  { bg: 'bg-pink-500/20',   border: 'border-pink-500/40',   text: 'text-pink-700',   dot: 'bg-pink-400'   },
+  { bg: 'bg-cyan-500/20',   border: 'border-cyan-500/40',   text: 'text-cyan-700',   dot: 'bg-cyan-400'   },
 ]
 
 function getColor(personIndex: number) {
@@ -122,15 +122,15 @@ export function SplitConfiguratorByItems({
   return (
     <div className="space-y-4">
       <div>
-        <h3 className="text-white font-semibold text-base mb-1">Dividir por items</h3>
-        <p className="text-white/40 text-xs">
-          Total: <span className="text-white font-semibold">{clp(totalAmount)}</span>
+        <h3 className="text-[var(--text-strong)] font-semibold text-base mb-1">Dividir por items</h3>
+        <p className="text-[var(--text-muted)] text-xs">
+          Total: <span className="text-[var(--text-strong)] font-semibold">{clp(totalAmount)}</span>
         </p>
       </div>
 
       {/* Selector de número de personas */}
-      <div className="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/8">
-        <span className="text-white/50 text-xs flex-1">Número de personas</span>
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
+        <span className="text-[var(--text-muted)] text-xs flex-1">Número de personas</span>
         <div className="flex items-center gap-2">
           <button
             onClick={() => {
@@ -147,15 +147,15 @@ export function SplitConfiguratorByItems({
               }
             }}
             disabled={numPeople <= 2}
-            className="w-7 h-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/12 transition-colors"
+            className="w-7 h-7 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-strong)] disabled:opacity-30 hover:bg-[var(--surface-sunken)] transition-colors"
           >
             <Minus size={12} />
           </button>
-          <span className="text-white font-bold w-4 text-center text-sm">{numPeople}</span>
+          <span className="text-[var(--text-strong)] font-bold w-4 text-center text-sm">{numPeople}</span>
           <button
             onClick={() => numPeople < 6 && setNumPeople(p => p + 1)}
             disabled={numPeople >= 6}
-            className="w-7 h-7 rounded-lg bg-white/8 border border-white/10 flex items-center justify-center text-white disabled:opacity-30 hover:bg-white/12 transition-colors"
+            className="w-7 h-7 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-strong)] disabled:opacity-30 hover:bg-[var(--surface-sunken)] transition-colors"
           >
             <Plus size={12} />
           </button>
@@ -184,7 +184,7 @@ export function SplitConfiguratorByItems({
         {unassignedCount > 0 && (
           <button
             onClick={clearAssignments}
-            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-white/10 text-white/30 text-xs hover:text-white/50 transition-colors"
+            className="flex items-center gap-1 px-2 py-1 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:text-[var(--text-muted)] transition-colors"
           >
             Limpiar
           </button>
@@ -201,15 +201,15 @@ export function SplitConfiguratorByItems({
             <div
               key={item.key}
               className={`flex items-center gap-2 p-2.5 rounded-xl border transition-all ${
-                c ? `${c.bg} ${c.border}` : 'bg-white/3 border-white/8'
+                c ? `${c.bg} ${c.border}` : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'
               }`}
             >
               {/* Nombre y precio */}
               <div className="flex-1 min-w-0">
-                <p className={`text-xs font-medium truncate ${c ? c.text : 'text-white/70'}`}>
+                <p className={`text-xs font-medium truncate ${c ? c.text : 'text-[var(--text-body)]'}`}>
                   {item.name}
                 </p>
-                <p className="text-white/30 text-[10px]" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                <p className="text-[var(--text-muted)] text-[10px]" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                   {clp(item.unit_price)}
                 </p>
               </div>
@@ -226,7 +226,7 @@ export function SplitConfiguratorByItems({
                       className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold border transition-all ${
                         isSelected
                           ? `${pc.bg} ${pc.border} ${pc.text} scale-110`
-                          : 'bg-white/5 border-white/10 text-white/30 hover:bg-white/10'
+                          : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'
                       }`}
                     >
                       {i + 1}
@@ -242,8 +242,8 @@ export function SplitConfiguratorByItems({
       {/* Estado de asignación */}
       <div className={`flex items-center gap-2 p-3 rounded-xl border text-xs ${
         allAssigned
-          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400'
-          : 'bg-white/5 border-white/10 text-white/40'
+          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700'
+          : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'
       }`}>
         {allAssigned
           ? <><CheckCircle2 size={13} /> Todos los items asignados</>
@@ -274,7 +274,7 @@ export function SplitConfiguratorByItems({
       <div className="flex gap-3">
         <button
           onClick={onBack}
-          className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/60 text-sm hover:border-white/20 hover:text-white transition-colors"
+          className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] hover:text-[var(--text-strong)] transition-colors"
         >
           ← Volver
         </button>

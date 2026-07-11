@@ -89,11 +89,11 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative bg-[#161622] rounded-2xl border border-white/10 w-full max-w-md p-6 space-y-5 shadow-2xl">
+      <div className="relative bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] w-full max-w-md p-6 space-y-5 shadow-2xl">
         {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1 rounded-lg text-white/30 hover:text-white/60 transition-colors"
+          className="absolute top-4 right-4 p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-muted)] transition-colors"
         >
           <X size={16} />
         </button>
@@ -102,15 +102,15 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
           /* Success state */
           <div className="text-center py-6 space-y-3">
             <span className="text-4xl block">🙏</span>
-            <p className="text-white font-semibold">¡Gracias por tu feedback!</p>
-            <p className="text-white/40 text-sm">Tu opinión nos ayuda a mejorar.</p>
+            <p className="text-[var(--text-strong)] font-semibold">¡Gracias por tu feedback!</p>
+            <p className="text-[var(--text-muted)] text-sm">Tu opinión nos ayuda a mejorar.</p>
           </div>
         ) : (
           <>
             {/* Header */}
             <div className="space-y-1 pr-8">
-              <h2 className="text-white font-bold text-lg">{config.title}</h2>
-              <p className="text-white/40 text-sm">{config.subtitle}</p>
+              <h2 className="text-[var(--text-strong)] font-bold text-lg">{config.title}</h2>
+              <p className="text-[var(--text-muted)] text-sm">{config.subtitle}</p>
             </div>
 
             {/* Score selector */}
@@ -125,8 +125,8 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
                       onClick={() => setScore(i)}
                       className={`flex-1 py-2.5 rounded-lg text-xs font-bold transition-all
                         ${isSelected
-                          ? `${SCORE_COLORS[type]} text-white scale-110 shadow-lg`
-                          : 'bg-white/5 text-white/40 hover:bg-white/10 hover:text-white/60'
+                          ? `${SCORE_COLORS[type]} text-[var(--text-strong)] scale-110 shadow-lg`
+                          : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-muted)]'
                         }`}
                     >
                       {i}
@@ -135,8 +135,8 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
                 })}
               </div>
               <div className="flex justify-between">
-                <span className="text-white/25 text-[10px]">Nada probable</span>
-                <span className="text-white/25 text-[10px]">Muy probable</span>
+                <span className="text-[var(--text-muted)] text-[10px]">Nada probable</span>
+                <span className="text-[var(--text-muted)] text-[10px]">Muy probable</span>
               </div>
             </div>
 
@@ -147,7 +147,7 @@ export default function NpsModal({ open, onClose, npsType, restaurantId, userId,
                 value={comment}
                 onChange={e => setComment(e.target.value)}
                 placeholder="¿Algo que quieras agregar? (opcional)"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 resize-none focus:outline-none focus:border-[#FF6B35]/50"
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] resize-none focus:outline-none focus:border-[#FF6B35]/50"
               />
             </div>
 

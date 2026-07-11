@@ -372,24 +372,24 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
         }
       }}
     >
-      <div className="bg-[#1a1a2e] rounded-2xl w-full max-w-sm border border-white/10 overflow-hidden">
+      <div className="bg-[var(--surface-card)] rounded-2xl w-full max-w-sm border border-[var(--border-subtle)] overflow-hidden">
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
           <div>
-            <h3 className="text-white font-semibold text-sm">
+            <h3 className="text-[var(--text-strong)] font-semibold text-sm">
               {step === 'receipt' ? 'Boleta electrónica' : 'Método de pago'}
             </h3>
-            <p className="text-white/40 text-xs">
+            <p className="text-[var(--text-muted)] text-xs">
               Subtotal: {clp(total)}
-              {tipAmount > 0 && <span className="text-emerald-400"> + {clp(tipAmount)} propina = <span className="text-white font-semibold">{clp(grandTotal)}</span></span>}
+              {tipAmount > 0 && <span className="text-emerald-700"> + {clp(tipAmount)} propina = <span className="text-[var(--text-strong)] font-semibold">{clp(grandTotal)}</span></span>}
               {tipAmount === 0 && <span> · Sin propina</span>}
             </p>
           </div>
           <button 
             onClick={step === 'receipt' ? handleReceiptCancel : onClose}
             disabled={saving || receiptLoading}
-            className="text-white/30 hover:text-white transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             <X size={16} />
           </button>
@@ -415,8 +415,8 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
           {/* Propina */}
           <div className="mb-5 p-3.5 rounded-xl bg-emerald-500/8 border border-emerald-500/20">
             <div className="flex items-center justify-between mb-3">
-              <span className="text-emerald-300 text-xs font-semibold">Propina</span>
-              <span className="text-emerald-400 font-bold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+              <span className="text-emerald-700 text-xs font-semibold">Propina</span>
+              <span className="text-emerald-700 font-bold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                 {clp(tipAmount)}
               </span>
             </div>
@@ -429,8 +429,8 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                   onClick={() => { setTipPct(pct); setTipMode('pct'); setTipCustom('') }}
                   className={`flex-1 py-1.5 rounded-lg text-[11px] font-bold transition-all ${
                     tipMode === 'pct' && tipPct === pct
-                      ? 'bg-emerald-500/30 text-emerald-300 border border-emerald-500/50'
-                      : 'bg-white/5 text-white/40 border border-white/8 hover:bg-white/8'
+                      ? 'bg-emerald-500/30 text-emerald-700 border border-emerald-500/50'
+                      : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)]'
                   }`}
                 >
                   {pct === 0 ? 'Sin' : `${pct}%`}
@@ -440,9 +440,9 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
 
             {/* Monto personalizado */}
             <div className="flex items-center gap-2">
-              <span className="text-white/30 text-xs shrink-0">Monto fijo:</span>
+              <span className="text-[var(--text-muted)] text-xs shrink-0">Monto fijo:</span>
               <div className="relative flex-1">
-                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-white/30 text-xs">$</span>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-xs">$</span>
                 <input
                   type="number"
                   value={tipCustom}
@@ -450,10 +450,10 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                   onFocus={() => setTipMode('custom')}
                   placeholder="0"
                   min={0}
-                  className={`w-full bg-black/30 border rounded-lg pl-6 pr-2 py-1.5 text-white text-xs focus:outline-none transition-colors ${
+                  className={`w-full bg-black/30 border rounded-lg pl-6 pr-2 py-1.5 text-[var(--text-strong)] text-xs focus:outline-none transition-colors ${
                     tipMode === 'custom'
                       ? 'border-emerald-500/50'
-                      : 'border-white/10 focus:border-emerald-500/30'
+                      : 'border-[var(--border-subtle)] focus:border-emerald-500/30'
                   }`}
                   style={{ fontFamily: 'var(--font-dm-mono)' }}
                 />
@@ -462,8 +462,8 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
 
             {/* Total con propina */}
             <div className="flex items-center justify-between mt-3 pt-3 border-t border-emerald-500/15">
-              <span className="text-white/50 text-xs">Total a cobrar</span>
-              <span className="text-white font-bold text-base" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+              <span className="text-[var(--text-muted)] text-xs">Total a cobrar</span>
+              <span className="text-[var(--text-strong)] font-bold text-base" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                 {clp(grandTotal)}
               </span>
             </div>
@@ -482,15 +482,15 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                 className={`w-full flex items-center gap-3 p-3 rounded-xl border text-left transition-all ${
                   method === id
                     ? 'border-[#FF6B35] bg-[#FF6B35]/10'
-                    : 'border-white/10 hover:border-white/20'
+                    : 'border-[var(--border-subtle)] hover:border-[var(--border-subtle)]'
                 }`}
               >
-                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${method === id ? 'bg-[#FF6B35]/20' : 'bg-white/5'}`}>
-                  <Icon size={18} className={method === id ? 'text-[#FF6B35]' : 'text-white/40'} />
+                <div className={`w-9 h-9 rounded-lg flex items-center justify-center shrink-0 ${method === id ? 'bg-[#FF6B35]/20' : 'bg-[var(--surface-sunken)]'}`}>
+                  <Icon size={18} className={method === id ? 'text-[#E55A2B]' : 'text-[var(--text-muted)]'} />
                 </div>
                 <div>
-                  <p className="text-white text-sm font-medium">{label}</p>
-                  <p className="text-white/30 text-xs">{desc}</p>
+                  <p className="text-[var(--text-strong)] text-sm font-medium">{label}</p>
+                  <p className="text-[var(--text-muted)] text-xs">{desc}</p>
                 </div>
               </button>
             ))}
@@ -499,17 +499,17 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
           {/* Mixed payment input */}
           {method === 'mixed' && (
             <div className="mb-5">
-              <label className="text-white/40 text-xs mb-1.5 block">Parte en efectivo (CLP)</label>
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Parte en efectivo (CLP)</label>
               <input
                 type="number"
                 value={cashPart}
                 onChange={e => setCashPart(e.target.value)}
                 placeholder="0"
                 max={grandTotal}
-                className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full bg-black/30 border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
               {cashPart && (
-                <p className="text-white/30 text-xs mt-1">Digital: {clp(digitalPart)}</p>
+                <p className="text-[var(--text-muted)] text-xs mt-1">Digital: {clp(digitalPart)}</p>
               )}
             </div>
           )}
@@ -520,11 +520,11 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
               <label className="flex items-center justify-between cursor-pointer">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-lg bg-[#FF6B35]/10 flex items-center justify-center shrink-0">
-                    <Mail size={18} className="text-[#FF6B35]" />
+                    <Mail size={18} className="text-[#E55A2B]" />
                   </div>
                   <div>
-                    <p className="text-white text-sm font-medium">Enviar boleta por email</p>
-                    <p className="text-white/30 text-xs">El cliente recibe la boleta en su correo</p>
+                    <p className="text-[var(--text-strong)] text-sm font-medium">Enviar boleta por email</p>
+                    <p className="text-[var(--text-muted)] text-xs">El cliente recibe la boleta en su correo</p>
                   </div>
                 </div>
                 <div className="relative">
@@ -534,7 +534,7 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                     onChange={e => { setSendByEmail(e.target.checked); setBoletaEmailErr('') }}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
+                  <div className="w-11 h-6 bg-[var(--surface-sunken)] rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
                   <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
                 </div>
               </label>
@@ -542,7 +542,7 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
               {/* Email input — shown when toggle is on */}
               {sendByEmail && (
                 <div className="mt-3 pt-3 border-t border-[#FF6B35]/15">
-                  <label className="text-white/40 text-xs mb-1.5 block">
+                  <label className="text-[var(--text-muted)] text-xs mb-1.5 block">
                     Correo del cliente *
                   </label>
                   <input
@@ -552,14 +552,14 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                     value={boletaEmail}
                     onChange={e => { setBoletaEmail(e.target.value); setBoletaEmailErr('') }}
                     placeholder="cliente@ejemplo.com"
-                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none transition-colors ${
                       boletaEmailErr
                         ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                        : 'border-[var(--border-subtle)] focus:border-[#FF6B35]/50'
                     }`}
                   />
                   {boletaEmailErr && (
-                    <p className="text-red-400 text-[10px] mt-1">{boletaEmailErr}</p>
+                    <p className="text-red-700 text-[10px] mt-1">{boletaEmailErr}</p>
                   )}
                 </div>
               )}
@@ -572,11 +572,11 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
               <label className="flex items-center justify-between cursor-pointer">
                 <div className="flex items-center gap-2.5">
                   <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center shrink-0">
-                    <Building2 size={18} className="text-blue-400" />
+                    <Building2 size={18} className="text-blue-700" />
                   </div>
                   <div>
-                    <p className="text-white text-sm font-medium">¿Necesitas factura?</p>
-                    <p className="text-white/30 text-xs">Para empresas con crédito fiscal</p>
+                    <p className="text-[var(--text-strong)] text-sm font-medium">¿Necesitas factura?</p>
+                    <p className="text-[var(--text-muted)] text-xs">Para empresas con crédito fiscal</p>
                   </div>
                 </div>
                 <div className="relative">
@@ -586,7 +586,7 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                     onChange={e => setNeedsInvoice(e.target.checked)}
                     className="sr-only peer"
                   />
-                  <div className="w-11 h-6 bg-white/10 rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
+                  <div className="w-11 h-6 bg-[var(--surface-sunken)] rounded-full peer-checked:bg-[#FF6B35] transition-colors"></div>
                   <div className="absolute left-0.5 top-0.5 w-5 h-5 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
                 </div>
               </label>
@@ -595,12 +595,12 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
 
           {/* Invoice form - shown conditionally */}
           {needsInvoice && (
-            <div className="space-y-3 mb-5 border-t border-white/8 pt-4">
-              <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Datos del receptor</p>
+            <div className="space-y-3 mb-5 border-t border-[var(--border-subtle)] pt-4">
+              <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">Datos del receptor</p>
 
               {/* RUT con autocompletado */}
               <div className="relative" ref={suggestRef}>
-                <label className="text-white/40 text-xs mb-1 block">RUT empresa *</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">RUT empresa *</label>
                 <div className="relative">
                   <input
                     type="text"
@@ -609,38 +609,38 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
                     onBlur={handleRutBlur}
                     onFocus={() => suggestions.length > 0 && setShowSuggestions(true)}
                     placeholder="76354771-K"
-                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors pr-8 ${
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none transition-colors pr-8 ${
                       rut && !rutValid
                         ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                        : 'border-[var(--border-subtle)] focus:border-[#FF6B35]/50'
                     }`}
                   />
                   {loadingSuggest && (
-                    <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />
+                    <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] animate-spin" />
                   )}
                 </div>
                 {rut && !rutValid && (
-                  <p className="text-red-400 text-[10px] mt-1">
+                  <p className="text-red-700 text-[10px] mt-1">
                     {rutError ?? fieldErrors['rut_receptor'] ?? 'Formato inválido. Ej: 76354771-K'}
                   </p>
                 )}
 
                 {/* Dropdown de sugerencias */}
                 {showSuggestions && suggestions.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-[#1a1a2e] border border-white/15 rounded-xl shadow-xl overflow-hidden">
+                  <div className="absolute z-10 w-full mt-1 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-xl overflow-hidden">
                     {suggestions.map(r => (
                       <button
                         key={r.rut}
                         type="button"
                         onMouseDown={() => applyReceptor(r)}
-                        className="w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0"
+                        className="w-full px-3 py-2.5 text-left hover:bg-[var(--surface-sunken)] transition-colors border-b border-[var(--border-subtle)] last:border-0"
                       >
                         <div className="flex items-center justify-between gap-2">
                           <div className="min-w-0">
-                            <p className="text-white text-xs font-semibold truncate">{r.razon_social}</p>
-                            <p className="text-white/40 text-[10px] font-mono">{r.rut}</p>
+                            <p className="text-[var(--text-strong)] text-xs font-semibold truncate">{r.razon_social}</p>
+                            <p className="text-[var(--text-muted)] text-[10px] font-mono">{r.rut}</p>
                           </div>
-                          <span className="text-white/20 text-[10px] shrink-0">
+                          <span className="text-[var(--text-muted)] text-[10px] shrink-0">
                             {r.facturas_emitidas} fact.
                           </span>
                         </div>
@@ -651,91 +651,91 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
               </div>
 
               <div>
-                <label className="text-white/40 text-xs mb-1 block">Razón social *</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Razón social *</label>
                 <input
                   type="text"
                   value={razon}
                   onChange={e => setRazon(e.target.value)}
                   placeholder="Empresa Ejemplo SpA"
-                  className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                  className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none transition-colors ${
                     fieldErrors['razon_receptor']
                       ? 'border-red-500/50 focus:border-red-500'
-                      : 'border-white/10 focus:border-[#FF6B35]/50'
+                      : 'border-[var(--border-subtle)] focus:border-[#FF6B35]/50'
                   }`}
                 />
                 {fieldErrors['razon_receptor'] && (
-                  <p className="text-red-400 text-[10px] mt-1">{fieldErrors['razon_receptor']}</p>
+                  <p className="text-red-700 text-[10px] mt-1">{fieldErrors['razon_receptor']}</p>
                 )}
               </div>
 
               <div>
-                <label className="text-white/40 text-xs mb-1 block">Giro *</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1 block">Giro *</label>
                 <input
                   type="text"
                   value={giro}
                   onChange={e => setGiro(e.target.value)}
                   placeholder="Servicios de alimentación"
-                  className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                  className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none transition-colors ${
                     fieldErrors['giro_receptor']
                       ? 'border-red-500/50 focus:border-red-500'
-                      : 'border-white/10 focus:border-[#FF6B35]/50'
+                      : 'border-[var(--border-subtle)] focus:border-[#FF6B35]/50'
                   }`}
                 />
                 {fieldErrors['giro_receptor'] && (
-                  <p className="text-red-400 text-[10px] mt-1">{fieldErrors['giro_receptor']}</p>
+                  <p className="text-red-700 text-[10px] mt-1">{fieldErrors['giro_receptor']}</p>
                 )}
               </div>
 
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="text-white/40 text-xs mb-1 block">Dirección *</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1 block">Dirección *</label>
                   <input
                     type="text"
                     value={direccion}
                     onChange={e => setDireccion(e.target.value)}
                     placeholder="Av. Providencia 1234"
-                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none transition-colors ${
                       fieldErrors['direccion_receptor']
                         ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                        : 'border-[var(--border-subtle)] focus:border-[#FF6B35]/50'
                     }`}
                   />
                   {fieldErrors['direccion_receptor'] && (
-                    <p className="text-red-400 text-[10px] mt-1">{fieldErrors['direccion_receptor']}</p>
+                    <p className="text-red-700 text-[10px] mt-1">{fieldErrors['direccion_receptor']}</p>
                   )}
                 </div>
                 <div>
-                  <label className="text-white/40 text-xs mb-1 block">Comuna *</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1 block">Comuna *</label>
                   <input
                     type="text"
                     value={comuna}
                     onChange={e => setComuna(e.target.value)}
                     placeholder="Providencia"
-                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none transition-colors ${
+                    className={`w-full bg-black/30 border rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none transition-colors ${
                       fieldErrors['comuna_receptor']
                         ? 'border-red-500/50 focus:border-red-500'
-                        : 'border-white/10 focus:border-[#FF6B35]/50'
+                        : 'border-[var(--border-subtle)] focus:border-[#FF6B35]/50'
                     }`}
                   />
                   {fieldErrors['comuna_receptor'] && (
-                    <p className="text-red-400 text-[10px] mt-1">{fieldErrors['comuna_receptor']}</p>
+                    <p className="text-red-700 text-[10px] mt-1">{fieldErrors['comuna_receptor']}</p>
                   )}
                 </div>
               </div>
 
               {/* Email — para envío automático del XML cuando sea aceptada */}
               <div>
-                <label className="text-white/40 text-xs mb-1 flex items-center gap-1.5 block">
-                  <Mail size={10} className="text-white/30" />
+                <label className="text-[var(--text-muted)] text-xs mb-1 flex items-center gap-1.5 block">
+                  <Mail size={10} className="text-[var(--text-muted)]" />
                   Correo electrónico
-                  <span className="text-white/20 text-[10px] font-normal">(opcional — recibe el XML al ser aceptada)</span>
+                  <span className="text-[var(--text-muted)] text-[10px] font-normal">(opcional — recibe el XML al ser aceptada)</span>
                 </label>
                 <input
                   type="email"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   placeholder="contabilidad@empresa.cl"
-                  className="w-full bg-black/30 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                  className="w-full bg-black/30 border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                 />
               </div>
             </div>
@@ -746,7 +746,7 @@ export function PaymentMethodModal({ orderId, total, restaurantId, onConfirm, on
             <button
               onClick={onClose}
               disabled={saving}
-              className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+              className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
             >
               Cancelar
             </button>

@@ -72,16 +72,16 @@ export function TicketPrinterModal({ groups, onConfirm, onCancel }: TicketPrinte
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
       <div
-        className="w-full max-w-sm rounded-2xl border border-white/10 overflow-hidden shadow-2xl"
+        className="w-full max-w-sm rounded-2xl border border-[var(--border-subtle)] overflow-hidden shadow-2xl"
         style={{ background: '#161622' }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
-            <Printer size={16} className="text-[#FF6B35]" />
-            <p className="text-white font-semibold text-sm">Enviar tickets</p>
+            <Printer size={16} className="text-[#E55A2B]" />
+            <p className="text-[var(--text-strong)] font-semibold text-sm">Enviar tickets</p>
           </div>
-          <button onClick={onCancel} className="text-white/30 hover:text-white/70 transition-colors">
+          <button onClick={onCancel} className="text-[var(--text-muted)] hover:text-[var(--text-body)] transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -102,11 +102,11 @@ export function TicketPrinterModal({ groups, onConfirm, onCancel }: TicketPrinte
                   <p className="text-xs font-semibold" style={{ color }}>
                     {KIND_LABEL[g.kind] ?? g.kind} → <span className="font-mono">{g.printers[0].name}</span>
                   </p>
-                  <p className="text-[10px] text-white/35 mt-0.5">
+                  <p className="text-[10px] text-[var(--text-muted)] mt-0.5">
                     {g.items.length} ítem{g.items.length !== 1 ? 's' : ''} · envío automático
                   </p>
                 </div>
-                <Check size={13} className="text-emerald-400 shrink-0" />
+                <Check size={13} className="text-emerald-700 shrink-0" />
               </div>
             )
           })}
@@ -122,7 +122,7 @@ export function TicketPrinterModal({ groups, onConfirm, onCancel }: TicketPrinte
                   <p className="text-xs font-semibold" style={{ color }}>
                     {KIND_LABEL[g.kind] ?? g.kind}
                   </p>
-                  <span className="text-[10px] text-white/30">
+                  <span className="text-[10px] text-[var(--text-muted)]">
                     ({g.items.length} ítem{g.items.length !== 1 ? 's' : ''})
                   </span>
                 </div>
@@ -130,9 +130,9 @@ export function TicketPrinterModal({ groups, onConfirm, onCancel }: TicketPrinte
                 {/* Items preview */}
                 <div className="px-2 space-y-0.5">
                   {g.items.map((item, i) => (
-                    <p key={i} className="text-[11px] text-white/50">
+                    <p key={i} className="text-[11px] text-[var(--text-muted)]">
                       {item.cantidad}× {item.nombre}
-                      {item.observacion && <span className="text-amber-400/60"> · {item.observacion}</span>}
+                      {item.observacion && <span className="text-amber-700/60"> · {item.observacion}</span>}
                     </p>
                   ))}
                 </div>
@@ -146,8 +146,8 @@ export function TicketPrinterModal({ groups, onConfirm, onCancel }: TicketPrinte
                       className={[
                         'py-2.5 px-3 rounded-xl border text-xs font-mono font-semibold transition-all',
                         selections[g.kind] === p.name
-                          ? 'text-white'
-                          : 'bg-white/3 border-white/10 text-white/40 hover:text-white/70 hover:border-white/20',
+                          ? 'text-[var(--text-strong)]'
+                          : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--border-subtle)]',
                       ].join(' ')}
                       style={
                         selections[g.kind] === p.name
@@ -168,7 +168,7 @@ export function TicketPrinterModal({ groups, onConfirm, onCancel }: TicketPrinte
         <div className="px-5 pb-5 flex gap-2">
           <button
             onClick={onCancel}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:bg-white/5 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors"
           >
             Cancelar
           </button>

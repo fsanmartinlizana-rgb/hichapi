@@ -49,26 +49,26 @@ export default function PlanGate({ children }: Props) {
 
   return (
     <div className="min-h-[60vh] flex items-center justify-center p-6">
-      <div className="max-w-md w-full bg-[#13132A] border border-white/10 rounded-2xl p-7 text-center">
+      <div className="max-w-md w-full bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-7 text-center">
         <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
-          <Lock size={22} className="text-amber-300" />
+          <Lock size={22} className="text-amber-700" />
         </div>
-        <h1 className="text-white font-bold text-xl mb-2">
+        <h1 className="text-[var(--text-strong)] font-bold text-xl mb-2">
           Función disponible en {targetPlan.name}
         </h1>
-        <p className="text-white/60 text-sm leading-relaxed mb-5">
-          La sección <span className="text-white font-semibold capitalize">{routeLabel}</span> está incluida en el plan <span className="text-[#FF6B35] font-semibold">{targetPlan.name}</span>.
-          Estás en el plan <span className="text-white capitalize">{currentPlan}</span>.
+        <p className="text-[var(--text-muted)] text-sm leading-relaxed mb-5">
+          La sección <span className="text-[var(--text-strong)] font-semibold capitalize">{routeLabel}</span> está incluida en el plan <span className="text-[#E55A2B] font-semibold">{targetPlan.name}</span>.
+          Estás en el plan <span className="text-[var(--text-strong)] capitalize">{currentPlan}</span>.
         </p>
 
-        <div className="bg-white/4 border border-white/8 rounded-xl p-4 mb-5 text-left">
-          <p className="text-[10px] uppercase tracking-widest text-white/40 font-bold mb-2 flex items-center gap-1.5">
+        <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 mb-5 text-left">
+          <p className="text-[10px] uppercase tracking-widest text-[var(--text-muted)] font-bold mb-2 flex items-center gap-1.5">
             <Sparkles size={11} /> Qué desbloqueás
           </p>
           <ul className="space-y-1.5">
             {targetPlan.features.slice(0, 4).map(f => (
-              <li key={f} className="text-white/75 text-xs flex items-start gap-2">
-                <span className="text-emerald-400 mt-0.5">✓</span>
+              <li key={f} className="text-[var(--text-body)] text-xs flex items-start gap-2">
+                <span className="text-emerald-700 mt-0.5">✓</span>
                 <span>{f}</span>
               </li>
             ))}
@@ -84,7 +84,7 @@ export default function PlanGate({ children }: Props) {
           </Link>
           <Link
             href="/dashboard"
-            className="text-white/50 hover:text-white text-xs transition-colors py-2"
+            className="text-[var(--text-muted)] hover:text-[var(--text-strong)] text-xs transition-colors py-2"
           >
             Volver al inicio
           </Link>

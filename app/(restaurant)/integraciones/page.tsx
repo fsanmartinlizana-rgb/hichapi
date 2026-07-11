@@ -113,8 +113,8 @@ const PLATFORMS: PlatformMeta[] = [
 
 const STATUS_LABELS: Record<IntegrationStatus, { label: string; color: string; bg: string }> = {
   disconnected: { label: 'Sin conectar',    color: '#71717A', bg: 'rgba(113, 113, 122, 0.12)' },
-  pending:      { label: 'Pendiente',       color: '#F59E0B', bg: 'rgba(245, 158, 11, 0.12)' },
-  connected:    { label: 'Conectado',       color: '#10B981', bg: 'rgba(16, 185, 129, 0.12)' },
+  pending:      { label: 'Pendiente',       color: '#B45309', bg: 'rgba(245, 158, 11, 0.12)' },
+  connected:    { label: 'Conectado',       color: '#15803D', bg: 'rgba(16, 185, 129, 0.12)' },
   error:        { label: 'Error',           color: '#EF4444', bg: 'rgba(239, 68, 68, 0.12)' },
 }
 
@@ -184,7 +184,7 @@ export default function IntegracionesPage() {
   if (ctxLoading || !restaurant) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 className="w-6 h-6 text-white/40 animate-spin" />
+        <Loader2 className="w-6 h-6 text-[var(--text-muted)] animate-spin" />
       </div>
     )
   }
@@ -196,11 +196,11 @@ export default function IntegracionesPage() {
         <div>
           <div className="flex items-center gap-2.5 mb-1">
             <div className="w-10 h-10 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/25 flex items-center justify-center">
-              <Bike size={18} className="text-[#FF6B35]" />
+              <Bike size={18} className="text-[#E55A2B]" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Integraciones de delivery</h1>
-              <p className="text-white/50 text-sm">
+              <h1 className="text-2xl font-bold text-[var(--text-strong)]">Integraciones de delivery</h1>
+              <p className="text-[var(--text-muted)] text-sm">
                 Conecta tu restaurante con plataformas externas para centralizar pedidos y carta.
               </p>
             </div>
@@ -209,7 +209,7 @@ export default function IntegracionesPage() {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 hover:bg-white/10 text-white/70 hover:text-white text-xs transition-all disabled:opacity-50"
+          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] text-[var(--text-body)] hover:text-[var(--text-strong)] text-xs transition-all disabled:opacity-50"
         >
           <RefreshCw size={12} className={loading ? 'animate-spin' : ''} />
           Actualizar
@@ -226,17 +226,17 @@ export default function IntegracionesPage() {
       {/* Error */}
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 flex items-start gap-2">
-          <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
-          <p className="text-red-300 text-sm">{error}</p>
+          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
+          <p className="text-red-700 text-sm">{error}</p>
         </div>
       )}
 
       {/* Migration pending banner */}
       {migrationPending && (
         <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2">
-          <AlertCircle size={14} className="text-amber-400 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-amber-300 text-sm font-medium">Módulo pendiente de activar</p>
+            <p className="text-amber-700 text-sm font-medium">Módulo pendiente de activar</p>
             <p className="text-amber-200/70 text-xs mt-0.5">
               Para guardar integraciones, aplica la migración <code className="font-mono text-[11px]">20260411_033_delivery_integrations.sql</code> en tu base de datos. Mientras tanto puedes explorar las plataformas disponibles.
             </p>
@@ -261,9 +261,9 @@ export default function IntegracionesPage() {
       </div>
 
       {/* Help footer */}
-      <div className="mt-8 p-4 rounded-2xl bg-white/3 border border-white/8">
-        <h3 className="text-white font-semibold text-sm mb-1">¿Cómo funcionan las integraciones?</h3>
-        <p className="text-white/50 text-xs leading-relaxed">
+      <div className="mt-8 p-4 rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
+        <h3 className="text-[var(--text-strong)] font-semibold text-sm mb-1">¿Cómo funcionan las integraciones?</h3>
+        <p className="text-[var(--text-muted)] text-xs leading-relaxed">
           Cada plataforma requiere sus propias credenciales (Merchant ID / Store ID y, en algunos casos, una API key).
           HiChapi guarda solo los últimos 4 caracteres de la API key como referencia — nunca el token completo.
           Para conectarte, revisa el portal de partner de cada plataforma. Si tienes dudas, contáctanos por soporte.
@@ -298,12 +298,12 @@ function MetricCard({
   color: string
 }) {
   return (
-    <div className="p-4 rounded-2xl bg-white/3 border border-white/8">
+    <div className="p-4 rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
       <div className="flex items-center gap-2 mb-1.5">
         <Icon size={14} style={{ color }} />
-        <span className="text-white/50 text-[11px] uppercase tracking-wider font-semibold">{label}</span>
+        <span className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider font-semibold">{label}</span>
       </div>
-      <p className="text-white text-2xl font-bold leading-none">{value}</p>
+      <p className="text-[var(--text-strong)] text-2xl font-bold leading-none">{value}</p>
     </div>
   )
 }
@@ -324,7 +324,7 @@ function PlatformCard({
 
   return (
     <div
-      className="p-5 rounded-2xl bg-white/3 border border-white/8 hover:border-white/15 hover:bg-white/5 transition-all"
+      className="p-5 rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-all"
     >
       {/* Header row */}
       <div className="flex items-start gap-3 mb-3">
@@ -336,7 +336,7 @@ function PlatformCard({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-0.5">
-            <h3 className="text-white font-semibold text-base truncate">{platform.name}</h3>
+            <h3 className="text-[var(--text-strong)] font-semibold text-base truncate">{platform.name}</h3>
             <span
               className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
               style={{ backgroundColor: statusMeta.bg, color: statusMeta.color }}
@@ -344,17 +344,17 @@ function PlatformCard({
               {statusMeta.label}
             </span>
           </div>
-          <p className="text-white/40 text-[11px]">{platform.region}</p>
+          <p className="text-[var(--text-muted)] text-[11px]">{platform.region}</p>
         </div>
       </div>
 
-      <p className="text-white/60 text-xs leading-relaxed mb-4 min-h-[32px]">
+      <p className="text-[var(--text-muted)] text-xs leading-relaxed mb-4 min-h-[32px]">
         {platform.description}
       </p>
 
       {/* Connected details */}
       {isConnected && integration && (
-        <div className="mb-4 p-3 rounded-xl bg-black/30 border border-white/5 space-y-1.5">
+        <div className="mb-4 p-3 rounded-xl bg-black/30 border border-[var(--border-subtle)] space-y-1.5">
           {integration.external_id && (
             <Row label="Store / Merchant ID" value={integration.external_id} />
           )}
@@ -375,13 +375,13 @@ function PlatformCard({
           <>
             <button
               onClick={onConnect}
-              className="flex-1 px-3 py-2 rounded-lg bg-white/8 hover:bg-white/12 border border-white/10 text-white text-xs font-medium transition-all"
+              className="flex-1 px-3 py-2 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs font-medium transition-all"
             >
               Editar
             </button>
             <button
               onClick={onDisconnect}
-              className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-300 hover:text-red-200 text-xs font-medium transition-all flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-700 hover:text-red-200 text-xs font-medium transition-all flex items-center gap-1.5"
             >
               <Trash2 size={12} />
               Desconectar
@@ -401,7 +401,7 @@ function PlatformCard({
             href={platform.docsUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white transition-all"
+            className="p-2 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-all"
             title="Portal de partner"
           >
             <ExternalLink size={12} />
@@ -415,8 +415,8 @@ function PlatformCard({
 function Row({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-white/40 text-[10px] uppercase tracking-wider">{label}</span>
-      <span className={`text-white/80 text-[11px] truncate ${mono ? 'font-mono' : ''}`}>{value}</span>
+      <span className="text-[var(--text-muted)] text-[10px] uppercase tracking-wider">{label}</span>
+      <span className={`text-[var(--text-body)] text-[11px] truncate ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   )
 }
@@ -469,9 +469,9 @@ function ConnectModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <div className="bg-[#1A1A2E] border border-white/10 rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/8">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-3">
             <div
               className="w-10 h-10 rounded-xl flex items-center justify-center text-sm font-bold"
@@ -480,13 +480,13 @@ function ConnectModal({
               {platform.short}
             </div>
             <div>
-              <h3 className="text-white font-semibold">{existing ? 'Editar' : 'Conectar'} {platform.name}</h3>
-              <p className="text-white/40 text-[11px]">{platform.region}</p>
+              <h3 className="text-[var(--text-strong)] font-semibold">{existing ? 'Editar' : 'Conectar'} {platform.name}</h3>
+              <p className="text-[var(--text-muted)] text-[11px]">{platform.region}</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-white/10 text-white/40 hover:text-white transition-colors"
+            className="p-1.5 rounded-lg hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
           >
             <X size={16} />
           </button>
@@ -496,7 +496,7 @@ function ConnectModal({
         <div className="p-5 space-y-4">
           <div className="p-3 rounded-xl bg-[#FF6B35]/8 border border-[#FF6B35]/20">
             <p className="text-[#FFAD8A] text-xs leading-relaxed">
-              <strong className="text-[#FF6B35]">Cómo obtener tus credenciales:</strong>
+              <strong className="text-[#E55A2B]">Cómo obtener tus credenciales:</strong>
               <br />
               {platform.help}
             </p>
@@ -508,7 +508,7 @@ function ConnectModal({
               value={externalId}
               onChange={e => setExternalId(e.target.value)}
               placeholder="ej: 123456"
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm placeholder-white/30 focus:outline-none focus:border-[#FF6B35]/50"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder-white/30 focus:outline-none focus:border-[#FF6B35]/50"
             />
           </Field>
 
@@ -518,9 +518,9 @@ function ConnectModal({
               value={apiKey}
               onChange={e => setApiKey(e.target.value)}
               placeholder={existing?.api_key_hint ?? 'pega aquí tu token'}
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm font-mono placeholder-white/30 focus:outline-none focus:border-[#FF6B35]/50"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm font-mono placeholder-white/30 focus:outline-none focus:border-[#FF6B35]/50"
             />
-            <p className="text-white/40 text-[10px] mt-1">
+            <p className="text-[var(--text-muted)] text-[10px] mt-1">
               HiChapi guarda solo los últimos 4 caracteres como referencia; nunca el token completo.
             </p>
           </Field>
@@ -530,11 +530,11 @@ function ConnectModal({
               type="checkbox"
               checked={autoSync}
               onChange={e => setAutoSync(e.target.checked)}
-              className="mt-0.5 w-4 h-4 rounded border-white/20 bg-white/5 accent-[#FF6B35]"
+              className="mt-0.5 w-4 h-4 rounded border-[var(--border-subtle)] bg-[var(--surface-sunken)] accent-[#FF6B35]"
             />
             <div>
-              <p className="text-white text-sm font-medium">Sincronización automática</p>
-              <p className="text-white/50 text-[11px]">
+              <p className="text-[var(--text-strong)] text-sm font-medium">Sincronización automática</p>
+              <p className="text-[var(--text-muted)] text-[11px]">
                 Al actualizar tu carta en HiChapi, se enviará automáticamente a {platform.name}.
               </p>
             </div>
@@ -542,18 +542,18 @@ function ConnectModal({
 
           {error && (
             <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
-              <AlertCircle size={13} className="text-red-400 shrink-0 mt-0.5" />
-              <p className="text-red-300 text-xs">{error}</p>
+              <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
+              <p className="text-red-700 text-xs">{error}</p>
             </div>
           )}
         </div>
 
         {/* Footer */}
-        <div className="p-5 border-t border-white/8 flex items-center gap-2">
+        <div className="p-5 border-t border-[var(--border-subtle)] flex items-center gap-2">
           <button
             onClick={onClose}
             disabled={saving}
-            className="flex-1 px-4 py-2 rounded-lg bg-white/5 hover:bg-white/10 border border-white/10 text-white/70 hover:text-white text-sm transition-all disabled:opacity-50"
+            className="flex-1 px-4 py-2 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] hover:text-[var(--text-strong)] text-sm transition-all disabled:opacity-50"
           >
             Cancelar
           </button>
@@ -576,8 +576,8 @@ function Field({
 }: { label: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div>
-      <label className="block text-white/60 text-[11px] font-semibold uppercase tracking-wider mb-1.5">
-        {label} {required && <span className="text-[#FF6B35]">*</span>}
+      <label className="block text-[var(--text-muted)] text-[11px] font-semibold uppercase tracking-wider mb-1.5">
+        {label} {required && <span className="text-[#E55A2B]">*</span>}
       </label>
       {children}
     </div>

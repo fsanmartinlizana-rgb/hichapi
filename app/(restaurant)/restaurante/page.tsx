@@ -64,9 +64,9 @@ interface RestaurantProfile {
 function Field({ label, children, hint }: { label: string; children: React.ReactNode; hint?: string }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-white/40 text-xs font-medium">{label}</label>
+      <label className="text-[var(--text-muted)] text-xs font-medium">{label}</label>
       {children}
-      {hint && <p className="text-white/20 text-[10px]">{hint}</p>}
+      {hint && <p className="text-[var(--text-muted)] text-[10px]">{hint}</p>}
     </div>
   )
 }
@@ -85,7 +85,7 @@ function TextInput({
       value={value}
       onChange={e => onChange(e.target.value)}
       placeholder={placeholder}
-      className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+      className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
     />
   )
 }
@@ -327,7 +327,7 @@ export default function RestaurantePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -343,8 +343,8 @@ export default function RestaurantePage() {
         {/* Header */}
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-white text-xl font-bold">Mi restaurante</h1>
-            <p className="text-white/40 text-sm mt-0.5">
+            <h1 className="text-[var(--text-strong)] text-xl font-bold">Mi restaurante</h1>
+            <p className="text-[var(--text-muted)] text-sm mt-0.5">
               Esta información aparece en HiChapi para los clientes
             </p>
           </div>
@@ -354,7 +354,7 @@ export default function RestaurantePage() {
                 href={`/r/${slug}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/15 text-white/60 text-sm font-medium hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors"
+                className="flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm font-medium hover:border-[#FF6B35]/40 hover:text-[#E55A2B] transition-colors"
               >
                 <ExternalLink size={14} />
                 Ver mi página
@@ -374,7 +374,7 @@ export default function RestaurantePage() {
 
         {error && (
           <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-            <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+            <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
             <p className="text-red-200 text-xs">{error}</p>
           </div>
         )}
@@ -385,17 +385,17 @@ export default function RestaurantePage() {
         {/* Photo */}
         <Section title="Foto principal">
           <div className="flex items-center gap-4">
-            <div className="w-24 h-24 rounded-xl bg-white/5 border border-white/8 border-dashed flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#FF6B35]/40 transition-colors" onClick={() => fileInputRef.current?.click()}>
+            <div className="w-24 h-24 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] border-dashed flex items-center justify-center overflow-hidden cursor-pointer hover:border-[#FF6B35]/40 transition-colors" onClick={() => fileInputRef.current?.click()}>
               {photoUrl ? (
                 /* eslint-disable-next-line @next/next/no-img-element */
                 <img src={photoUrl} alt={name} className="w-full h-full object-cover" />
               ) : (
-                <Camera size={18} className="text-white/25" />
+                <Camera size={18} className="text-[var(--text-muted)]" />
               )}
             </div>
             <div className="flex-1">
-              <p className="text-white/50 text-sm">JPG, PNG o WebP · Máx 5 MB</p>
-              <p className="text-white/25 text-xs mt-0.5">Esta foto aparece en las cards de búsqueda</p>
+              <p className="text-[var(--text-muted)] text-sm">JPG, PNG o WebP · Máx 5 MB</p>
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">Esta foto aparece en las cards de búsqueda</p>
               <input ref={fileInputRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={async (e) => {
                 const file = e.target.files?.[0]
                 if (!file || !restaurant) return
@@ -411,7 +411,7 @@ export default function RestaurantePage() {
                 }
                 finally { setUploading(false) }
               }} />
-              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-medium hover:bg-[#FF6B35]/20 disabled:opacity-40 transition-colors">
+              <button type="button" onClick={() => fileInputRef.current?.click()} disabled={uploading} className="mt-2 flex items-center gap-2 px-4 py-2 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#E55A2B] text-xs font-medium hover:bg-[#FF6B35]/20 disabled:opacity-40 transition-colors">
                 {uploading ? <Loader2 size={12} className="animate-spin" /> : <Camera size={12} />}
                 {uploading ? 'Subiendo...' : 'Subir foto'}
               </button>
@@ -421,12 +421,12 @@ export default function RestaurantePage() {
 
         {/* Gallery */}
         <Section title="Galería de fotos">
-          <p className="text-white/40 text-xs mb-3">
+          <p className="text-[var(--text-muted)] text-xs mb-3">
             Hasta 12 fotos de platos y del local para tu página pública. Arrastra para reordenar, clic en la X para quitar.
           </p>
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 gap-2">
             {galleryUrls.map((url, idx) => (
-              <div key={url + idx} className="relative aspect-square rounded-lg overflow-hidden border border-white/10 group">
+              <div key={url + idx} className="relative aspect-square rounded-lg overflow-hidden border border-[var(--border-subtle)] group">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={url} alt="" className="w-full h-full object-cover" />
                 <button
@@ -447,7 +447,7 @@ export default function RestaurantePage() {
             {galleryUrls.length < 12 && (
               <label
                 className={`aspect-square rounded-lg border-2 border-dashed flex flex-col items-center justify-center gap-1 cursor-pointer transition-colors
-                  ${galleryUploading ? 'border-white/20 text-white/30' : 'border-white/15 text-white/40 hover:border-[#FF6B35]/50 hover:text-[#FF6B35]'}`}
+                  ${galleryUploading ? 'border-[var(--border-subtle)] text-[var(--text-muted)]' : 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[#FF6B35]/50 hover:text-[#E55A2B]'}`}
               >
                 <input
                   type="file"
@@ -498,7 +498,7 @@ export default function RestaurantePage() {
               onChange={e => setDescription(e.target.value.slice(0, 300))}
               rows={3}
               placeholder="Cuenta a los clientes qué hace especial tu restaurante…"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors"
             />
           </Field>
           <div className="grid grid-cols-2 gap-4">
@@ -517,8 +517,8 @@ export default function RestaurantePage() {
                   onClick={() => setPriceRange(p.value)}
                   className={`flex-1 py-2.5 rounded-xl border text-center transition-all
                     ${priceRange === p.value
-                      ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]'
-                      : 'bg-white/3 border-white/8 text-white/30 hover:border-white/20'}`}
+                      ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#E55A2B]'
+                      : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)]'}`}
                 >
                   <p className="font-bold text-sm">{p.label}</p>
                   <p className="text-[9px] mt-0.5 opacity-70">{p.sub}</p>
@@ -560,7 +560,7 @@ export default function RestaurantePage() {
 
         {/* DTE / SII */}
         <Section title="Datos tributarios (DTE)">
-          <p className="text-white/30 text-xs -mt-1">
+          <p className="text-[var(--text-muted)] text-xs -mt-1">
             Requeridos para emitir boletas electrónicas al SII. Deben coincidir exactamente con tu resolución SII.
           </p>
           <div className="grid grid-cols-2 gap-4">
@@ -596,7 +596,7 @@ export default function RestaurantePage() {
         </Section>
 
         {/* Hours */}
-        <Section title="Horarios de atención" icon={<Clock size={14} className="text-[#FF6B35]" />}>          <div className="space-y-2">
+        <Section title="Horarios de atención" icon={<Clock size={14} className="text-[#E55A2B]" />}>          <div className="space-y-2">
             {DIAS.map(day => {
               const s = schedule[day] ?? DEFAULT_HOURS[day]
               return (
@@ -605,28 +605,28 @@ export default function RestaurantePage() {
                     onClick={() => updateSchedule(day, 'closed', !s.closed)}
                     className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center text-xs font-bold border transition-all
                       ${!s.closed
-                        ? 'bg-[#FF6B35]/20 border-[#FF6B35]/30 text-[#FF6B35]'
-                        : 'bg-white/3 border-white/8 text-white/20'}`}
+                        ? 'bg-[#FF6B35]/20 border-[#FF6B35]/30 text-[#E55A2B]'
+                        : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'}`}
                   >
                     {day[0]}
                   </button>
-                  <p className={`text-sm w-20 shrink-0 ${s.closed ? 'text-white/20' : 'text-white/60'}`}>{day}</p>
+                  <p className={`text-sm w-20 shrink-0 ${s.closed ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>{day}</p>
                   {s.closed ? (
-                    <span className="text-white/20 text-xs italic">Cerrado</span>
+                    <span className="text-[var(--text-muted)] text-xs italic">Cerrado</span>
                   ) : (
                     <div className="flex items-center gap-2">
                       <input
                         type="time"
                         value={s.open}
                         onChange={e => updateSchedule(day, 'open', e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                       />
-                      <span className="text-white/25 text-xs">–</span>
+                      <span className="text-[var(--text-muted)] text-xs">–</span>
                       <input
                         type="time"
                         value={s.close}
                         onChange={e => updateSchedule(day, 'close', e.target.value)}
-                        className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                        className="px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                       />
                     </div>
                   )}
@@ -637,14 +637,14 @@ export default function RestaurantePage() {
         </Section>
 
         {/* Reservations config */}
-        <Section title="Reservas online" icon={<CalendarDays size={14} className="text-[#FF6B35]" />}>
+        <Section title="Reservas online" icon={<CalendarDays size={14} className="text-[#E55A2B]" />}>
           <div className="space-y-4">
             <div className="flex items-center justify-between gap-3">
               <div className="flex-1 min-w-0">
-                <p className="text-white/80 text-sm">Activar reservas online</p>
-                <p className="text-white/20 text-[10px]">Los clientes podrán reservar mesa desde HiChapi</p>
+                <p className="text-[var(--text-body)] text-sm">Activar reservas online</p>
+                <p className="text-[var(--text-muted)] text-[10px]">Los clientes podrán reservar mesa desde HiChapi</p>
               </div>
-              <button onClick={() => setReservationsEnabled(!reservationsEnabled)} className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${reservationsEnabled ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}>
+              <button onClick={() => setReservationsEnabled(!reservationsEnabled)} className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${reservationsEnabled ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#E55A2B]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)]'}`}>
                 {reservationsEnabled ? 'Activo' : 'Inactivo'}
               </button>
             </div>
@@ -671,7 +671,7 @@ export default function RestaurantePage() {
 
         {/* Modules */}
         {modules && (
-          <Section title="Módulos activos" extra={modulesSaving ? <span className="text-[#FF6B35] text-xs">Guardando…</span> : null}>
+          <Section title="Módulos activos" extra={modulesSaving ? <span className="text-[#E55A2B] text-xs">Guardando…</span> : null}>
             <div className="space-y-3">
               {(Object.keys(MODULE_LABELS) as Array<keyof ModulesConfig>).map(key => {
                 const isActive = modules[key]
@@ -682,18 +682,18 @@ export default function RestaurantePage() {
                 return (
                   <div key={key} className="flex items-center justify-between gap-3">
                     <div className="flex-1 min-w-0">
-                      <p className={`text-sm ${!hasAccess ? 'text-white/20' : isActive ? 'text-white/80' : 'text-white/30'}`}>{MODULE_LABELS[key]}</p>
-                      <p className="text-white/20 text-[10px]">{hasAccess ? `Plan: ${planInfo?.name || planReq}` : `Requiere plan ${planInfo?.name || planReq}`}</p>
+                      <p className={`text-sm ${!hasAccess ? 'text-[var(--text-muted)]' : isActive ? 'text-[var(--text-body)]' : 'text-[var(--text-muted)]'}`}>{MODULE_LABELS[key]}</p>
+                      <p className="text-[var(--text-muted)] text-[10px]">{hasAccess ? `Plan: ${planInfo?.name || planReq}` : `Requiere plan ${planInfo?.name || planReq}`}</p>
                     </div>
                     {hasAccess ? (
                       <button
                         onClick={() => toggleModule(key)}
-                        className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${isActive ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/25 hover:border-white/20'}`}
+                        className={`shrink-0 px-3 py-1.5 rounded-lg border text-xs font-semibold transition-all ${isActive ? 'bg-[#FF6B35]/15 border-[#FF6B35]/35 text-[#E55A2B]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)]'}`}
                       >
                         {isActive ? 'Activo' : 'Inactivo'}
                       </button>
                     ) : (
-                      <a href="/modulos" className="shrink-0 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-300 text-xs font-semibold hover:bg-purple-500/20 transition-colors">
+                      <a href="/modulos" className="shrink-0 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-700 text-xs font-semibold hover:bg-purple-500/20 transition-colors">
                         Upgrade
                       </a>
                     )}
@@ -734,11 +734,11 @@ function Section({
   children: React.ReactNode
 }) {
   return (
-    <div className="bg-[#161622] border border-white/5 rounded-2xl p-5 space-y-4">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           {icon}
-          <p className="text-white font-semibold text-sm">{title}</p>
+          <p className="text-[var(--text-strong)] font-semibold text-sm">{title}</p>
         </div>
         {extra}
       </div>
@@ -757,12 +757,12 @@ function IconInput({
 }) {
   return (
     <div className="relative">
-      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25">{icon}</span>
+      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">{icon}</span>
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
-        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+        className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
       />
     </div>
   )
@@ -843,7 +843,7 @@ function AddressAutocompleteInput({
   return (
     <div ref={wrapperRef} className="relative w-full">
       <div className="relative">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25">{icon}</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]">{icon}</span>
         <input
           type="text"
           value={query}
@@ -851,24 +851,24 @@ function AddressAutocompleteInput({
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           placeholder={placeholder ?? 'Ej: Ariztía 100, Ovalle'}
           autoComplete="off"
-          className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+          className="w-full pl-9 pr-8 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
         />
         {loading && (
-          <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />
+          <Loader2 size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] animate-spin" />
         )}
       </div>
 
       {open && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[#161622] border border-white/10 rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-2xl overflow-hidden max-h-60 overflow-y-auto">
           {suggestions.map(feature => (
             <button
               key={feature.id}
               type="button"
               onClick={() => selectSuggestion(feature)}
-              className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-white/5 transition-colors text-left border-b border-white/5 last:border-0"
+              className="w-full flex items-start gap-2.5 px-3 py-2.5 hover:bg-[var(--surface-sunken)] transition-colors text-left border-b border-[var(--border-subtle)] last:border-0"
             >
-              <MapPin size={12} className="text-[#FF6B35] shrink-0 mt-0.5" />
-              <span className="text-white text-xs leading-normal">{feature.place_name}</span>
+              <MapPin size={12} className="text-[#E55A2B] shrink-0 mt-0.5" />
+              <span className="text-[var(--text-strong)] text-xs leading-normal">{feature.place_name}</span>
             </button>
           ))}
         </div>
@@ -881,22 +881,22 @@ function ProfileScoreCard({ score, slug }: { score: ProfileScore | null; slug: s
   if (!score) return null
 
   const tone =
-    score.total >= 80 ? { color: '#34D399', label: 'Excelente' }    :
-    score.total >= 50 ? { color: '#FBBF24', label: 'Casi listo' }   :
-                        { color: '#F87171', label: 'Necesita info' }
+    score.total >= 80 ? { color: '#15803D', label: 'Excelente' }    :
+    score.total >= 50 ? { color: '#B45309', label: 'Casi listo' }   :
+                        { color: '#C11F1F', label: 'Necesita info' }
 
   return (
     <div
       className="rounded-2xl p-[1px]"
       style={{ background: `linear-gradient(135deg, ${tone.color}80 0%, ${tone.color}10 60%, ${tone.color}40 100%)` }}
     >
-      <div className="bg-[#161622] rounded-2xl p-5 space-y-4">
+      <div className="bg-[var(--surface-card)] rounded-2xl p-5 space-y-4">
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
             <Sparkles size={16} style={{ color: tone.color }} />
             <div>
-              <p className="text-white font-semibold text-sm">Perfil en HiChapi</p>
-              <p className="text-white/35 text-xs mt-0.5">
+              <p className="text-[var(--text-strong)] font-semibold text-sm">Perfil en HiChapi</p>
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">
                 Mientras más completo, más visible eres en discovery
               </p>
             </div>
@@ -909,7 +909,7 @@ function ProfileScoreCard({ score, slug }: { score: ProfileScore | null; slug: s
           </span>
         </div>
 
-        <div className="h-2 rounded-full bg-white/6 overflow-hidden">
+        <div className="h-2 rounded-full bg-[var(--surface-sunken)] overflow-hidden">
           <div
             className="h-full rounded-full transition-all duration-700"
             style={{ width: `${score.total}%`, background: `linear-gradient(90deg, ${tone.color} 0%, ${tone.color}cc 100%)` }}
@@ -917,13 +917,13 @@ function ProfileScoreCard({ score, slug }: { score: ProfileScore | null; slug: s
         </div>
 
         <div className="flex items-center justify-between">
-          <p className="text-white/40 text-[11px]">{tone.label}</p>
+          <p className="text-[var(--text-muted)] text-[11px]">{tone.label}</p>
           {slug && (
             <a
               href={`/r/${slug}`}
               target="_blank"
               rel="noopener noreferrer"
-              className="flex items-center gap-1.5 text-[11px] text-[#FF6B35] hover:text-[#FF8A5B] transition-colors"
+              className="flex items-center gap-1.5 text-[11px] text-[#E55A2B] hover:text-[#E55A2B] transition-colors"
             >
               Ver landing pública
               <ExternalLink size={11} />
@@ -937,12 +937,12 @@ function ProfileScoreCard({ score, slug }: { score: ProfileScore | null; slug: s
               key={f.key}
               className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-colors
                 ${f.complete
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400/80'
-                  : 'bg-white/3 border-white/8 text-white/30'}`}
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700/80'
+                  : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'}`}
             >
               {f.complete
                 ? <Check size={9} strokeWidth={3} />
-                : <span className="text-white/20 text-[9px] font-bold leading-none">✗</span>}
+                : <span className="text-[var(--text-muted)] text-[9px] font-bold leading-none">✗</span>}
               {f.label}
             </span>
           ))}
@@ -976,11 +976,11 @@ function LivePreview({
   return (
     <div className="lg:sticky lg:top-6 self-start space-y-3">
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-xs font-semibold uppercase tracking-wide">Vista previa</p>
-        <span className="text-white/25 text-[10px]">Como te ven en HiChapi</span>
+        <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wide">Vista previa</p>
+        <span className="text-[var(--text-muted)] text-[10px]">Como te ven en HiChapi</span>
       </div>
 
-      <div className="bg-white rounded-2xl overflow-hidden shadow-xl border border-white/10">
+      <div className="bg-white rounded-2xl overflow-hidden shadow-xl border border-[var(--border-subtle)]">
         {/* Hero */}
         <div className="relative aspect-video bg-neutral-200">
           {photoUrl ? (
@@ -996,12 +996,12 @@ function LivePreview({
             style={{ background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 60%)' }}
           />
           <div className="absolute bottom-0 left-0 right-0 p-4">
-            <h2 className="text-white text-lg font-bold leading-tight">
+            <h2 className="text-[var(--text-strong)] text-lg font-bold leading-tight">
               {name || 'Tu restaurante'}
             </h2>
-            <div className="flex items-center gap-2 mt-1 text-white/85 text-[11px]">
+            <div className="flex items-center gap-2 mt-1 text-[var(--text-body)] text-[11px]">
               {cuisine && <span>{cuisine}</span>}
-              {cuisine && priceRange && <span className="text-white/50">·</span>}
+              {cuisine && priceRange && <span className="text-[var(--text-muted)]">·</span>}
               {priceRange && <span>{priceRange}</span>}
             </div>
           </div>
@@ -1012,21 +1012,21 @@ function LivePreview({
           {description ? (
             <p className="text-[12px] text-neutral-500 leading-relaxed line-clamp-3">{description}</p>
           ) : (
-            <p className="text-[11px] text-neutral-300 italic">Agrega una descripción para llamar la atención…</p>
+            <p className="text-[11px] text-[var(--text-muted)] italic">Agrega una descripción para llamar la atención…</p>
           )}
 
           {address && (
             <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
-              <MapPin size={11} className="text-[#FF6B35]" />
+              <MapPin size={11} className="text-[#E55A2B]" />
               <span className="truncate">{address}</span>
             </div>
           )}
 
           {todaySchedule && (
             <div className="flex items-center gap-1.5 text-[11px] text-neutral-500">
-              <Clock size={11} className="text-[#FF6B35]" />
+              <Clock size={11} className="text-[#E55A2B]" />
               {todaySchedule.closed
-                ? <span className="text-neutral-400">Hoy cerrado</span>
+                ? <span className="text-[var(--text-muted)]">Hoy cerrado</span>
                 : <span>Hoy {todaySchedule.open} – {todaySchedule.close}</span>}
             </div>
           )}
@@ -1036,7 +1036,7 @@ function LivePreview({
               {tags.slice(0, 6).map(t => (
                 <span
                   key={t}
-                  className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-medium capitalize"
+                  className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#E55A2B] font-medium capitalize"
                 >
                   {t}
                 </span>
@@ -1060,7 +1060,7 @@ function LivePreview({
           href={`/r/${slug}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="flex items-center justify-center gap-1.5 text-[11px] text-white/40 hover:text-white/70 transition-colors"
+          className="flex items-center justify-center gap-1.5 text-[11px] text-[var(--text-muted)] hover:text-[var(--text-body)] transition-colors"
         >
           Abrir vista pública en pestaña nueva
           <ExternalLink size={10} />

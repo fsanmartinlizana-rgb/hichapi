@@ -80,36 +80,36 @@ export default function QrsImprimiblesPage() {
 
   if (!restaurant) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0E0E14]">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-[var(--bg-canvas)]">
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-[#0E0E14] text-white print:bg-white print:text-black">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-strong)] print:bg-white print:text-black">
       {/* Toolbar — solo visible en pantalla */}
-      <div className="sticky top-0 z-10 bg-[#0E0E14]/95 backdrop-blur border-b border-white/10 px-6 py-4 print:hidden">
+      <div className="sticky top-0 z-10 bg-[var(--bg-canvas)]/95 backdrop-blur border-b border-[var(--border-subtle)] px-6 py-4 print:hidden">
         <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
             <Link
               href="/mesas"
-              className="flex items-center gap-1.5 text-white/50 hover:text-white text-sm transition-colors"
+              className="flex items-center gap-1.5 text-[var(--text-muted)] hover:text-[var(--text-strong)] text-sm transition-colors"
             >
               <ArrowLeft size={14} /> Volver a Mesas
             </Link>
-            <span className="text-white/20">·</span>
+            <span className="text-[var(--text-muted)]">·</span>
             <div className="flex items-center gap-2">
-              <QrCode size={14} className="text-[#FF6B35]" />
-              <p className="text-white text-sm font-semibold">{restaurant.name}</p>
-              <span className="text-white/30 text-xs">· {mesas.length} QR</span>
+              <QrCode size={14} className="text-[#E55A2B]" />
+              <p className="text-[var(--text-strong)] text-sm font-semibold">{restaurant.name}</p>
+              <span className="text-[var(--text-muted)] text-xs">· {mesas.length} QR</span>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleDownloadAll}
               disabled={loading || mesas.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/10 text-white/70 text-xs hover:text-white hover:border-white/25 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-body)] text-xs hover:text-[var(--text-strong)] hover:border-[var(--border-subtle)] transition-colors disabled:opacity-40"
             >
               <Download size={12} /> Descargar todos (PNG)
             </button>
@@ -123,7 +123,7 @@ export default function QrsImprimiblesPage() {
           </div>
         </div>
         {mesas.length > 20 && (
-          <p className="max-w-6xl mx-auto text-white/40 text-[11px] mt-2">
+          <p className="max-w-6xl mx-auto text-[var(--text-muted)] text-[11px] mt-2">
             Al descargar muchos archivos a la vez el navegador puede pedirte permiso.
             Conviene usar &quot;Imprimir&quot; y guardar como PDF si son muchas.
           </p>
@@ -134,10 +134,10 @@ export default function QrsImprimiblesPage() {
       <div ref={containerRef} className="qrs-print-area max-w-5xl mx-auto px-6 py-8 print:px-0 print:py-0 print:max-w-none">
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+            <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
           </div>
         ) : mesas.length === 0 ? (
-          <div className="text-center py-20 text-white/40 text-sm">
+          <div className="text-center py-20 text-[var(--text-muted)] text-sm">
             No hay mesas con QR generado.
           </div>
         ) : (
@@ -147,16 +147,16 @@ export default function QrsImprimiblesPage() {
               return (
                 <div
                   key={m.id}
-                  className="qr-card rounded-2xl border border-white/10 bg-white/[0.02] p-6 flex flex-col items-center gap-3 print:border-neutral-300 print:bg-white print:shadow-none print:p-3 print:rounded-none print:gap-1.5"
+                  className="qr-card rounded-2xl border border-[var(--border-subtle)] bg-white/[0.02] p-6 flex flex-col items-center gap-3 print:border-neutral-300 print:bg-white print:shadow-none print:p-3 print:rounded-none print:gap-1.5"
                 >
                   {/* Encabezado */}
                   <div className="text-center print:text-black">
-                    <p className="text-white/40 text-[10px] uppercase tracking-widest print:text-neutral-500 print:text-[8px]">Chapi · Mesa</p>
-                    <p className="text-white text-3xl font-bold leading-none mt-1 print:text-black print:text-xl" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                    <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-widest print:text-neutral-500 print:text-[8px]">Chapi · Mesa</p>
+                    <p className="text-[var(--text-strong)] text-3xl font-bold leading-none mt-1 print:text-black print:text-xl" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                       {m.label}
                     </p>
                     {m.zone && (
-                      <p className="text-white/30 text-[10px] mt-1 print:text-neutral-500 print:text-[8px]">{m.zone} · {m.seats} pax</p>
+                      <p className="text-[var(--text-muted)] text-[10px] mt-1 print:text-neutral-500 print:text-[8px]">{m.zone} · {m.seats} pax</p>
                     )}
                   </div>
 
@@ -178,7 +178,7 @@ export default function QrsImprimiblesPage() {
                   </div>
 
                   {/* URL de referencia — oculta en print para ahorrar espacio vertical */}
-                  <p className="text-white/25 text-[9px] font-mono break-all text-center print:hidden">
+                  <p className="text-[var(--text-muted)] text-[9px] font-mono break-all text-center print:hidden">
                     {url}
                   </p>
                 </div>

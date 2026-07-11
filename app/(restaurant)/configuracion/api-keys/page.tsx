@@ -79,7 +79,7 @@ export default function ApiKeysPage() {
   if (ctxLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -88,9 +88,9 @@ export default function ApiKeysPage() {
     return (
       <div className="p-6">
         <div className="max-w-xl mx-auto text-center py-16 space-y-4">
-          <KeyRound size={36} className="text-[#FF6B35] mx-auto" />
-          <h1 className="text-white text-xl font-bold">API pública</h1>
-          <p className="text-white/50 text-sm">
+          <KeyRound size={36} className="text-[#E55A2B] mx-auto" />
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">API pública</h1>
+          <p className="text-[var(--text-muted)] text-sm">
             Creá API keys para integrar HiChapi con tu stack (POS, ERP, app propia).
             Esta feature está disponible en el plan Enterprise.
           </p>
@@ -106,16 +106,16 @@ export default function ApiKeysPage() {
     <div className="p-6 space-y-5 max-w-5xl">
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <KeyRound size={20} className="text-[#FF6B35]" /> API pública
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <KeyRound size={20} className="text-[#E55A2B]" /> API pública
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
-            Keys con scopes para tu integración. Endpoint base: <span className="font-mono text-white/60">/api/v1/public/</span>
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
+            Keys con scopes para tu integración. Endpoint base: <span className="font-mono text-[var(--text-muted)]">/api/v1/public/</span>
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35]/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35] transition-colors"
         >
           <Plus size={14} /> Crear key
         </button>
@@ -125,25 +125,25 @@ export default function ApiKeysPage() {
       {freshSecret && (
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-emerald-400" />
-            <p className="text-emerald-300 font-semibold text-sm">Key creada — guardala ahora</p>
+            <ShieldCheck size={16} className="text-emerald-700" />
+            <p className="text-emerald-700 font-semibold text-sm">Key creada — guardala ahora</p>
           </div>
-          <p className="text-white/70 text-xs">
+          <p className="text-[var(--text-body)] text-xs">
             Este es el único momento en que vas a ver el secret completo. Copiala y guardala en tu gestor de secretos. Después solo verás el prefix.
           </p>
           <div className="flex items-center gap-2 bg-black/40 rounded-xl px-3 py-2 font-mono text-sm">
-            <span className="flex-1 text-white/90 break-all">{freshSecret}</span>
+            <span className="flex-1 text-[var(--text-body)] break-all">{freshSecret}</span>
             <button
               onClick={copySecret}
-              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/10 text-white text-xs hover:bg-white/20 transition-colors"
+              className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-strong)] text-xs hover:bg-[var(--surface-sunken)] transition-colors"
             >
-              {copied ? <Check size={11} className="text-emerald-400" /> : <Copy size={11} />}
+              {copied ? <Check size={11} className="text-emerald-700" /> : <Copy size={11} />}
               {copied ? 'Copiado' : 'Copiar'}
             </button>
           </div>
           <button
             onClick={() => setFreshSecret(null)}
-            className="text-white/40 text-xs hover:text-white underline"
+            className="text-[var(--text-muted)] text-xs hover:text-[var(--text-strong)] underline"
           >
             Ya la guardé, cerrar
           </button>
@@ -153,10 +153,10 @@ export default function ApiKeysPage() {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-10">
-          <Loader2 size={18} className="text-[#FF6B35] animate-spin" />
+          <Loader2 size={18} className="text-[#E55A2B] animate-spin" />
         </div>
       ) : keys.length === 0 ? (
-        <div className="text-center py-12 text-white/30 text-sm">
+        <div className="text-center py-12 text-[var(--text-muted)] text-sm">
           Sin keys. Creá la primera para empezar a consumir la API pública.
         </div>
       ) : (
@@ -164,25 +164,25 @@ export default function ApiKeysPage() {
           {keys.map(k => {
             const isRevoked = !!k.revoked_at
             return (
-              <div key={k.id} className={`rounded-2xl border p-4 flex items-center gap-4 ${isRevoked ? 'bg-white/[0.01] border-white/5 opacity-60' : 'bg-white/[0.02] border-white/8'}`}>
+              <div key={k.id} className={`rounded-2xl border p-4 flex items-center gap-4 ${isRevoked ? 'bg-white/[0.01] border-[var(--border-subtle)] opacity-60' : 'bg-white/[0.02] border-[var(--border-subtle)]'}`}>
                 <div className="w-10 h-10 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center shrink-0">
-                  <KeyRound size={14} className="text-[#FF6B35]" />
+                  <KeyRound size={14} className="text-[#E55A2B]" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
-                    <p className="text-white text-sm font-semibold">{k.name}</p>
-                    {isRevoked && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 font-semibold">Revocada</span>}
+                    <p className="text-[var(--text-strong)] text-sm font-semibold">{k.name}</p>
+                    {isRevoked && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-700 font-semibold">Revocada</span>}
                     {k.expires_at && new Date(k.expires_at) < new Date() && !isRevoked && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">Expirada</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">Expirada</span>
                     )}
                   </div>
-                  <p className="text-white/40 text-[11px] font-mono mb-1">{k.prefix}…</p>
+                  <p className="text-[var(--text-muted)] text-[11px] font-mono mb-1">{k.prefix}…</p>
                   <div className="flex items-center gap-2 flex-wrap">
                     {k.scopes.map(s => (
-                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/50">{s}</span>
+                      <span key={s} className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--text-muted)]">{s}</span>
                     ))}
                   </div>
-                  <p className="text-white/25 text-[10px] mt-1">
+                  <p className="text-[var(--text-muted)] text-[10px] mt-1">
                     Rate: {k.rate_limit}/min ·
                     Última uso: {k.last_used_at ? new Date(k.last_used_at).toLocaleString('es-CL') : 'nunca'} ·
                     Creada: {new Date(k.created_at).toLocaleDateString('es-CL')}
@@ -191,7 +191,7 @@ export default function ApiKeysPage() {
                 {!isRevoked && (
                   <button
                     onClick={() => revoke(k.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs hover:bg-red-500/20 transition-colors shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors shrink-0"
                   >
                     <Trash2 size={11} /> Revocar
                   </button>
@@ -204,9 +204,9 @@ export default function ApiKeysPage() {
 
       {/* Security tip */}
       <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-        <AlertTriangle size={14} className="text-amber-400 mt-0.5 shrink-0" />
+        <AlertTriangle size={14} className="text-amber-700 mt-0.5 shrink-0" />
         <div className="space-y-1">
-          <p className="text-amber-300 text-xs font-medium">Seguridad</p>
+          <p className="text-amber-700 text-xs font-medium">Seguridad</p>
           <p className="text-amber-200/80 text-[11px] leading-relaxed">
             Nunca pegues una API key en código público (GitHub, apps mobile, etc.). Usala solo en servidores backend. Si creés que una key se filtró, revocala de inmediato y creá una nueva.
           </p>
@@ -261,26 +261,26 @@ function CreateKeyModal({ restaurantId, onClose, onCreated }: {
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
+      <div className="w-full max-w-md bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-2xl p-6 space-y-4" onClick={e => e.stopPropagation()}>
         <div className="flex items-center justify-between">
-          <h3 className="text-white font-bold text-lg flex items-center gap-2">
-            <KeyRound size={18} className="text-[#FF6B35]" /> Nueva API key
+          <h3 className="text-[var(--text-strong)] font-bold text-lg flex items-center gap-2">
+            <KeyRound size={18} className="text-[#E55A2B]" /> Nueva API key
           </h3>
-          <button onClick={onClose} className="text-white/40 hover:text-white"><X size={16} /></button>
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"><X size={16} /></button>
         </div>
 
         <label className="block">
-          <span className="text-white/50 text-xs font-medium mb-1 block">Nombre *</span>
+          <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Nombre *</span>
           <input
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Ej: Integración POS externo"
-            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40"
           />
         </label>
 
         <div>
-          <p className="text-white/50 text-xs font-medium mb-2">Permisos (scopes)</p>
+          <p className="text-[var(--text-muted)] text-xs font-medium mb-2">Permisos (scopes)</p>
           <div className="grid grid-cols-2 gap-1.5">
             {ALL_SCOPES.map(s => {
               const active = scopes.includes(s.value)
@@ -291,8 +291,8 @@ function CreateKeyModal({ restaurantId, onClose, onCreated }: {
                   onClick={() => toggleScope(s.value)}
                   className={`text-left px-3 py-2 rounded-lg border text-xs transition-colors ${
                     active
-                      ? 'bg-[#FF6B35]/15 border-[#FF6B35]/30 text-[#FF6B35]'
-                      : 'bg-white/[0.02] border-white/5 text-white/40 hover:bg-white/5'
+                      ? 'bg-[#FF6B35]/15 border-[#FF6B35]/30 text-[#E55A2B]'
+                      : 'bg-white/[0.02] border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'
                   }`}
                 >
                   <p className="font-semibold">{s.label}</p>
@@ -304,31 +304,31 @@ function CreateKeyModal({ restaurantId, onClose, onCreated }: {
         </div>
 
         <label className="block">
-          <span className="text-white/50 text-xs font-medium mb-1 block">Rate limit (requests/min)</span>
+          <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Rate limit (requests/min)</span>
           <input
             type="number"
             min={60}
             max={10000}
             value={rateLimit}
             onChange={e => setRateLimit(parseInt(e.target.value) || 1000)}
-            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
           />
         </label>
 
         <div className="flex gap-2 pt-2">
-          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm hover:bg-white/10 transition-colors">
+          <button onClick={onClose} className="flex-1 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors">
             Cancelar
           </button>
           <button
             onClick={save}
             disabled={saving || !name || scopes.length === 0}
-            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-black text-sm font-bold hover:bg-[#FF6B35]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+            className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-black text-sm font-bold hover:bg-[#FF6B35] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
           >
             {saving ? <Loader2 size={14} className="animate-spin" /> : <Plus size={14} />} Crear
           </button>
         </div>
 
-        <p className="text-white/25 text-[10px] text-center">
+        <p className="text-[var(--text-muted)] text-[10px] text-center">
           Vas a ver el secret completo solo una vez después de crear la key.
         </p>
       </div>

@@ -138,7 +138,7 @@ export function NotaCreditoModal({
           <button
             onClick={handleClose}
             disabled={saving}
-            className="py-2 px-4 rounded-lg border border-white/10 text-gray-400 text-sm hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="py-2 px-4 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancelar
           </button>
@@ -154,36 +154,36 @@ export function NotaCreditoModal({
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
-          <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
 
       {/* Datos de la boleta original */}
-      <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10 space-y-2 text-xs">
-        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
-          <XCircle size={14} className="text-red-400" />
-          <span className="text-white/70 font-semibold">Documento a anular</span>
+      <div className="mb-4 p-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] space-y-2 text-xs">
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--border-subtle)]">
+          <XCircle size={14} className="text-red-700" />
+          <span className="text-[var(--text-body)] font-semibold">Documento a anular</span>
         </div>
         
         <div className="flex justify-between">
-          <span className="text-white/50">Tipo:</span>
-          <span className="text-white">{docTypeLabel} (tipo {originalEmission.document_type})</span>
+          <span className="text-[var(--text-muted)]">Tipo:</span>
+          <span className="text-[var(--text-strong)]">{docTypeLabel} (tipo {originalEmission.document_type})</span>
         </div>
         
         <div className="flex justify-between">
-          <span className="text-white/50">Folio:</span>
-          <span className="text-white font-mono font-semibold">{originalEmission.folio}</span>
+          <span className="text-[var(--text-muted)]">Folio:</span>
+          <span className="text-[var(--text-strong)] font-mono font-semibold">{originalEmission.folio}</span>
         </div>
         
         <div className="flex justify-between">
-          <span className="text-white/50">Monto:</span>
-          <span className="text-white font-bold">{formatCurrency(originalEmission.total_amount)}</span>
+          <span className="text-[var(--text-muted)]">Monto:</span>
+          <span className="text-[var(--text-strong)] font-bold">{formatCurrency(originalEmission.total_amount)}</span>
         </div>
         
         <div className="flex justify-between">
-          <span className="text-white/50">Fecha emisión:</span>
-          <span className="text-white">
+          <span className="text-[var(--text-muted)]">Fecha emisión:</span>
+          <span className="text-[var(--text-strong)]">
             {new Date(originalEmission.emitted_at).toLocaleDateString('es-CL', {
               day: '2-digit',
               month: '2-digit',
@@ -194,8 +194,8 @@ export function NotaCreditoModal({
         
         {originalEmission.razon_receptor && originalEmission.razon_receptor !== 'Sin RUT' && (
           <div className="flex justify-between">
-            <span className="text-white/50">Receptor:</span>
-            <span className="text-white truncate ml-2" title={originalEmission.razon_receptor}>
+            <span className="text-[var(--text-muted)]">Receptor:</span>
+            <span className="text-[var(--text-strong)] truncate ml-2" title={originalEmission.razon_receptor}>
               {originalEmission.razon_receptor}
             </span>
           </div>
@@ -203,15 +203,15 @@ export function NotaCreditoModal({
         
         {originalEmission.rut_receptor && originalEmission.rut_receptor !== '66666666-6' && (
           <div className="flex justify-between">
-            <span className="text-white/50">RUT:</span>
-            <span className="text-white font-mono">{originalEmission.rut_receptor}</span>
+            <span className="text-[var(--text-muted)]">RUT:</span>
+            <span className="text-[var(--text-strong)] font-mono">{originalEmission.rut_receptor}</span>
           </div>
         )}
       </div>
 
       {/* Motivo de anulación */}
-      <label className="block text-gray-400 text-sm mb-2">
-        Motivo de la anulación <span className="text-red-400">*</span>
+      <label className="block text-[var(--text-muted)] text-sm mb-2">
+        Motivo de la anulación <span className="text-red-700">*</span>
       </label>
       <textarea
         value={razonRef}
@@ -220,15 +220,15 @@ export function NotaCreditoModal({
         maxLength={90}
         rows={3}
         disabled={saving}
-        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-red-500 resize-none placeholder:text-white/25 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-black/30 border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-red-500 resize-none placeholder:text-[var(--text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
       />
-      <p className="text-white/30 text-xs mt-1">
+      <p className="text-[var(--text-muted)] text-xs mt-1">
         {razonRef.length}/90 caracteres
       </p>
 
       {/* Advertencia */}
       <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
-        <AlertCircle size={14} className="text-amber-300 shrink-0 mt-0.5" />
+        <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
         <div className="text-amber-200 text-xs">
           <strong>⚠️ Importante:</strong> Esta acción emitirá una nota de crédito al SII
           y marcará el documento original como anulado. Esta operación no se puede deshacer.

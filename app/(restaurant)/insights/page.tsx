@@ -19,11 +19,11 @@ interface ChatMessage {
 // ── Suggested starter questions ───────────────────────────────────────────────
 
 const STARTERS: { icon: typeof TrendingUp; text: string; color: string }[] = [
-  { icon: TrendingUp,    text: '¿Cuánto vendí hoy?',                  color: '#34D399' },
-  { icon: ShoppingCart,  text: '¿Cuál es mi plato más vendido esta semana?', color: '#FF6B35' },
-  { icon: MessageSquare, text: '¿Qué dicen las últimas reseñas?',     color: '#A78BFA' },
-  { icon: Package,       text: '¿Qué insumos están por quebrarme?',   color: '#FBBF24' },
-  { icon: Banknote,      text: '¿Cómo cerró la caja de hoy?',         color: '#60A5FA' },
+  { icon: TrendingUp,    text: '¿Cuánto vendí hoy?',                  color: '#15803D' },
+  { icon: ShoppingCart,  text: '¿Cuál es mi plato más vendido esta semana?', color: '#E55A2B' },
+  { icon: MessageSquare, text: '¿Qué dicen las últimas reseñas?',     color: '#6D28D9' },
+  { icon: Package,       text: '¿Qué insumos están por quebrarme?',   color: '#B45309' },
+  { icon: Banknote,      text: '¿Cómo cerró la caja de hoy?',         color: '#1D4ED8' },
 ]
 
 // ── Simple markdown-ish renderer ─────────────────────────────────────────────
@@ -40,7 +40,7 @@ function ChatText({ text }: { text: string }) {
         if (/^[•\-*]\s/.test(trimmed)) {
           return (
             <div key={i} className="flex items-start gap-2">
-              <span className="text-[#FF6B35] mt-1">•</span>
+              <span className="text-[#E55A2B] mt-1">•</span>
               <span className="flex-1">{trimmed.replace(/^[•\-*]\s/, '')}</span>
             </div>
           )
@@ -162,20 +162,20 @@ export default function InsightsPage() {
     <div className="flex flex-col h-full">
 
       {/* Header */}
-      <div className="px-6 pt-6 pb-4 shrink-0 flex items-center justify-between border-b border-white/5">
+      <div className="px-6 pt-6 pb-4 shrink-0 flex items-center justify-between border-b border-[var(--border-subtle)]">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center">
-            <Sparkles size={18} className="text-white" />
+            <Sparkles size={18} className="text-[var(--text-strong)]" />
           </div>
           <div>
-            <h1 className="text-white text-xl font-bold">Chapi Insights</h1>
-            <p className="text-white/35 text-xs">Pregunta lo que quieras sobre tu negocio</p>
+            <h1 className="text-[var(--text-strong)] text-xl font-bold">Chapi Insights</h1>
+            <p className="text-[var(--text-muted)] text-xs">Pregunta lo que quieras sobre tu negocio</p>
           </div>
         </div>
         {messages.length > 0 && (
           <button
             onClick={() => { setMessages([]); setError(null) }}
-            className="text-white/30 hover:text-white/60 text-xs"
+            className="text-[var(--text-muted)] hover:text-[var(--text-muted)] text-xs"
           >
             Nueva conversación
           </button>
@@ -190,10 +190,10 @@ export default function InsightsPage() {
           {messages.length === 0 && (
             <div className="flex flex-col items-center justify-center pt-10 pb-6">
               <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center mb-4">
-                <Sparkles size={24} className="text-white" />
+                <Sparkles size={24} className="text-[var(--text-strong)]" />
               </div>
-              <h2 className="text-white text-lg font-bold">¿Qué quieres saber?</h2>
-              <p className="text-white/40 text-sm mt-1 mb-6 text-center max-w-md">
+              <h2 className="text-[var(--text-strong)] text-lg font-bold">¿Qué quieres saber?</h2>
+              <p className="text-[var(--text-muted)] text-sm mt-1 mb-6 text-center max-w-md">
                 Puedo consultar tus ventas, reseñas, stock y caja en tiempo real.
               </p>
 
@@ -204,7 +204,7 @@ export default function InsightsPage() {
                     <button
                       key={i}
                       onClick={() => send(s.text)}
-                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/8 hover:bg-white/10 hover:border-white/15 transition-all text-left group"
+                      className="flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] hover:border-[var(--border-subtle)] transition-all text-left group"
                     >
                       <div
                         className="w-7 h-7 rounded-lg flex items-center justify-center shrink-0"
@@ -212,7 +212,7 @@ export default function InsightsPage() {
                       >
                         <Icon size={13} />
                       </div>
-                      <span className="text-white/70 text-xs group-hover:text-white/90 transition-colors">
+                      <span className="text-[var(--text-body)] text-xs group-hover:text-[var(--text-body)] transition-colors">
                         {s.text}
                       </span>
                     </button>
@@ -243,7 +243,7 @@ export default function InsightsPage() {
                 className={`max-w-[80%] rounded-2xl text-sm leading-relaxed
                   ${msg.role === 'user'
                     ? 'bg-[#FF6B35] text-white px-4 py-2.5 rounded-br-sm'
-                    : 'bg-[#1C1C2E] text-white/85 border border-white/5 px-4 py-3 rounded-bl-sm'
+                    : 'bg-[var(--surface-card)] text-[var(--text-body)] border border-[var(--border-subtle)] px-4 py-3 rounded-bl-sm'
                   }`}
               >
                 {msg.role === 'user'
@@ -258,11 +258,11 @@ export default function InsightsPage() {
 
                 {/* Tool-use chips (assistant only) */}
                 {msg.role === 'assistant' && msg.tools_used && msg.tools_used.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-white/5">
+                  <div className="flex flex-wrap gap-1.5 mt-3 pt-2 border-t border-[var(--border-subtle)]">
                     {msg.tools_used.map((t, j) => (
                       <span
                         key={j}
-                        className="flex items-center gap-1 text-[10px] text-white/30 bg-white/5 px-2 py-0.5 rounded-full"
+                        className="flex items-center gap-1 text-[10px] text-[var(--text-muted)] bg-[var(--surface-sunken)] px-2 py-0.5 rounded-full"
                       >
                         <Wrench size={9} />
                         {t.tool}
@@ -280,8 +280,8 @@ export default function InsightsPage() {
               <div className="w-7 h-7 rounded-lg bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center text-white shrink-0 mr-2 mt-1">
                 <Sparkles size={12} />
               </div>
-              <div className="bg-[#1C1C2E] border border-white/5 px-4 py-3 rounded-2xl rounded-bl-sm">
-                <div className="flex items-center gap-2 text-white/40 text-xs">
+              <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] px-4 py-3 rounded-2xl rounded-bl-sm">
+                <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs">
                   <Loader2 size={12} className="animate-spin" />
                   Consultando tus datos…
                 </div>
@@ -292,7 +292,7 @@ export default function InsightsPage() {
           {/* Error */}
           {error && (
             <div className="flex justify-start">
-              <div className="bg-red-500/10 border border-red-500/30 text-red-300 text-xs px-4 py-3 rounded-xl max-w-[80%]">
+              <div className="bg-red-500/10 border border-red-500/30 text-red-700 text-xs px-4 py-3 rounded-xl max-w-[80%]">
                 {error}
               </div>
             </div>
@@ -305,14 +305,14 @@ export default function InsightsPage() {
       {/* Input */}
       <div className="shrink-0 px-6 pb-6 pt-2">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-end gap-2 bg-[#1C1C2E] border border-white/10 rounded-2xl p-2 focus-within:border-[#FF6B35]/50 transition-colors">
+          <div className="flex items-end gap-2 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-2 focus-within:border-[#FF6B35]/50 transition-colors">
             <textarea
               value={input}
               onChange={e => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
               placeholder="Pregúntale algo a Chapi sobre tu negocio…"
               rows={1}
-              className="flex-1 bg-transparent text-white text-sm px-3 py-2 placeholder:text-white/25 focus:outline-none resize-none max-h-32"
+              className="flex-1 bg-transparent text-[var(--text-strong)] text-sm px-3 py-2 placeholder:text-[var(--text-muted)] focus:outline-none resize-none max-h-32"
               disabled={loading || !restaurant}
             />
             <button
@@ -323,7 +323,7 @@ export default function InsightsPage() {
               {loading ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
             </button>
           </div>
-          <p className="text-white/25 text-[10px] text-center mt-2">
+          <p className="text-[var(--text-muted)] text-[10px] text-center mt-2">
             Chapi Insights consulta tus datos en tiempo real. Verifica antes de tomar decisiones críticas.
           </p>
         </div>

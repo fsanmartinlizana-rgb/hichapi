@@ -81,10 +81,10 @@ export function ManualPrintControls({
   return (
     <div
       className="px-4 py-3 border-t space-y-2"
-      style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+      style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}
     >
       {/* Section label */}
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
         Precuenta
       </p>
 
@@ -93,24 +93,24 @@ export function ManualPrintControls({
         <div className="relative">
           <button
             onClick={() => setShowSelector(v => !v)}
-            className="w-full min-h-[44px] flex items-center justify-between gap-2 px-3 rounded-xl border text-sm transition-all duration-200 bg-white/5 border-white/12 text-white/70 hover:border-white/25"
+            className="w-full min-h-[44px] flex items-center justify-between gap-2 px-3 rounded-xl border text-sm transition-all duration-200 bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-body)] hover:border-[var(--border-subtle)]"
           >
             <div className="flex items-center gap-2">
-              <Printer size={13} className="text-white/40 shrink-0" />
-              <span className={selectedPrinter ? 'text-white/80' : 'text-white/30'}>
+              <Printer size={13} className="text-[var(--text-muted)] shrink-0" />
+              <span className={selectedPrinter ? 'text-[var(--text-body)]' : 'text-[var(--text-muted)]'}>
                 {selectedPrinter || 'Seleccionar impresora…'}
               </span>
             </div>
             <ChevronDown
               size={13}
-              className={`text-white/30 transition-transform duration-200 ${showSelector ? 'rotate-180' : ''}`}
+              className={`text-[var(--text-muted)] transition-transform duration-200 ${showSelector ? 'rotate-180' : ''}`}
             />
           </button>
 
           {showSelector && (
             <div
               className="absolute z-20 w-full mt-1 rounded-xl border overflow-hidden shadow-xl"
-              style={{ background: '#1C1C2E', borderColor: 'rgba(255,255,255,0.12)' }}
+              style={{ background: '#1C1C2E', borderColor: 'rgba(26, 26, 46, 0.14)' }}
             >
               {cajaPrinters.map(p => (
                 <button
@@ -119,8 +119,8 @@ export function ManualPrintControls({
                   className={[
                     'w-full flex items-center gap-2 px-3 py-2.5 text-sm text-left transition-colors',
                     selectedPrinter === p.name
-                      ? 'bg-[#FF6B35]/15 text-[#FF6B35]'
-                      : 'text-white/70 hover:bg-white/5',
+                      ? 'bg-[#FF6B35]/15 text-[#E55A2B]'
+                      : 'text-[var(--text-body)] hover:bg-[var(--surface-sunken)]',
                   ].join(' ')}
                 >
                   <Printer size={12} className="shrink-0" />
@@ -138,8 +138,8 @@ export function ManualPrintControls({
       {/* No CAJA printers configured */}
       {noPrinters && (
         <div className="flex items-center gap-2 px-3 py-2.5 rounded-xl border border-amber-500/20 bg-amber-500/8">
-          <AlertCircle size={12} className="text-amber-400 shrink-0" />
-          <p className="text-[11px] text-amber-300/80">
+          <AlertCircle size={12} className="text-amber-700 shrink-0" />
+          <p className="text-[11px] text-amber-700/80">
             No hay impresoras de caja configuradas.{' '}
             <a href="/impresoras" className="underline hover:text-amber-200">
               Agregar en Impresoras
@@ -164,14 +164,14 @@ export function ManualPrintControls({
             'w-full min-h-[44px] flex items-center justify-center gap-2',
             'rounded-xl border text-sm font-semibold transition-all duration-200',
             isSuccess
-              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400 cursor-default'
+              ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700 cursor-default'
               : isError
-              ? 'bg-red-500/10 border-red-500/30 text-red-300 hover:bg-red-500/15 active:scale-[0.98]'
+              ? 'bg-red-500/10 border-red-500/30 text-red-700 hover:bg-red-500/15 active:scale-[0.98]'
               : isLoading
-              ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
+              ? 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed'
               : isDisabled
-              ? 'bg-white/3 border-white/8 text-white/25 cursor-not-allowed'
-              : 'bg-white/6 border-white/15 text-white/80 hover:bg-[#FF6B35]/10 hover:border-[#FF6B35]/40 hover:text-[#FF6B35] active:scale-[0.98]',
+              ? 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed'
+              : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-body)] hover:bg-[#FF6B35]/10 hover:border-[#FF6B35]/40 hover:text-[#E55A2B] active:scale-[0.98]',
           ].join(' ')}
         >
           {isLoading ? (
@@ -200,7 +200,7 @@ export function ManualPrintControls({
 
       {/* Timestamp */}
       {isSuccess && precuentaTimestamp && (
-        <div className="flex items-center gap-1.5 text-emerald-400/60">
+        <div className="flex items-center gap-1.5 text-emerald-700/60">
           <Clock size={10} className="shrink-0" />
           <p className="text-[10px]">
             Solicitada a las {formatTimestamp(precuentaTimestamp)}
@@ -210,7 +210,7 @@ export function ManualPrintControls({
 
       {/* Error message */}
       {isError && precuentaError && (
-        <div className="flex items-start gap-1.5 text-red-400/80">
+        <div className="flex items-start gap-1.5 text-red-700/80">
           <AlertCircle size={10} className="shrink-0 mt-0.5" />
           <p className="text-[10px] leading-snug">{precuentaError}</p>
         </div>

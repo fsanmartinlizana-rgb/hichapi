@@ -25,15 +25,15 @@ import type { NotificationRow, NotificationSeverity } from '@/lib/notifications/
 
 function severityIcon(severity: NotificationSeverity) {
   switch (severity) {
-    case 'critical': return <AlertCircle    size={16} className="text-red-400 shrink-0 mt-0.5" />
-    case 'warning':  return <AlertTriangle  size={16} className="text-amber-400 shrink-0 mt-0.5" />
-    case 'success':  return <CheckCircle2   size={16} className="text-emerald-400 shrink-0 mt-0.5" />
-    default:         return <Info           size={16} className="text-sky-400 shrink-0 mt-0.5" />
+    case 'critical': return <AlertCircle    size={16} className="text-red-700 shrink-0 mt-0.5" />
+    case 'warning':  return <AlertTriangle  size={16} className="text-amber-700 shrink-0 mt-0.5" />
+    case 'success':  return <CheckCircle2   size={16} className="text-emerald-700 shrink-0 mt-0.5" />
+    default:         return <Info           size={16} className="text-sky-700 shrink-0 mt-0.5" />
   }
 }
 
 function severityRing(severity: NotificationSeverity, isRead: boolean) {
-  if (isRead) return 'border-white/5 bg-white/[0.02]'
+  if (isRead) return 'border-[var(--border-subtle)] bg-white/[0.02]'
   switch (severity) {
     case 'critical': return 'border-red-500/30 bg-red-500/[0.06]'
     case 'warning':  return 'border-amber-500/30 bg-amber-500/[0.06]'
@@ -118,13 +118,13 @@ export function NotificationsPanel() {
       <aside
         role="dialog"
         aria-label="Notificaciones"
-        className="fixed top-0 right-0 z-50 h-screen w-[400px] max-w-[92vw] bg-[#0F0F1C] border-l border-white/8 shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
+        className="fixed top-0 right-0 z-50 h-screen w-[400px] max-w-[92vw] bg-[var(--bg-canvas)] border-l border-[var(--border-subtle)] shadow-2xl flex flex-col animate-in slide-in-from-right duration-200"
       >
         {/* Header */}
-        <header className="px-5 py-4 border-b border-white/8 flex items-center gap-3">
+        <header className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center gap-3">
           <div className="flex-1">
-            <h2 className="text-white font-semibold text-sm">Notificaciones</h2>
-            <p className="text-white/40 text-[11px] mt-0.5">
+            <h2 className="text-[var(--text-strong)] font-semibold text-sm">Notificaciones</h2>
+            <p className="text-[var(--text-muted)] text-[11px] mt-0.5">
               {unreadCount > 0
                 ? `${unreadCount} sin leer · `
                 : ''}
@@ -135,7 +135,7 @@ export function NotificationsPanel() {
             <button
               type="button"
               onClick={markAllRead}
-              className="text-[11px] text-[#FF6B35] hover:text-[#ff8856] font-medium"
+              className="text-[11px] text-[#E55A2B] hover:text-[#ff8856] font-medium"
             >
               Marcar todo
             </button>
@@ -144,7 +144,7 @@ export function NotificationsPanel() {
             type="button"
             onClick={closePanel}
             aria-label="Cerrar"
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+            className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"
           >
             <X size={16} />
           </button>
@@ -153,16 +153,16 @@ export function NotificationsPanel() {
         {/* Body */}
         <div className="flex-1 overflow-y-auto sidebar-scroll">
           {loading && notifications.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-white/40">
+            <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)]">
               <Loader2 className="animate-spin" size={20} />
               <p className="text-xs mt-3">Cargando…</p>
             </div>
           )}
 
           {!loading && notifications.length === 0 && (
-            <div className="flex flex-col items-center justify-center h-full text-white/35 px-6 text-center">
+            <div className="flex flex-col items-center justify-center h-full text-[var(--text-muted)] px-6 text-center">
               <BellOff size={28} strokeWidth={1.5} />
-              <p className="text-sm mt-3 text-white/55 font-medium">Todo bajo control</p>
+              <p className="text-sm mt-3 text-[var(--text-muted)] font-medium">Todo bajo control</p>
               <p className="text-[11px] mt-1">
                 Cuando algo necesite tu atención (stock bajo, caja abierta, DTE pendiente…)
                 aparecerá acá con un atajo para resolverlo.
@@ -172,7 +172,7 @@ export function NotificationsPanel() {
 
           {visibleGroups.map(group => (
             <section key={group.key} className="px-3 pt-4 pb-1">
-              <p className="text-white/30 text-[10px] font-semibold uppercase tracking-wider px-2 mb-2">
+              <p className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider px-2 mb-2">
                 {group.label}
               </p>
               <ul className="space-y-1.5">
@@ -193,7 +193,7 @@ export function NotificationsPanel() {
                           <div className="flex items-start gap-2">
                             <p className={[
                               'text-[13px] leading-snug truncate',
-                              n.is_read ? 'text-white/70' : 'text-white font-medium',
+                              n.is_read ? 'text-[var(--text-body)]' : 'text-[var(--text-strong)] font-medium',
                             ].join(' ')}>
                               {n.title}
                             </p>
@@ -202,16 +202,16 @@ export function NotificationsPanel() {
                             )}
                           </div>
                           {n.message && (
-                            <p className="text-[11.5px] text-white/50 mt-0.5 leading-snug">
+                            <p className="text-[11.5px] text-[var(--text-muted)] mt-0.5 leading-snug">
                               {n.message}
                             </p>
                           )}
                           <div className="flex items-center gap-2 mt-2">
-                            <span className="text-[10px] text-white/30">
+                            <span className="text-[10px] text-[var(--text-muted)]">
                               {relativeTime(n.created_at)}
                             </span>
                             {n.resolved_at && (
-                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-400/80">
+                              <span className="inline-flex items-center gap-1 text-[10px] text-emerald-700/80">
                                 <CheckCircle2 size={10} />
                                 Resuelta
                               </span>
@@ -221,7 +221,7 @@ export function NotificationsPanel() {
                               <button
                                 type="button"
                                 onClick={(e) => { e.stopPropagation(); handleAction(n) }}
-                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-[#FF6B35] hover:text-[#ff8856] transition-colors"
+                                className="ml-auto inline-flex items-center gap-1 text-[11px] font-semibold text-[#E55A2B] hover:text-[#ff8856] transition-colors"
                               >
                                 {n.action_label}
                                 <ArrowRight size={11} />
@@ -235,7 +235,7 @@ export function NotificationsPanel() {
                           type="button"
                           onClick={(e) => { e.stopPropagation(); dismiss(n.id) }}
                           aria-label="Eliminar"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-md flex items-center justify-center text-white/30 hover:text-red-400 hover:bg-red-500/10 shrink-0"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 rounded-md flex items-center justify-center text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 shrink-0"
                         >
                           <Trash2 size={11} />
                         </button>
@@ -249,8 +249,8 @@ export function NotificationsPanel() {
         </div>
 
         {/* Footer */}
-        <footer className="px-5 py-3 border-t border-white/8">
-          <p className="text-[10px] text-white/30 text-center">
+        <footer className="px-5 py-3 border-t border-[var(--border-subtle)]">
+          <p className="text-[10px] text-[var(--text-muted)] text-center">
             Las notificaciones se eliminan automáticamente después de 10 días.
           </p>
         </footer>

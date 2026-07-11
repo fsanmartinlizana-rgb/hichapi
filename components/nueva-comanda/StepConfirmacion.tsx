@@ -16,34 +16,34 @@ function ConfirmOrderSummary({ selectedTable, pax, lines }: Pick<StepConfirmacio
   const total = calculateTotal(lines).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(255,255,255,0.10)', background: 'rgba(255,255,255,0.03)' }}>
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(26, 26, 46, 0.12)', background: 'rgba(26, 26, 46, 0.04)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(26, 26, 46, 0.05)' }}>
         <div>
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/35">Mesa</p>
-          <p className="mt-0.5 text-lg font-bold text-white">{selectedTable.label}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Mesa</p>
+          <p className="mt-0.5 text-lg font-bold text-[var(--text-strong)]">{selectedTable.label}</p>
         </div>
         <div className="text-right">
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/35">Personas</p>
-          <p className="mt-0.5 text-lg font-bold text-white">{pax}</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Personas</p>
+          <p className="mt-0.5 text-lg font-bold text-[var(--text-strong)]">{pax}</p>
         </div>
       </div>
 
       {/* Items */}
-      <div className="divide-y" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+      <div className="divide-y" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
         {lines.map(line => (
           <div key={line.menuItemId} className="flex items-start gap-3 px-5 py-3">
-            <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-400">
+            <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-700">
               {line.qty}
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white/90 truncate">{line.name}</p>
-              {line.note && <p className="mt-0.5 text-xs text-white/40 italic truncate">{line.note}</p>}
+              <p className="text-sm font-medium text-[var(--text-body)] truncate">{line.name}</p>
+              {line.note && <p className="mt-0.5 text-xs text-[var(--text-muted)] italic truncate">{line.note}</p>}
             </div>
-            <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium capitalize text-white/40" style={{ borderColor: 'rgba(255,255,255,0.12)' }}>
+            <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium capitalize text-[var(--text-muted)]" style={{ borderColor: 'rgba(26, 26, 46, 0.14)' }}>
               {line.destination}
             </span>
-            <span className="flex-shrink-0 text-sm font-semibold text-white/80">
+            <span className="flex-shrink-0 text-sm font-semibold text-[var(--text-body)]">
               {(line.unitPrice * line.qty).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })}
             </span>
           </div>
@@ -51,9 +51,9 @@ function ConfirmOrderSummary({ selectedTable, pax, lines }: Pick<StepConfirmacio
       </div>
 
       {/* Total */}
-      <div className="flex items-center justify-between px-5 py-4 border-t" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.04)' }}>
-        <span className="text-sm font-semibold text-white/60">Total</span>
-        <span className="text-lg font-bold text-white">{total}</span>
+      <div className="flex items-center justify-between px-5 py-4 border-t" style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(26, 26, 46, 0.05)' }}>
+        <span className="text-sm font-semibold text-[var(--text-muted)]">Total</span>
+        <span className="text-lg font-bold text-[var(--text-strong)]">{total}</span>
       </div>
     </div>
   )
@@ -64,14 +64,14 @@ export default function StepConfirmacion({ selectedTable, pax, lines, saving, er
     <div className="flex flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-6">
       <div className="mx-auto w-full max-w-2xl space-y-6">
         <div>
-          <h2 className="text-xl font-bold text-white">Confirmar comanda</h2>
-          <p className="mt-1 text-sm text-white/40">Revisa los detalles antes de enviar la comanda.</p>
+          <h2 className="text-xl font-bold text-[var(--text-strong)]">Confirmar comanda</h2>
+          <p className="mt-1 text-sm text-[var(--text-muted)]">Revisa los detalles antes de enviar la comanda.</p>
         </div>
 
         <ConfirmOrderSummary selectedTable={selectedTable} pax={pax} lines={lines} />
 
         {error !== null && (
-          <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-400">
+          <div role="alert" className="flex items-start gap-3 rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-700">
             <svg className="mt-0.5 h-4 w-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
             </svg>
@@ -91,8 +91,8 @@ export default function StepConfirmacion({ selectedTable, pax, lines, saving, er
           <button
             onClick={onBack}
             disabled={saving}
-            className="flex-1 rounded-xl border py-3 text-sm font-medium text-white/60 transition hover:bg-white/6 disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ borderColor: 'rgba(255,255,255,0.12)' }}
+            className="flex-1 rounded-xl border py-3 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-sunken)] disabled:cursor-not-allowed disabled:opacity-40"
+            style={{ borderColor: 'rgba(26, 26, 46, 0.14)' }}
           >
             Atrás
           </button>

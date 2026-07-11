@@ -43,24 +43,24 @@ interface ConversationTurn {
 const PRIORITY_RANK: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 }
 
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: 'bg-red-500/15 text-red-400 border-red-500/30',
-  high:   'bg-amber-500/15 text-amber-400 border-amber-500/30',
-  normal: 'bg-blue-500/15 text-blue-400 border-blue-500/30',
-  low:    'bg-white/5 text-white/40 border-white/10',
+  urgent: 'bg-red-500/15 text-red-700 border-red-500/30',
+  high:   'bg-amber-500/15 text-amber-700 border-amber-500/30',
+  normal: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
+  low:    'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]',
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  open:          'bg-red-500/10 text-red-400',
-  investigating: 'bg-amber-500/10 text-amber-400',
-  resolved:      'bg-emerald-500/10 text-emerald-400',
-  wont_fix:      'bg-white/5 text-white/40',
+  open:          'bg-red-500/10 text-red-700',
+  investigating: 'bg-amber-500/10 text-amber-700',
+  resolved:      'bg-emerald-500/10 text-emerald-700',
+  wont_fix:      'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  enterprise: 'bg-violet-500/15 text-violet-300',
-  pro:        'bg-[#FF6B35]/15 text-[#FF6B35]',
-  starter:    'bg-blue-500/15 text-blue-400',
-  free:       'bg-white/5 text-white/40',
+  enterprise: 'bg-violet-500/15 text-violet-700',
+  pro:        'bg-[#FF6B35]/15 text-[#E55A2B]',
+  starter:    'bg-blue-500/15 text-blue-700',
+  free:       'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
 }
 
 export default function SupportTicketsPage() {
@@ -86,7 +86,7 @@ export default function SupportTicketsPage() {
   if (ctxLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -95,9 +95,9 @@ export default function SupportTicketsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3 max-w-sm px-6">
-          <Shield size={32} className="text-amber-400 mx-auto" />
-          <p className="text-white font-semibold">Esta vista se movió</p>
-          <p className="text-white/55 text-sm leading-relaxed">
+          <Shield size={32} className="text-amber-700 mx-auto" />
+          <p className="text-[var(--text-strong)] font-semibold">Esta vista se movió</p>
+          <p className="text-[var(--text-muted)] text-sm leading-relaxed">
             La gestión de tickets del founder ahora vive en el panel de admin.
           </p>
           <a
@@ -120,14 +120,14 @@ export default function SupportTicketsPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Left — ticket list */}
-      <div className="w-96 border-r border-white/5 flex flex-col overflow-hidden">
-        <div className="px-5 py-4 border-b border-white/5 space-y-3">
+      <div className="w-96 border-r border-[var(--border-subtle)] flex flex-col overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--border-subtle)] space-y-3">
           <div className="flex items-center gap-2">
-            <Crown size={16} className="text-[#FF6B35]" />
-            <h1 className="text-white text-sm font-bold flex-1">Bandeja de soporte</h1>
+            <Crown size={16} className="text-[#E55A2B]" />
+            <h1 className="text-[var(--text-strong)] text-sm font-bold flex-1">Bandeja de soporte</h1>
             <button
               onClick={load}
-              className="p-1.5 rounded-lg border border-white/10 text-white/40 hover:text-white transition-colors"
+              className="p-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
             >
               <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
             </button>
@@ -144,8 +144,8 @@ export default function SupportTicketsPage() {
                 onClick={() => setFilter(key)}
                 className={`flex-1 px-2 py-1.5 rounded-lg font-medium transition-colors ${
                   filter === key
-                    ? 'bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/30'
-                    : 'bg-white/3 text-white/40 border border-white/5 hover:text-white/70'
+                    ? 'bg-[#FF6B35]/15 text-[#E55A2B] border border-[#FF6B35]/30'
+                    : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-body)]'
                 }`}
               >
                 {label}
@@ -154,8 +154,8 @@ export default function SupportTicketsPage() {
           </div>
           {counts.urgent > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
-              <AlertTriangle size={12} className="text-red-400" />
-              <p className="text-red-300 text-[11px] flex-1">{counts.urgent} urgentes requieren atención</p>
+              <AlertTriangle size={12} className="text-red-700" />
+              <p className="text-red-700 text-[11px] flex-1">{counts.urgent} urgentes requieren atención</p>
             </div>
           )}
         </div>
@@ -163,17 +163,17 @@ export default function SupportTicketsPage() {
         <div className="flex-1 overflow-y-auto">
           {loading ? (
             <div className="flex items-center justify-center py-10">
-              <Loader2 size={18} className="text-[#FF6B35] animate-spin" />
+              <Loader2 size={18} className="text-[#E55A2B] animate-spin" />
             </div>
           ) : tickets.length === 0 ? (
-            <p className="text-center text-white/30 text-xs py-10">No hay tickets en este filtro</p>
+            <p className="text-center text-[var(--text-muted)] text-xs py-10">No hay tickets en este filtro</p>
           ) : (
             tickets.map(t => (
               <button
                 key={t.id}
                 onClick={() => setSelected(t)}
-                className={`w-full text-left px-4 py-3 border-b border-white/3 transition-colors ${
-                  selected?.id === t.id ? 'bg-white/5' : 'hover:bg-white/[0.03]'
+                className={`w-full text-left px-4 py-3 border-b border-[var(--border-subtle)] transition-colors ${
+                  selected?.id === t.id ? 'bg-[var(--surface-sunken)]' : 'hover:bg-white/[0.03]'
                 }`}
               >
                 <div className="flex items-start gap-2 mb-1">
@@ -189,11 +189,11 @@ export default function SupportTicketsPage() {
                     {t.status}
                   </span>
                 </div>
-                <p className="text-white text-xs font-semibold line-clamp-1 mb-0.5">{t.subject}</p>
-                <p className="text-white/40 text-[10px] line-clamp-1 mb-1">
+                <p className="text-[var(--text-strong)] text-xs font-semibold line-clamp-1 mb-0.5">{t.subject}</p>
+                <p className="text-[var(--text-muted)] text-[10px] line-clamp-1 mb-1">
                   {t.restaurants?.name ?? 'Sin restaurant'} · {new Date(t.created_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                 </p>
-                <p className="text-white/30 text-[10px] line-clamp-2">{t.description}</p>
+                <p className="text-[var(--text-muted)] text-[10px] line-clamp-2">{t.description}</p>
               </button>
             ))
           )}
@@ -204,9 +204,9 @@ export default function SupportTicketsPage() {
       <div className="flex-1 flex overflow-hidden">
         <div className="flex-1 overflow-y-auto">
           {!selected ? (
-            <div className="h-full flex items-center justify-center text-center text-white/30 text-sm">
+            <div className="h-full flex items-center justify-center text-center text-[var(--text-muted)] text-sm">
               <div className="space-y-2">
-                <Ticket size={24} className="mx-auto text-white/20" />
+                <Ticket size={24} className="mx-auto text-[var(--text-muted)]" />
                 <p>Seleccioná un ticket a la izquierda</p>
               </div>
             </div>
@@ -334,14 +334,14 @@ function TicketDetail({ ticket, onUpdated }: {
               </span>
             )}
           </div>
-          <h2 className="text-white text-lg font-bold">{ticket.subject}</h2>
-          <div className="flex items-center gap-2 mt-1 text-xs text-white/40 flex-wrap">
+          <h2 className="text-[var(--text-strong)] text-lg font-bold">{ticket.subject}</h2>
+          <div className="flex items-center gap-2 mt-1 text-xs text-[var(--text-muted)] flex-wrap">
             {ticket.restaurants && <span>{ticket.restaurants.name}</span>}
             <span>·</span>
             <span>{new Date(ticket.created_at).toLocaleString('es-CL')}</span>
             {ticket.page_url && <>
               <span>·</span>
-              <a href={ticket.page_url} target="_blank" rel="noreferrer" className="text-[#FF6B35] hover:underline truncate">
+              <a href={ticket.page_url} target="_blank" rel="noreferrer" className="text-[#E55A2B] hover:underline truncate">
                 {ticket.page_url}
               </a>
             </>}
@@ -351,7 +351,7 @@ function TicketDetail({ ticket, onUpdated }: {
           {ticket.status !== 'investigating' && (
             <button
               onClick={() => updateStatus('investigating')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-400 text-xs font-semibold hover:bg-amber-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs font-semibold hover:bg-amber-500/20 transition-colors"
             >
               <Clock size={12} /> Investigar
             </button>
@@ -359,7 +359,7 @@ function TicketDetail({ ticket, onUpdated }: {
           {ticket.status !== 'resolved' && (
             <button
               onClick={() => updateStatus('resolved')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs font-semibold hover:bg-emerald-500/25 transition-colors"
             >
               <CheckCircle2 size={12} /> Resolver
             </button>
@@ -368,17 +368,17 @@ function TicketDetail({ ticket, onUpdated }: {
       </div>
 
       {/* Descripción del cliente */}
-      <div className="bg-white/[0.02] border border-white/8 rounded-2xl p-5 space-y-2">
-        <p className="text-white/40 text-[10px] uppercase tracking-wider flex items-center gap-1.5">
+      <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-2">
+        <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wider flex items-center gap-1.5">
           <FileText size={11} /> Descripción del cliente
         </p>
-        <p className="text-white/85 text-sm whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
+        <p className="text-[var(--text-body)] text-sm whitespace-pre-wrap leading-relaxed">{ticket.description}</p>
         {ticket.ai_analysis?.category && (
-          <div className="flex items-center gap-2 pt-2 mt-2 border-t border-white/5">
-            <span className="text-white/30 text-[10px]">Categoría IA: </span>
-            <span className="text-white/60 text-[10px] bg-white/5 px-2 py-0.5 rounded">{ticket.ai_analysis.category}</span>
+          <div className="flex items-center gap-2 pt-2 mt-2 border-t border-[var(--border-subtle)]">
+            <span className="text-[var(--text-muted)] text-[10px]">Categoría IA: </span>
+            <span className="text-[var(--text-muted)] text-[10px] bg-[var(--surface-sunken)] px-2 py-0.5 rounded">{ticket.ai_analysis.category}</span>
             {ticket.ai_analysis.matched_keywords && ticket.ai_analysis.matched_keywords.length > 0 && (
-              <span className="text-white/30 text-[10px]">
+              <span className="text-[var(--text-muted)] text-[10px]">
                 · Keywords: {ticket.ai_analysis.matched_keywords.slice(0, 4).join(', ')}
               </span>
             )}
@@ -390,15 +390,15 @@ function TicketDetail({ ticket, onUpdated }: {
       <div className="bg-gradient-to-br from-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <MessageSquare size={14} className="text-emerald-400" />
-            <p className="text-white font-semibold text-sm">Chapi sugiere respuesta</p>
-            <span className="text-white/30 text-[10px]">lista para enviar al cliente</span>
+            <MessageSquare size={14} className="text-emerald-700" />
+            <p className="text-[var(--text-strong)] font-semibold text-sm">Chapi sugiere respuesta</p>
+            <span className="text-[var(--text-muted)] text-[10px]">lista para enviar al cliente</span>
           </div>
           {!suggestion && (
             <button
               onClick={suggestReply}
               disabled={suggesting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-xs font-semibold hover:bg-emerald-500/25 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs font-semibold hover:bg-emerald-500/25 disabled:opacity-50 transition-colors"
               style={{ minHeight: 36 }}
             >
               {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
@@ -412,27 +412,27 @@ function TicketDetail({ ticket, onUpdated }: {
             {/* Categoría + reasoning */}
             <div className="flex items-center gap-2 flex-wrap">
               {suggestion.category === 'resolvable_now' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-400">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-700">
                   <CheckCircle2 size={10} /> Resolvible ahora
                 </span>
               )}
               {suggestion.category === 'needs_code_change' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-400">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-700">
                   <Code size={10} /> Requiere código
                 </span>
               )}
               {suggestion.category === 'needs_call' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-400">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-700">
                   <Phone size={10} /> Requiere llamada
                 </span>
               )}
               {suggestion.reasoning && (
-                <span className="text-white/40 text-[10px]">{suggestion.reasoning}</span>
+                <span className="text-[var(--text-muted)] text-[10px]">{suggestion.reasoning}</span>
               )}
             </div>
 
             {/* Reply text */}
-            <div className="text-white/85 text-sm whitespace-pre-wrap leading-relaxed bg-white/[0.04] border border-white/10 rounded-lg p-3">
+            <div className="text-[var(--text-body)] text-sm whitespace-pre-wrap leading-relaxed bg-white/[0.04] border border-[var(--border-subtle)] rounded-lg p-3">
               {suggestion.reply}
             </div>
 
@@ -442,8 +442,8 @@ function TicketDetail({ ticket, onUpdated }: {
                 onClick={copyToClipboard}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
                   copied
-                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                    : 'bg-white/8 border border-white/15 text-white hover:bg-white/12'
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-700'
+                    : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] hover:bg-[var(--surface-sunken)]'
                 }`}
                 style={{ minHeight: 36 }}
               >
@@ -453,7 +453,7 @@ function TicketDetail({ ticket, onUpdated }: {
               <button
                 onClick={suggestReply}
                 disabled={suggesting}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-white/60 hover:text-white border border-white/10 hover:bg-white/5 disabled:opacity-50 transition-colors"
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold text-[var(--text-muted)] hover:text-[var(--text-strong)] border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] disabled:opacity-50 transition-colors"
                 style={{ minHeight: 36 }}
               >
                 {suggesting ? <Loader2 size={12} className="animate-spin" /> : <RefreshCw size={12} />}
@@ -467,9 +467,9 @@ function TicketDetail({ ticket, onUpdated }: {
       {/* Agente IA */}
       <div className="bg-gradient-to-br from-[#FF6B35]/5 to-transparent border border-[#FF6B35]/20 rounded-2xl p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-[#FF6B35]" />
-          <p className="text-white font-semibold text-sm">Agente IA</p>
-          <span className="text-white/30 text-[10px]">analiza el ticket y sugiere solución</span>
+          <Sparkles size={14} className="text-[#E55A2B]" />
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Agente IA</p>
+          <span className="text-[var(--text-muted)] text-[10px]">analiza el ticket y sugiere solución</span>
         </div>
 
         {/* Conversation history */}
@@ -477,13 +477,13 @@ function TicketDetail({ ticket, onUpdated }: {
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
             {conversation.map((turn, i) => (
               <div key={i} className={turn.role === 'admin' ? 'pl-6' : 'pr-6'}>
-                <p className={`text-[10px] font-medium mb-1 ${turn.role === 'admin' ? 'text-blue-400' : 'text-[#FF6B35]'}`}>
+                <p className={`text-[10px] font-medium mb-1 ${turn.role === 'admin' ? 'text-blue-700' : 'text-[#E55A2B]'}`}>
                   {turn.role === 'admin' ? 'Vos' : 'Agente IA'} · {new Date(turn.ts).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                 </p>
                 <div className={`text-sm whitespace-pre-wrap leading-relaxed px-3 py-2 rounded-lg ${
                   turn.role === 'admin'
-                    ? 'bg-blue-500/5 border border-blue-500/15 text-white/80'
-                    : 'bg-white/5 border border-white/8 text-white/85'
+                    ? 'bg-blue-500/5 border border-blue-500/15 text-[var(--text-body)]'
+                    : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)]'
                 }`}>
                   {turn.text}
                 </div>
@@ -494,7 +494,7 @@ function TicketDetail({ ticket, onUpdated }: {
 
         {/* Latest answer (when not in conversation yet) */}
         {answer && conversation.length === 0 && (
-          <div className="text-white/85 text-sm whitespace-pre-wrap leading-relaxed bg-white/5 border border-white/8 rounded-lg p-3">
+          <div className="text-[var(--text-body)] text-sm whitespace-pre-wrap leading-relaxed bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg p-3">
             {answer}
           </div>
         )}
@@ -507,7 +507,7 @@ function TicketDetail({ ticket, onUpdated }: {
             onChange={e => setQuestion(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && !asking && askAgent()}
             placeholder={answer || conversation.length > 0 ? 'Preguntale algo más al agente...' : 'Click "Analizar" o preguntá algo específico'}
-            className="flex-1 px-3 py-2 rounded-xl bg-white/[0.03] border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+            className="flex-1 px-3 py-2 rounded-xl bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40"
           />
           <button
             onClick={askAgent}
@@ -521,12 +521,12 @@ function TicketDetail({ ticket, onUpdated }: {
       </div>
 
       {/* Metadata */}
-      <div className="bg-white/[0.02] border border-white/5 rounded-2xl p-4 text-xs text-white/50 space-y-1">
-        <p><strong className="text-white/70">ID:</strong> <span className="font-mono">{ticket.id}</span></p>
-        {ticket.user_id && <p><strong className="text-white/70">User ID:</strong> <span className="font-mono">{ticket.user_id}</span></p>}
-        {ticket.restaurant_id && <p><strong className="text-white/70">Restaurant ID:</strong> <span className="font-mono">{ticket.restaurant_id}</span></p>}
-        <p><strong className="text-white/70">Creado:</strong> {new Date(ticket.created_at).toLocaleString('es-CL')}</p>
-        {ticket.resolved_at && <p><strong className="text-white/70">Resuelto:</strong> {new Date(ticket.resolved_at).toLocaleString('es-CL')}</p>}
+      <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-4 text-xs text-[var(--text-muted)] space-y-1">
+        <p><strong className="text-[var(--text-body)]">ID:</strong> <span className="font-mono">{ticket.id}</span></p>
+        {ticket.user_id && <p><strong className="text-[var(--text-body)]">User ID:</strong> <span className="font-mono">{ticket.user_id}</span></p>}
+        {ticket.restaurant_id && <p><strong className="text-[var(--text-body)]">Restaurant ID:</strong> <span className="font-mono">{ticket.restaurant_id}</span></p>}
+        <p><strong className="text-[var(--text-body)]">Creado:</strong> {new Date(ticket.created_at).toLocaleString('es-CL')}</p>
+        {ticket.resolved_at && <p><strong className="text-[var(--text-body)]">Resuelto:</strong> {new Date(ticket.resolved_at).toLocaleString('es-CL')}</p>}
       </div>
     </div>
   )

@@ -35,7 +35,7 @@ const VARIANT_CLASS: Record<ButtonVariant, string> = {
     'hover:bg-[var(--surface-hover)] hover:text-[var(--text-strong)]',
   danger:
     'bg-danger-bg text-danger-fg border border-[var(--danger-border)] ' +
-    'hover:bg-danger hover:text-white hover:border-[var(--danger)]',
+    'hover:bg-danger hover:text-[var(--text-strong)] hover:border-[var(--danger)]',
 }
 
 const SIZE_CLASS: Record<ButtonSize, string> = {

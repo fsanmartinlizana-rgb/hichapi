@@ -52,14 +52,14 @@ export function TagPicker({
     <div className="space-y-3">
       {/* Summary + counter */}
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-[10px]">
+        <p className="text-[var(--text-muted)] text-[10px]">
           {selected.length} / {max} seleccionadas
         </p>
         {selected.length > 0 && (
           <button
             type="button"
             onClick={() => onChange([])}
-            className="text-white/25 hover:text-white/60 text-[10px] transition-colors"
+            className="text-[var(--text-muted)] hover:text-[var(--text-muted)] text-[10px] transition-colors"
           >
             Limpiar
           </button>
@@ -72,31 +72,31 @@ export function TagPicker({
         return (
           <div
             key={group.key}
-            className="rounded-xl border border-white/8 bg-white/3 overflow-hidden"
+            className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] overflow-hidden"
           >
             <button
               type="button"
               onClick={() => setOpen(p => ({ ...p, [group.key]: !p[group.key] }))}
-              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/5 transition-colors"
+              className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-sunken)] transition-colors"
             >
               <div className="flex items-center gap-2">
-                <span className="text-white text-xs font-semibold">{group.label}</span>
+                <span className="text-[var(--text-strong)] text-xs font-semibold">{group.label}</span>
                 {groupSelected.length > 0 && (
-                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#FF6B35] font-bold">
+                  <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF6B35]/20 text-[#E55A2B] font-bold">
                     {groupSelected.length}
                   </span>
                 )}
               </div>
               <ChevronDown
                 size={13}
-                className={`text-white/40 transition-transform ${open[group.key] ? 'rotate-180' : ''}`}
+                className={`text-[var(--text-muted)] transition-transform ${open[group.key] ? 'rotate-180' : ''}`}
               />
             </button>
 
             {open[group.key] && (
-              <div className="p-3 pt-0 border-t border-white/5">
+              <div className="p-3 pt-0 border-t border-[var(--border-subtle)]">
                 {group.description && (
-                  <p className="text-white/30 text-[10px] mt-2 mb-2">{group.description}</p>
+                  <p className="text-[var(--text-muted)] text-[10px] mt-2 mb-2">{group.description}</p>
                 )}
                 <div className="flex flex-wrap gap-1.5">
                   {group.options.map(opt => {
@@ -109,8 +109,8 @@ export function TagPicker({
                         title={opt.description}
                         className={`${pad} ${textSize} rounded-full border flex items-center gap-1 transition-all
                           ${active
-                            ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]'
-                            : 'bg-white/3 border-white/10 text-white/40 hover:border-white/25 hover:text-white/70'}`}
+                            ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#E55A2B]'
+                            : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-body)]'}`}
                       >
                         {opt.icon && <span className="text-[11px]">{opt.icon}</span>}
                         {opt.label}
@@ -127,20 +127,20 @@ export function TagPicker({
 
       {/* Custom tags */}
       {allowCustom && (
-        <div className="rounded-xl border border-white/8 bg-white/3 p-3 space-y-2">
-          <p className="text-white text-xs font-semibold">Otros tags personalizados</p>
+        <div className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-3 space-y-2">
+          <p className="text-[var(--text-strong)] text-xs font-semibold">Otros tags personalizados</p>
           {customSelected.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {customSelected.map(t => (
                 <span
                   key={t}
-                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-white/8 border border-white/15 text-white/70"
+                  className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)]"
                 >
                   {t}
                   <button
                     type="button"
                     onClick={() => toggle(t)}
-                    className="text-white/40 hover:text-white"
+                    className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"
                   >
                     <X size={9} />
                   </button>
@@ -154,13 +154,13 @@ export function TagPicker({
               onChange={e => setCustomVal(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCustom())}
               placeholder="Agregar tag personalizado..."
-              className="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-white text-[11px] placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+              className="flex-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-1.5 text-[var(--text-strong)] text-[11px] placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40"
             />
             <button
               type="button"
               onClick={addCustom}
               disabled={!customVal.trim()}
-              className="px-3 py-1.5 rounded-lg bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-[11px] font-semibold disabled:opacity-40 hover:bg-[#FF6B35]/25 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 rounded-lg bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#E55A2B] text-[11px] font-semibold disabled:opacity-40 hover:bg-[#FF6B35]/25 transition-colors flex items-center gap-1"
             >
               <Plus size={11} /> Añadir
             </button>

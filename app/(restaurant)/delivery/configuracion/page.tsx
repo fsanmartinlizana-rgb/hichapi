@@ -192,8 +192,8 @@ export default function DeliveryConfiguracionPage() {
     <div className="p-6 max-w-3xl mx-auto space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Configuración de Delivery</h1>
-          <p className="text-white/50 text-sm mt-1">Define tu zona de cobertura y estructura de tarifas</p>
+          <h1 className="text-2xl font-bold text-[var(--text-strong)]">Configuración de Delivery</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">Define tu zona de cobertura y estructura de tarifas</p>
         </div>
         <div className="flex flex-col items-end gap-1">
           <button
@@ -204,20 +204,20 @@ export default function DeliveryConfiguracionPage() {
             <Save size={14} />
             {saved ? 'Guardado ✓' : saving ? 'Guardando…' : 'Guardar'}
           </button>
-          {saveError && <p className="text-red-400 text-xs">{saveError}</p>}
+          {saveError && <p className="text-red-700 text-xs">{saveError}</p>}
         </div>
       </div>
 
       {/* Enable/disable delivery */}
-      <div className="bg-white/5 border border-white/8 rounded-xl p-5">
+      <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-5">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white font-medium">Delivery habilitado</p>
-            <p className="text-white/40 text-sm">Activa o desactiva el módulo de delivery para tu restaurante</p>
+            <p className="text-[var(--text-strong)] font-medium">Delivery habilitado</p>
+            <p className="text-[var(--text-muted)] text-sm">Activa o desactiva el módulo de delivery para tu restaurante</p>
           </div>
           <button
             onClick={() => setDeliveryEnabled(v => !v)}
-            className={`w-12 h-6 rounded-full transition-colors ${deliveryEnabled ? 'bg-[#FF6B35]' : 'bg-white/20'}`}
+            className={`w-12 h-6 rounded-full transition-colors ${deliveryEnabled ? 'bg-[#FF6B35]' : 'bg-[var(--surface-sunken)]'}`}
           >
             <div className={`w-5 h-5 bg-white rounded-full shadow transition-transform mx-0.5 ${deliveryEnabled ? 'translate-x-6' : 'translate-x-0'}`} />
           </button>
@@ -225,14 +225,14 @@ export default function DeliveryConfiguracionPage() {
       </div>
 
       {/* Delivery zone */}
-      <div className="bg-white/5 border border-white/8 rounded-xl p-5 space-y-4">
+      <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-5 space-y-4">
         <div className="flex items-center gap-2">
-          <MapPin size={16} className="text-[#FF6B35]" />
-          <h2 className="text-white font-semibold">Zona de cobertura</h2>
+          <MapPin size={16} className="text-[#E55A2B]" />
+          <h2 className="text-[var(--text-strong)] font-semibold">Zona de cobertura</h2>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <div>
-            <label className="text-white/60 text-xs mb-1 block">Radio (km)</label>
+            <label className="text-[var(--text-muted)] text-xs mb-1 block">Radio (km)</label>
             <input
               type="number"
               min={1}
@@ -242,11 +242,11 @@ export default function DeliveryConfiguracionPage() {
                 const val = parseFloat(e.target.value)
                 setZone(z => ({ ...z, radius_km: Number.isNaN(val) ? undefined : val }))
               }}
-              className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+              className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
             />
           </div>
           <div>
-            <label className="text-white/60 text-xs mb-1 block">Latitud centro</label>
+            <label className="text-[var(--text-muted)] text-xs mb-1 block">Latitud centro</label>
             <input
               type="number"
               step="0.0001"
@@ -256,11 +256,11 @@ export default function DeliveryConfiguracionPage() {
                 setZone(z => ({ ...z, center_lat: Number.isNaN(val) ? undefined : val }))
               }}
               placeholder="-33.4489"
-              className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+              className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
             />
           </div>
           <div>
-            <label className="text-white/60 text-xs mb-1 block">Longitud centro</label>
+            <label className="text-[var(--text-muted)] text-xs mb-1 block">Longitud centro</label>
             <input
               type="number"
               step="0.0001"
@@ -270,16 +270,16 @@ export default function DeliveryConfiguracionPage() {
                 setZone(z => ({ ...z, center_lng: Number.isNaN(val) ? undefined : val }))
               }}
               placeholder="-70.6693"
-              className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+              className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
             />
           </div>
         </div>
 
         {/* Mapbox container */}
-        <div className="mt-4 rounded-xl overflow-hidden border border-white/12 h-[300px] bg-white/5 relative">
+        <div className="mt-4 rounded-xl overflow-hidden border border-[var(--border-subtle)] h-[300px] bg-[var(--surface-sunken)] relative">
           <div ref={mapContainer} className="w-full h-full" />
           {!process.env.NEXT_PUBLIC_MAPBOX_TOKEN && (
-            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-white/50 text-sm">
+            <div className="absolute inset-0 flex items-center justify-center bg-black/50 text-[var(--text-muted)] text-sm">
               Mapbox token no configurado
             </div>
           )}
@@ -287,15 +287,15 @@ export default function DeliveryConfiguracionPage() {
       </div>
 
       {/* Fee tiers */}
-      <div className="bg-white/5 border border-white/8 rounded-xl p-5 space-y-4">
+      <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <DollarSign size={16} className="text-[#FF6B35]" />
-            <h2 className="text-white font-semibold">Tarifas por distancia</h2>
+            <DollarSign size={16} className="text-[#E55A2B]" />
+            <h2 className="text-[var(--text-strong)] font-semibold">Tarifas por distancia</h2>
           </div>
           <button
             onClick={addTier}
-            className="flex items-center gap-1.5 text-xs text-[#FF6B35] hover:text-white transition-colors"
+            className="flex items-center gap-1.5 text-xs text-[#E55A2B] hover:text-[var(--text-strong)] transition-colors"
           >
             <Plus size={13} /> Agregar tramo
           </button>
@@ -303,10 +303,10 @@ export default function DeliveryConfiguracionPage() {
 
         <div className="space-y-3">
           {tiers.map((tier, i) => (
-            <div key={i} className="bg-white/5 rounded-lg p-4 space-y-3">
+            <div key={i} className="bg-[var(--surface-sunken)] rounded-lg p-4 space-y-3">
               <div className="grid grid-cols-3 gap-3">
                 <div>
-                  <label className="text-white/50 text-xs mb-1 block">Desde (km)</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1 block">Desde (km)</label>
                   <input
                     type="number"
                     min={0}
@@ -316,11 +316,11 @@ export default function DeliveryConfiguracionPage() {
                       const val = parseFloat(e.target.value)
                       updateTier(i, 'min_km', Number.isNaN(val) ? undefined : val)
                     }}
-                    className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+                    className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
                   />
                 </div>
                 <div>
-                  <label className="text-white/50 text-xs mb-1 block">Hasta (km, vacío=∞)</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1 block">Hasta (km, vacío=∞)</label>
                   <input
                     type="number"
                     min={0}
@@ -331,11 +331,11 @@ export default function DeliveryConfiguracionPage() {
                       updateTier(i, 'max_km', Number.isNaN(val) ? null : val)
                     }}
                     placeholder="Sin límite"
-                    className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+                    className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
                   />
                 </div>
                 <div>
-                  <label className="text-white/50 text-xs mb-1 block">Tarifa (CLP)</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1 block">Tarifa (CLP)</label>
                   <input
                     type="number"
                     min={0}
@@ -345,7 +345,7 @@ export default function DeliveryConfiguracionPage() {
                       const val = parseInt(e.target.value, 10)
                       updateTier(i, 'fee_clp', Number.isNaN(val) ? undefined : val)
                     }}
-                    className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+                    className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
                   />
                 </div>
               </div>
@@ -353,8 +353,8 @@ export default function DeliveryConfiguracionPage() {
               {/* Vehicle type restrictions */}
               <div>
                 <div className="flex items-center gap-1.5 mb-2">
-                  <Truck size={12} className="text-white/40" />
-                  <span className="text-white/40 text-xs">Vehículos permitidos (vacío = todos)</span>
+                  <Truck size={12} className="text-[var(--text-muted)]" />
+                  <span className="text-[var(--text-muted)] text-xs">Vehículos permitidos (vacío = todos)</span>
                 </div>
                 <div className="flex flex-wrap gap-2">
                   {(Object.keys(VEHICLE_LABELS) as VehicleType[]).map(v => {
@@ -366,7 +366,7 @@ export default function DeliveryConfiguracionPage() {
                         className={`px-2.5 py-1 rounded-full text-xs transition-colors ${
                           selected
                             ? 'bg-[#FF6B35] text-white'
-                            : 'bg-white/8 text-white/50 hover:bg-white/12'
+                            : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'
                         }`}
                       >
                         {VEHICLE_LABELS[v]}
@@ -379,7 +379,7 @@ export default function DeliveryConfiguracionPage() {
               {tiers.length > 1 && (
                 <button
                   onClick={() => removeTier(i)}
-                  className="flex items-center gap-1 text-xs text-red-400 hover:text-red-300 transition-colors"
+                  className="flex items-center gap-1 text-xs text-red-700 hover:text-red-700 transition-colors"
                 >
                   <Trash2 size={12} /> Eliminar tramo
                 </button>

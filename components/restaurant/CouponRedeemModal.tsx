@@ -83,17 +83,17 @@ export function CouponRedeemModal({
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-[#1C1C2E] border border-white/12 rounded-2xl w-full max-w-sm p-5 space-y-4"
+        className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-sm p-5 space-y-4"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-xl bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center">
-              <Ticket size={15} className="text-[#FF6B35]" />
+              <Ticket size={15} className="text-[#E55A2B]" />
             </div>
-            <h3 className="text-white font-semibold text-base">Canjear cupón</h3>
+            <h3 className="text-[var(--text-strong)] font-semibold text-base">Canjear cupón</h3>
           </div>
-          <button onClick={onClose} className="text-white/40 hover:text-white">
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
             <X size={18} />
           </button>
         </div>
@@ -102,7 +102,7 @@ export function CouponRedeemModal({
         {!done && (
           <>
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Código del cupón</label>
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Código del cupón</label>
               <div className="flex gap-2">
                 <input
                   ref={inputRef}
@@ -110,28 +110,28 @@ export function CouponRedeemModal({
                   onChange={e => { setCode(e.target.value.toUpperCase()); setPreview(null); setErr(null) }}
                   onKeyDown={handleKeyDown}
                   placeholder="CH-XXXXXXXXXX"
-                  className="flex-1 bg-white/5 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm font-mono tracking-wider focus:outline-none focus:border-[#FF6B35]/50"
+                  className="flex-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm font-mono tracking-wider focus:outline-none focus:border-[#FF6B35]/50"
                   autoComplete="off"
                   autoCapitalize="characters"
                 />
                 <button
                   onClick={lookup}
                   disabled={busy || code.trim().length < 4}
-                  className="px-3 py-2.5 rounded-xl bg-white/8 border border-white/12 text-white text-sm hover:bg-white/12 disabled:opacity-40 transition-colors flex items-center gap-1.5"
+                  className="px-3 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm hover:bg-[var(--surface-sunken)] disabled:opacity-40 transition-colors flex items-center gap-1.5"
                 >
                   {busy ? <Loader2 size={13} className="animate-spin" /> : <Search size={13} />}
                   Buscar
                 </button>
               </div>
-              <p className="text-white/25 text-[10px] mt-1.5">
+              <p className="text-[var(--text-muted)] text-[10px] mt-1.5">
                 El cliente puede mostrarte el código en su wallet (/mi-wallet) o en el email que recibió.
               </p>
             </div>
 
             {err && (
               <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-                <AlertCircle size={14} className="text-red-400 shrink-0 mt-0.5" />
-                <p className="text-red-300 text-xs">{err}</p>
+                <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
+                <p className="text-red-700 text-xs">{err}</p>
               </div>
             )}
 
@@ -143,10 +143,10 @@ export function CouponRedeemModal({
               } space-y-2`}>
                 <div className="flex items-center gap-2">
                   {preview.valid
-                    ? <Check size={15} className="text-emerald-400 shrink-0" />
-                    : <AlertCircle size={15} className="text-amber-400 shrink-0" />
+                    ? <Check size={15} className="text-emerald-700 shrink-0" />
+                    : <AlertCircle size={15} className="text-amber-700 shrink-0" />
                   }
-                  <p className={`text-sm font-semibold ${preview.valid ? 'text-emerald-300' : 'text-amber-300'}`}>
+                  <p className={`text-sm font-semibold ${preview.valid ? 'text-emerald-700' : 'text-amber-700'}`}>
                     {preview.valid
                       ? 'Cupón válido'
                       : preview.expired
@@ -155,20 +155,20 @@ export function CouponRedeemModal({
                   </p>
                 </div>
                 <div className="pl-6 space-y-1 text-xs">
-                  <p className="text-white">
-                    <span className="text-white/40">Recompensa: </span>
+                  <p className="text-[var(--text-strong)]">
+                    <span className="text-[var(--text-muted)]">Recompensa: </span>
                     <strong>{preview.reward?.name ?? 'Desconocida'}</strong>
                   </p>
                   {preview.reward?.description && (
-                    <p className="text-white/50">{preview.reward.description}</p>
+                    <p className="text-[var(--text-muted)]">{preview.reward.description}</p>
                   )}
                   {preview.customer && (
-                    <p className="text-white/50">
-                      <span className="text-white/35">Cliente: </span>{preview.customer}
+                    <p className="text-[var(--text-muted)]">
+                      <span className="text-[var(--text-muted)]">Cliente: </span>{preview.customer}
                     </p>
                   )}
                   {preview.coupon.expires_at && (
-                    <p className="text-white/40">
+                    <p className="text-[var(--text-muted)]">
                       Vence: {new Date(preview.coupon.expires_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', year: 'numeric' })}
                     </p>
                   )}
@@ -179,7 +179,7 @@ export function CouponRedeemModal({
             <div className="flex gap-2 pt-1">
               <button
                 onClick={onClose}
-                className="flex-1 py-2.5 rounded-xl border border-white/12 text-white/60 text-sm hover:bg-white/5 transition-colors"
+                className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors"
               >
                 Cancelar
               </button>
@@ -198,11 +198,11 @@ export function CouponRedeemModal({
         {done && preview && (
           <div className="py-4 text-center space-y-3">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-              <Check size={26} className="text-emerald-400" />
+              <Check size={26} className="text-emerald-700" />
             </div>
             <div>
-              <p className="text-white font-semibold">¡Cupón canjeado!</p>
-              <p className="text-white/50 text-xs mt-1">
+              <p className="text-[var(--text-strong)] font-semibold">¡Cupón canjeado!</p>
+              <p className="text-[var(--text-muted)] text-xs mt-1">
                 {preview.reward?.name ?? 'Recompensa'} aplicada al cliente.
               </p>
             </div>

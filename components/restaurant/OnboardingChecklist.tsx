@@ -72,23 +72,23 @@ export default function OnboardingChecklist({ restaurantId }: { restaurantId: st
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex items-center gap-2.5">
           <div className="w-9 h-9 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 flex items-center justify-center shrink-0">
-            <Rocket size={17} className="text-[#FF6B35]" />
+            <Rocket size={17} className="text-[#E55A2B]" />
           </div>
           <div>
-            <h2 className="text-white font-bold text-base">Primeros pasos</h2>
-            <p className="text-white/50 text-xs">
+            <h2 className="text-[var(--text-strong)] font-bold text-base">Primeros pasos</h2>
+            <p className="text-[var(--text-muted)] text-xs">
               {doneCount} de {steps.length} listos · dejá tu restaurante operativo
             </p>
           </div>
         </div>
         <button onClick={dismiss} title="Ocultar"
-          className="text-white/30 hover:text-white/70 transition-colors shrink-0">
+          className="text-[var(--text-muted)] hover:text-[var(--text-body)] transition-colors shrink-0">
           <X size={16} />
         </button>
       </div>
 
       {/* Barra de progreso */}
-      <div className="h-1.5 rounded-full bg-white/8 overflow-hidden mb-4">
+      <div className="h-1.5 rounded-full bg-[var(--surface-sunken)] overflow-hidden mb-4">
         <div className="h-full bg-gradient-to-r from-[#FF6B35] to-[#FF8C5A] transition-all duration-500"
           style={{ width: `${progress}%` }} />
       </div>
@@ -98,18 +98,18 @@ export default function OnboardingChecklist({ restaurantId }: { restaurantId: st
         {steps.map(step => (
           <div key={step.id}
             className={`flex items-center gap-3 rounded-xl border px-3 py-2.5 ${
-              step.done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-white/8 bg-white/3'
+              step.done ? 'border-emerald-500/20 bg-emerald-500/5' : 'border-[var(--border-subtle)] bg-[var(--surface-sunken)]'
             }`}>
             <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
-              step.done ? 'bg-emerald-500/20 border border-emerald-500/40' : 'border border-white/20'
+              step.done ? 'bg-emerald-500/20 border border-emerald-500/40' : 'border border-[var(--border-subtle)]'
             }`}>
-              {step.done && <Check size={11} className="text-emerald-400" />}
+              {step.done && <Check size={11} className="text-emerald-700" />}
             </div>
             <div className="flex-1 min-w-0">
-              <p className={`text-sm font-medium ${step.done ? 'text-white/50 line-through' : 'text-white'}`}>
+              <p className={`text-sm font-medium ${step.done ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-strong)]'}`}>
                 {step.label}
               </p>
-              {!step.done && <p className="text-white/40 text-[11px] mt-0.5">{step.hint}</p>}
+              {!step.done && <p className="text-[var(--text-muted)] text-[11px] mt-0.5">{step.hint}</p>}
             </div>
             {!step.done && (
               <Link href={step.href}

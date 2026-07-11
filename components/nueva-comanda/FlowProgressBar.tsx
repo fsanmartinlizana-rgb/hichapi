@@ -22,7 +22,7 @@ export default function FlowProgressBar({ currentStep }: FlowProgressBarProps) {
                   'w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors',
                   isCompleted && 'bg-emerald-500 text-white',
                   isActive    && 'bg-indigo-500 text-white ring-2 ring-indigo-400/40',
-                  isFuture    && 'bg-white/10 text-white/30',
+                  isFuture    && 'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
                 ].filter(Boolean).join(' ')}
               >
                 {isCompleted ? '✓' : index + 1}
@@ -30,9 +30,9 @@ export default function FlowProgressBar({ currentStep }: FlowProgressBarProps) {
               <span
                 className={[
                   'text-xs whitespace-nowrap',
-                  isActive    && 'font-bold text-indigo-400',
-                  isCompleted && 'font-medium text-emerald-400',
-                  isFuture    && 'text-white/30',
+                  isActive    && 'font-bold text-indigo-700',
+                  isCompleted && 'font-medium text-emerald-700',
+                  isFuture    && 'text-[var(--text-muted)]',
                 ].filter(Boolean).join(' ')}
               >
                 {label}
@@ -43,7 +43,7 @@ export default function FlowProgressBar({ currentStep }: FlowProgressBarProps) {
               <div
                 className={[
                   'h-0.5 w-16 mx-2 mb-5 transition-colors',
-                  index < currentStep ? 'bg-emerald-500/60' : 'bg-white/10',
+                  index < currentStep ? 'bg-emerald-500/60' : 'bg-[var(--surface-sunken)]',
                 ].filter(Boolean).join(' ')}
               />
             )}

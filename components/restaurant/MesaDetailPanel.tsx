@@ -67,18 +67,18 @@ const STATUS_CONFIG: Record<OrderStatus, {
   label: string; color: string; bg: string
   icon: React.ReactNode; next: OrderStatus | null; nextLabel: string
 }> = {
-  pending:   { label: 'Nuevo pedido',  color: '#60A5FA', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,         next: 'preparing', nextLabel: 'Enviar pedido' },
-  confirmed: { label: 'Confirmado',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar pedido' },
-  preparing: { label: 'Preparando',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,      next: 'ready',     nextLabel: 'Marcar listo'    },
-  ready:     { label: '¡Listo!',       color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'delivered', nextLabel: 'Entregar'        },
-  delivered: { label: 'Entregado',     color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',    nextLabel: 'Cobrar'          },
-  paying:    { label: 'Cobrando',      color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <Banknote size={13} />,     next: 'paid',      nextLabel: 'Pagado ✓'        },
-  paid:      { label: 'Pagado',        color: '#6B7280', bg: 'bg-white/8',        icon: <CheckCircle2 size={13} />, next: null,        nextLabel: ''                },
-  cancelled: { label: 'Cancelado',     color: '#6B7280', bg: 'bg-white/8',        icon: <AlertCircle size={13} />,  next: null,        nextLabel: ''                },
+  pending:   { label: 'Nuevo pedido',  color: '#1D4ED8', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,         next: 'preparing', nextLabel: 'Enviar pedido' },
+  confirmed: { label: 'Confirmado',    color: '#B45309', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar pedido' },
+  preparing: { label: 'Preparando',    color: '#B45309', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,      next: 'ready',     nextLabel: 'Marcar listo'    },
+  ready:     { label: '¡Listo!',       color: '#15803D', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'delivered', nextLabel: 'Entregar'        },
+  delivered: { label: 'Entregado',     color: '#15803D', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',    nextLabel: 'Cobrar'          },
+  paying:    { label: 'Cobrando',      color: '#B45309', bg: 'bg-yellow-500/15',  icon: <Banknote size={13} />,     next: 'paid',      nextLabel: 'Pagado ✓'        },
+  paid:      { label: 'Pagado',        color: '#6B7280', bg: 'bg-[var(--surface-sunken)]',        icon: <CheckCircle2 size={13} />, next: null,        nextLabel: ''                },
+  cancelled: { label: 'Cancelado',     color: '#6B7280', bg: 'bg-[var(--surface-sunken)]',        icon: <AlertCircle size={13} />,  next: null,        nextLabel: ''                },
 }
 
 const STATUS_FALLBACK = {
-  label: 'Desconocido', color: '#6B7280', bg: 'bg-white/8',
+  label: 'Desconocido', color: '#6B7280', bg: 'bg-[var(--surface-sunken)]',
   icon: <AlertCircle size={13} />, next: null as OrderStatus | null, nextLabel: '',
 }
 
@@ -101,35 +101,35 @@ function EditableItem({
   busy: boolean
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+    <div className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => item.quantity <= 1 ? onDelete() : onChangeQty(item.quantity - 1)}
           disabled={busy}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/6 text-white/70 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-300 disabled:opacity-30 transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-700 disabled:opacity-30 transition-colors"
         >
           <Minus size={12} />
         </button>
-        <span className="w-6 text-center text-sm font-semibold text-white">{item.quantity}</span>
+        <span className="w-6 text-center text-sm font-semibold text-[var(--text-strong)]">{item.quantity}</span>
         <button
           onClick={() => onChangeQty(item.quantity + 1)}
           disabled={busy}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/6 text-white/70 hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-300 disabled:opacity-30 transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-700 disabled:opacity-30 transition-colors"
         >
           <Plus size={12} />
         </button>
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-white/90 truncate">{item.name}</p>
-        {item.notes && <p className="text-xs text-amber-400/60 italic truncate mt-0.5">{item.notes}</p>}
+        <p className="text-sm font-medium text-[var(--text-body)] truncate">{item.name}</p>
+        {item.notes && <p className="text-xs text-amber-700/60 italic truncate mt-0.5">{item.notes}</p>}
       </div>
-      <span className="text-sm font-semibold text-white/60 flex-shrink-0 tabular-nums">
+      <span className="text-sm font-semibold text-[var(--text-muted)] flex-shrink-0 tabular-nums">
         {formatCurrency(item.unit_price * item.quantity)}
       </span>
       <button
         onClick={onDelete}
         disabled={busy}
-        className="flex-shrink-0 p-1 rounded-lg text-white/20 hover:text-red-400 hover:bg-red-500/10 disabled:opacity-30 transition-colors"
+        className="flex-shrink-0 p-1 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 disabled:opacity-30 transition-colors"
       >
         <Trash2 size={14} />
       </button>
@@ -175,14 +175,14 @@ function AddProductsModal({
 
       {/* Modal */}
       <div
-        className="relative w-full max-w-lg flex flex-col rounded-2xl border border-white/10 shadow-2xl"
+        className="relative w-full max-w-lg flex flex-col rounded-2xl border border-[var(--border-subtle)] shadow-2xl"
         style={{ background: '#161622', maxHeight: '85vh' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)' }}>
-          <p className="text-sm font-semibold text-white">Agregar productos</p>
-          <button onClick={onClose} className="text-white/30 hover:text-white/70 transition-colors">
+        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: 'rgba(26, 26, 46, 0.10)' }}>
+          <p className="text-sm font-semibold text-[var(--text-strong)]">Agregar productos</p>
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-body)] transition-colors">
             <X size={18} />
           </button>
         </div>
@@ -190,7 +190,7 @@ function AddProductsModal({
         {/* Search */}
         <div className="px-4 py-3 flex-shrink-0">
           <div className="relative">
-            <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-white/30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[var(--text-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-4.35-4.35M17 11A6 6 0 1 1 5 11a6 6 0 0 1 12 0z" />
             </svg>
             <input
@@ -199,11 +199,11 @@ function AddProductsModal({
               onChange={e => setQuery(e.target.value)}
               placeholder="Buscar producto…"
               autoFocus
-              className="w-full rounded-xl border py-2.5 pl-9 pr-4 text-sm text-white placeholder:text-white/30 focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/40 transition-colors"
-              style={{ background: 'rgba(255,255,255,0.06)', borderColor: 'rgba(255,255,255,0.10)' }}
+              className="w-full rounded-xl border py-2.5 pl-9 pr-4 text-sm text-[var(--text-strong)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/40 transition-colors"
+              style={{ background: 'rgba(26, 26, 46, 0.07)', borderColor: 'rgba(26, 26, 46, 0.12)' }}
             />
             {query && (
-              <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/70">×</button>
+              <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-body)]">×</button>
             )}
           </div>
         </div>
@@ -211,11 +211,11 @@ function AddProductsModal({
         {/* Product grid — scrollable */}
         <div className="flex-1 overflow-y-auto px-4 pb-2">
           {categories.length === 0 ? (
-            <p className="py-8 text-center text-sm text-white/35">Sin resultados para &ldquo;{query}&rdquo;</p>
+            <p className="py-8 text-center text-sm text-[var(--text-muted)]">Sin resultados para &ldquo;{query}&rdquo;</p>
           ) : (
             categories.map(cat => (
               <section key={cat} className="mb-5">
-                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-white/30">{cat}</h3>
+                <h3 className="mb-2 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">{cat}</h3>
                 <div className="grid grid-cols-2 gap-2">
                   {grouped[cat].map(item => {
                     const inCart = pendingLines.find(l => l.menuItemId === item.id)
@@ -224,15 +224,15 @@ function AddProductsModal({
                         key={item.id}
                         onClick={() => onAdd(item)}
                         className="relative flex flex-col items-start rounded-xl border p-3 text-left transition-all hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/8 active:scale-95"
-                        style={{ background: 'rgba(255,255,255,0.04)', borderColor: inCart ? 'rgba(255,107,53,0.4)' : 'rgba(255,255,255,0.08)' }}
+                        style={{ background: 'rgba(26, 26, 46, 0.05)', borderColor: inCart ? 'rgba(255,107,53,0.4)' : 'rgba(26, 26, 46, 0.10)' }}
                       >
                         {inCart && (
                           <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF6B35] text-[10px] font-bold text-white shadow">
                             {inCart.qty}
                           </span>
                         )}
-                        <span className="text-sm font-medium text-white/90 leading-snug">{item.name}</span>
-                        <span className="mt-1 text-xs font-semibold text-[#FF6B35]">{formatCurrency(item.price)}</span>
+                        <span className="text-sm font-medium text-[var(--text-body)] leading-snug">{item.name}</span>
+                        <span className="mt-1 text-xs font-semibold text-[#E55A2B]">{formatCurrency(item.price)}</span>
                       </button>
                     )
                   })}
@@ -244,22 +244,22 @@ function AddProductsModal({
 
         {/* Footer — pending + confirm */}
         {pendingLines.length > 0 && (
-          <div className="border-t px-4 py-3 flex-shrink-0" style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(0,0,0,0.2)' }}>
+          <div className="border-t px-4 py-3 flex-shrink-0" style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(0,0,0,0.2)' }}>
             <div className="flex items-center justify-between mb-2">
-              <p className="text-xs text-white/50">{pendingCount} ítem{pendingCount !== 1 ? 's' : ''} por agregar</p>
-              <p className="text-sm font-bold text-white tabular-nums">{formatCurrency(pendingTotal)}</p>
+              <p className="text-xs text-[var(--text-muted)]">{pendingCount} ítem{pendingCount !== 1 ? 's' : ''} por agregar</p>
+              <p className="text-sm font-bold text-[var(--text-strong)] tabular-nums">{formatCurrency(pendingTotal)}</p>
             </div>
             <div className="space-y-1 mb-3 max-h-20 overflow-y-auto">
               {pendingLines.map(l => (
                 <div key={l.menuItemId} className="flex items-center justify-between text-xs">
-                  <span className="text-white/70">{l.qty}× {l.name}</span>
-                  <button onClick={() => onRemovePending(l.menuItemId)} className="text-white/25 hover:text-red-400 transition-colors ml-2">
+                  <span className="text-[var(--text-body)]">{l.qty}× {l.name}</span>
+                  <button onClick={() => onRemovePending(l.menuItemId)} className="text-[var(--text-muted)] hover:text-red-700 transition-colors ml-2">
                     <X size={12} />
                   </button>
                 </div>
               ))}
             </div>
-            {addError && <p className="text-xs text-red-400 mb-2">{addError}</p>}
+            {addError && <p className="text-xs text-red-700 mb-2">{addError}</p>}
             <button
               onClick={onConfirm}
               disabled={savingAdd}
@@ -399,10 +399,10 @@ export function MesaDetailPanel({
 
   if (!order) {
     return (
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-6 flex flex-col items-center justify-center gap-3 min-h-40">
-        <ShoppingBag size={28} className="text-white/15" />
-        <p className="text-white/30 text-sm">Sin comanda activa en {tableLabel}</p>
-        <button onClick={onClose} className="text-[#FF6B35]/60 text-xs hover:text-[#FF6B35] transition-colors">Cerrar</button>
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6 flex flex-col items-center justify-center gap-3 min-h-40">
+        <ShoppingBag size={28} className="text-[var(--text-muted)]" />
+        <p className="text-[var(--text-muted)] text-sm">Sin comanda activa en {tableLabel}</p>
+        <button onClick={onClose} className="text-[#E55A2B] text-xs hover:text-[#E55A2B] transition-colors">Cerrar</button>
       </div>
     )
   }
@@ -413,18 +413,18 @@ export function MesaDetailPanel({
 
   return (
     <>
-      <div className="bg-[#161622] border border-white/8 rounded-2xl overflow-hidden">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
               {cfg.icon}
             </div>
             <div>
-              <p className="text-white font-semibold text-sm">{tableLabel}</p>
+              <p className="text-[var(--text-strong)] font-semibold text-sm">{tableLabel}</p>
               <div className="flex items-center gap-1.5 mt-0.5">
-                <Clock size={9} className="text-white/25" />
-                <p className="text-white/35 text-xs">
+                <Clock size={9} className="text-[var(--text-muted)]" />
+                <p className="text-[var(--text-muted)] text-xs">
                   #{order.id.slice(-4).toUpperCase()}
                   {pax != null ? ` · ${pax} comensal${pax !== 1 ? 'es' : ''}` : ''}
                   {' · '}{elapsed} min
@@ -436,7 +436,7 @@ export function MesaDetailPanel({
             <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg}`} style={{ color: cfg.color }}>
               {cfg.label}
             </span>
-            <button onClick={onClose} className="text-white/20 hover:text-white/60 transition-colors ml-1">
+            <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-muted)] transition-colors ml-1">
               <X size={16} />
             </button>
           </div>
@@ -448,21 +448,21 @@ export function MesaDetailPanel({
             className="flex items-center gap-3 px-4 py-2.5 border-b"
             style={{ borderColor: 'rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.08)' }}
           >
-            <Banknote size={15} className="text-[#FBBF24] shrink-0" />
+            <Banknote size={15} className="text-[#B45309] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[#FBBF24] text-xs font-semibold">Cuenta solicitada</p>
+              <p className="text-[#B45309] text-xs font-semibold">Cuenta solicitada</p>
               {printState?.precuentaRequested ? (
-                <p className="text-emerald-400/70 text-[10px] flex items-center gap-1 mt-0.5">
+                <p className="text-emerald-700/70 text-[10px] flex items-center gap-1 mt-0.5">
                   <Printer size={9} className="shrink-0" />
                   Precuenta impresa
                   {printState.precuentaTimestamp && (
-                    <span className="text-white/30">
+                    <span className="text-[var(--text-muted)]">
                       · {printState.precuentaTimestamp.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                   )}
                 </p>
               ) : (
-                <p className="text-amber-300/50 text-[10px] mt-0.5">Precuenta pendiente de imprimir</p>
+                <p className="text-amber-700/50 text-[10px] mt-0.5">Precuenta pendiente de imprimir</p>
               )}
             </div>
           </div>
@@ -470,20 +470,20 @@ export function MesaDetailPanel({
 
         {/* Pax inline edit */}
         {onUpdatePax && pax != null && (
-          <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-            <span className="text-xs text-white/40 flex-1">Comensales</span>
+          <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+            <span className="text-xs text-[var(--text-muted)] flex-1">Comensales</span>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => onUpdatePax(Math.max(1, pax - 1))}
                 disabled={pax <= 1}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/6 text-white/70 hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-300 disabled:opacity-30 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-700 disabled:opacity-30 transition-colors"
               >
                 <Minus size={12} />
               </button>
-              <span className="w-6 text-center text-sm font-semibold text-white tabular-nums">{pax}</span>
+              <span className="w-6 text-center text-sm font-semibold text-[var(--text-strong)] tabular-nums">{pax}</span>
               <button
                 onClick={() => onUpdatePax(pax + 1)}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/6 text-white/70 hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-300 disabled:opacity-30 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-700 disabled:opacity-30 transition-colors"
               >
                 <Plus size={12} />
               </button>
@@ -493,18 +493,18 @@ export function MesaDetailPanel({
 
         {/* Station statuses */}
         {stationStatuses && stationStatuses.length > 0 && (
-          <div className="px-4 py-2 border-b" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
+          <div className="px-4 py-2 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
             <StationStatusBadge statuses={stationStatuses} />
           </div>
         )}
 
         {/* Items */}
         <div className="px-4 pt-3 pb-1">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25 mb-2">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)] mb-2">
             Productos · {order.order_items.length} ítem{order.order_items.length !== 1 ? 's' : ''}
           </p>
           {order.order_items.length === 0 ? (
-            <p className="text-sm text-white/25 py-4 text-center">Sin productos</p>
+            <p className="text-sm text-[var(--text-muted)] py-4 text-center">Sin productos</p>
           ) : order.order_items.map(item =>
             canEdit ? (
               <EditableItem
@@ -515,10 +515,10 @@ export function MesaDetailPanel({
                 busy={busyItemId === item.id}
               />
             ) : (
-              <div key={item.id} className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-                <span className="text-[#FF6B35] font-semibold text-sm w-6 text-center">{item.quantity}×</span>
-                <span className="flex-1 text-sm text-white/80">{item.name}</span>
-                <span className="text-sm text-white/50 tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
+              <div key={item.id} className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+                <span className="text-[#E55A2B] font-semibold text-sm w-6 text-center">{item.quantity}×</span>
+                <span className="flex-1 text-sm text-[var(--text-body)]">{item.name}</span>
+                <span className="text-sm text-[var(--text-muted)] tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
               </div>
             )
           )}
@@ -529,8 +529,8 @@ export function MesaDetailPanel({
           <div className="px-4 py-2">
             <button
               onClick={() => setShowAddProducts(true)}
-              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed text-sm font-medium text-white/40 hover:text-white/70 hover:border-white/30 hover:bg-white/4 transition-colors"
-              style={{ borderColor: 'rgba(255,255,255,0.15)' }}
+              className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-colors"
+              style={{ borderColor: 'rgba(26, 26, 46, 0.16)' }}
             >
               <Plus size={14} /> Agregar productos
             </button>
@@ -540,14 +540,14 @@ export function MesaDetailPanel({
         {/* Notes */}
         {order.notes && (
           <div className="px-4 pb-2">
-            <p className="text-white/30 text-xs italic">📝 {order.notes}</p>
+            <p className="text-[var(--text-muted)] text-xs italic">📝 {order.notes}</p>
           </div>
         )}
 
         {/* Total */}
-        <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          <span className="text-white/40 text-sm">Total</span>
-          <span className="text-white font-bold text-lg tabular-nums" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+          <span className="text-[var(--text-muted)] text-sm">Total</span>
+          <span className="text-[var(--text-strong)] font-bold text-lg tabular-nums" style={{ fontFamily: 'var(--font-dm-mono)' }}>
             {formatCurrency(order.total)}
           </span>
         </div>
@@ -595,7 +595,7 @@ export function MesaDetailPanel({
             <button
               onClick={() => onAdvance(order.id, cfg.next!)}
               disabled={advancing}
-              className="w-full py-3 rounded-xl text-white font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
+              className="w-full py-3 rounded-xl text-[var(--text-strong)] font-semibold text-sm hover:opacity-90 disabled:opacity-40 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2"
               style={{ backgroundColor: cfg.color }}
             >
               {advancing ? <><RefreshCw size={14} className="animate-spin" /> Actualizando…</> : cfg.nextLabel}
@@ -603,7 +603,7 @@ export function MesaDetailPanel({
             <button
               onClick={() => onCancel(order.id)}
               disabled={advancing}
-              className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs font-semibold hover:bg-red-500/15 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs font-semibold hover:bg-red-500/15 transition-colors flex items-center justify-center gap-2"
             >
               <Trash2 size={12} /> Cancelar comanda
             </button>
@@ -629,14 +629,14 @@ export function MesaDetailPanel({
       {deleteConfirm && createPortal(
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
-          <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-sm shadow-2xl p-5">
+          <div className="relative bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-sm shadow-2xl p-5">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-red-400 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-red-700 shrink-0">
                 <Trash2 size={16} />
               </div>
               <div>
-                <h3 className="text-white font-bold text-base">Quitar {deleteConfirm.name}</h3>
-                <p className="text-white/40 text-xs mt-0.5">
+                <h3 className="text-[var(--text-strong)] font-bold text-base">Quitar {deleteConfirm.name}</h3>
+                <p className="text-[var(--text-muted)] text-xs mt-0.5">
                   ¿El producto ya estaba preparado y se desechó? Si es así lo registramos en mermas.
                 </p>
               </div>
@@ -650,13 +650,13 @@ export function MesaDetailPanel({
               </button>
               <button
                 onClick={() => performDelete(deleteConfirm.id, false)}
-                className="w-full py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/70 text-sm font-semibold hover:bg-white/10 transition-colors"
+                className="w-full py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-sm font-semibold hover:bg-[var(--surface-sunken)] transition-colors"
               >
                 No, solo quitarlo
               </button>
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="w-full py-2 rounded-xl text-white/40 text-xs hover:text-white/70 transition-colors"
+                className="w-full py-2 rounded-xl text-[var(--text-muted)] text-xs hover:text-[var(--text-body)] transition-colors"
               >
                 Cancelar
               </button>

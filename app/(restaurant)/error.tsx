@@ -53,18 +53,18 @@ export default function RestaurantError({
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-[#0A0A14] p-4">
+    <div className="flex items-center justify-center min-h-screen bg-[var(--bg-canvas)] p-4">
       <div className="text-center space-y-4 max-w-lg w-full px-2">
         <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
-          <AlertTriangle size={28} className="text-red-400" />
+          <AlertTriangle size={28} className="text-red-700" />
         </div>
-        <h2 className="text-white text-xl font-bold">Algo salió mal</h2>
-        <p className="text-white/40 text-sm leading-relaxed">
+        <h2 className="text-[var(--text-strong)] text-xl font-bold">Algo salió mal</h2>
+        <p className="text-[var(--text-muted)] text-sm leading-relaxed">
           Ocurrió un error inesperado. Podés reintentar o volver al inicio. Si se repite,
-          tocá <strong className="text-white/60">Ver detalles</strong> y mandanos esa info por soporte.
+          tocá <strong className="text-[var(--text-muted)]">Ver detalles</strong> y mandanos esa info por soporte.
         </p>
         {error.digest && (
-          <p className="text-white/20 text-xs font-mono">Error ID: {error.digest}</p>
+          <p className="text-[var(--text-muted)] text-xs font-mono">Error ID: {error.digest}</p>
         )}
         <div className="flex items-center justify-center gap-3 pt-2 flex-wrap">
           <button
@@ -76,7 +76,7 @@ export default function RestaurantError({
           </button>
           <a
             href="/dashboard"
-            className="px-5 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:text-white/60 transition-colors"
+            className="px-5 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:text-[var(--text-muted)] transition-colors"
             style={{ minHeight: 44, display: 'inline-flex', alignItems: 'center' }}
           >
             Ir al dashboard
@@ -87,7 +87,7 @@ export default function RestaurantError({
         <button
           type="button"
           onClick={() => setShowDetails(v => !v)}
-          className="text-white/35 hover:text-white/60 text-xs inline-flex items-center gap-1 mt-2"
+          className="text-[var(--text-muted)] hover:text-[var(--text-muted)] text-xs inline-flex items-center gap-1 mt-2"
         >
           <ChevronDown
             size={12}
@@ -96,8 +96,8 @@ export default function RestaurantError({
           {showDetails ? 'Ocultar' : 'Ver'} detalles técnicos
         </button>
         {showDetails && (
-          <div className="mt-3 text-left rounded-xl border border-white/10 bg-white/3 p-3 max-h-64 overflow-auto">
-            <pre className="text-[10px] text-white/55 whitespace-pre-wrap font-mono leading-relaxed">
+          <div className="mt-3 text-left rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-3 max-h-64 overflow-auto">
+            <pre className="text-[10px] text-[var(--text-muted)] whitespace-pre-wrap font-mono leading-relaxed">
               {detailText}
             </pre>
             <button
@@ -105,8 +105,8 @@ export default function RestaurantError({
               onClick={copyDetails}
               className={`mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                 copied
-                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-300'
-                  : 'bg-white/8 border border-white/15 text-white/80 hover:bg-white/12'
+                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-700'
+                  : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] hover:bg-[var(--surface-sunken)]'
               }`}
             >
               {copied ? <Check size={11} /> : <Copy size={11} />}

@@ -255,27 +255,27 @@ export function BillSplitModal({
   return (
     <>
       <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-        <div className="bg-[#1a1a2e] rounded-2xl w-full max-w-md border border-white/10 overflow-hidden">
+        <div className="bg-[var(--surface-card)] rounded-2xl w-full max-w-md border border-[var(--border-subtle)] overflow-hidden">
 
           {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-2">
               {step !== 'type' && !billSplitId && (
                 <button
                   onClick={handleBack}
-                  className="p-1 rounded-lg text-white/40 hover:text-white transition-colors"
+                  className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
                 >
                   <ChevronLeft size={16} />
                 </button>
               )}
               <div>
-                <h3 className="text-white font-semibold text-sm">
+                <h3 className="text-[var(--text-strong)] font-semibold text-sm">
                   {step === 'type' && 'Cobrar mesa'}
                   {step === 'config' && 'Configurar división'}
                   {step === 'payment' && splits.length > 1 && `Pago ${currentSplitIndex + 1} de ${splits.length}`}
                   {step === 'payment' && splits.length === 1 && 'Procesar pago'}
                 </h3>
-                <p className="text-white/40 text-xs">
+                <p className="text-[var(--text-muted)] text-xs">
                   {tableLabel} · {orders.length} comanda{orders.length !== 1 ? 's' : ''}
                 </p>
               </div>
@@ -293,7 +293,7 @@ export function BillSplitModal({
                           ? 'bg-emerald-400'
                           : i === currentSplitIndex
                             ? 'bg-[#FF6B35]'
-                            : 'bg-white/20'
+                            : 'bg-[var(--surface-sunken)]'
                       }`}
                     />
                   ))}
@@ -302,7 +302,7 @@ export function BillSplitModal({
 
               <button
                 onClick={handleCloseAttempt}
-                className="text-white/30 hover:text-white transition-colors"
+                className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
               >
                 <X size={16} />
               </button>
@@ -312,7 +312,7 @@ export function BillSplitModal({
           {/* Content */}
           <div className="p-5 max-h-[70vh] overflow-y-auto">
             {error && (
-              <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-400 text-xs flex items-start gap-2">
+              <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs flex items-start gap-2">
                 <X size={12} className="mt-0.5 shrink-0" />
                 <span>{error}</span>
               </div>
@@ -320,7 +320,7 @@ export function BillSplitModal({
 
             {creating && (
               <div className="flex items-center justify-center py-8">
-                <Loader2 size={24} className="text-[#FF6B35] animate-spin" />
+                <Loader2 size={24} className="text-[#E55A2B] animate-spin" />
               </div>
             )}
 
@@ -340,14 +340,14 @@ export function BillSplitModal({
                   <div className="space-y-4">
                     <div className="bg-[#FF6B35]/10 border border-[#FF6B35]/30 rounded-xl p-4">
                       <div className="flex items-center justify-between">
-                        <span className="text-[#FF6B35]/70 text-xs font-medium">
+                        <span className="text-[#E55A2B] text-xs font-medium">
                           Pago completo
                         </span>
-                        <span className="text-[#FF6B35] font-bold text-2xl" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                        <span className="text-[#E55A2B] font-bold text-2xl" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                           {clp(totalAmount)}
                         </span>
                       </div>
-                      <p className="text-white/40 text-xs mt-2">
+                      <p className="text-[var(--text-muted)] text-xs mt-2">
                         Una persona paga todo
                       </p>
                     </div>
@@ -394,15 +394,15 @@ export function BillSplitModal({
                     {/* Info del pago actual */}
                     <div className="bg-[#FF6B35]/10 border border-[#FF6B35]/30 rounded-xl p-4">
                       <div className="flex items-center justify-between mb-2">
-                        <span className="text-[#FF6B35]/70 text-xs font-medium">
+                        <span className="text-[#E55A2B] text-xs font-medium">
                           {splits.length > 1 ? `División ${currentSplitIndex + 1}` : 'Total a cobrar'}
                         </span>
-                        <span className="text-[#FF6B35] font-bold text-lg" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                        <span className="text-[#E55A2B] font-bold text-lg" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                           {clp(currentSplit.amount)}
                         </span>
                       </div>
                       {splits.length > 1 && (
-                        <p className="text-white/40 text-xs">
+                        <p className="text-[var(--text-muted)] text-xs">
                           {numPaid} de {splits.length} pagos completados
                         </p>
                       )}
@@ -411,7 +411,7 @@ export function BillSplitModal({
                     {/* Resumen de divisiones */}
                     {splits.length > 1 && (
                       <div className="space-y-2">
-                        <p className="text-white/40 text-xs font-medium">Resumen de divisiones</p>
+                        <p className="text-[var(--text-muted)] text-xs font-medium">Resumen de divisiones</p>
                         {splits.map((split, i) => (
                           <div
                             key={i}
@@ -420,21 +420,21 @@ export function BillSplitModal({
                                 ? 'bg-emerald-500/10 border border-emerald-500/20'
                                 : i === currentSplitIndex
                                   ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/30'
-                                  : 'bg-white/3 border border-white/8'
+                                  : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)]'
                             }`}
                           >
                             <span className={`text-xs ${
-                              split.paid ? 'text-emerald-400' : i === currentSplitIndex ? 'text-[#FF6B35]' : 'text-white/40'
+                              split.paid ? 'text-emerald-700' : i === currentSplitIndex ? 'text-[#E55A2B]' : 'text-[var(--text-muted)]'
                             }`}>
                               División {i + 1}
                             </span>
                             <div className="flex items-center gap-2">
                               <span className={`text-sm font-semibold ${
-                                split.paid ? 'text-emerald-400' : i === currentSplitIndex ? 'text-white' : 'text-white/40'
+                                split.paid ? 'text-emerald-700' : i === currentSplitIndex ? 'text-[var(--text-strong)]' : 'text-[var(--text-muted)]'
                               }`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
                                 {clp(split.amount)}
                               </span>
-                              {split.paid && <CheckCircle2 size={14} className="text-emerald-400" />}
+                              {split.paid && <CheckCircle2 size={14} className="text-emerald-700" />}
                             </div>
                           </div>
                         ))}
@@ -447,12 +447,12 @@ export function BillSplitModal({
                 {allPaid && (
                   <div className="text-center py-8">
                     <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center mx-auto mb-4">
-                      <CheckCircle2 size={32} className="text-emerald-400" />
+                      <CheckCircle2 size={32} className="text-emerald-700" />
                     </div>
-                    <h4 className="text-white font-semibold text-lg mb-2">
+                    <h4 className="text-[var(--text-strong)] font-semibold text-lg mb-2">
                       ¡Pago completado!
                     </h4>
-                    <p className="text-white/40 text-sm">
+                    <p className="text-[var(--text-muted)] text-sm">
                       {tableLabel} cobrada: {clp(totalAmount)}
                       {splits.length > 1 && ` en ${splits.length} pagos`}
                     </p>

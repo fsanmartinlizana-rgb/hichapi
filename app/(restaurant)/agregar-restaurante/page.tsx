@@ -67,23 +67,23 @@ export default function AgregarRestaurantePage() {
 
   return (
     <div className="max-w-2xl mx-auto p-6 md:p-10">
-      <Link href="/dashboard" className="text-white/40 hover:text-white text-xs inline-flex items-center gap-1 mb-6 transition-colors">
+      <Link href="/dashboard" className="text-[var(--text-muted)] hover:text-[var(--text-strong)] text-xs inline-flex items-center gap-1 mb-6 transition-colors">
         <ArrowLeft size={12} /> Volver al panel
       </Link>
 
       <div className="flex items-start gap-3 mb-6">
         <div className="w-11 h-11 rounded-2xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 flex items-center justify-center">
-          <Sparkles size={20} className="text-[#FF6B35]" />
+          <Sparkles size={20} className="text-[#E55A2B]" />
         </div>
         <div>
-          <h1 className="text-white text-2xl font-bold">Agregar otro restaurante</h1>
-          <p className="text-white/50 text-sm mt-1">
+          <h1 className="text-[var(--text-strong)] text-2xl font-bold">Agregar otro restaurante</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">
             Sumá un nuevo local a tu cuenta. Vas a poder cambiar entre restaurantes desde la barra lateral.
           </p>
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-4 bg-[#13132A] border border-white/10 rounded-2xl p-6">
+      <form onSubmit={handleSubmit} className="space-y-4 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6">
         <Field label="Nombre del restaurante" value={restName} onChange={setRestName} placeholder="Ej: La Marina" required />
         <Field label="Dirección" value={restAddress} onChange={setRestAddress} placeholder="Av. Providencia 1234" required />
         <div className="grid grid-cols-2 gap-3">
@@ -92,17 +92,17 @@ export default function AgregarRestaurantePage() {
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-white/60 text-xs font-medium">Plan inicial</label>
+          <label className="text-[var(--text-muted)] text-xs font-medium">Plan inicial</label>
           <select
             value={plan}
             onChange={e => setPlan(e.target.value as PlanId)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
           >
             {(Object.keys(PLAN_INFO) as PlanId[]).map(p => (
-              <option key={p} value={p} className="bg-[#13132A]">{PLAN_INFO[p].name}</option>
+              <option key={p} value={p} className="bg-[var(--surface-card)]">{PLAN_INFO[p].name}</option>
             ))}
           </select>
-          <p className="text-white/35 text-[11px]">{PLAN_INFO[plan].hint}</p>
+          <p className="text-[var(--text-muted)] text-[11px]">{PLAN_INFO[plan].hint}</p>
         </div>
 
         {error && (
@@ -129,13 +129,13 @@ function Field({ label, value, onChange, placeholder, required }: {
 }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-white/60 text-xs font-medium">{label}</label>
+      <label className="text-[var(--text-muted)] text-xs font-medium">{label}</label>
       <input
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder={placeholder}
         required={required}
-        className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40 placeholder:text-white/20"
+        className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40 placeholder:text-[var(--text-muted)]"
       />
     </div>
   )

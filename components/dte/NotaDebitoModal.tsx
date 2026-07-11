@@ -159,7 +159,7 @@ export function NotaDebitoModal({
           <button
             onClick={handleClose}
             disabled={saving}
-            className="py-2 px-4 rounded-lg border border-white/10 text-gray-400 text-sm hover:bg-white/5 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+            className="py-2 px-4 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
           >
             Cancelar
           </button>
@@ -175,31 +175,31 @@ export function NotaDebitoModal({
     >
       {error && (
         <div className="mb-4 p-3 rounded-lg bg-red-500/10 border border-red-500/30 flex items-start gap-2">
-          <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
 
       {/* Datos de la factura original */}
-      <div className="mb-4 p-3 rounded-lg bg-white/5 border border-white/10 space-y-2 text-xs">
-        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-white/5">
-          <TrendingUp size={14} className="text-amber-400" />
-          <span className="text-white/70 font-semibold">Factura original</span>
+      <div className="mb-4 p-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] space-y-2 text-xs">
+        <div className="flex items-center gap-2 mb-2 pb-2 border-b border-[var(--border-subtle)]">
+          <TrendingUp size={14} className="text-amber-700" />
+          <span className="text-[var(--text-body)] font-semibold">Factura original</span>
         </div>
 
         <div className="flex justify-between">
-          <span className="text-white/50">Folio:</span>
-          <span className="text-white font-mono font-semibold">#{originalEmission.folio}</span>
+          <span className="text-[var(--text-muted)]">Folio:</span>
+          <span className="text-[var(--text-strong)] font-mono font-semibold">#{originalEmission.folio}</span>
         </div>
 
         <div className="flex justify-between">
-          <span className="text-white/50">Monto original:</span>
-          <span className="text-white font-bold">{formatCurrency(originalEmission.total_amount)}</span>
+          <span className="text-[var(--text-muted)]">Monto original:</span>
+          <span className="text-[var(--text-strong)] font-bold">{formatCurrency(originalEmission.total_amount)}</span>
         </div>
 
         <div className="flex justify-between">
-          <span className="text-white/50">Fecha emisión:</span>
-          <span className="text-white">
+          <span className="text-[var(--text-muted)]">Fecha emisión:</span>
+          <span className="text-[var(--text-strong)]">
             {new Date(originalEmission.emitted_at).toLocaleDateString('es-CL', {
               day: '2-digit', month: '2-digit', year: 'numeric',
             })}
@@ -208,8 +208,8 @@ export function NotaDebitoModal({
 
         {originalEmission.razon_receptor && (
           <div className="flex justify-between">
-            <span className="text-white/50">Receptor:</span>
-            <span className="text-white truncate ml-2" title={originalEmission.razon_receptor}>
+            <span className="text-[var(--text-muted)]">Receptor:</span>
+            <span className="text-[var(--text-strong)] truncate ml-2" title={originalEmission.razon_receptor}>
               {originalEmission.razon_receptor}
             </span>
           </div>
@@ -217,8 +217,8 @@ export function NotaDebitoModal({
 
         {originalEmission.rut_receptor && (
           <div className="flex justify-between">
-            <span className="text-white/50">RUT:</span>
-            <span className="text-white font-mono">{originalEmission.rut_receptor}</span>
+            <span className="text-[var(--text-muted)]">RUT:</span>
+            <span className="text-[var(--text-strong)] font-mono">{originalEmission.rut_receptor}</span>
           </div>
         )}
       </div>
@@ -226,11 +226,11 @@ export function NotaDebitoModal({
       {/* Tipo de corrección — solo corrección de monto es válida para ND */}
 
       {/* Monto adicional */}
-      <label className="block text-gray-400 text-sm mb-2">
-        Monto adicional (CLP) <span className="text-red-400">*</span>
+      <label className="block text-[var(--text-muted)] text-sm mb-2">
+        Monto adicional (CLP) <span className="text-red-700">*</span>
       </label>
       <div className="relative mb-4">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-white/40 text-sm">$</span>
+        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-sm">$</span>
         <input
           type="text"
           inputMode="numeric"
@@ -238,13 +238,13 @@ export function NotaDebitoModal({
           onChange={e => handleMontoChange(e.target.value)}
           placeholder="0"
           disabled={saving}
-          className="w-full bg-black/30 border border-white/10 rounded-lg pl-7 pr-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500 placeholder:text-white/25 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full bg-black/30 border border-[var(--border-subtle)] rounded-lg pl-7 pr-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-amber-500 placeholder:text-[var(--text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
         />
       </div>
 
       {/* Motivo */}
-      <label className="block text-gray-400 text-sm mb-2">
-        Motivo <span className="text-red-400">*</span>
+      <label className="block text-[var(--text-muted)] text-sm mb-2">
+        Motivo <span className="text-red-700">*</span>
       </label>
       <textarea
         value={razonRef}
@@ -253,22 +253,22 @@ export function NotaDebitoModal({
         maxLength={90}
         rows={3}
         disabled={saving}
-        className="w-full bg-black/30 border border-white/10 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-amber-500 resize-none placeholder:text-white/25 disabled:opacity-50 disabled:cursor-not-allowed"
+        className="w-full bg-black/30 border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-amber-500 resize-none placeholder:text-[var(--text-muted)] disabled:opacity-50 disabled:cursor-not-allowed"
       />
-      <p className="text-white/30 text-xs mt-1">{razonRef.length}/90 caracteres</p>
+      <p className="text-[var(--text-muted)] text-xs mt-1">{razonRef.length}/90 caracteres</p>
 
       {/* Resumen */}
       {montoExtraNum > 0 && (
         <div className="mt-4 p-3 rounded-lg bg-amber-500/8 border border-amber-500/20 space-y-1 text-xs">
-          <div className="flex justify-between text-white/50">
+          <div className="flex justify-between text-[var(--text-muted)]">
             <span>Factura original:</span>
             <span>{formatCurrency(originalEmission.total_amount)}</span>
           </div>
-          <div className="flex justify-between text-amber-300">
+          <div className="flex justify-between text-amber-700">
             <span>Cargo adicional (ND):</span>
             <span>+ {formatCurrency(montoExtraNum)}</span>
           </div>
-          <div className="flex justify-between text-white font-bold border-t border-white/10 pt-1 mt-1">
+          <div className="flex justify-between text-[var(--text-strong)] font-bold border-t border-[var(--border-subtle)] pt-1 mt-1">
             <span>Total efectivo:</span>
             <span>{formatCurrency(originalEmission.total_amount + montoExtraNum)}</span>
           </div>
@@ -277,7 +277,7 @@ export function NotaDebitoModal({
 
       {/* Advertencia */}
       <div className="mt-4 p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 flex items-start gap-2">
-        <AlertCircle size={14} className="text-amber-300 shrink-0 mt-0.5" />
+        <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
         <div className="text-amber-200 text-xs">
           <strong>⚠️ Importante:</strong> La nota de débito aumenta el monto de la
           factura original. Se emitirá al SII y no se puede deshacer.

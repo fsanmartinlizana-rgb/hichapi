@@ -32,12 +32,12 @@ interface Reservation {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: 'Pendiente',  color: 'text-yellow-400', bg: 'bg-yellow-400/10 border-yellow-400/20' },
-  confirmed: { label: 'Confirmada', color: 'text-blue-400',   bg: 'bg-blue-400/10 border-blue-400/20' },
-  seated:    { label: 'Sentado',    color: 'text-emerald-400', bg: 'bg-emerald-400/10 border-emerald-400/20' },
-  completed: { label: 'Completada', color: 'text-white/30',   bg: 'bg-white/5 border-white/8' },
-  no_show:   { label: 'No llegó',   color: 'text-red-400',    bg: 'bg-red-400/10 border-red-400/20' },
-  cancelled: { label: 'Cancelada',  color: 'text-white/20',   bg: 'bg-white/3 border-white/5' },
+  pending:   { label: 'Pendiente',  color: 'text-yellow-700', bg: 'bg-yellow-400/10 border-yellow-400/20' },
+  confirmed: { label: 'Confirmada', color: 'text-blue-700',   bg: 'bg-blue-400/10 border-blue-400/20' },
+  seated:    { label: 'Sentado',    color: 'text-emerald-700', bg: 'bg-emerald-400/10 border-emerald-400/20' },
+  completed: { label: 'Completada', color: 'text-[var(--text-muted)]',   bg: 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]' },
+  no_show:   { label: 'No llegó',   color: 'text-red-700',    bg: 'bg-red-400/10 border-red-400/20' },
+  cancelled: { label: 'Cancelada',  color: 'text-[var(--text-muted)]',   bg: 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]' },
 }
 
 function minutesLate(reservation: Reservation): number {
@@ -70,7 +70,7 @@ function ReservationCard({
   const isDanger = isActive && late >= timeoutMin
 
   return (
-    <div className={`rounded-xl border p-4 space-y-3 transition-all ${isDanger ? 'bg-red-500/5 border-red-500/20 animate-pulse' : isLate ? 'bg-yellow-500/5 border-yellow-500/15' : 'bg-white/[0.02] border-white/8'}`}>
+    <div className={`rounded-xl border p-4 space-y-3 transition-all ${isDanger ? 'bg-red-500/5 border-red-500/20 animate-pulse' : isLate ? 'bg-yellow-500/5 border-yellow-500/15' : 'bg-white/[0.02] border-[var(--border-subtle)]'}`}>
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -78,21 +78,21 @@ function ReservationCard({
             <Users size={16} className={status.color} />
           </div>
           <div>
-            <p className="text-white font-semibold text-sm">{reservation.name}</p>
-            <p className="text-white/30 text-xs flex items-center gap-1">
+            <p className="text-[var(--text-strong)] font-semibold text-sm">{reservation.name}</p>
+            <p className="text-[var(--text-muted)] text-xs flex items-center gap-1">
               <Users size={10} /> {reservation.party_size} personas
             </p>
           </div>
         </div>
         <div className="text-right">
-          <p className="text-white font-mono text-sm font-bold">{formatTime(reservation.reservation_time)}</p>
+          <p className="text-[var(--text-strong)] font-mono text-sm font-bold">{formatTime(reservation.reservation_time)}</p>
           <span className={`text-[10px] font-medium ${status.color}`}>{status.label}</span>
         </div>
       </div>
 
       {/* Late warning */}
       {isLate && (
-        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${isDanger ? 'bg-red-500/10 text-red-400' : 'bg-yellow-500/10 text-yellow-400'}`}>
+        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${isDanger ? 'bg-red-500/10 text-red-700' : 'bg-yellow-500/10 text-yellow-700'}`}>
           <Timer size={12} />
           <span>{late} min de atraso</span>
           {isDanger && <span className="font-bold ml-auto">Auto-liberar</span>}
@@ -101,14 +101,14 @@ function ReservationCard({
 
       {/* Notes */}
       {reservation.notes && (
-        <p className="text-yellow-400/60 text-xs italic bg-yellow-500/5 rounded-lg px-3 py-1.5">{reservation.notes}</p>
+        <p className="text-yellow-700/60 text-xs italic bg-yellow-500/5 rounded-lg px-3 py-1.5">{reservation.notes}</p>
       )}
 
       {/* Phone + CTA llamar */}
       <div className="flex items-center gap-2">
         <a
           href={`tel:${reservation.phone.replace(/[^+\d]/g, '')}`}
-          className="flex items-center gap-1.5 text-xs text-white/60 hover:text-[#FF6B35] transition-colors"
+          className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[#E55A2B] transition-colors"
           title={`Llamar a ${reservation.name}`}
         >
           <Phone size={11} />
@@ -116,7 +116,7 @@ function ReservationCard({
         </a>
         <a
           href={`tel:${reservation.phone.replace(/[^+\d]/g, '')}`}
-          className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/25 text-[#FF6B35] text-[10px] font-semibold hover:bg-[#FF6B35]/20 transition-colors"
+          className="ml-auto flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/25 text-[#E55A2B] text-[10px] font-semibold hover:bg-[#FF6B35]/20 transition-colors"
         >
           <Phone size={10} /> Llamar
         </a>
@@ -125,7 +125,7 @@ function ReservationCard({
             href={`https://wa.me/${reservation.phone.replace(/[^\d]/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-[10px] font-semibold hover:bg-emerald-500/20 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-[10px] font-semibold hover:bg-emerald-500/20 transition-colors"
             title="Enviar WhatsApp"
           >
             WhatsApp
@@ -137,17 +137,17 @@ function ReservationCard({
       {(reservation.status === 'pending' || reservation.status === 'confirmed') && (
         <div className="flex gap-2 pt-1">
           {reservation.status === 'pending' && (
-            <button onClick={() => onAction(reservation.id, 'confirm')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium hover:bg-blue-500/20 transition-colors">
+            <button onClick={() => onAction(reservation.id, 'confirm')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 text-xs font-medium hover:bg-blue-500/20 transition-colors">
               <CheckCircle2 size={12} /> Confirmar
             </button>
           )}
-          <button onClick={() => onAction(reservation.id, 'seat')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition-colors">
+          <button onClick={() => onAction(reservation.id, 'seat')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-xs font-medium hover:bg-emerald-500/20 transition-colors">
             <UserCheck size={12} /> Sentar
           </button>
-          <button onClick={() => onAction(reservation.id, 'no_show')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/20 transition-colors">
+          <button onClick={() => onAction(reservation.id, 'no_show')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs font-medium hover:bg-red-500/20 transition-colors">
             <Ban size={12} /> No llegó
           </button>
-          <button onClick={() => onAction(reservation.id, 'cancel')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-white/5 border border-white/8 text-white/30 text-xs hover:bg-white/10 transition-colors">
+          <button onClick={() => onAction(reservation.id, 'cancel')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] transition-colors">
             <X size={12} />
           </button>
         </div>
@@ -155,7 +155,7 @@ function ReservationCard({
 
       {reservation.status === 'seated' && (
         <div className="flex gap-2 pt-1">
-          <button onClick={() => onAction(reservation.id, 'complete')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-white/5 border border-white/8 text-white/40 text-xs font-medium hover:bg-white/10 transition-colors">
+          <button onClick={() => onAction(reservation.id, 'complete')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs font-medium hover:bg-[var(--surface-sunken)] transition-colors">
             <CheckCircle2 size={12} /> Completar
           </button>
         </div>
@@ -266,7 +266,7 @@ export default function ReservasPage() {
   if (!restaurant) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -276,30 +276,30 @@ export default function ReservasPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <CalendarDays size={20} className="text-[#FF6B35]" /> Reservas
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <CalendarDays size={20} className="text-[#E55A2B]" /> Reservas
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">Gestiona las reservas de tu restaurante</p>
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">Gestiona las reservas de tu restaurante</p>
         </div>
-        <button onClick={fetchReservations} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white/50 text-xs hover:bg-white/10 transition-colors">
+        <button onClick={fetchReservations} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] transition-colors">
           <RefreshCw size={12} /> Actualizar
         </button>
       </div>
 
       {/* Date nav + Search */}
       <div className="flex items-center gap-3">
-        <button onClick={() => changeDate(-1)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 transition-colors">
+        <button onClick={() => changeDate(-1)} className="p-2 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] transition-colors">
           <ChevronLeft size={16} />
         </button>
         <div className="flex-1 text-center">
-          <p className="text-white font-semibold text-sm">{dayNames[dateObj.getDay()]} {dateObj.getDate()}/{dateObj.getMonth() + 1}/{dateObj.getFullYear()}</p>
-          {isToday && <p className="text-[#FF6B35] text-[10px] font-medium">HOY</p>}
+          <p className="text-[var(--text-strong)] font-semibold text-sm">{dayNames[dateObj.getDay()]} {dateObj.getDate()}/{dateObj.getMonth() + 1}/{dateObj.getFullYear()}</p>
+          {isToday && <p className="text-[#E55A2B] text-[10px] font-medium">HOY</p>}
         </div>
-        <button onClick={() => changeDate(1)} className="p-2 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 transition-colors">
+        <button onClick={() => changeDate(1)} className="p-2 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] transition-colors">
           <ChevronRight size={16} />
         </button>
         {!isToday && (
-          <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="px-3 py-1.5 rounded-lg bg-[#FF6B35]/10 text-[#FF6B35] text-xs font-medium hover:bg-[#FF6B35]/20 transition-colors">
+          <button onClick={() => setDate(new Date().toISOString().split('T')[0])} className="px-3 py-1.5 rounded-lg bg-[#FF6B35]/10 text-[#E55A2B] text-xs font-medium hover:bg-[#FF6B35]/20 transition-colors">
             Hoy
           </button>
         )}
@@ -307,28 +307,28 @@ export default function ReservasPage() {
 
       {/* Search */}
       <div className="relative">
-        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
         <input
           type="text"
           value={search}
           onChange={e => setSearch(e.target.value)}
           placeholder="Buscar por nombre o teléfono..."
-          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/[0.05] transition-colors"
+          className="w-full pl-9 pr-4 py-2.5 rounded-xl bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40 focus:bg-white/[0.05] transition-colors"
         />
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
-          { label: 'Total', value: stats.total, color: 'text-white' },
-          { label: 'Por llegar', value: stats.active, color: 'text-blue-400' },
-          { label: 'Sentados', value: stats.seated, color: 'text-emerald-400' },
-          { label: 'No llegaron', value: stats.noShow, color: 'text-red-400' },
-          { label: 'Personas', value: stats.totalPax, color: 'text-[#FF6B35]' },
+          { label: 'Total', value: stats.total, color: 'text-[var(--text-strong)]' },
+          { label: 'Por llegar', value: stats.active, color: 'text-blue-700' },
+          { label: 'Sentados', value: stats.seated, color: 'text-emerald-700' },
+          { label: 'No llegaron', value: stats.noShow, color: 'text-red-700' },
+          { label: 'Personas', value: stats.totalPax, color: 'text-[#E55A2B]' },
         ].map(s => (
-          <div key={s.label} className="bg-white/[0.02] border border-white/8 rounded-xl p-3 text-center">
+          <div key={s.label} className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-xl p-3 text-center">
             <p className={`text-lg font-bold font-mono ${s.color}`}>{s.value}</p>
-            <p className="text-white/30 text-[10px]">{s.label}</p>
+            <p className="text-[var(--text-muted)] text-[10px]">{s.label}</p>
           </div>
         ))}
       </div>
@@ -336,7 +336,7 @@ export default function ReservasPage() {
       {/* Filter tabs */}
       <div className="flex gap-2">
         {(['active', 'all', 'past'] as const).map(f => (
-          <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${filter === f ? 'bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/30' : 'bg-white/5 text-white/30 border border-transparent hover:bg-white/10'}`}>
+          <button key={f} onClick={() => setFilter(f)} className={`px-4 py-2 rounded-xl text-xs font-medium transition-all ${filter === f ? 'bg-[#FF6B35]/15 text-[#E55A2B] border border-[#FF6B35]/30' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-transparent hover:bg-[var(--surface-sunken)]'}`}>
             {f === 'active' ? 'Activas' : f === 'all' ? 'Todas' : 'Pasadas'}
           </button>
         ))}
@@ -345,7 +345,7 @@ export default function ReservasPage() {
       {/* List */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+          <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
         <EmptyState icon={CalendarDays} title="Sin reservas" description={`No hay reservas ${filter === 'active' ? 'activas' : ''} para este día`} />

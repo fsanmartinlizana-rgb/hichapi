@@ -144,7 +144,7 @@ export default function EstacionesPage() {
   if (!restaurant) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -164,30 +164,30 @@ export default function EstacionesPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <ChefHat size={20} className="text-[#FF6B35]" /> Estaciones de preparación
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <ChefHat size={20} className="text-[#E55A2B]" /> Estaciones de preparación
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
             Define dónde se prepara cada tipo de plato y a qué impresora envía
           </p>
         </div>
         <button
           onClick={() => setShowCreate(true)}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35]/90 transition-colors"
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35] transition-colors"
         >
           <Plus size={14} /> Nueva estación
         </button>
       </div>
 
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2.5 rounded-xl text-sm animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-6 right-6 z-50 bg-[var(--surface-sunken)] backdrop-blur border border-[var(--border-subtle)] text-[var(--text-strong)] px-4 py-2.5 rounded-xl text-sm animate-in fade-in slide-in-from-top-2">
           {toast}
         </div>
       )}
 
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+          <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
         </div>
       ) : stations.length === 0 ? (
         <EmptyState icon={ChefHat} title="Sin estaciones" description="Agregá la primera estación arriba (Cocina, Barra, Parrilla, etc.)" />
@@ -198,7 +198,7 @@ export default function EstacionesPage() {
             const locName = locKey === '__noloc__' ? 'Sin local asignado' : locations.find(l => l.id === locKey)?.name
             return (
               <section key={locKey}>
-                <h2 className="text-white/50 text-xs uppercase tracking-wide mb-3 flex items-center gap-2">
+                <h2 className="text-[var(--text-muted)] text-xs uppercase tracking-wide mb-3 flex items-center gap-2">
                   <MapPin size={12} /> {locName}
                 </h2>
                 <div className="space-y-2">
@@ -213,7 +213,7 @@ export default function EstacionesPage() {
                     />
                   ))}
                   {sts.length === 0 && locKey !== '__noloc__' && (
-                    <p className="text-white/30 text-xs italic pl-2">Sin estaciones en este local</p>
+                    <p className="text-[var(--text-muted)] text-xs italic pl-2">Sin estaciones en este local</p>
                   )}
                 </div>
               </section>
@@ -225,40 +225,40 @@ export default function EstacionesPage() {
       {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
-          <form onClick={e => e.stopPropagation()} onSubmit={createStation} className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-6 space-y-4">
-            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-              <ChefHat size={18} className="text-[#FF6B35]" /> Nueva estación
+          <form onClick={e => e.stopPropagation()} onSubmit={createStation} className="w-full max-w-md bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-2xl p-6 space-y-4">
+            <h3 className="text-[var(--text-strong)] font-bold text-lg flex items-center gap-2">
+              <ChefHat size={18} className="text-[#E55A2B]" /> Nueva estación
             </h3>
 
             <label className="block">
-              <span className="text-white/50 text-xs font-medium mb-1 block">Nombre *</span>
+              <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Nombre *</span>
               <input
                 type="text"
                 value={form.name}
                 onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="Ej: Cocina caliente JW"
                 required
-                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40"
+                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40"
               />
             </label>
 
             <label className="block">
-              <span className="text-white/50 text-xs font-medium mb-1 block">Tipo</span>
+              <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Tipo</span>
               <select
                 value={form.kind}
                 onChange={e => setForm(f => ({ ...f, kind: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
               >
                 {KIND_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
               </select>
             </label>
 
             <label className="block">
-              <span className="text-white/50 text-xs font-medium mb-1 block">Local</span>
+              <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Local</span>
               <select
                 value={form.location_id}
                 onChange={e => setForm(f => ({ ...f, location_id: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
               >
                 <option value="">— Sin local asignado —</option>
                 {locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}
@@ -266,11 +266,11 @@ export default function EstacionesPage() {
             </label>
 
             <label className="block">
-              <span className="text-white/50 text-xs font-medium mb-1 block">Impresora (opcional)</span>
+              <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Impresora (opcional)</span>
               <select
                 value={form.print_server_id}
                 onChange={e => setForm(f => ({ ...f, print_server_id: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+                className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
               >
                 <option value="">— Sin impresora —</option>
                 {printers.map(p => <option key={p.id} value={p.id}>{p.name} ({p.printer_kind})</option>)}
@@ -278,10 +278,10 @@ export default function EstacionesPage() {
             </label>
 
             <div className="flex gap-2 pt-2">
-              <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm hover:bg-white/10 transition-colors">
+              <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors">
                 Cancelar
               </button>
-              <button type="submit" disabled={!form.name} className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-black text-sm font-bold hover:bg-[#FF6B35]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              <button type="submit" disabled={!form.name} className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-black text-sm font-bold hover:bg-[#FF6B35] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 <Save size={14} /> Crear
               </button>
             </div>
@@ -303,29 +303,29 @@ function StationRow({ station, locations, printers, onUpdate, onDelete }: {
   const printer = printers.find(p => p.id === station.print_server_id)
 
   return (
-    <div className="bg-white/[0.02] border border-white/8 rounded-xl overflow-hidden">
+    <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
       <div className="flex items-center gap-3 p-3">
-        <div className="w-9 h-9 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35]">
+        <div className="w-9 h-9 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center text-[#E55A2B]">
           {kindIcon(station.kind)}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm truncate">{station.name}</p>
-          <p className="text-white/40 text-xs flex items-center gap-2 flex-wrap">
+          <p className="text-[var(--text-strong)] font-semibold text-sm truncate">{station.name}</p>
+          <p className="text-[var(--text-muted)] text-xs flex items-center gap-2 flex-wrap">
             <span>{kindLabel(station.kind)}</span>
             {printer && <><span>·</span><span className="flex items-center gap-1"><Printer size={10} /> {printer.name}</span></>}
-            {!station.active && <><span>·</span><span className="text-red-400">Inactiva</span></>}
+            {!station.active && <><span>·</span><span className="text-red-700">Inactiva</span></>}
           </p>
         </div>
         <button
           onClick={() => setExpanded(e => !e)}
-          className="text-white/40 text-xs hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 border border-white/8"
+          className="text-[var(--text-muted)] text-xs hover:text-[var(--text-strong)] transition-colors px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)]"
         >
           {expanded ? 'Cerrar' : 'Editar'}
         </button>
       </div>
 
       {expanded && (
-        <div className="px-3 pb-3 space-y-3 border-t border-white/8 pt-3">
+        <div className="px-3 pb-3 space-y-3 border-t border-[var(--border-subtle)] pt-3">
           <div className="grid grid-cols-2 gap-3">
             <Sel label="Local" value={station.location_id ?? ''} onChange={v => onUpdate({ location_id: v || null })}>
               <option value="">Sin local</option>
@@ -340,13 +340,13 @@ function StationRow({ station, locations, printers, onUpdate, onDelete }: {
             {KIND_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
           </Sel>
           <div className="flex justify-between items-center">
-            <label className="flex items-center gap-2 text-xs text-white/60">
+            <label className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
               <input type="checkbox" checked={station.active} onChange={e => onUpdate({ active: e.target.checked })} />
               Activa
             </label>
             <button
               onClick={onDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors"
             >
               <Trash2 size={12} /> Eliminar
             </button>
@@ -365,11 +365,11 @@ function Sel({ label, value, onChange, children }: {
 }) {
   return (
     <label className="block">
-      <span className="text-white/50 text-xs font-medium mb-1 block">{label}</span>
+      <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">{label}</span>
       <select
         value={value}
         onChange={e => onChange(e.target.value)}
-        className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+        className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
       >
         {children}
       </select>

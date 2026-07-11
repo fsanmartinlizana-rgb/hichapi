@@ -98,7 +98,7 @@ export default function SuperAdminPage() {
   if (ctxLoading || loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+        <RefreshCw size={20} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -107,9 +107,9 @@ export default function SuperAdminPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3">
-          <Shield size={32} className="text-red-400 mx-auto" />
-          <p className="text-white font-semibold">Acceso restringido</p>
-          <p className="text-white/40 text-sm">Solo Super Admins pueden ver esta página.</p>
+          <Shield size={32} className="text-red-700 mx-auto" />
+          <p className="text-[var(--text-strong)] font-semibold">Acceso restringido</p>
+          <p className="text-[var(--text-muted)] text-sm">Solo Super Admins pueden ver esta página.</p>
         </div>
       </div>
     )
@@ -124,9 +124,9 @@ export default function SuperAdminPage() {
   }
 
   const severityColor: Record<string, string> = {
-    critical: 'text-red-400 bg-red-500/10',
-    medium: 'text-yellow-400 bg-yellow-500/10',
-    low: 'text-blue-400 bg-blue-500/10',
+    critical: 'text-red-700 bg-red-500/10',
+    medium: 'text-yellow-700 bg-yellow-500/10',
+    low: 'text-blue-700 bg-blue-500/10',
   }
 
   return (
@@ -135,12 +135,12 @@ export default function SuperAdminPage() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-2">
-            <Crown size={18} className="text-[#FF6B35]" />
-            <h1 className="text-white text-xl font-bold">Super Admin</h1>
+            <Crown size={18} className="text-[#E55A2B]" />
+            <h1 className="text-[var(--text-strong)] text-xl font-bold">Super Admin</h1>
           </div>
-          <p className="text-white/40 text-sm mt-0.5">Vista general de la plataforma HiChapi</p>
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">Vista general de la plataforma HiChapi</p>
         </div>
-        <button onClick={loadStats} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
+        <button onClick={loadStats} className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
           <RefreshCw size={14} />
         </button>
       </div>
@@ -148,21 +148,21 @@ export default function SuperAdminPage() {
       {/* KPIs */}
       <div className="grid grid-cols-5 gap-4">
         {[
-          { label: 'Restaurantes', value: stats.totalRestaurants, sub: `${stats.claimedRestaurants} reclamados`, icon: Store, color: '#FF6B35' },
-          { label: 'Pedidos hoy', value: stats.ordersToday, sub: `${stats.totalOrders} total`, icon: BarChart2, color: '#60A5FA' },
-          { label: 'Revenue hoy', value: clp(stats.revenueToday), sub: `${clp(stats.totalRevenue)} total`, icon: TrendingUp, color: '#34D399' },
-          { label: 'Usuarios', value: stats.totalUsers, sub: 'team members', icon: Users, color: '#A78BFA' },
+          { label: 'Restaurantes', value: stats.totalRestaurants, sub: `${stats.claimedRestaurants} reclamados`, icon: Store, color: '#E55A2B' },
+          { label: 'Pedidos hoy', value: stats.ordersToday, sub: `${stats.totalOrders} total`, icon: BarChart2, color: '#1D4ED8' },
+          { label: 'Revenue hoy', value: clp(stats.revenueToday), sub: `${clp(stats.totalRevenue)} total`, icon: TrendingUp, color: '#15803D' },
+          { label: 'Usuarios', value: stats.totalUsers, sub: 'team members', icon: Users, color: '#6D28D9' },
           { label: 'Tickets abiertos', value: stats.openTickets, sub: 'soporte', icon: Ticket, color: stats.openTickets > 0 ? '#FBBF24' : '#6B7280' },
         ].map(kpi => (
-          <div key={kpi.label} className="bg-[#161622] rounded-2xl border border-white/5 p-5 space-y-2">
+          <div key={kpi.label} className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5 space-y-2">
             <div className="flex items-center justify-between">
-              <p className="text-white/40 text-xs">{kpi.label}</p>
+              <p className="text-[var(--text-muted)] text-xs">{kpi.label}</p>
               <kpi.icon size={14} style={{ color: kpi.color }} />
             </div>
-            <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+            <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
               {kpi.value}
             </p>
-            <p className="text-white/25 text-xs">{kpi.sub}</p>
+            <p className="text-[var(--text-muted)] text-xs">{kpi.sub}</p>
           </div>
         ))}
       </div>
@@ -170,16 +170,16 @@ export default function SuperAdminPage() {
       {/* Middle: Plan breakdown + Recent tickets */}
       <div className="grid grid-cols-3 gap-4">
         {/* Plan breakdown */}
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
-          <p className="text-white text-sm font-semibold mb-4">Distribución de planes</p>
+        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5">
+          <p className="text-[var(--text-strong)] text-sm font-semibold mb-4">Distribución de planes</p>
           <div className="space-y-3">
             {Object.entries(PLANS).map(([planId, plan]) => {
               const count = stats.planBreakdown[planId] || 0
               const pct = stats.totalRestaurants > 0 ? Math.round((count / stats.totalRestaurants) * 100) : 0
               return (
                 <div key={planId} className="flex items-center gap-3">
-                  <span className="text-white/50 text-xs w-20 truncate">{plan.name}</span>
-                  <div className="flex-1 h-2 rounded-full bg-white/5 overflow-hidden">
+                  <span className="text-[var(--text-muted)] text-xs w-20 truncate">{plan.name}</span>
+                  <div className="flex-1 h-2 rounded-full bg-[var(--surface-sunken)] overflow-hidden">
                     <div
                       className="h-full rounded-full"
                       style={{
@@ -188,55 +188,55 @@ export default function SuperAdminPage() {
                       }}
                     />
                   </div>
-                  <span className="text-white/30 text-xs w-8 text-right">{count}</span>
+                  <span className="text-[var(--text-muted)] text-xs w-8 text-right">{count}</span>
                 </div>
               )
             })}
           </div>
 
           {/* Claimed vs unclaimed */}
-          <div className="mt-5 pt-4 border-t border-white/5 space-y-2">
-            <p className="text-white/40 text-xs font-medium">Estado de perfiles</p>
+          <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] space-y-2">
+            <p className="text-[var(--text-muted)] text-xs font-medium">Estado de perfiles</p>
             <div className="flex items-center gap-2">
-              <Check size={12} className="text-emerald-400" />
-              <span className="text-white/50 text-xs flex-1">Reclamados</span>
-              <span className="text-white/30 text-xs">{stats.claimedRestaurants}</span>
+              <Check size={12} className="text-emerald-700" />
+              <span className="text-[var(--text-muted)] text-xs flex-1">Reclamados</span>
+              <span className="text-[var(--text-muted)] text-xs">{stats.claimedRestaurants}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Eye size={12} className="text-yellow-400" />
-              <span className="text-white/50 text-xs flex-1">Sin reclamar</span>
-              <span className="text-white/30 text-xs">{stats.unclaimedRestaurants}</span>
+              <Eye size={12} className="text-yellow-700" />
+              <span className="text-[var(--text-muted)] text-xs flex-1">Sin reclamar</span>
+              <span className="text-[var(--text-muted)] text-xs">{stats.unclaimedRestaurants}</span>
             </div>
           </div>
         </div>
 
         {/* Recent restaurants */}
-        <div className="col-span-2 bg-[#161622] rounded-2xl border border-white/5 p-5">
+        <div className="col-span-2 bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5">
           <div className="flex items-center justify-between mb-3">
-            <p className="text-white text-sm font-semibold">Restaurantes recientes</p>
+            <p className="text-[var(--text-strong)] text-sm font-semibold">Restaurantes recientes</p>
           </div>
           <div className="space-y-1">
             {stats.recentRestaurants.map(r => (
-              <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/3 transition-colors">
-                <div className="w-8 h-8 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-white/30 text-[10px] font-bold shrink-0">
+              <div key={r.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--surface-sunken)] transition-colors">
+                <div className="w-8 h-8 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold shrink-0">
                   {r.name.slice(0, 2).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{r.name}</p>
-                  <p className="text-white/30 text-[10px]">{r.slug}</p>
+                  <p className="text-[var(--text-strong)] text-sm font-medium truncate">{r.name}</p>
+                  <p className="text-[var(--text-muted)] text-[10px]">{r.slug}</p>
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-lg font-semibold ${
-                  r.plan === 'pro' ? 'bg-[#FF6B35]/15 text-[#FF6B35]'
-                    : r.plan === 'starter' ? 'bg-blue-500/15 text-blue-400'
-                    : r.plan === 'enterprise' ? 'bg-violet-500/15 text-violet-400'
-                    : 'bg-white/5 text-white/30'
+                  r.plan === 'pro' ? 'bg-[#FF6B35]/15 text-[#E55A2B]'
+                    : r.plan === 'starter' ? 'bg-blue-500/15 text-blue-700'
+                    : r.plan === 'enterprise' ? 'bg-violet-500/15 text-violet-700'
+                    : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
                 }`}>
                   {r.plan || 'free'}
                 </span>
                 {r.claimed ? (
-                  <Check size={12} className="text-emerald-400 shrink-0" />
+                  <Check size={12} className="text-emerald-700 shrink-0" />
                 ) : (
-                  <Clock size={12} className="text-yellow-400 shrink-0" />
+                  <Clock size={12} className="text-yellow-700 shrink-0" />
                 )}
               </div>
             ))}
@@ -246,25 +246,25 @@ export default function SuperAdminPage() {
 
       {/* Support tickets */}
       {stats.recentTickets.length > 0 && (
-        <div className="bg-[#161622] rounded-2xl border border-white/5 p-5">
+        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-yellow-400" />
-              <p className="text-white text-sm font-semibold">Tickets recientes</p>
+              <AlertTriangle size={14} className="text-yellow-700" />
+              <p className="text-[var(--text-strong)] text-sm font-semibold">Tickets recientes</p>
             </div>
-            <span className="text-white/30 text-xs">{stats.openTickets} abiertos</span>
+            <span className="text-[var(--text-muted)] text-xs">{stats.openTickets} abiertos</span>
           </div>
           <div className="space-y-1">
             {stats.recentTickets.map(t => (
-              <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-white/3 transition-colors">
+              <div key={t.id} className="flex items-center gap-3 px-3 py-2.5 rounded-xl hover:bg-[var(--surface-sunken)] transition-colors">
                 <span className={`text-[10px] px-2 py-0.5 rounded-lg font-semibold ${severityColor[t.severity] || severityColor.low}`}>
                   {t.severity}
                 </span>
-                <p className="text-white/70 text-sm flex-1 truncate">{t.subject}</p>
-                <span className={`text-[10px] font-medium ${t.status === 'open' ? 'text-yellow-400' : 'text-white/25'}`}>
+                <p className="text-[var(--text-body)] text-sm flex-1 truncate">{t.subject}</p>
+                <span className={`text-[10px] font-medium ${t.status === 'open' ? 'text-yellow-700' : 'text-[var(--text-muted)]'}`}>
                   {t.status}
                 </span>
-                <ChevronRight size={12} className="text-white/15" />
+                <ChevronRight size={12} className="text-[var(--text-muted)]" />
               </div>
             ))}
           </div>

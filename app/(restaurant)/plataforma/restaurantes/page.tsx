@@ -28,10 +28,10 @@ interface RestRow {
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  enterprise: 'bg-violet-500/15 text-violet-300',
-  pro:        'bg-[#FF6B35]/15 text-[#FF6B35]',
-  starter:    'bg-blue-500/15 text-blue-400',
-  free:       'bg-white/5 text-white/40',
+  enterprise: 'bg-violet-500/15 text-violet-700',
+  pro:        'bg-[#FF6B35]/15 text-[#E55A2B]',
+  starter:    'bg-blue-500/15 text-blue-700',
+  free:       'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
 }
 
 export default function RestaurantesAdminPage() {
@@ -74,7 +74,7 @@ export default function RestaurantesAdminPage() {
   if (ctxLoading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -83,9 +83,9 @@ export default function RestaurantesAdminPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3">
-          <Shield size={32} className="text-red-400 mx-auto" />
-          <p className="text-white font-semibold">Acceso restringido</p>
-          <p className="text-white/40 text-sm">Solo super admins.</p>
+          <Shield size={32} className="text-red-700 mx-auto" />
+          <p className="text-[var(--text-strong)] font-semibold">Acceso restringido</p>
+          <p className="text-[var(--text-muted)] text-sm">Solo super admins.</p>
         </div>
       </div>
     )
@@ -96,49 +96,49 @@ export default function RestaurantesAdminPage() {
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
           <div className="flex items-center gap-2">
-            <Crown size={16} className="text-[#FF6B35]" />
-            <h1 className="text-white text-xl font-bold">Restaurantes</h1>
+            <Crown size={16} className="text-[#E55A2B]" />
+            <h1 className="text-[var(--text-strong)] text-xl font-bold">Restaurantes</h1>
           </div>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
             {rows.length} totales · {filtered.length} con los filtros aplicados
           </p>
         </div>
-        <button onClick={load} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
+        <button onClick={load} className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
           <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
         </button>
       </div>
 
       {/* Filtros */}
       <div className="flex items-center gap-2 flex-wrap">
-        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.02] border border-white/8 flex-1 max-w-md">
-          <Search size={13} className="text-white/30" />
+        <div className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/[0.02] border border-[var(--border-subtle)] flex-1 max-w-md">
+          <Search size={13} className="text-[var(--text-muted)]" />
           <input
             value={query}
             onChange={e => setQuery(e.target.value)}
             placeholder="Buscar por nombre, slug o barrio"
-            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/25 focus:outline-none"
+            className="flex-1 bg-transparent text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none"
           />
         </div>
-        <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
+        <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1">
           {(['all', 'free', 'starter', 'pro', 'enterprise'] as const).map(p => (
             <button
               key={p}
               onClick={() => setPlanFilter(p)}
               className={`px-3 py-1.5 rounded-lg text-[11px] capitalize transition-all ${
-                planFilter === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/35 hover:text-white/60'
+                planFilter === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'
               }`}
             >
               {p}
             </button>
           ))}
         </div>
-        <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
+        <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1">
           {(['all', 'claimed', 'unclaimed'] as const).map(p => (
             <button
               key={p}
               onClick={() => setClaimFilter(p)}
               className={`px-3 py-1.5 rounded-lg text-[11px] transition-all ${
-                claimFilter === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/35 hover:text-white/60'
+                claimFilter === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'
               }`}
             >
               {p === 'all' ? 'Todos' : p === 'claimed' ? 'Reclamados' : 'Sin reclamar'}
@@ -150,33 +150,33 @@ export default function RestaurantesAdminPage() {
       {/* Lista */}
       {loading ? (
         <div className="flex items-center justify-center py-10">
-          <Loader2 size={18} className="text-[#FF6B35] animate-spin" />
+          <Loader2 size={18} className="text-[#E55A2B] animate-spin" />
         </div>
       ) : filtered.length === 0 ? (
-        <p className="text-center text-white/30 text-sm py-10">Sin resultados</p>
+        <p className="text-center text-[var(--text-muted)] text-sm py-10">Sin resultados</p>
       ) : (
-        <div className="bg-white/[0.02] border border-white/8 rounded-2xl overflow-hidden">
+        <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
           {filtered.map(r => (
-            <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-white/5 last:border-b-0 hover:bg-white/[0.02] transition-colors">
-              <div className="w-9 h-9 rounded-lg bg-white/5 border border-white/8 flex items-center justify-center text-white/40 text-[10px] font-bold shrink-0">
+            <div key={r.id} className="flex items-center gap-3 px-4 py-3 border-b border-[var(--border-subtle)] last:border-b-0 hover:bg-white/[0.02] transition-colors">
+              <div className="w-9 h-9 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold shrink-0">
                 {r.name.slice(0, 2).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-0.5">
-                  <p className="text-white text-sm font-medium truncate">{r.name}</p>
+                  <p className="text-[var(--text-strong)] text-sm font-medium truncate">{r.name}</p>
                   <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold ${PLAN_STYLE[r.plan ?? 'free'] ?? PLAN_STYLE.free}`}>
                     {r.plan ?? 'free'}
                   </span>
                   {r.claimed ? (
-                    <Check size={10} className="text-emerald-400 shrink-0" />
+                    <Check size={10} className="text-emerald-700 shrink-0" />
                   ) : (
-                    <Clock size={10} className="text-yellow-400 shrink-0" />
+                    <Clock size={10} className="text-yellow-700 shrink-0" />
                   )}
                   {!r.active && (
-                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-white/5 text-white/30">inactivo</span>
+                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--text-muted)]">inactivo</span>
                   )}
                 </div>
-                <p className="text-white/35 text-[11px] truncate flex items-center gap-1.5">
+                <p className="text-[var(--text-muted)] text-[11px] truncate flex items-center gap-1.5">
                   <span className="font-mono">{r.slug}</span>
                   {r.neighborhood && <>
                     <span>·</span>
@@ -188,7 +188,7 @@ export default function RestaurantesAdminPage() {
               </div>
               <button
                 onClick={() => switchTo(r.id)}
-                className="text-white/40 text-[11px] hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/25"
+                className="text-[var(--text-muted)] text-[11px] hover:text-[var(--text-strong)] transition-colors px-2 py-1 rounded-lg border border-[var(--border-subtle)] hover:border-[var(--border-subtle)]"
                 title="Ver como este restaurant"
               >
                 Ver como
@@ -196,7 +196,7 @@ export default function RestaurantesAdminPage() {
               <Link
                 href={`/${r.slug}`}
                 target="_blank"
-                className="text-white/40 text-[11px] hover:text-white transition-colors px-2 py-1 rounded-lg border border-white/10 hover:border-white/25 flex items-center gap-1"
+                className="text-[var(--text-muted)] text-[11px] hover:text-[var(--text-strong)] transition-colors px-2 py-1 rounded-lg border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] flex items-center gap-1"
               >
                 Página <ExternalLink size={10} />
               </Link>

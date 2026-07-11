@@ -20,17 +20,17 @@ interface EmptyStateProps {
 export function EmptyState({ icon: Icon, title, description, action, className = '' }: EmptyStateProps) {
   return (
     <div className={`flex flex-col items-center justify-center text-center px-6 py-12 ${className}`}>
-      <div className="w-14 h-14 rounded-2xl bg-white/3 border border-dashed border-white/10 flex items-center justify-center mb-4">
-        <Icon size={20} className="text-white/30" />
+      <div className="w-14 h-14 rounded-2xl bg-[var(--surface-sunken)] border border-dashed border-[var(--border-subtle)] flex items-center justify-center mb-4">
+        <Icon size={20} className="text-[var(--text-muted)]" />
       </div>
-      <p className="text-white/80 text-sm font-semibold">{title}</p>
+      <p className="text-[var(--text-body)] text-sm font-semibold">{title}</p>
       {description && (
-        <p className="text-white/35 text-xs mt-1.5 max-w-xs leading-relaxed">{description}</p>
+        <p className="text-[var(--text-muted)] text-xs mt-1.5 max-w-xs leading-relaxed">{description}</p>
       )}
       {action && (
         <button
           onClick={action.onClick}
-          className="mt-5 px-4 py-2 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/35 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
+          className="mt-5 px-4 py-2 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/35 text-[#E55A2B] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
         >
           {action.label}
         </button>

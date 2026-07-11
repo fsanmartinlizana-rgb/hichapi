@@ -46,7 +46,7 @@ function DocumentHistoryItem({ request }: { request: DocumentRequest }) {
   return (
     <div
       className="flex items-start gap-3 py-2.5 border-b last:border-0"
-      style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+      style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}
     >
       {/* Document type icon */}
       <span className="text-base leading-none mt-0.5 shrink-0" aria-hidden="true">
@@ -56,28 +56,28 @@ function DocumentHistoryItem({ request }: { request: DocumentRequest }) {
       {/* Main content */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center justify-between gap-2 flex-wrap">
-          <p className="text-xs font-semibold text-white/80">{label}</p>
+          <p className="text-xs font-semibold text-[var(--text-body)]">{label}</p>
           <StatusBadge status={request.status} />
         </div>
 
         {/* Timestamp row */}
         <div className="flex items-center gap-1 mt-1">
-          <Clock size={9} className="text-white/25 shrink-0" />
-          <p className="text-[10px] text-white/35">
+          <Clock size={9} className="text-[var(--text-muted)] shrink-0" />
+          <p className="text-[10px] text-[var(--text-muted)]">
             {timeStr} · {elapsed}
           </p>
         </div>
 
         {/* Email metadata */}
         {request.metadata?.email && (
-          <p className="text-[10px] text-white/40 mt-0.5 truncate">
+          <p className="text-[10px] text-[var(--text-muted)] mt-0.5 truncate">
             📧 {request.metadata.email}
           </p>
         )}
 
         {/* Error message */}
         {request.status === 'failed' && request.error && (
-          <p className="text-[10px] text-red-400/70 mt-0.5 leading-snug">
+          <p className="text-[10px] text-red-700/70 mt-0.5 leading-snug">
             {request.error}
           </p>
         )}
@@ -117,11 +117,11 @@ export function DocumentHistoryPanel({
   return (
     <div
       className="px-4 py-3 border-t"
-      style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+      style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}
     >
       {/* Section header */}
       <div className="flex items-center justify-between mb-2">
-        <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
+        <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
           Historial de documentos
         </p>
         {onRefresh && (
@@ -132,11 +132,11 @@ export function DocumentHistoryPanel({
             className={[
               // Min 44×44 touch target (Req 9.1)
               'min-h-[44px] min-w-[44px] flex items-center justify-center',
-              'rounded-lg text-white/20',
+              'rounded-lg text-[var(--text-muted)]',
               'transition-all duration-200',
               loading
                 ? 'opacity-30 cursor-not-allowed'
-                : 'hover:text-white/50 active:scale-[0.90]',
+                : 'hover:text-[var(--text-muted)] active:scale-[0.90]',
             ].join(' ')}
           >
             <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
@@ -150,7 +150,7 @@ export function DocumentHistoryPanel({
           {[1, 2].map(i => (
             <div
               key={i}
-              className="h-10 rounded-lg bg-white/5 animate-pulse"
+              className="h-10 rounded-lg bg-[var(--surface-sunken)] animate-pulse"
             />
           ))}
         </div>

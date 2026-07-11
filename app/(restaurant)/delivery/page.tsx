@@ -54,10 +54,10 @@ export default async function DeliveryPage() {
   }
 
   const kpis = [
-    { label: 'Pedidos activos',    value: activeOrders,                    icon: Truck,      color: 'text-blue-400',   href: '/delivery/pedidos' },
-    { label: 'Sin asignar',        value: pendingOrders,                   icon: Clock,      color: 'text-amber-400',  href: '/delivery/pedidos' },
-    { label: 'Entregados hoy',     value: todayCompleted,                  icon: TrendingUp, color: 'text-green-400',  href: '/delivery/analiticas' },
-    { label: 'Rating promedio hoy', value: avgRating !== null ? `${avgRating}★` : '—', icon: Star, color: 'text-yellow-400', href: '/delivery/calificaciones' },
+    { label: 'Pedidos activos',    value: activeOrders,                    icon: Truck,      color: 'text-blue-700',   href: '/delivery/pedidos' },
+    { label: 'Sin asignar',        value: pendingOrders,                   icon: Clock,      color: 'text-amber-700',  href: '/delivery/pedidos' },
+    { label: 'Entregados hoy',     value: todayCompleted,                  icon: TrendingUp, color: 'text-green-700',  href: '/delivery/analiticas' },
+    { label: 'Rating promedio hoy', value: avgRating !== null ? `${avgRating}★` : '—', icon: Star, color: 'text-yellow-700', href: '/delivery/calificaciones' },
   ]
 
   const quickLinks = [
@@ -71,8 +71,8 @@ export default async function DeliveryPage() {
   return (
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Delivery</h1>
-        <p className="text-white/50 text-sm mt-1">Gestiona tu operación de última milla</p>
+        <h1 className="text-2xl font-bold text-[var(--text-strong)]">Delivery</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1">Gestiona tu operación de última milla</p>
       </div>
 
       {/* KPI cards */}
@@ -81,29 +81,29 @@ export default async function DeliveryPage() {
           <Link
             key={label}
             href={href}
-            className="bg-white/5 border border-white/8 rounded-xl p-4 hover:bg-white/8 transition-colors"
+            className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 hover:bg-[var(--surface-sunken)] transition-colors"
           >
             <div className="flex items-center gap-2 mb-2">
               <Icon size={16} className={color} />
-              <span className="text-white/50 text-xs">{label}</span>
+              <span className="text-[var(--text-muted)] text-xs">{label}</span>
             </div>
-            <p className="text-white text-2xl font-bold">{value}</p>
+            <p className="text-[var(--text-strong)] text-2xl font-bold">{value}</p>
           </Link>
         ))}
       </div>
 
       {/* Quick links */}
       <div>
-        <h2 className="text-white/70 text-sm font-semibold uppercase tracking-wider mb-3">Accesos rápidos</h2>
+        <h2 className="text-[var(--text-body)] text-sm font-semibold uppercase tracking-wider mb-3">Accesos rápidos</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {quickLinks.map(({ label, href, desc }) => (
             <Link
               key={href}
               href={href}
-              className="bg-white/5 border border-white/8 rounded-xl p-4 hover:bg-white/8 transition-colors group"
+              className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 hover:bg-[var(--surface-sunken)] transition-colors group"
             >
-              <p className="text-white font-medium text-sm group-hover:text-[#FF6B35] transition-colors">{label}</p>
-              <p className="text-white/40 text-xs mt-1">{desc}</p>
+              <p className="text-[var(--text-strong)] font-medium text-sm group-hover:text-[#E55A2B] transition-colors">{label}</p>
+              <p className="text-[var(--text-muted)] text-xs mt-1">{desc}</p>
             </Link>
           ))}
         </div>

@@ -32,10 +32,10 @@ interface Shift {
 }
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Programado',  color: 'bg-blue-500/15 text-blue-300 border-blue-500/30' },
-  open:      { label: 'Activo',      color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
-  closed:    { label: 'Cerrado',     color: 'bg-white/10 text-white/40 border-white/10' },
-  no_show:   { label: 'Ausente',     color: 'bg-red-500/15 text-red-300 border-red-500/30' },
+  scheduled: { label: 'Programado',  color: 'bg-blue-500/15 text-blue-700 border-blue-500/30' },
+  open:      { label: 'Activo',      color: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
+  closed:    { label: 'Cerrado',     color: 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]' },
+  no_show:   { label: 'Ausente',     color: 'bg-red-500/15 text-red-700 border-red-500/30' },
 }
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -369,8 +369,8 @@ export default function TurnosPage() {
 
       {/* Chilean labor law compliance banner */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
-        <Info size={14} className="text-blue-400 shrink-0" />
-        <p className="text-blue-300 text-xs">
+        <Info size={14} className="text-blue-700 shrink-0" />
+        <p className="text-blue-700 text-xs">
           <span className="font-semibold">Normativa laboral Chile:</span>{' '}
           Maximo legal: 45 hrs/semana &middot; 10 hrs/dia &middot; Descanso dominical obligatorio
         </p>
@@ -381,18 +381,18 @@ export default function TurnosPage() {
         <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="flex items-center gap-2">
             <span className="w-7 h-7 rounded-lg bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center">
-              <Sparkles size={13} className="text-[#FF6B35]" />
+              <Sparkles size={13} className="text-[#E55A2B]" />
             </span>
             <div>
-              <p className="text-white text-sm font-semibold">Asignación rápida</p>
-              <p className="text-white/40 text-[11px]">1. Elige un turno · 2. Toca al miembro del equipo</p>
+              <p className="text-[var(--text-strong)] text-sm font-semibold">Asignación rápida</p>
+              <p className="text-[var(--text-muted)] text-[11px]">1. Elige un turno · 2. Toca al miembro del equipo</p>
             </div>
           </div>
           <input
             type="date"
             value={quickDate}
             onChange={e => setQuickDate(e.target.value)}
-            className="bg-[#0F0F1C] border border-white/10 rounded-lg px-2.5 py-1.5 text-white text-xs focus:outline-none focus:border-[#FF6B35]/40"
+            className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-lg px-2.5 py-1.5 text-[var(--text-strong)] text-xs focus:outline-none focus:border-[#FF6B35]/40"
           />
         </div>
 
@@ -407,11 +407,11 @@ export default function TurnosPage() {
                 className={`group flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border transition-all
                   ${active
                     ? 'bg-[#FF6B35] text-white border-[#FF6B35] shadow-lg shadow-[#FF6B35]/30 scale-105'
-                    : 'bg-white/3 text-white/60 border-white/10 hover:border-white/25 hover:text-white/90'}`}
+                    : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)] hover:border-[var(--border-subtle)] hover:text-[var(--text-body)]'}`}
               >
                 <Clock size={11} />
                 {p.name}
-                <span className={`text-[10px] ${active ? 'text-white/80' : 'text-white/30'}`}>
+                <span className={`text-[10px] ${active ? 'text-[var(--text-body)]' : 'text-[var(--text-muted)]'}`}>
                   {p.ranges.map(r => `${r.start}–${r.end}`).join(' · ')}
                 </span>
               </button>
@@ -421,14 +421,14 @@ export default function TurnosPage() {
 
         {/* Step 2: pick member */}
         {quickPreset && (
-          <div className="pt-2 border-t border-white/5 space-y-2">
-            <div className="flex items-center gap-2 text-xs text-white/50">
-              <span>Turno <span className="text-[#FF6B35] font-semibold">{quickPreset.name}</span> listo</span>
+          <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2">
+            <div className="flex items-center gap-2 text-xs text-[var(--text-muted)]">
+              <span>Turno <span className="text-[#E55A2B] font-semibold">{quickPreset.name}</span> listo</span>
               <MoveRight size={12} />
               <span>toca al miembro</span>
             </div>
             {team.length === 0 ? (
-              <p className="text-white/40 text-xs italic">Invita miembros en /equipo primero.</p>
+              <p className="text-[var(--text-muted)] text-xs italic">Invita miembros en /equipo primero.</p>
             ) : (
               <div className="flex gap-2 flex-wrap">
                 {team.map(m => {
@@ -441,11 +441,11 @@ export default function TurnosPage() {
                       onClick={() => quickAssign(m.id)}
                       className={`group flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border transition-all
                         ${alreadyAssigned
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300/80 cursor-not-allowed'
-                          : 'bg-white/5 border-white/10 text-white/80 hover:border-[#FF6B35]/60 hover:bg-[#FF6B35]/10 hover:text-[#FF6B35] cursor-pointer active:scale-95'}`}
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700/80 cursor-not-allowed'
+                          : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-body)] hover:border-[#FF6B35]/60 hover:bg-[#FF6B35]/10 hover:text-[#E55A2B] cursor-pointer active:scale-95'}`}
                       title={alreadyAssigned ? 'Ya tiene un turno este día' : `Asignar ${quickPreset.name} a ${memberName(m)}`}
                     >
-                      <span className="w-6 h-6 rounded-full bg-white/10 flex items-center justify-center text-[10px] font-bold">
+                      <span className="w-6 h-6 rounded-full bg-[var(--surface-sunken)] flex items-center justify-center text-[10px] font-bold">
                         {isLoading ? <RefreshCw size={10} className="animate-spin" /> : memberInitials(m)}
                       </span>
                       <span className="text-xs">{memberName(m)}</span>
@@ -462,38 +462,38 @@ export default function TurnosPage() {
       {/* Header */}
       <div className="flex items-center justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-white text-xl font-bold">Turnos</h1>
-          <p className="text-white/40 text-sm mt-0.5">Calendario de garzones</p>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Turnos</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">Calendario de garzones</p>
         </div>
         <div className="flex gap-2 flex-wrap">
           {/* View mode toggle */}
-          <div className="flex rounded-xl border border-white/12 overflow-hidden">
+          <div className="flex rounded-xl border border-[var(--border-subtle)] overflow-hidden">
             {(['day', 'week', 'month'] as ViewMode[]).map(mode => (
               <button key={mode} onClick={() => setViewMode(mode)}
-                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${viewMode === mode ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white hover:bg-white/5'}`}>
+                className={`px-3 py-1.5 text-xs font-semibold transition-colors ${viewMode === mode ? 'bg-[#FF6B35] text-white' : 'text-[var(--text-muted)] hover:text-white hover:bg-[var(--surface-sunken)]'}`}>
                 {VIEW_LABELS[mode]}
               </button>
             ))}
           </div>
 
           <button onClick={exportCSV} title="Exportar CSV"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:bg-white/5 text-xs transition-colors">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] text-xs transition-colors">
             <Download size={13} /> Exportar
           </button>
 
           <div className="relative">
             <button onClick={() => setShowPresets(!showPresets)} title="Turnos predeterminados"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-white/12 text-white/50 hover:text-white hover:bg-white/5 text-xs transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] text-xs transition-colors">
               <Zap size={13} /> Predeterminados
             </button>
             {showPresets && (
-              <div className="absolute right-0 top-full mt-1 z-40 bg-[#1A1A2E] border border-white/12 rounded-xl p-2 w-56 shadow-xl">
-                <p className="text-white/30 text-[10px] font-semibold uppercase tracking-wide px-2 mb-1.5">Turnos predeterminados</p>
+              <div className="absolute right-0 top-full mt-1 z-40 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl p-2 w-56 shadow-xl">
+                <p className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wide px-2 mb-1.5">Turnos predeterminados</p>
                 {PRESET_SHIFTS.map(preset => (
                   <button key={preset.name} onClick={() => applyPreset(preset)}
-                    className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-white/5 transition-colors group">
-                    <span className="text-white text-xs font-semibold">{preset.name}</span>
-                    <span className="block text-white/40 text-[10px]">
+                    className="w-full text-left px-2.5 py-2 rounded-lg hover:bg-[var(--surface-sunken)] transition-colors group">
+                    <span className="text-[var(--text-strong)] text-xs font-semibold">{preset.name}</span>
+                    <span className="block text-[var(--text-muted)] text-[10px]">
                       {preset.ranges.map(r => `${r.start} - ${r.end}`).join(' / ')}
                     </span>
                   </button>
@@ -502,7 +502,7 @@ export default function TurnosPage() {
             )}
           </div>
 
-          <button onClick={load} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+          <button onClick={load} className="p-2 rounded-lg hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
             <RefreshCw size={16} />
           </button>
           <button
@@ -516,26 +516,26 @@ export default function TurnosPage() {
 
       {/* Date navigation */}
       <div className="flex items-center gap-3">
-        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+        <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
           <ChevronLeft size={18} />
         </button>
         <div className="flex-1 text-center">
-          <p className="text-white font-semibold text-sm capitalize">{getPeriodLabel()}</p>
+          <p className="text-[var(--text-strong)] font-semibold text-sm capitalize">{getPeriodLabel()}</p>
         </div>
-        <button onClick={() => navigate(1)} className="p-2 rounded-lg hover:bg-white/5 text-white/40 hover:text-white transition-colors">
+        <button onClick={() => navigate(1)} className="p-2 rounded-lg hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
           <ChevronRight size={18} />
         </button>
-        <div className="h-5 w-px bg-white/10 mx-1" />
+        <div className="h-5 w-px bg-[var(--surface-sunken)] mx-1" />
         <input
           type="date"
           value={toDateStr(anchor)}
           onChange={e => { if (e.target.value) setAnchor(new Date(e.target.value + 'T00:00:00')) }}
           title="Ir a fecha"
-          className="bg-white/5 border border-white/10 text-white/70 text-xs px-2 py-1.5 rounded-lg focus:outline-none focus:border-[#FF6B35]/50"
+          className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-xs px-2 py-1.5 rounded-lg focus:outline-none focus:border-[#FF6B35]/50"
         />
         <button
           onClick={() => setAnchor(new Date())}
-          className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-white/60 text-xs font-medium hover:bg-white/10 hover:text-white transition-colors"
+          className="px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs font-medium hover:bg-[var(--surface-sunken)] hover:text-[var(--text-strong)] transition-colors"
         >
           Hoy
         </button>
@@ -543,20 +543,20 @@ export default function TurnosPage() {
 
       {/* Calendar grid */}
       {loading ? (
-        <div className="flex items-center justify-center py-12 text-white/30">
+        <div className="flex items-center justify-center py-12 text-[var(--text-muted)]">
           <RefreshCw size={18} className="animate-spin mr-2" />Cargando...
         </div>
       ) : viewMode === 'day' ? (
         /* ── Day view ──────────────────────────────────────────────────── */
-        <div className="rounded-2xl border border-white/8 bg-white/3 p-5 min-h-[300px]">
+        <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-5 min-h-[300px]">
           <div className="mb-4">
-            <p className="text-white text-lg font-bold capitalize">
+            <p className="text-[var(--text-strong)] text-lg font-bold capitalize">
               {anchor.toLocaleDateString('es-CL', { weekday: 'long', day: 'numeric', month: 'long' })}
             </p>
           </div>
           <div className="space-y-2">
             {shifts.filter(s => s.shift_date === toDateStr(anchor)).length === 0 ? (
-              <p className="text-white/30 text-sm py-8 text-center">Sin turnos programados para este dia</p>
+              <p className="text-[var(--text-muted)] text-sm py-8 text-center">Sin turnos programados para este dia</p>
             ) : (
               shifts.filter(s => s.shift_date === toDateStr(anchor)).map(shift => {
                 const cfg = STATUS_CONFIG[shift.status]
@@ -577,21 +577,21 @@ export default function TurnosPage() {
                     </div>
                     <div className="flex items-center gap-2">
                       <span className="text-xs opacity-60">{cfg.label}</span>
-                      <div className="hidden group-hover:flex gap-0.5 bg-[#1A1A2E] rounded-lg border border-white/10 p-0.5">
+                      <div className="hidden group-hover:flex gap-0.5 bg-[var(--surface-card)] rounded-lg border border-[var(--border-subtle)] p-0.5">
                         {shift.status === 'scheduled' && (
                           <button onClick={() => updateStatus(shift.id, 'open')} title="Abrir turno"
-                            className="p-1 rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors"><Check size={12} /></button>
+                            className="p-1 rounded hover:bg-emerald-500/20 text-emerald-700 transition-colors"><Check size={12} /></button>
                         )}
                         {shift.status === 'open' && (
                           <button onClick={() => updateStatus(shift.id, 'closed')} title="Cerrar turno"
-                            className="p-1 rounded hover:bg-white/10 text-white/40 transition-colors"><Check size={12} /></button>
+                            className="p-1 rounded hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] transition-colors"><Check size={12} /></button>
                         )}
                         {shift.status === 'scheduled' && (
                           <button onClick={() => updateStatus(shift.id, 'no_show')} title="Marcar ausencia"
-                            className="p-1 rounded hover:bg-red-500/20 text-red-400 transition-colors"><AlertCircle size={12} /></button>
+                            className="p-1 rounded hover:bg-red-500/20 text-red-700 transition-colors"><AlertCircle size={12} /></button>
                         )}
                         <button onClick={() => deleteShift(shift.id)} title="Eliminar"
-                          className="p-1 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors"><X size={12} /></button>
+                          className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-700 transition-colors"><X size={12} /></button>
                       </div>
                     </div>
                   </div>
@@ -606,7 +606,7 @@ export default function TurnosPage() {
           {/* Day-of-week headers */}
           <div className="grid grid-cols-7 gap-1 mb-1">
             {['Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab', 'Dom'].map(d => (
-              <div key={d} className="text-center text-white/30 text-[10px] font-semibold py-1">{d}</div>
+              <div key={d} className="text-center text-[var(--text-muted)] text-[10px] font-semibold py-1">{d}</div>
             ))}
           </div>
           <div className="grid grid-cols-7 gap-1">
@@ -619,15 +619,15 @@ export default function TurnosPage() {
                 <div key={dateStr}
                   onClick={() => setPlannerDate(dateStr)}
                   title="Planificar este día"
-                  className={`rounded-xl border p-2 min-h-[78px] cursor-pointer transition-colors hover:bg-white/8 hover:border-[#FF6B35]/30
-                    ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-white/5 bg-white/2'}
+                  className={`rounded-xl border p-2 min-h-[78px] cursor-pointer transition-colors hover:bg-[var(--surface-sunken)] hover:border-[#FF6B35]/30
+                    ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-[var(--border-subtle)] bg-[var(--surface-sunken)]'}
                     ${!isCurrentMonth ? 'opacity-40' : ''}`}>
                   <div className="flex items-center justify-between">
-                    <p className={`text-xs font-bold ${isToday ? 'text-[#FF6B35]' : 'text-white/60'}`}>
+                    <p className={`text-xs font-bold ${isToday ? 'text-[#E55A2B]' : 'text-[var(--text-muted)]'}`}>
                       {date.getDate()}
                     </p>
                     {dayShifts.length > 0 && (
-                      <span className="text-[8px] text-white/40 font-mono">{dayShifts.length}</span>
+                      <span className="text-[8px] text-[var(--text-muted)] font-mono">{dayShifts.length}</span>
                     )}
                   </div>
                   {dayShifts.length > 0 && (
@@ -636,18 +636,18 @@ export default function TurnosPage() {
                         const m = team.find(tm => tm.id === s.staff_id)
                         const dot = s.status === 'open' ? 'bg-emerald-400'
                           : s.status === 'scheduled' ? 'bg-blue-400'
-                          : s.status === 'no_show' ? 'bg-red-400' : 'bg-white/20'
+                          : s.status === 'no_show' ? 'bg-red-400' : 'bg-[var(--surface-sunken)]'
                         return (
                           <div key={s.id} className="flex items-center gap-1 min-w-0">
                             <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${dot}`} />
-                            <span className="text-[9px] text-white/60 truncate leading-tight">
+                            <span className="text-[9px] text-[var(--text-muted)] truncate leading-tight">
                               {m ? memberName(m).split(' ')[0] : s.team_members?.role ?? '—'}
                             </span>
                           </div>
                         )
                       })}
                       {dayShifts.length > 3 && (
-                        <span className="text-[8px] text-white/30">+{dayShifts.length - 3} más</span>
+                        <span className="text-[8px] text-[var(--text-muted)]">+{dayShifts.length - 3} más</span>
                       )}
                     </div>
                   )}
@@ -666,14 +666,14 @@ export default function TurnosPage() {
 
             return (
               <div key={dateStr}
-                className={`rounded-2xl border p-3 min-h-[180px] ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-white/8 bg-white/3'}`}>
+                className={`rounded-2xl border p-3 min-h-[180px] ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-[var(--border-subtle)] bg-[var(--surface-sunken)]'}`}>
 
                 {/* Day header */}
                 <div className="mb-2">
-                  <p className={`text-xs font-semibold ${isToday ? 'text-[#FF6B35]' : 'text-white/40'}`}>
+                  <p className={`text-xs font-semibold ${isToday ? 'text-[#E55A2B]' : 'text-[var(--text-muted)]'}`}>
                     {DAYS_ES[date.getDay()]}
                   </p>
-                  <p className={`text-xl font-bold ${isToday ? 'text-[#FF6B35]' : 'text-white'}`}>
+                  <p className={`text-xl font-bold ${isToday ? 'text-[#E55A2B]' : 'text-[var(--text-strong)]'}`}>
                     {date.getDate()}
                   </p>
                 </div>
@@ -681,7 +681,7 @@ export default function TurnosPage() {
                 {/* Shifts for the day */}
                 <div className="space-y-1.5">
                   {dayShifts.length === 0 ? (
-                    <p className="text-white/15 text-[10px]">Sin turnos</p>
+                    <p className="text-[var(--text-muted)] text-[10px]">Sin turnos</p>
                   ) : (
                     dayShifts.map(shift => {
                       const cfg = STATUS_CONFIG[shift.status]
@@ -700,31 +700,31 @@ export default function TurnosPage() {
                           <span className="block mt-0.5 opacity-60">{cfg.label}</span>
 
                           {/* Quick actions on hover */}
-                          <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5 bg-[#1A1A2E] rounded-lg border border-white/10 p-0.5">
+                          <div className="absolute -top-1 -right-1 hidden group-hover:flex gap-0.5 bg-[var(--surface-card)] rounded-lg border border-[var(--border-subtle)] p-0.5">
                             {shift.status === 'scheduled' && (
                               <button onClick={() => updateStatus(shift.id, 'open')}
                                 title="Abrir turno"
-                                className="p-1 rounded hover:bg-emerald-500/20 text-emerald-400 transition-colors">
+                                className="p-1 rounded hover:bg-emerald-500/20 text-emerald-700 transition-colors">
                                 <Check size={10} />
                               </button>
                             )}
                             {shift.status === 'open' && (
                               <button onClick={() => updateStatus(shift.id, 'closed')}
                                 title="Cerrar turno"
-                                className="p-1 rounded hover:bg-white/10 text-white/40 transition-colors">
+                                className="p-1 rounded hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] transition-colors">
                                 <Check size={10} />
                               </button>
                             )}
                             {shift.status === 'scheduled' && (
                               <button onClick={() => updateStatus(shift.id, 'no_show')}
                                 title="Marcar ausencia"
-                                className="p-1 rounded hover:bg-red-500/20 text-red-400 transition-colors">
+                                className="p-1 rounded hover:bg-red-500/20 text-red-700 transition-colors">
                                 <AlertCircle size={10} />
                               </button>
                             )}
                             <button onClick={() => deleteShift(shift.id)}
                               title="Eliminar"
-                              className="p-1 rounded hover:bg-red-500/20 text-white/30 hover:text-red-400 transition-colors">
+                              className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-700 transition-colors">
                               <X size={10} />
                             </button>
                           </div>
@@ -746,26 +746,26 @@ export default function TurnosPage() {
             <span>{cfg.label}</span>
           </div>
         ))}
-        <p className="text-white/30 text-xs self-center">Pasa el cursor sobre un turno para ver acciones</p>
+        <p className="text-[var(--text-muted)] text-xs self-center">Pasa el cursor sobre un turno para ver acciones</p>
       </div>
 
       {/* Create shift modal */}
       {showForm && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1A1A2E] rounded-2xl border border-white/12 p-6 w-full max-w-sm">
+          <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-6 w-full max-w-sm">
             <div className="flex items-center justify-between mb-5">
-              <h3 className="text-white font-semibold">Asignar turno</h3>
-              <button onClick={() => setShowForm(false)} className="text-white/40 hover:text-white">
+              <h3 className="text-[var(--text-strong)] font-semibold">Asignar turno</h3>
+              <button onClick={() => setShowForm(false)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
                 <X size={18} />
               </button>
             </div>
 
             <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label className="text-white/50 text-xs mb-1.5 block">Miembro del equipo</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Miembro del equipo</label>
                 <select value={form.staff_id} onChange={e => setForm(f => ({ ...f, staff_id: e.target.value }))}
                   required
-                  className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm appearance-none focus:outline-none focus:border-[#FF6B35]/50">
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm appearance-none focus:outline-none focus:border-[#FF6B35]/50">
                   <option value="">Selecciona...</option>
                   {team.map(m => (
                     <option key={m.id} value={m.id}>
@@ -776,37 +776,37 @@ export default function TurnosPage() {
               </div>
 
               <div>
-                <label className="text-white/50 text-xs mb-1.5 block">Fecha</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Fecha</label>
                 <input type="date" value={form.shift_date}
                   onChange={e => setForm(f => ({ ...f, shift_date: e.target.value }))}
-                  className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-white/50 text-xs mb-1.5 block">Inicio</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Inicio</label>
                   <input type="time" value={form.start_time}
                     onChange={e => setForm(f => ({ ...f, start_time: e.target.value }))}
-                    className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                    className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50" />
                 </div>
                 <div>
-                  <label className="text-white/50 text-xs mb-1.5 block">Fin</label>
+                  <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Fin</label>
                   <input type="time" value={form.end_time}
                     onChange={e => setForm(f => ({ ...f, end_time: e.target.value }))}
-                    className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                    className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50" />
                 </div>
               </div>
 
               <div>
-                <label className="text-white/50 text-xs mb-1.5 block">Notas (opcional)</label>
+                <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Notas (opcional)</label>
                 <input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                   placeholder="Observaciones..."
-                  className="w-full bg-white/8 border border-white/12 rounded-xl px-3 py-2.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
 
               <div className="flex gap-2 pt-1">
                 <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 py-2.5 rounded-xl border border-white/12 text-white/60 text-sm hover:bg-white/5 transition-colors">
+                  className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors">
                   Cancelar
                 </button>
                 <button type="submit"
@@ -828,17 +828,17 @@ export default function TurnosPage() {
         return (
           <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4"
             onClick={() => setPlannerDate(null)}>
-            <div className="bg-[#1A1A2E] rounded-2xl border border-white/12 w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col"
+            <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] w-full max-w-md max-h-[85vh] overflow-hidden flex flex-col"
               onClick={e => e.stopPropagation()}>
               {/* Header */}
-              <div className="px-5 py-4 border-b border-white/8 flex items-center justify-between shrink-0">
+              <div className="px-5 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0">
                 <div>
-                  <h3 className="text-white font-bold capitalize">
+                  <h3 className="text-[var(--text-strong)] font-bold capitalize">
                     {DAYS_FULL[pdate.getDay()]} {pd} {MONTHS_ES[pm - 1]}
                   </h3>
-                  <p className="text-white/40 text-xs">{dayShifts.length} turno(s) asignado(s)</p>
+                  <p className="text-[var(--text-muted)] text-xs">{dayShifts.length} turno(s) asignado(s)</p>
                 </div>
-                <button onClick={() => setPlannerDate(null)} className="text-white/40 hover:text-white transition-colors">
+                <button onClick={() => setPlannerDate(null)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
                   <X size={18} />
                 </button>
               </div>
@@ -847,19 +847,19 @@ export default function TurnosPage() {
                 {/* Turnos existentes */}
                 {dayShifts.length > 0 && (
                   <div className="space-y-2">
-                    <p className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">Asignados</p>
+                    <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wider font-semibold">Asignados</p>
                     {dayShifts.map(s => {
                       const m = team.find(tm => tm.id === s.staff_id)
                       const cfg = STATUS_CONFIG[s.status]
                       return (
-                        <div key={s.id} className="flex items-center gap-2 rounded-xl bg-white/4 border border-white/8 px-3 py-2">
+                        <div key={s.id} className="flex items-center gap-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] px-3 py-2">
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{m ? memberName(m) : (s.team_members?.role ?? '—')}</p>
-                            <p className="text-white/40 text-[11px] font-mono">{s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}</p>
+                            <p className="text-[var(--text-strong)] text-sm font-medium truncate">{m ? memberName(m) : (s.team_members?.role ?? '—')}</p>
+                            <p className="text-[var(--text-muted)] text-[11px] font-mono">{s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}</p>
                           </div>
                           <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
                           <button onClick={() => deleteShift(s.id)} title="Quitar turno"
-                            className="p-1.5 rounded-lg text-white/30 hover:text-red-400 hover:bg-red-500/10 transition-colors">
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors">
                             <X size={13} />
                           </button>
                         </div>
@@ -870,26 +870,26 @@ export default function TurnosPage() {
 
                 {/* Asignar */}
                 <div className="space-y-2">
-                  <p className="text-white/40 text-[10px] uppercase tracking-wider font-semibold">
+                  <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wider font-semibold">
                     Asignar turno · elegí persona y horario
                   </p>
                   {team.length === 0 ? (
-                    <p className="text-white/30 text-xs py-2">No hay miembros en el equipo. Agregá personal en Equipo.</p>
+                    <p className="text-[var(--text-muted)] text-xs py-2">No hay miembros en el equipo. Agregá personal en Equipo.</p>
                   ) : (
                     team.map(m => (
-                      <div key={m.id} className="rounded-xl border border-white/8 bg-white/2 p-2.5">
+                      <div key={m.id} className="rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-2.5">
                         <div className="flex items-center gap-2 mb-2">
-                          <div className="w-6 h-6 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[9px] font-bold text-[#FF6B35]">
+                          <div className="w-6 h-6 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[9px] font-bold text-[#E55A2B]">
                             {memberInitials(m)}
                           </div>
-                          <span className="text-white text-sm font-medium truncate">{memberName(m)}</span>
-                          {assignedIds.has(m.id) && <Check size={12} className="text-emerald-400 ml-auto" />}
+                          <span className="text-[var(--text-strong)] text-sm font-medium truncate">{memberName(m)}</span>
+                          {assignedIds.has(m.id) && <Check size={12} className="text-emerald-700 ml-auto" />}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {PRESET_SHIFTS.map(preset => (
                             <button key={preset.name}
                               onClick={() => assignToDate(m.id, plannerDate, preset)}
-                              className="px-2 py-1 rounded-lg bg-white/5 border border-white/10 text-white/70 text-[10px] hover:bg-[#FF6B35]/15 hover:border-[#FF6B35]/30 hover:text-[#FF6B35] transition-colors">
+                              className="px-2 py-1 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-[10px] hover:bg-[#FF6B35]/15 hover:border-[#FF6B35]/30 hover:text-[#E55A2B] transition-colors">
                               + {preset.name}
                             </button>
                           ))}
@@ -900,9 +900,9 @@ export default function TurnosPage() {
                 </div>
               </div>
 
-              <div className="px-5 py-3 border-t border-white/8 shrink-0">
+              <div className="px-5 py-3 border-t border-[var(--border-subtle)] shrink-0">
                 <button onClick={() => setPlannerDate(null)}
-                  className="w-full py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-sm hover:bg-white/10 transition-colors">
+                  className="w-full py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-sm hover:bg-[var(--surface-sunken)] transition-colors">
                   Listo
                 </button>
               </div>

@@ -27,13 +27,13 @@ const STATUS_LABELS: Record<DeliveryStatus, string> = {
 }
 
 const STATUS_COLORS: Record<DeliveryStatus, string> = {
-  pending_assignment: 'bg-amber-500/20 text-amber-400',
-  assigned:           'bg-blue-500/20 text-blue-400',
-  picked_up:          'bg-purple-500/20 text-purple-400',
-  in_transit:         'bg-indigo-500/20 text-indigo-400',
-  delivered:          'bg-green-500/20 text-green-400',
-  cancelled:          'bg-white/10 text-white/40',
-  failed:             'bg-red-500/20 text-red-400',
+  pending_assignment: 'bg-amber-500/20 text-amber-700',
+  assigned:           'bg-blue-500/20 text-blue-700',
+  picked_up:          'bg-purple-500/20 text-purple-700',
+  in_transit:         'bg-indigo-500/20 text-indigo-700',
+  delivered:          'bg-green-500/20 text-green-700',
+  cancelled:          'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
+  failed:             'bg-red-500/20 text-red-700',
 }
 
 const ACTIVE_STATUSES: DeliveryStatus[] = ['pending_assignment', 'assigned', 'picked_up', 'in_transit']
@@ -89,19 +89,19 @@ function RatingToast({
   }
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 bg-[#1A1A2E] border border-[#FF6B35]/30 rounded-2xl p-5 shadow-2xl w-80 animate-in slide-in-from-bottom-4">
+    <div className="fixed bottom-6 right-6 z-50 bg-[var(--surface-card)] border border-[#FF6B35]/30 rounded-2xl p-5 shadow-2xl w-80 animate-in slide-in-from-bottom-4">
       <div className="flex items-start justify-between mb-3">
         <div>
-          <p className="text-white font-semibold text-sm">Califica al rider</p>
-          <p className="text-white/50 text-xs mt-0.5">Pedido de {order.client_name} — entregado</p>
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Califica al rider</p>
+          <p className="text-[var(--text-muted)] text-xs mt-0.5">Pedido de {order.client_name} — entregado</p>
         </div>
-        <button onClick={onDismiss} className="text-white/30 hover:text-white/60 transition-colors">
+        <button onClick={onDismiss} className="text-[var(--text-muted)] hover:text-[var(--text-muted)] transition-colors">
           <X size={16} />
         </button>
       </div>
 
       {done ? (
-        <div className="flex items-center gap-2 text-green-400 text-sm py-2">
+        <div className="flex items-center gap-2 text-green-700 text-sm py-2">
           <CheckCircle size={16} />
           <span>¡Gracias por calificar!</span>
         </div>
@@ -119,8 +119,8 @@ function RatingToast({
                 <Star
                   size={24}
                   className={s <= (hovered || stars)
-                    ? 'text-yellow-400 fill-yellow-400'
-                    : 'text-white/20'}
+                    ? 'text-yellow-700 fill-yellow-400'
+                    : 'text-[var(--text-muted)]'}
                 />
               </button>
             ))}
@@ -128,7 +128,7 @@ function RatingToast({
           <div className="flex gap-2">
             <button
               onClick={onDismiss}
-              className="flex-1 py-2 rounded-lg bg-white/8 text-white/50 text-sm hover:bg-white/12 transition-colors"
+              className="flex-1 py-2 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors"
             >
               Después
             </button>
@@ -156,7 +156,7 @@ function OrderTimeline({ order }: { order: DeliveryOrder }) {
           {STATUS_LABELS[order.status]}
         </span>
         {order.status === 'failed' && (
-          <span className="text-red-400/60 text-xs">{order.failure_reason?.replace(/_/g, ' ')}</span>
+          <span className="text-red-700/60 text-xs">{order.failure_reason?.replace(/_/g, ' ')}</span>
         )}
       </div>
     )
@@ -176,22 +176,22 @@ function OrderTimeline({ order }: { order: DeliveryOrder }) {
           <div key={step.status} className="flex items-center">
             <div className="flex flex-col items-center gap-0.5">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                completed ? 'bg-green-500/30 text-green-400' :
-                active    ? 'bg-[#FF6B35]/20 text-[#FF6B35] ring-1 ring-[#FF6B35]/50' :
-                            'bg-white/5 text-white/20'
+                completed ? 'bg-green-500/30 text-green-700' :
+                active    ? 'bg-[#FF6B35]/20 text-[#E55A2B] ring-1 ring-[#FF6B35]/50' :
+                            'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
               }`}>
                 <Icon size={12} />
               </div>
               <span className={`text-[9px] font-medium ${
-                completed ? 'text-green-400/70' :
-                active    ? 'text-[#FF6B35]/80' :
-                            'text-white/20'
+                completed ? 'text-green-700/70' :
+                active    ? 'text-[#E55A2B]' :
+                            'text-[var(--text-muted)]'
               }`}>
                 {step.label}
               </span>
             </div>
             {i < TIMELINE_STEPS.length - 1 && (
-              <div className={`h-px w-6 mb-3.5 transition-colors ${completed ? 'bg-green-500/40' : 'bg-white/8'}`} />
+              <div className={`h-px w-6 mb-3.5 transition-colors ${completed ? 'bg-green-500/40' : 'bg-[var(--surface-sunken)]'}`} />
             )}
           </div>
         )
@@ -287,8 +287,8 @@ export default function DeliveryPedidosPage() {
     <div className="p-6 max-w-6xl mx-auto space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Pedidos de Delivery</h1>
-          <p className="text-white/50 text-sm mt-1">Monitoreo en tiempo real</p>
+          <h1 className="text-2xl font-bold text-[var(--text-strong)]">Pedidos de Delivery</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">Monitoreo en tiempo real</p>
         </div>
         <button
           onClick={() => setShowModal(true)}
@@ -305,7 +305,7 @@ export default function DeliveryPedidosPage() {
             key={f}
             onClick={() => setFilter(f)}
             className={`px-4 py-1.5 rounded-full text-sm transition-colors ${
-              filter === f ? 'bg-[#FF6B35] text-white' : 'bg-white/8 text-white/50 hover:bg-white/12'
+              filter === f ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'
             }`}
           >
             {f === 'active' ? 'Activos' : 'Todos'}
@@ -315,16 +315,16 @@ export default function DeliveryPedidosPage() {
 
       {/* Orders table */}
       {displayed.length === 0 ? (
-        <div className="bg-white/5 border border-white/8 rounded-xl p-12 text-center">
-          <Truck size={32} className="text-white/20 mx-auto mb-3" />
-          <p className="text-white/40">No hay pedidos {filter === 'active' ? 'activos' : ''}</p>
+        <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-12 text-center">
+          <Truck size={32} className="text-[var(--text-muted)] mx-auto mb-3" />
+          <p className="text-[var(--text-muted)]">No hay pedidos {filter === 'active' ? 'activos' : ''}</p>
         </div>
       ) : (
         <div className="space-y-3">
           {displayed.map(order => (
             <div
               key={order.id}
-              className="bg-white/5 border border-white/8 rounded-xl p-4 hover:bg-white/8 transition-colors"
+              className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 hover:bg-[var(--surface-sunken)] transition-colors"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0 space-y-1">
@@ -332,30 +332,30 @@ export default function DeliveryPedidosPage() {
                     <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${STATUS_COLORS[order.status]}`}>
                       {STATUS_LABELS[order.status]}
                     </span>
-                    <span className="text-white/30 text-xs">
+                    <span className="text-[var(--text-muted)] text-xs">
                       {new Date(order.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                     </span>
                     {/* Origin badge */}
                     {order.order_id ? (
                       <a
                         href={`/comandas?focus=${order.order_id}`}
-                        className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-300 hover:bg-violet-500/25 transition-colors"
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-700 hover:bg-violet-500/25 transition-colors"
                       >
                         📋 Ver comanda
                       </a>
                     ) : (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/8 text-white/30">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)]">
                         Delivery manual
                       </span>
                     )}
                   </div>
-                  <div className="flex items-center gap-1.5 text-white/70 text-sm">
+                  <div className="flex items-center gap-1.5 text-[var(--text-body)] text-sm">
                     <User size={12} className="shrink-0" />
                     <span className="truncate">{order.client_name}</span>
-                    <span className="text-white/30">·</span>
-                    <span className="text-white/50 text-xs">{order.client_phone}</span>
+                    <span className="text-[var(--text-muted)]">·</span>
+                    <span className="text-[var(--text-muted)] text-xs">{order.client_phone}</span>
                   </div>
-                  <div className="flex items-start gap-1.5 text-white/50 text-xs">
+                  <div className="flex items-start gap-1.5 text-[var(--text-muted)] text-xs">
                     <MapPin size={11} className="shrink-0 mt-0.5" />
                     <span className="truncate">{order.delivery_address}</span>
                   </div>
@@ -364,16 +364,16 @@ export default function DeliveryPedidosPage() {
                   <OrderTimeline order={order} />
                 </div>
                 <div className="text-right shrink-0">
-                  <p className="text-white font-semibold">
+                  <p className="text-[var(--text-strong)] font-semibold">
                     ${order.total_clp.toLocaleString('es-CL')}
                   </p>
                   {order.delivery_fee_clp && (
-                    <p className="text-white/40 text-xs">
+                    <p className="text-[var(--text-muted)] text-xs">
                       +${order.delivery_fee_clp.toLocaleString('es-CL')} delivery
                     </p>
                   )}
                   {order.status === 'delivered' && order.delivered_at && (
-                    <p className="text-green-400/60 text-xs mt-1">
+                    <p className="text-green-700/60 text-xs mt-1">
                       {new Date(order.delivered_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
@@ -466,8 +466,8 @@ function CreateOrderModal({
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-      <div className="bg-[#1A1A2E] border border-white/12 rounded-2xl p-6 w-full max-w-md space-y-4">
-        <h2 className="text-white font-bold text-lg">Nuevo pedido de delivery</h2>
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6 w-full max-w-md space-y-4">
+        <h2 className="text-[var(--text-strong)] font-bold text-lg">Nuevo pedido de delivery</h2>
         <form onSubmit={handleSubmit} className="space-y-3">
           {[
             { key: 'pickup_address',   label: 'Dirección de recogida',  type: 'text' },
@@ -478,7 +478,7 @@ function CreateOrderModal({
             { key: 'notes',            label: 'Notas (opcional)',        type: 'text' },
           ].map(({ key, label, type }) => (
             <div key={key}>
-              <label className="text-white/60 text-xs mb-1 block">{label}</label>
+              <label className="text-[var(--text-muted)] text-xs mb-1 block">{label}</label>
               <input
                 type={type}
                 value={(form as any)[key]}
@@ -486,17 +486,17 @@ function CreateOrderModal({
                   ...f,
                   [key]: type === 'number' ? parseInt(e.target.value, 10) || 0 : e.target.value,
                 }))}
-                className="w-full bg-white/8 border border-white/12 rounded-lg px-3 py-2 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+                className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
                 required={key !== 'notes'}
               />
             </div>
           ))}
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && <p className="text-red-700 text-xs">{error}</p>}
           <div className="flex gap-3 pt-2">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 rounded-lg bg-white/8 text-white/60 text-sm hover:bg-white/12 transition-colors"
+              className="flex-1 py-2 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors"
             >
               Cancelar
             </button>

@@ -98,7 +98,7 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
     <>
       {/* Bottom nav (solo mobile) */}
       <nav
-        className="md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg border-t border-white/8"
+        className="md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg border-t border-[var(--border-subtle)]"
         style={{ background: 'rgba(10,10,20,0.92)', paddingBottom: 'env(safe-area-inset-bottom)' }}
         aria-label="Navegación rápida"
       >
@@ -111,7 +111,7 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
                 key={it.href}
                 href={it.href}
                 className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors"
-                style={{ minHeight: 56, color: active ? '#FF6B35' : 'rgba(255,255,255,0.55)' }}
+                style={{ minHeight: 56, color: active ? '#FF6B35' : 'rgba(26, 26, 46, 0.7)' }}
               >
                 <Icon size={20} strokeWidth={active ? 2.4 : 2} />
                 <span className="text-[10px] font-semibold leading-none">{it.label}</span>
@@ -122,7 +122,7 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-white/55 hover:text-white transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
             style={{ minHeight: 56 }}
             aria-label="Abrir menú completo"
           >
@@ -143,11 +143,11 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
             aria-label="Cerrar menú"
           />
           {/* Sidebar como panel deslizable */}
-          <div className="relative flex flex-col w-[280px] max-w-[85vw] bg-[#0A0A14] border-r border-white/8">
+          <div className="relative flex flex-col w-[280px] max-w-[85vw] bg-[var(--bg-canvas)] border-r border-[var(--border-subtle)]">
             <button
               type="button"
               onClick={() => setDrawerOpen(false)}
-              className="absolute top-3 right-3 z-10 p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/8"
+              className="absolute top-3 right-3 z-10 p-2 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)]"
               aria-label="Cerrar"
             >
               <X size={18} />

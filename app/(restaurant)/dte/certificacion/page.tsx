@@ -276,7 +276,7 @@ export default function CertificationPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -288,11 +288,11 @@ export default function CertificationPage() {
       
       {/* Header */}
       <div>
-        <h1 className="text-white text-xl font-bold flex items-center gap-2">
-          <ShieldCheck size={20} className="text-[#FF6B35]" />
+        <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+          <ShieldCheck size={20} className="text-[#E55A2B]" />
           Certificación DTE con el SII
         </h1>
-        <p className="text-white/40 text-sm mt-0.5">
+        <p className="text-[var(--text-muted)] text-sm mt-0.5">
           Sube archivos de prueba del SII, genera y envía DTEs para certificación
         </p>
       </div>
@@ -300,7 +300,7 @@ export default function CertificationPage() {
       {/* Error messages */}
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
@@ -310,7 +310,7 @@ export default function CertificationPage() {
         <div className="space-y-2">
           {validationErrors.map((err, idx) => (
             <div key={idx} className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <AlertCircle size={14} className="text-amber-300 shrink-0 mt-0.5" />
+              <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
               <p className="text-amber-200 text-xs">{err.message}</p>
             </div>
           ))}
@@ -318,8 +318,8 @@ export default function CertificationPage() {
       )}
 
       {/* Upload section */}
-      <div className="bg-[#0f0f1a] border border-white/5 rounded-xl p-4 space-y-3">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">
+      <div className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl p-4 space-y-3">
+        <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
           Subir archivo de prueba del SII
         </p>
         
@@ -328,7 +328,7 @@ export default function CertificationPage() {
             type="file"
             accept=".txt"
             onChange={(e) => setSelectedFile(e.target.files?.[0] ?? null)}
-            className="flex-1 text-sm text-white/70 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#FF6B35] file:text-white hover:file:bg-[#FF8A5B] file:cursor-pointer"
+            className="flex-1 text-sm text-[var(--text-body)] file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-[#FF6B35] file:text-white hover:file:bg-[#FF8A5B] file:cursor-pointer"
           />
           
           <button
@@ -350,22 +350,22 @@ export default function CertificationPage() {
           </button>
         </div>
         
-        <p className="text-white/30 text-xs">
+        <p className="text-[var(--text-muted)] text-xs">
           Sube el archivo SET_DE_PRUEBAS.txt proporcionado por el SII
         </p>
       </div>
 
       {/* Test sets list */}
       <div className="space-y-3">
-        <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">
+        <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">
           Sets de prueba ({testSets.length})
         </p>
         
         {testSets.length === 0 ? (
-          <div className="bg-white/3 border border-white/8 rounded-xl p-8 text-center">
-            <FileText size={32} className="text-white/20 mx-auto mb-3" />
-            <p className="text-white/50 text-sm">No hay sets de prueba subidos</p>
-            <p className="text-white/30 text-xs mt-1">
+          <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-8 text-center">
+            <FileText size={32} className="text-[var(--text-muted)] mx-auto mb-3" />
+            <p className="text-[var(--text-muted)] text-sm">No hay sets de prueba subidos</p>
+            <p className="text-[var(--text-muted)] text-xs mt-1">
               Sube un archivo del SII para comenzar
             </p>
           </div>
@@ -374,13 +374,13 @@ export default function CertificationPage() {
             {testSets.map((set) => (
               <div
                 key={set.id}
-                className="bg-[#0f0f1a] border border-white/5 rounded-xl p-4 space-y-3"
+                className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl p-4 space-y-3"
               >
                 {/* Header */}
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
-                      <h3 className="text-white font-semibold text-sm">
+                      <h3 className="text-[var(--text-strong)] font-semibold text-sm">
                         Atención #{set.attention_number}
                       </h3>
                       <StatusBadge
@@ -388,10 +388,10 @@ export default function CertificationPage() {
                         label={STATUS_STYLE[set.status]?.label ?? set.status}
                       />
                     </div>
-                    <p className="text-white/40 text-xs">
+                    <p className="text-[var(--text-muted)] text-xs">
                       {set.file_name} • {set.case_count} casos • {set.set_type}
                     </p>
-                    <p className="text-white/30 text-xs mt-1">
+                    <p className="text-[var(--text-muted)] text-xs mt-1">
                       Subido: {new Date(set.created_at).toLocaleString('es-CL')}
                     </p>
                   </div>
@@ -403,7 +403,7 @@ export default function CertificationPage() {
                     {Object.entries(set.document_types).map(([docType, count]) => (
                       <span
                         key={docType}
-                        className="px-2 py-1 rounded-lg bg-white/5 text-white/60 text-xs"
+                        className="px-2 py-1 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] text-xs"
                       >
                         {DOC_TYPE_LABEL[Number(docType)] ?? `Tipo ${docType}`}: {count}
                       </span>
@@ -414,27 +414,27 @@ export default function CertificationPage() {
                 {/* Progress */}
                 <div className="grid grid-cols-3 gap-3 text-xs">
                   <div>
-                    <p className="text-white/40">Generados</p>
-                    <p className="text-white font-semibold">
+                    <p className="text-[var(--text-muted)]">Generados</p>
+                    <p className="text-[var(--text-strong)] font-semibold">
                       {set.generated_count} / {set.case_count}
                     </p>
                   </div>
                   <div>
-                    <p className="text-white/40">Enviados</p>
-                    <p className="text-white font-semibold">
+                    <p className="text-[var(--text-muted)]">Enviados</p>
+                    <p className="text-[var(--text-strong)] font-semibold">
                       {set.submitted_count} / {set.case_count}
                     </p>
                   </div>
                   <div>
-                    <p className="text-white/40">Aprobados</p>
-                    <p className="text-white font-semibold">
+                    <p className="text-[var(--text-muted)]">Aprobados</p>
+                    <p className="text-[var(--text-strong)] font-semibold">
                       {set.approved_count} / {set.case_count}
                     </p>
                   </div>
                 </div>
 
                 {/* Actions */}
-                <div className="flex items-center gap-2 pt-2 border-t border-white/5">
+                <div className="flex items-center gap-2 pt-2 border-t border-[var(--border-subtle)]">
                   {set.status === 'uploaded' && (
                     <button
                       onClick={() => handleGenerate(set.id)}
@@ -499,7 +499,7 @@ export default function CertificationPage() {
                     <button
                       onClick={() => handleDelete(set.id)}
                       disabled={deleting === set.id}
-                      className="ml-auto px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold hover:bg-red-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      className="ml-auto px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 text-xs font-semibold hover:bg-red-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
                     >
                       {deleting === set.id ? (
                         <>
@@ -519,8 +519,8 @@ export default function CertificationPage() {
                 {/* Track ID */}
                 {set.track_id && (
                   <div className="text-xs">
-                    <span className="text-white/40">Track ID: </span>
-                    <span className="text-white/60 font-mono">{set.track_id}</span>
+                    <span className="text-[var(--text-muted)]">Track ID: </span>
+                    <span className="text-[var(--text-muted)] font-mono">{set.track_id}</span>
                   </div>
                 )}
               </div>

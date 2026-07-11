@@ -197,19 +197,19 @@ export function MesasFloorplan<M extends MesaPosLike>({
         'relative w-full rounded-2xl border transition-colors',
         editing
           ? 'border-[#FF6B35]/30 bg-[#FF6B35]/[0.02]'
-          : 'border-white/5 bg-white/[0.015]',
+          : 'border-[var(--border-subtle)] bg-white/[0.015]',
       ].join(' ')}
       style={{
         height: canvasHeight,
         backgroundImage: editing
           ? 'radial-gradient(circle, rgba(255,107,53,0.08) 1px, transparent 1px)'
-          : 'radial-gradient(circle, rgba(255,255,255,0.04) 1px, transparent 1px)',
+          : 'radial-gradient(circle, rgba(26, 26, 46, 0.05) 1px, transparent 1px)',
         backgroundSize: '24px 24px',
       }}
     >
       {/* Edit-mode hint banner */}
       {editing && (
-        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-[11px] font-semibold backdrop-blur-sm">
+        <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex items-center gap-2 px-3 py-1.5 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#E55A2B] text-[11px] font-semibold backdrop-blur-sm">
           <Move size={11} />
           Arrastra las mesas para reorganizarlas
         </div>

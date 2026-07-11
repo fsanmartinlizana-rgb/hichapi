@@ -39,11 +39,11 @@ export default function DeliveryAnaliticasPage() {
   }, [from, to, restaurant?.id])
 
   const kpis = analytics ? [
-    { label: 'Entregas completadas', value: analytics.total_completed,                                    icon: Truck,       color: 'text-green-400' },
-    { label: 'Tiempo promedio',      value: analytics.avg_delivery_minutes ? `${analytics.avg_delivery_minutes} min` : '—', icon: Clock, color: 'text-blue-400' },
-    { label: 'Rating promedio',      value: analytics.avg_rider_rating ? `${analytics.avg_rider_rating}★` : '—',            icon: Star,  color: 'text-yellow-400' },
-    { label: 'Total pagado riders',  value: `$${analytics.total_fees_paid_clp.toLocaleString('es-CL')}`,  icon: DollarSign,  color: 'text-purple-400' },
-    { label: 'Tasa de éxito',        value: `${Math.round(analytics.success_rate * 100)}%`,               icon: TrendingUp,  color: 'text-[#FF6B35]' },
+    { label: 'Entregas completadas', value: analytics.total_completed,                                    icon: Truck,       color: 'text-green-700' },
+    { label: 'Tiempo promedio',      value: analytics.avg_delivery_minutes ? `${analytics.avg_delivery_minutes} min` : '—', icon: Clock, color: 'text-blue-700' },
+    { label: 'Rating promedio',      value: analytics.avg_rider_rating ? `${analytics.avg_rider_rating}★` : '—',            icon: Star,  color: 'text-yellow-700' },
+    { label: 'Total pagado riders',  value: `$${analytics.total_fees_paid_clp.toLocaleString('es-CL')}`,  icon: DollarSign,  color: 'text-purple-700' },
+    { label: 'Tasa de éxito',        value: `${Math.round(analytics.success_rate * 100)}%`,               icon: TrendingUp,  color: 'text-[#E55A2B]' },
   ] : []
 
   const maxVolume = analytics
@@ -54,8 +54,8 @@ export default function DeliveryAnaliticasPage() {
     <div className="p-6 max-w-5xl mx-auto space-y-8">
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-2xl font-bold text-white">Analíticas de Delivery</h1>
-          <p className="text-white/50 text-sm mt-1">Métricas de tu operación de última milla</p>
+          <h1 className="text-2xl font-bold text-[var(--text-strong)]">Analíticas de Delivery</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">Métricas de tu operación de última milla</p>
         </div>
         {/* Date range picker */}
         <div className="flex items-center gap-2">
@@ -63,20 +63,20 @@ export default function DeliveryAnaliticasPage() {
             type="date"
             value={from}
             onChange={e => setFrom(e.target.value)}
-            className="bg-white/8 border border-white/12 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+            className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-1.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
           />
-          <span className="text-white/40 text-sm">→</span>
+          <span className="text-[var(--text-muted)] text-sm">→</span>
           <input
             type="date"
             value={to}
             onChange={e => setTo(e.target.value)}
-            className="bg-white/8 border border-white/12 rounded-lg px-3 py-1.5 text-white text-sm focus:outline-none focus:border-[#FF6B35]"
+            className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-1.5 text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]"
           />
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-400 text-sm">
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-700 text-sm">
           <AlertCircle size={16} />
           {error}
         </div>
@@ -84,28 +84,28 @@ export default function DeliveryAnaliticasPage() {
 
       {loading ? (
         <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          {[1,2,3,4,5].map(i => <div key={i} className="bg-white/5 rounded-xl h-20 animate-pulse" />)}
+          {[1,2,3,4,5].map(i => <div key={i} className="bg-[var(--surface-sunken)] rounded-xl h-20 animate-pulse" />)}
         </div>
       ) : analytics && (
         <>
           {/* KPI cards */}
           <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             {kpis.map(({ label, value, icon: Icon, color }) => (
-              <div key={label} className="bg-white/5 border border-white/8 rounded-xl p-4">
+              <div key={label} className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4">
                 <div className="flex items-center gap-1.5 mb-2">
                   <Icon size={14} className={color} />
-                  <span className="text-white/50 text-xs">{label}</span>
+                  <span className="text-[var(--text-muted)] text-xs">{label}</span>
                 </div>
-                <p className="text-white text-xl font-bold">{value}</p>
+                <p className="text-[var(--text-strong)] text-xl font-bold">{value}</p>
               </div>
             ))}
           </div>
 
           {/* Daily volume chart */}
-          <div className="bg-white/5 border border-white/8 rounded-xl p-5">
-            <h2 className="text-white font-semibold mb-4">Volumen diario</h2>
+          <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-5">
+            <h2 className="text-[var(--text-strong)] font-semibold mb-4">Volumen diario</h2>
             {analytics.daily_volumes.length === 0 ? (
-              <p className="text-white/40 text-sm text-center py-8">
+              <p className="text-[var(--text-muted)] text-sm text-center py-8">
                 No hay datos de entregas para el período seleccionado
               </p>
             ) : (
@@ -117,7 +117,7 @@ export default function DeliveryAnaliticasPage() {
                       style={{ height: `${Math.max(4, (count / maxVolume) * 100)}%` }}
                       title={`${date}: ${count}`}
                     />
-                    <span className="text-white/30 text-[9px] rotate-45 origin-left">
+                    <span className="text-[var(--text-muted)] text-[9px] rotate-45 origin-left">
                       {date.slice(5)}
                     </span>
                   </div>
@@ -129,23 +129,23 @@ export default function DeliveryAnaliticasPage() {
           {/* Status breakdown + Top riders */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Status breakdown */}
-            <div className="bg-white/5 border border-white/8 rounded-xl p-5">
-              <h2 className="text-white font-semibold mb-4">Por estado</h2>
+            <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-5">
+              <h2 className="text-[var(--text-strong)] font-semibold mb-4">Por estado</h2>
               <div className="space-y-3">
                 {[
                   { label: 'Entregados',  value: analytics.status_breakdown.delivered, color: 'bg-green-500' },
                   { label: 'Fallidos',    value: analytics.status_breakdown.failed,    color: 'bg-red-500' },
-                  { label: 'Cancelados',  value: analytics.status_breakdown.cancelled, color: 'bg-white/20' },
+                  { label: 'Cancelados',  value: analytics.status_breakdown.cancelled, color: 'bg-[var(--surface-sunken)]' },
                 ].map(({ label, value, color }) => {
                   const total = analytics.total_completed + analytics.status_breakdown.failed + analytics.status_breakdown.cancelled
                   const pct = total > 0 ? Math.round((value / total) * 100) : 0
                   return (
                     <div key={label}>
                       <div className="flex justify-between text-sm mb-1">
-                        <span className="text-white/60">{label}</span>
-                        <span className="text-white">{value} <span className="text-white/40">({pct}%)</span></span>
+                        <span className="text-[var(--text-muted)]">{label}</span>
+                        <span className="text-[var(--text-strong)]">{value} <span className="text-[var(--text-muted)]">({pct}%)</span></span>
                       </div>
-                      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
+                      <div className="h-1.5 bg-[var(--surface-sunken)] rounded-full overflow-hidden">
                         <div className={`h-full ${color} rounded-full`} style={{ width: `${pct}%` }} />
                       </div>
                     </div>
@@ -155,25 +155,25 @@ export default function DeliveryAnaliticasPage() {
             </div>
 
             {/* Top riders */}
-            <div className="bg-white/5 border border-white/8 rounded-xl p-5">
-              <h2 className="text-white font-semibold mb-4">Top riders</h2>
+            <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-5">
+              <h2 className="text-[var(--text-strong)] font-semibold mb-4">Top riders</h2>
               {analytics.top_riders.length === 0 ? (
-                <p className="text-white/40 text-sm">Sin datos en el período</p>
+                <p className="text-[var(--text-muted)] text-sm">Sin datos en el período</p>
               ) : (
                 <div className="space-y-3">
                   {analytics.top_riders.map(({ rider, completed_count }, i) => (
                     <div key={rider.id} className="flex items-center gap-3">
-                      <span className="text-white/30 text-sm w-4">{i + 1}</span>
-                      <div className="w-7 h-7 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] text-xs font-bold shrink-0">
+                      <span className="text-[var(--text-muted)] text-sm w-4">{i + 1}</span>
+                      <div className="w-7 h-7 rounded-full bg-[#FF6B35]/20 flex items-center justify-center text-[#E55A2B] text-xs font-bold shrink-0">
                         {rider.full_name.charAt(0)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-sm truncate">{rider.full_name}</p>
+                        <p className="text-[var(--text-strong)] text-sm truncate">{rider.full_name}</p>
                         {rider.avg_rating && (
-                          <p className="text-white/40 text-xs">{rider.avg_rating}★</p>
+                          <p className="text-[var(--text-muted)] text-xs">{rider.avg_rating}★</p>
                         )}
                       </div>
-                      <span className="text-white/60 text-sm shrink-0">{completed_count} entregas</span>
+                      <span className="text-[var(--text-muted)] text-sm shrink-0">{completed_count} entregas</span>
                     </div>
                   ))}
                 </div>

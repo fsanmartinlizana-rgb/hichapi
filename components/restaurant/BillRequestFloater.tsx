@@ -97,13 +97,13 @@ export function BillRequestFloater() {
       <div className="pointer-events-auto">
         {expanded ? (
           /* Expanded panel */
-          <div className="w-80 bg-[#1A1A2E] border-2 border-amber-500/50 rounded-2xl shadow-2xl shadow-amber-500/20 overflow-hidden animate-slide-up">
+          <div className="w-80 bg-[var(--surface-card)] border-2 border-amber-500/50 rounded-2xl shadow-2xl shadow-amber-500/20 overflow-hidden animate-slide-up">
             <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-3 flex items-center gap-2.5">
               <div className="w-9 h-9 rounded-full bg-amber-500 flex items-center justify-center animate-bounce-slow">
                 <Receipt size={16} className="text-[#0A0A14]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-amber-300 text-sm font-bold leading-tight">
+                <p className="text-amber-700 text-sm font-bold leading-tight">
                   {billNotifs.length === 1
                     ? '1 mesa pidió la cuenta'
                     : `${billNotifs.length} mesas pidieron la cuenta`}
@@ -121,21 +121,21 @@ export function BillRequestFloater() {
               </button>
             </div>
 
-            <div className="max-h-96 overflow-y-auto divide-y divide-white/5">
+            <div className="max-h-96 overflow-y-auto divide-y divide-[var(--border-subtle)]">
               {billNotifs.map(n => {
                 const total = (n.metadata as { total?: number } | null)?.total
                 return (
-                  <div key={n.id} className="px-4 py-3 hover:bg-white/3 transition-colors">
+                  <div key={n.id} className="px-4 py-3 hover:bg-[var(--surface-sunken)] transition-colors">
                     <button
                       onClick={() => handleGoToTable(n.id, n.action_url)}
                       className="w-full text-left"
                     >
-                      <p className="text-white text-sm font-semibold">{n.title}</p>
+                      <p className="text-[var(--text-strong)] text-sm font-semibold">{n.title}</p>
                       {n.message && (
-                        <p className="text-white/50 text-xs mt-0.5">{n.message}</p>
+                        <p className="text-[var(--text-muted)] text-xs mt-0.5">{n.message}</p>
                       )}
                       {typeof total === 'number' && (
-                        <p className="text-amber-400 text-sm font-mono font-bold mt-1">
+                        <p className="text-amber-700 text-sm font-mono font-bold mt-1">
                           ${total.toLocaleString('es-CL')}
                         </p>
                       )}
@@ -149,14 +149,14 @@ export function BillRequestFloater() {
                       </button>
                       <button
                         onClick={() => handleResolve(n.id)}
-                        className="px-3 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-300 text-xs font-medium hover:bg-emerald-500/10 transition-colors"
+                        className="px-3 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-700 text-xs font-medium hover:bg-emerald-500/10 transition-colors"
                         title="Marcar como resuelta"
                       >
                         ✓
                       </button>
                       <button
                         onClick={() => handleDismiss(n.id)}
-                        className="px-3 py-1.5 rounded-lg border border-white/10 text-white/40 text-xs hover:bg-white/5 transition-colors"
+                        className="px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] transition-colors"
                         title="Ocultar (no resuelve)"
                       >
                         <X size={12} />

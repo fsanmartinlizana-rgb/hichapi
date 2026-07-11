@@ -55,21 +55,21 @@ export function CancelOrderModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
+      <div className="relative bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md shadow-2xl flex flex-col max-h-[90vh]">
 
-        <div className="flex items-start justify-between px-5 py-4 border-b border-white/8">
+        <div className="flex items-start justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
           <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-red-400">
+            <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-red-700">
               <AlertTriangle size={16} />
             </div>
             <div>
-              <h2 className="text-white font-bold text-base">Cancelar pedido</h2>
-              <p className="text-white/35 text-xs mt-0.5">
+              <h2 className="text-[var(--text-strong)] font-bold text-base">Cancelar pedido</h2>
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">
                 {tableLabel ? `Mesa ${tableLabel} · ` : ''}Selecciona el motivo
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center text-white/50">
+          <button onClick={onClose} className="w-7 h-7 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] flex items-center justify-center text-[var(--text-muted)]">
             <X size={14} />
           </button>
         </div>
@@ -83,23 +83,23 @@ export function CancelOrderModal({
                 className={`w-full text-left px-3 py-2.5 rounded-xl border transition-colors ${
                   reason === r.value
                     ? 'bg-red-500/10 border-red-500/40 text-white'
-                    : 'bg-white/3 border-white/8 text-white/70 hover:bg-white/5'
+                    : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-body)] hover:bg-[var(--surface-sunken)]'
                 }`}
               >
                 <p className="text-sm font-semibold">{r.label}</p>
-                <p className="text-white/40 text-xs mt-0.5">{r.hint}</p>
+                <p className="text-[var(--text-muted)] text-xs mt-0.5">{r.hint}</p>
               </button>
             ))}
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-white/40 text-xs font-medium">Notas (opcional)</label>
+            <label className="text-[var(--text-muted)] text-xs font-medium">Notas (opcional)</label>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value.slice(0, 500))}
               rows={2}
               placeholder="Detalles del motivo…"
-              className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-red-500/40 resize-none"
+              className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-red-500/40 resize-none"
             />
           </div>
 
@@ -110,17 +110,17 @@ export function CancelOrderModal({
           )}
 
           {error && (
-            <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+            <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs">
               {error}
             </div>
           )}
         </div>
 
-        <div className="px-5 py-4 border-t border-white/8 flex gap-2">
+        <div className="px-5 py-4 border-t border-[var(--border-subtle)] flex gap-2">
           <button
             onClick={onClose}
             disabled={saving}
-            className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 hover:text-white/70 transition-colors"
+            className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] hover:text-[var(--text-body)] transition-colors"
           >
             Volver
           </button>

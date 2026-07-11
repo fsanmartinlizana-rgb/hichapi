@@ -68,7 +68,7 @@ function ChatText({ text }: { text: string }) {
         if (/^[•\-*]\s/.test(trimmed)) {
           return (
             <div key={i} className="flex items-start gap-2">
-              <span className="text-[#FF6B35] mt-0.5">•</span>
+              <span className="text-[#E55A2B] mt-0.5">•</span>
               <span className="flex-1">{trimmed.replace(/^[•\-*]\s/, '')}</span>
             </div>
           )
@@ -206,10 +206,10 @@ export function ChapiAssistant() {
         <span
           className="flex items-center gap-2 pl-3 pr-4 py-3 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] shadow-[0_8px_28px_-6px_rgba(255,107,53,0.55)] hover:shadow-[0_10px_36px_-4px_rgba(255,107,53,0.7)] hover:-translate-y-0.5 transition-all duration-200"
         >
-          <span className="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center">
-            <Sparkles size={14} className="text-white" />
+          <span className="w-7 h-7 rounded-full bg-[var(--surface-sunken)] flex items-center justify-center">
+            <Sparkles size={14} className="text-[var(--text-strong)]" />
           </span>
-          <span className="text-white text-[13px] font-semibold pr-1">
+          <span className="text-[var(--text-strong)] text-[13px] font-semibold pr-1">
             Chapi
           </span>
         </span>
@@ -224,26 +224,26 @@ export function ChapiAssistant() {
   return (
     <div
       className={`fixed bottom-20 md:bottom-5 right-5 left-5 sm:left-auto z-50 ${panelWidth} ${panelHeight}
-                  bg-[#0F0F1C] border border-white/10 rounded-2xl shadow-2xl shadow-black/50
+                  bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-2xl shadow-2xl shadow-black/50
                   flex flex-col overflow-hidden`}
       role="dialog"
       aria-label="Chapi Assistant"
     >
       {/* Header */}
-      <div className="shrink-0 px-4 py-3 border-b border-white/8 flex items-center gap-3 bg-gradient-to-r from-[#1A1A2E] to-[#0F0F1C]">
+      <div className="shrink-0 px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-3 bg-gradient-to-r from-[#1A1A2E] to-[#0F0F1C]">
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center shrink-0">
-          <Sparkles size={16} className="text-white" />
+          <Sparkles size={16} className="text-[var(--text-strong)]" />
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-sm font-bold leading-tight">Chapi</p>
-          <p className="text-white/40 text-[10px] truncate">
+          <p className="text-[var(--text-strong)] text-sm font-bold leading-tight">Chapi</p>
+          <p className="text-[var(--text-muted)] text-[10px] truncate">
             Asistente de tu restaurante
           </p>
         </div>
         {messages.length > 0 && (
           <button
             onClick={clearConversation}
-            className="text-white/30 hover:text-white/70 text-[10px] font-medium px-2"
+            className="text-[var(--text-muted)] hover:text-[var(--text-body)] text-[10px] font-medium px-2"
           >
             Limpiar
           </button>
@@ -251,14 +251,14 @@ export function ChapiAssistant() {
         <button
           onClick={() => setExpanded(e => !e)}
           aria-label={expanded ? 'Contraer' : 'Expandir'}
-          className="hidden sm:flex w-7 h-7 rounded-lg items-center justify-center text-white/40 hover:text-white hover:bg-white/8 transition-colors"
+          className="hidden sm:flex w-7 h-7 rounded-lg items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"
         >
           {expanded ? <Minimize2 size={13} /> : <Maximize2 size={13} />}
         </button>
         <button
           onClick={() => setOpen(false)}
           aria-label="Cerrar"
-          className="w-7 h-7 rounded-lg flex items-center justify-center text-white/40 hover:text-white hover:bg-white/8 transition-colors"
+          className="w-7 h-7 rounded-lg flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"
         >
           <X size={14} />
         </button>
@@ -269,16 +269,16 @@ export function ChapiAssistant() {
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center text-center pt-2">
             <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center mb-3">
-              <Sparkles size={20} className="text-white" />
+              <Sparkles size={20} className="text-[var(--text-strong)]" />
             </div>
-            <h3 className="text-white text-sm font-bold mb-1">Hola, soy Chapi</h3>
-            <p className="text-white/40 text-[11px] leading-relaxed mb-4 max-w-[260px]">
+            <h3 className="text-[var(--text-strong)] text-sm font-bold mb-1">Hola, soy Chapi</h3>
+            <p className="text-[var(--text-muted)] text-[11px] leading-relaxed mb-4 max-w-[260px]">
               Pregúntame sobre tus ventas, stock o reseñas — o cómo hacer algo en el panel.
             </p>
 
             <div className="w-full space-y-3">
               <div>
-                <p className="text-white/30 text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
+                <p className="text-[var(--text-muted)] text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
                   Tu negocio en tiempo real
                 </p>
                 <div className="space-y-1.5">
@@ -286,7 +286,7 @@ export function ChapiAssistant() {
                     <button
                       key={s.text}
                       onClick={() => send(s.text)}
-                      className="w-full text-left text-[11px] text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 rounded-lg px-3 py-2 transition-all"
+                      className="w-full text-left text-[11px] text-[var(--text-body)] hover:text-[var(--text-strong)] bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] rounded-lg px-3 py-2 transition-all"
                     >
                       {s.text}
                     </button>
@@ -294,7 +294,7 @@ export function ChapiAssistant() {
                 </div>
               </div>
               <div>
-                <p className="text-white/30 text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
+                <p className="text-[var(--text-muted)] text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
                   Facturación electrónica (DTE)
                 </p>
                 <div className="space-y-1.5">
@@ -302,7 +302,7 @@ export function ChapiAssistant() {
                     <button
                       key={s.text}
                       onClick={() => send(s.text)}
-                      className="w-full text-left text-[11px] text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 rounded-lg px-3 py-2 transition-all"
+                      className="w-full text-left text-[11px] text-[var(--text-body)] hover:text-[var(--text-strong)] bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] rounded-lg px-3 py-2 transition-all"
                     >
                       {s.text}
                     </button>
@@ -310,7 +310,7 @@ export function ChapiAssistant() {
                 </div>
               </div>
               <div>
-                <p className="text-white/30 text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
+                <p className="text-[var(--text-muted)] text-[9px] font-semibold tracking-widest uppercase mb-1.5 text-left">
                   Ayuda con el panel
                 </p>
                 <div className="space-y-1.5">
@@ -318,7 +318,7 @@ export function ChapiAssistant() {
                     <button
                       key={s.text}
                       onClick={() => send(s.text)}
-                      className="w-full text-left text-[11px] text-white/70 hover:text-white bg-white/5 hover:bg-white/10 border border-white/8 hover:border-white/15 rounded-lg px-3 py-2 transition-all"
+                      className="w-full text-left text-[11px] text-[var(--text-body)] hover:text-[var(--text-strong)] bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] border border-[var(--border-subtle)] hover:border-[var(--border-subtle)] rounded-lg px-3 py-2 transition-all"
                     >
                       {s.text}
                     </button>
@@ -336,23 +336,23 @@ export function ChapiAssistant() {
           >
             {msg.role === 'assistant' && (
               <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center shrink-0 mr-2 mt-0.5">
-                <Sparkles size={10} className="text-white" />
+                <Sparkles size={10} className="text-[var(--text-strong)]" />
               </div>
             )}
             <div
               className={`max-w-[85%] rounded-2xl text-[12px] leading-relaxed
                 ${msg.role === 'user'
                   ? 'bg-[#FF6B35] text-white px-3 py-2 rounded-br-sm'
-                  : 'bg-white/5 border border-white/8 text-white/85 px-3 py-2.5 rounded-bl-sm'
+                  : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] px-3 py-2.5 rounded-bl-sm'
                 }`}
             >
               {msg.role === 'user' ? msg.content : <ChatText text={msg.content} />}
               {msg.role === 'assistant' && msg.tools_used && msg.tools_used.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-2 pt-1.5 border-t border-white/8">
+                <div className="flex flex-wrap gap-1 mt-2 pt-1.5 border-t border-[var(--border-subtle)]">
                   {msg.tools_used.map((t, j) => (
                     <span
                       key={j}
-                      className="flex items-center gap-1 text-[9px] text-white/35 bg-white/5 px-1.5 py-0.5 rounded-full"
+                      className="flex items-center gap-1 text-[9px] text-[var(--text-muted)] bg-[var(--surface-sunken)] px-1.5 py-0.5 rounded-full"
                     >
                       <Wrench size={8} />
                       {t.tool}
@@ -367,10 +367,10 @@ export function ChapiAssistant() {
         {loading && (
           <div className="flex justify-start mb-3">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center shrink-0 mr-2 mt-0.5">
-              <Sparkles size={10} className="text-white" />
+              <Sparkles size={10} className="text-[var(--text-strong)]" />
             </div>
-            <div className="bg-white/5 border border-white/8 px-3 py-2 rounded-2xl rounded-bl-sm">
-              <div className="flex items-center gap-2 text-white/40 text-[11px]">
+            <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] px-3 py-2 rounded-2xl rounded-bl-sm">
+              <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px]">
                 <Loader2 size={11} className="animate-spin" />
                 Pensando…
               </div>
@@ -379,7 +379,7 @@ export function ChapiAssistant() {
         )}
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-300 text-[11px] px-3 py-2 rounded-xl">
+          <div className="bg-red-500/10 border border-red-500/30 text-red-700 text-[11px] px-3 py-2 rounded-xl">
             {error}
           </div>
         )}
@@ -388,8 +388,8 @@ export function ChapiAssistant() {
       </div>
 
       {/* Input */}
-      <div className="shrink-0 px-4 pb-4 pt-2 border-t border-white/8 bg-[#0F0F1C]">
-        <div className="flex items-end gap-2 bg-white/5 border border-white/10 rounded-xl p-1.5 focus-within:border-[#FF6B35]/50 transition-colors">
+      <div className="shrink-0 px-4 pb-4 pt-2 border-t border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
+        <div className="flex items-end gap-2 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1.5 focus-within:border-[#FF6B35]/50 transition-colors">
           <textarea
             ref={textareaRef}
             value={input}
@@ -398,7 +398,7 @@ export function ChapiAssistant() {
             placeholder={restaurant ? 'Escríbele a Chapi…' : 'Cargando restaurante…'}
             rows={1}
             disabled={loading || !restaurant}
-            className="flex-1 bg-transparent text-white text-[12px] px-2 py-1.5 placeholder:text-white/25 focus:outline-none resize-none max-h-24"
+            className="flex-1 bg-transparent text-[var(--text-strong)] text-[12px] px-2 py-1.5 placeholder:text-[var(--text-muted)] focus:outline-none resize-none max-h-24"
           />
           <button
             type="button"
@@ -409,7 +409,7 @@ export function ChapiAssistant() {
             {loading ? <Loader2 size={13} className="animate-spin" /> : <Send size={13} />}
           </button>
         </div>
-        <p className="text-white/20 text-[9px] text-center mt-1.5">
+        <p className="text-[var(--text-muted)] text-[9px] text-center mt-1.5">
           Chapi puede equivocarse. Verifica datos críticos.
         </p>
       </div>

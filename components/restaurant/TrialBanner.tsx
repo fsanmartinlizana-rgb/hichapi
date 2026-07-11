@@ -92,7 +92,7 @@ export default function TrialBanner() {
       <button
         type="button"
         onClick={() => setDismissed(true)}
-        className="text-white/30 hover:text-white/60 transition-colors"
+        className="text-[var(--text-muted)] hover:text-[var(--text-muted)] transition-colors"
         aria-label="Cerrar banner"
       >
         <X size={14} />

@@ -106,16 +106,16 @@ export default function GeofencingPage() {
   }
 
   if (ctxLoading) {
-    return <div className="flex items-center justify-center h-screen"><Loader2 size={22} className="text-[#FF6B35] animate-spin" /></div>
+    return <div className="flex items-center justify-center h-screen"><Loader2 size={22} className="text-[#E55A2B] animate-spin" /></div>
   }
 
   if (!canUse) {
     return (
       <div className="p-6">
         <div className="max-w-xl mx-auto text-center py-16 space-y-4">
-          <MapPin size={36} className="text-[#FF6B35] mx-auto" />
-          <h1 className="text-white text-xl font-bold">Geofencing</h1>
-          <p className="text-white/50 text-sm">
+          <MapPin size={36} className="text-[#E55A2B] mx-auto" />
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Geofencing</h1>
+          <p className="text-[var(--text-muted)] text-sm">
             Detectá automáticamente cuando un cliente está dentro de tu local.
             Disponible en plan Enterprise.
           </p>
@@ -130,31 +130,31 @@ export default function GeofencingPage() {
   return (
     <div className="p-6 space-y-5 max-w-4xl">
       <div>
-        <h1 className="text-white text-xl font-bold flex items-center gap-2">
-          <MapPin size={20} className="text-[#FF6B35]" /> Geofencing
+        <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+          <MapPin size={20} className="text-[#E55A2B]" /> Geofencing
         </h1>
-        <p className="text-white/40 text-sm mt-0.5">
+        <p className="text-[var(--text-muted)] text-sm mt-0.5">
           Definí una zona circular alrededor de tu local. Los clientes que abran tu página desde adentro activan check-in automático.
         </p>
       </div>
 
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-4 py-2.5 rounded-xl text-sm">
+        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-4 py-2.5 rounded-xl text-sm">
           {toast}
         </div>
       )}
 
       {/* Config card */}
-      <div className="bg-white/[0.02] border border-white/8 rounded-2xl p-5 space-y-4">
+      <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-white text-sm font-semibold">Estado</p>
-            <p className="text-white/40 text-xs">Activá para empezar a detectar check-ins</p>
+            <p className="text-[var(--text-strong)] text-sm font-semibold">Estado</p>
+            <p className="text-[var(--text-muted)] text-xs">Activá para empezar a detectar check-ins</p>
           </div>
           <button
             onClick={() => setConfig(c => ({ ...c, geofence_enabled: !c.geofence_enabled }))}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold ${
-              config.geofence_enabled ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-white/5 text-white/40 border border-white/10'
+              config.geofence_enabled ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)]'
             }`}
           >
             {config.geofence_enabled ? <><ToggleRight size={14} /> Activo</> : <><ToggleLeft size={14} /> Inactivo</>}
@@ -163,31 +163,31 @@ export default function GeofencingPage() {
 
         <div className="grid grid-cols-2 gap-3">
           <label className="block">
-            <span className="text-white/50 text-xs font-medium mb-1 block">Latitud</span>
+            <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Latitud</span>
             <input
               type="number"
               step="0.000001"
               value={config.geofence_lat ?? ''}
               onChange={e => setConfig(c => ({ ...c, geofence_lat: e.target.value ? parseFloat(e.target.value) : null }))}
               placeholder="-33.437222"
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[#FF6B35]/40"
+              className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm font-mono focus:outline-none focus:border-[#FF6B35]/40"
             />
           </label>
           <label className="block">
-            <span className="text-white/50 text-xs font-medium mb-1 block">Longitud</span>
+            <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Longitud</span>
             <input
               type="number"
               step="0.000001"
               value={config.geofence_lng ?? ''}
               onChange={e => setConfig(c => ({ ...c, geofence_lng: e.target.value ? parseFloat(e.target.value) : null }))}
               placeholder="-70.650556"
-              className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm font-mono focus:outline-none focus:border-[#FF6B35]/40"
+              className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm font-mono focus:outline-none focus:border-[#FF6B35]/40"
             />
           </label>
         </div>
 
         <label className="block">
-          <span className="text-white/50 text-xs font-medium mb-1 block">Radio (metros) · {config.geofence_radius_m}m</span>
+          <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">Radio (metros) · {config.geofence_radius_m}m</span>
           <input
             type="range"
             min={20}
@@ -197,7 +197,7 @@ export default function GeofencingPage() {
             onChange={e => setConfig(c => ({ ...c, geofence_radius_m: parseInt(e.target.value) }))}
             className="w-full accent-[#FF6B35]"
           />
-          <div className="flex justify-between text-white/25 text-[10px] mt-1">
+          <div className="flex justify-between text-[var(--text-muted)] text-[10px] mt-1">
             <span>20m (interior muy chico)</span>
             <span>500m (manzana completa)</span>
           </div>
@@ -206,7 +206,7 @@ export default function GeofencingPage() {
         <div className="flex gap-2">
           <button
             onClick={useMyLocation}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white/70 text-xs hover:text-white hover:border-white/25 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-xs hover:text-[var(--text-strong)] hover:border-[var(--border-subtle)] transition-colors"
           >
             <Crosshair size={12} /> Usar mi ubicación actual
           </button>
@@ -222,9 +222,9 @@ export default function GeofencingPage() {
 
       {/* Privacy notice */}
       <div className="flex items-start gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
-        <AlertCircle size={14} className="text-blue-400 mt-0.5 shrink-0" />
+        <AlertCircle size={14} className="text-blue-700 mt-0.5 shrink-0" />
         <div className="space-y-1">
-          <p className="text-blue-300 text-xs font-medium">Privacidad</p>
+          <p className="text-blue-700 text-xs font-medium">Privacidad</p>
           <p className="text-blue-200/80 text-[11px] leading-relaxed">
             El cliente debe dar permiso de ubicación explícito en su navegador. Solo enviamos la coord cuando abre tu página pública o escanea un QR, nunca en background. Los eventos quedan asociados al restaurant, no al usuario personal.
           </p>
@@ -232,29 +232,29 @@ export default function GeofencingPage() {
       </div>
 
       {/* Events */}
-      <div className="bg-white/[0.02] border border-white/8 rounded-2xl p-5">
+      <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-5">
         <div className="flex items-center justify-between mb-3">
-          <p className="text-white text-sm font-semibold">Últimos 20 check-ins</p>
+          <p className="text-[var(--text-strong)] text-sm font-semibold">Últimos 20 check-ins</p>
         </div>
         {loading ? (
-          <div className="flex items-center justify-center py-8"><Loader2 size={18} className="text-[#FF6B35] animate-spin" /></div>
+          <div className="flex items-center justify-center py-8"><Loader2 size={18} className="text-[#E55A2B] animate-spin" /></div>
         ) : events.length === 0 ? (
-          <p className="text-white/30 text-xs italic">Sin eventos registrados aún</p>
+          <p className="text-[var(--text-muted)] text-xs italic">Sin eventos registrados aún</p>
         ) : (
           <div className="space-y-1.5">
             {events.map(e => (
-              <div key={e.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-white/5">
+              <div key={e.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-[var(--border-subtle)]">
                 {e.within_radius
-                  ? <CheckCircle2 size={13} className="text-emerald-400 shrink-0" />
-                  : <XCircle size={13} className="text-white/30 shrink-0" />
+                  ? <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
+                  : <XCircle size={13} className="text-[var(--text-muted)] shrink-0" />
                 }
                 <div className="flex-1 min-w-0">
-                  <p className="text-white/70 text-xs">
-                    {e.within_radius ? 'Dentro del radio' : 'Fuera del radio'} · {e.distance_m}m · <span className="text-white/40">{e.trigger_source}</span>
+                  <p className="text-[var(--text-body)] text-xs">
+                    {e.within_radius ? 'Dentro del radio' : 'Fuera del radio'} · {e.distance_m}m · <span className="text-[var(--text-muted)]">{e.trigger_source}</span>
                   </p>
-                  <p className="text-white/30 text-[10px] font-mono">{e.lat.toFixed(5)}, {e.lng.toFixed(5)}</p>
+                  <p className="text-[var(--text-muted)] text-[10px] font-mono">{e.lat.toFixed(5)}, {e.lng.toFixed(5)}</p>
                 </div>
-                <span className="text-white/30 text-[10px]">{new Date(e.created_at).toLocaleString('es-CL')}</span>
+                <span className="text-[var(--text-muted)] text-[10px]">{new Date(e.created_at).toLocaleString('es-CL')}</span>
               </div>
             ))}
           </div>

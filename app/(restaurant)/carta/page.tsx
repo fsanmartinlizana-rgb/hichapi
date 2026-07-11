@@ -160,16 +160,16 @@ function IngredientRow({
       <select
         value={ing.stock_item_id}
         onChange={e => onChange({ stock_item_id: e.target.value })}
-        className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
+        className="flex-1 min-w-0 px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none"
       >
         {/* Si el ingredient todavia no tiene stock_item asignado (RecipeModal
             arranca con stock_item_id="" para que el user elija) mostramos un
             placeholder. Sin esto React tira warning + el value queda inválido. */}
         {!ing.stock_item_id && (
-          <option value="" className="bg-[#1C1C2E]">Seleccionar producto…</option>
+          <option value="" className="bg-[var(--surface-card)]">Seleccionar producto…</option>
         )}
         {stockItems.map(s => (
-          <option key={s.id} value={s.id} className="bg-[#1C1C2E]">
+          <option key={s.id} value={s.id} className="bg-[var(--surface-card)]">
             {s.name} ({s.unit})
           </option>
         ))}
@@ -181,22 +181,22 @@ function IngredientRow({
         step={inputStep(displayUnit)}
         inputMode="decimal"
         placeholder="0"
-        className="w-20 px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs focus:outline-none focus:border-[#FF6B35]/50 text-right font-mono"
+        className="w-20 px-2 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs focus:outline-none focus:border-[#FF6B35]/50 text-right font-mono"
       />
       {compatibleUnits.length > 1 ? (
         <select
           value={displayUnit}
           onChange={e => handleUnitChange(e.target.value)}
           title={`Stock guardado en ${baseUnit} (${UNIT_FAMILY[baseUnit] ?? '—'}). Al cambiar de unidad se convierte automáticamente.`}
-          className="px-2 py-2 rounded-xl bg-white/5 border border-white/8 text-white/80 text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none min-w-[60px] text-center"
+          className="px-2 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-xs focus:outline-none focus:border-[#FF6B35]/50 appearance-none min-w-[60px] text-center"
         >
           {compatibleUnits.map(u => (
-            <option key={u} value={u} className="bg-[#1C1C2E]">{u}</option>
+            <option key={u} value={u} className="bg-[var(--surface-card)]">{u}</option>
           ))}
         </select>
       ) : (
         <span
-          className="px-2 py-2 rounded-xl bg-white/3 border border-white/6 text-white/40 text-xs min-w-[50px] text-center"
+          className="px-2 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs min-w-[50px] text-center"
           title={`Stock guardado como "${baseUnit}". Para usar gramos/ml registra el producto en otra unidad en /stock.`}
         >
           {baseUnit}
@@ -205,7 +205,7 @@ function IngredientRow({
       <button
         type="button"
         onClick={onRemove}
-        className="w-9 px-2 py-2 rounded-xl bg-white/3 hover:bg-red-500/15 text-white/30 hover:text-red-400 transition-colors"
+        className="w-9 px-2 py-2 rounded-xl bg-[var(--surface-sunken)] hover:bg-red-500/15 text-[var(--text-muted)] hover:text-red-700 transition-colors"
       >
         <X size={12} />
       </button>
@@ -391,7 +391,7 @@ function ItemForm({
     : null
 
   return (
-    <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-5 space-y-4">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
 
       {/* Photo upload zone */}
       <input
@@ -402,7 +402,7 @@ function ItemForm({
         onChange={handleFileChange}
       />
       {photoPreview ? (
-        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-white/10">
+        <div className="relative w-full h-40 rounded-xl overflow-hidden border border-[var(--border-subtle)]">
           <img
             src={photoPreview}
             alt="Vista previa"
@@ -410,7 +410,7 @@ function ItemForm({
           />
           <button
             onClick={removePhoto}
-            className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-white/80 hover:text-white hover:bg-black/80 transition-colors"
+            className="absolute top-2 right-2 p-1 rounded-full bg-black/60 text-[var(--text-body)] hover:text-[var(--text-strong)] hover:bg-black/80 transition-colors"
           >
             <X size={14} />
           </button>
@@ -419,58 +419,58 @@ function ItemForm({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="w-full h-40 rounded-xl border-2 border-dashed border-white/15 bg-white/3 hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 transition-all flex flex-col items-center justify-center gap-2 group"
+          className="w-full h-40 rounded-xl border-2 border-dashed border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5 transition-all flex flex-col items-center justify-center gap-2 group"
         >
-          <Camera size={22} className="text-white/25 group-hover:text-[#FF6B35]/60 transition-colors" />
-          <span className="text-white/35 group-hover:text-white/50 text-sm font-medium transition-colors">
+          <Camera size={22} className="text-[var(--text-muted)] group-hover:text-[#E55A2B] transition-colors" />
+          <span className="text-[var(--text-muted)] group-hover:text-[var(--text-muted)] text-sm font-medium transition-colors">
             Subir foto
           </span>
-          <span className="text-white/20 text-[10px]">Max 5MB · JPG, PNG, WebP</span>
+          <span className="text-[var(--text-muted)] text-[10px]">Max 5MB · JPG, PNG, WebP</span>
         </button>
       )}
 
       {uploadError && (
         <div className="flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/5 px-3 py-2">
-          <AlertCircle size={12} className="text-red-400 shrink-0" />
-          <p className="text-red-300 text-xs flex-1">{uploadError}</p>
+          <AlertCircle size={12} className="text-red-700 shrink-0" />
+          <p className="text-red-700 text-xs flex-1">{uploadError}</p>
         </div>
       )}
 
       <div className="grid grid-cols-2 gap-4">
         <div className="col-span-2 space-y-1.5">
-          <label className="text-white/50 text-xs">Nombre del producto</label>
+          <label className="text-[var(--text-muted)] text-xs">Nombre del producto</label>
           <input value={name} onChange={e => setName(e.target.value)} placeholder="Ej: Lomo vetado"
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+            className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
         </div>
         <div className="col-span-2 space-y-1.5">
-          <label className="text-white/50 text-xs">Descripción</label>
+          <label className="text-[var(--text-muted)] text-xs">Descripción</label>
           <input value={desc} onChange={e => setDesc(e.target.value)} placeholder="Ingredientes, preparación..."
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+            className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
         </div>
         <div className="space-y-1.5">
-          <label className="text-white/50 text-xs">Precio (CLP)</label>
+          <label className="text-[var(--text-muted)] text-xs">Precio (CLP)</label>
           <input value={price} onChange={e => setPrice(e.target.value.replace(/\D/g, ''))} placeholder="15900"
-            className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
+            className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono" />
         </div>
         <div className="space-y-1.5">
           <div className="flex items-center justify-between">
-            <label className="text-white/50 text-xs">
+            <label className="text-[var(--text-muted)] text-xs">
               Costo {hasIngredients && computedCostInt > 0 ? '(auto desde receta)' : '(manual, opcional)'}
             </label>
             {margin !== null && (
-              <span className={`text-[10px] font-semibold ${margin > 60 ? 'text-emerald-400' : margin > 40 ? 'text-yellow-400' : 'text-red-400'}`}>
+              <span className={`text-[10px] font-semibold ${margin > 60 ? 'text-emerald-700' : margin > 40 ? 'text-yellow-700' : 'text-red-700'}`}>
                 {margin}% margen
               </span>
             )}
           </div>
           {hasIngredients && computedCostInt > 0 ? (
             <div
-              className="w-full px-4 py-2.5 rounded-xl bg-emerald-500/8 border border-emerald-500/30 text-emerald-300 text-sm font-mono flex items-center justify-between"
+              className="w-full px-4 py-2.5 rounded-xl bg-emerald-500/8 border border-emerald-500/30 text-emerald-700 text-sm font-mono flex items-center justify-between"
               title="Calculado en vivo desde la receta. Cambia los ingredientes o sus costos en /stock para actualizarlo."
             >
               <span>${computedCostInt.toLocaleString('es-CL')}</span>
               {ingredientsMissingCost.length > 0 && (
-                <span className="text-amber-300 text-[10px] font-sans" title="Algunos ingredientes no tienen costo cargado">
+                <span className="text-amber-700 text-[10px] font-sans" title="Algunos ingredientes no tienen costo cargado">
                   ⚠ {ingredientsMissingCost.length} sin costo
                 </span>
               )}
@@ -481,12 +481,12 @@ function ItemForm({
               onChange={e => setCost(e.target.value.replace(/\D/g, ''))}
               placeholder="6200"
               inputMode="numeric"
-              className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono"
+              className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono"
             />
           )}
         </div>
         <div className="col-span-2 space-y-1.5">
-          <label className="text-white/50 text-xs">Tipo de producto</label>
+          <label className="text-[var(--text-muted)] text-xs">Tipo de producto</label>
           <div className="flex gap-2 flex-wrap">
             {PRODUCT_TYPES.map(pt => (
               <button
@@ -495,8 +495,8 @@ function ItemForm({
                 onClick={() => handleProductTypeChange(pt.value)}
                 className={`px-3 py-1.5 rounded-xl border text-xs font-medium transition-all
                   ${productType === pt.value
-                    ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35]'
-                    : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20 hover:text-white/60'}`}
+                    ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#E55A2B]'
+                    : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-muted)]'}`}
               >
                 {pt.label}
               </button>
@@ -504,20 +504,20 @@ function ItemForm({
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-white/50 text-xs">Categoría</label>
+          <label className="text-[var(--text-muted)] text-xs">Categoría</label>
           <div className="relative">
             <select value={category} onChange={e => setCategory(e.target.value)}
-              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors">
-              {availableCategories.map(c => <option key={c} value={c} className="bg-[#1C1C2E]">{c}</option>)}
+              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors">
+              {availableCategories.map(c => <option key={c} value={c} className="bg-[var(--surface-card)]">{c}</option>)}
             </select>
-            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
           </div>
         </div>
         <div className="space-y-1.5">
-          <label className="text-white/50 text-xs">Disponible</label>
+          <label className="text-[var(--text-muted)] text-xs">Disponible</label>
           <button onClick={() => setAvailable(v => !v)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all w-full
-              ${available ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-400' : 'bg-white/5 border-white/8 text-white/30'}`}>
+              ${available ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'}`}>
             {available ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
             {available ? 'Disponible' : 'No disponible'}
           </button>
@@ -530,8 +530,8 @@ function ItemForm({
           onClick={() => setTaxExempt(v => !v)}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all w-full text-left
             ${taxExempt
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-400'
-              : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20'}`}
+              ? 'bg-amber-500/10 border-amber-500/30 text-amber-700'
+              : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)]'}`}
         >
           {taxExempt ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
           <div>
@@ -545,7 +545,7 @@ function ItemForm({
         </button>
       </div>
       <div className="space-y-1.5">
-        <label className="text-white/50 text-xs">Tags · ayuda a que Chapi y los buscadores de IA recomienden este producto</label>
+        <label className="text-[var(--text-muted)] text-xs">Tags · ayuda a que Chapi y los buscadores de IA recomienden este producto</label>
         <TagPicker
           groups={MENU_ITEM_TAG_GROUPS}
           selected={tags}
@@ -557,7 +557,7 @@ function ItemForm({
       </div>
       {/* Destino de comanda */}
       <div className="space-y-1.5">
-        <label className="text-white/50 text-xs">Destino de comanda</label>
+        <label className="text-[var(--text-muted)] text-xs">Destino de comanda</label>
         <div className="grid grid-cols-3 gap-2">
           {DESTINATIONS.map(d => {
             const Icon = d.icon
@@ -569,8 +569,8 @@ function ItemForm({
                 onClick={() => setDestination(d.value)}
                 className={`flex flex-col items-start gap-1 px-3 py-2.5 rounded-xl border text-left transition-all
                   ${active
-                    ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35]'
-                    : 'bg-white/3 border-white/8 text-white/40 hover:border-white/20 hover:text-white/60'}`}
+                    ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#E55A2B]'
+                    : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-muted)]'}`}
               >
                 <Icon size={14} />
                 <span className="text-xs font-semibold">{d.label}</span>
@@ -583,8 +583,8 @@ function ItemForm({
       {/* Station override (ruteo a estación distinta a la de la categoría) */}
       {stations.length > 0 && (
         <div className="space-y-1.5">
-          <label className="text-white/50 text-xs">Estación de preparación</label>
-          <p className="text-white/25 text-[10px] -mt-0.5 mb-1">
+          <label className="text-[var(--text-muted)] text-xs">Estación de preparación</label>
+          <p className="text-[var(--text-muted)] text-[10px] -mt-0.5 mb-1">
             Por default el plato se rutea a la estación que definiste en su categoría.
             Elegí una acá solo si este producto es la excepción.
           </p>
@@ -592,48 +592,48 @@ function ItemForm({
             <select
               value={stationOverrideId}
               onChange={e => setStationOverrideId(e.target.value)}
-              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+              className="w-full appearance-none px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
             >
-              <option value="" className="bg-[#1C1C2E]">Seguir categoría (default)</option>
+              <option value="" className="bg-[var(--surface-card)]">Seguir categoría (default)</option>
               {stations.map(s => (
-                <option key={s.id} value={s.id} className="bg-[#1C1C2E]">
+                <option key={s.id} value={s.id} className="bg-[var(--surface-card)]">
                   {s.name}{s.locationName ? ` · ${s.locationName}` : ''}
                 </option>
               ))}
             </select>
-            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+            <ChevronDown size={13} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
           </div>
         </div>
       )}
 
       {/* Ingredientes / Gramaje */}
-      <div className="space-y-2 border-t border-white/5 pt-4">
+      <div className="space-y-2 border-t border-[var(--border-subtle)] pt-4">
         <div className="flex items-center justify-between">
           <div>
-            <label className="text-white/70 text-xs font-semibold">Ingredientes y gramaje</label>
-            <p className="text-white/35 text-[10px] mt-0.5">
+            <label className="text-[var(--text-body)] text-xs font-semibold">Ingredientes y gramaje</label>
+            <p className="text-[var(--text-muted)] text-[10px] mt-0.5">
               Se descuenta del stock automáticamente al confirmar pedido.
               Para tragos/bebidas usa items de stock en{' '}
-              <code className="text-white/55">l</code> o{' '}
-              <code className="text-white/55">ml</code>.
+              <code className="text-[var(--text-muted)]">l</code> o{' '}
+              <code className="text-[var(--text-muted)]">ml</code>.
             </p>
           </div>
           {stockItems.length > 0 && (
             <button
               type="button"
               onClick={addIngredient}
-              className="text-[#FF6B35] text-xs hover:text-[#ff8255] flex items-center gap-1 transition-colors"
+              className="text-[#E55A2B] text-xs hover:text-[#ff8255] flex items-center gap-1 transition-colors"
             >
               <Plus size={11} /> Agregar
             </button>
           )}
         </div>
         {stockItems.length === 0 ? (
-          <p className="text-white/30 text-[11px] px-3 py-2 rounded-lg bg-white/3 border border-white/6">
-            Primero registra ingredientes en <span className="text-[#FF6B35]">Stock</span> para poder asociarlos.
+          <p className="text-[var(--text-muted)] text-[11px] px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
+            Primero registra ingredientes en <span className="text-[#E55A2B]">Stock</span> para poder asociarlos.
           </p>
         ) : ingredients.length === 0 ? (
-          <p className="text-white/30 text-[11px] px-3 py-2 rounded-lg bg-white/3 border border-white/6">
+          <p className="text-[var(--text-muted)] text-[11px] px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
             Sin ingredientes. No se descontará stock al vender este producto.
           </p>
         ) : (
@@ -657,7 +657,7 @@ function ItemForm({
 
       <div className="flex gap-2 pt-1">
         <button onClick={onCancel}
-          className="px-4 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors">
+          className="px-4 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors">
           Cancelar
         </button>
         <button onClick={handleSave} disabled={!name || !price || saving}
@@ -754,26 +754,26 @@ function RecipeModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-      <div className="bg-[#1a1a2e] border border-white/10 rounded-2xl w-full max-w-xl shadow-2xl max-h-[85vh] flex flex-col">
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/10 shrink-0">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-xl shadow-2xl max-h-[85vh] flex flex-col">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)] shrink-0">
           <div>
-            <h2 className="text-white font-semibold text-sm">Receta — {item.name}</h2>
+            <h2 className="text-[var(--text-strong)] font-semibold text-sm">Receta — {item.name}</h2>
             {costo_estimado > 0 && (
-              <p className="text-white/40 text-xs mt-0.5">Costo estimado: <span className="text-[#FF6B35]">${(costo_estimado / 1000).toFixed(1)}k</span></p>
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">Costo estimado: <span className="text-[#E55A2B]">${(costo_estimado / 1000).toFixed(1)}k</span></p>
             )}
           </div>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors"><X size={16} /></button>
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"><X size={16} /></button>
         </div>
         <div className="p-5 overflow-y-auto flex-1 space-y-2">
-          <p className="text-white/35 text-[11px] mb-2">
+          <p className="text-[var(--text-muted)] text-[11px] mb-2">
             La unidad cambia automáticamente según el ingrediente. Para tragos
             usa items en{' '}
-            <code className="text-white/55">l</code> o{' '}
-            <code className="text-white/55">ml</code>.
+            <code className="text-[var(--text-muted)]">l</code> o{' '}
+            <code className="text-[var(--text-muted)]">ml</code>.
           </p>
 
           {ingredients.length === 0 && (
-            <p className="text-white/30 text-[11px] px-3 py-3 rounded-lg bg-white/3 border border-white/6 text-center">
+            <p className="text-[var(--text-muted)] text-[11px] px-3 py-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-center">
               Sin ingredientes. Tocá &quot;Agregar ingrediente&quot;.
             </p>
           )}
@@ -795,20 +795,20 @@ function RecipeModal({
             )
           })}
 
-          <button onClick={addIngredient} className="flex items-center gap-2 text-xs text-[#FF6B35] hover:text-[#ff8255] transition-colors mt-2">
+          <button onClick={addIngredient} className="flex items-center gap-2 text-xs text-[#E55A2B] hover:text-[#ff8255] transition-colors mt-2">
             <Plus size={12} />Agregar ingrediente
           </button>
-          {error && <p className="text-red-400 text-xs">{error}</p>}
+          {error && <p className="text-red-700 text-xs">{error}</p>}
         </div>
-        <div className="flex items-center justify-between px-5 py-4 border-t border-white/10 shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-t border-[var(--border-subtle)] shrink-0">
           {(item.ingredients?.length ?? 0) > 0 ? (
-            <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-400/70 hover:text-red-400 transition-colors">
+            <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-700/70 hover:text-red-700 transition-colors">
               {deleting ? 'Eliminando…' : 'Eliminar receta'}
             </button>
           ) : <div />}
           <div className="flex gap-2">
-            <button onClick={onClose} className="px-4 py-2 text-sm text-white/50 hover:text-white transition-colors">Cancelar</button>
-            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35]/80 disabled:opacity-50 transition-colors">
+            <button onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
+            <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35] disabled:opacity-50 transition-colors">
               {saving ? 'Guardando…' : 'Guardar receta'}
             </button>
           </div>
@@ -833,50 +833,50 @@ function ItemRow({ item, onEdit, onDelete, onToggle, onRecipe, restaurantId }: {
 
   return (
     <div className={`flex items-center gap-4 px-4 py-3.5 rounded-xl border transition-all
-      ${item.available ? 'bg-[#1C1C2E] border-white/5 hover:border-white/10' : 'bg-white/2 border-white/3 opacity-60'}`}>
+      ${item.available ? 'bg-[var(--surface-card)] border-[var(--border-subtle)] hover:border-[var(--border-subtle)]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] opacity-60'}`}>
       {/* Photo thumbnail */}
-      <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center shrink-0 overflow-hidden">
+      <div className="w-10 h-10 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center shrink-0 overflow-hidden">
         {item.photo_url ? (
           <img src={item.photo_url} alt={item.name} className="w-full h-full object-cover rounded-xl" />
         ) : (
-          <Image size={14} className="text-white/20" />
+          <Image size={14} className="text-[var(--text-muted)]" />
         )}
       </div>
       {/* Info */}
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2 mb-0.5">
-          <p className="text-white text-sm font-semibold truncate">{item.name}</p>
+          <p className="text-[var(--text-strong)] text-sm font-semibold truncate">{item.name}</p>
           {item.destination !== 'cocina' && (
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1
               ${item.destination === 'barra'
-                ? 'bg-purple-500/15 text-purple-300/90 border-purple-500/25'
-                : 'bg-white/5 text-white/40 border-white/10'}`}>
+                ? 'bg-purple-500/15 text-purple-700/90 border-purple-500/25'
+                : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'}`}>
               {item.destination === 'barra' ? <Wine size={9} /> : <Package size={9} />}
               {item.destination === 'barra' ? 'barra' : 'sin prep'}
             </span>
           )}
           {hasRecipe ? (
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-300/90 border-emerald-500/25">
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700/90 border-emerald-500/25">
               <BookOpen size={9} />receta
             </span>
           ) : (
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-white/5 text-white/30 border-white/10">
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]">
               sin receta
             </span>
           )}
           {item.tags.map(t => (
-            <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#FF6B35]/80 border border-[#FF6B35]/20 shrink-0">
+            <span key={t} className="text-[9px] px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#E55A2B] border border-[#FF6B35]/20 shrink-0">
               {t}
             </span>
           ))}
         </div>
-        <p className="text-white/30 text-xs truncate">{item.description}</p>
+        <p className="text-[var(--text-muted)] text-xs truncate">{item.description}</p>
       </div>
       {/* Price + margin */}
       <div className="text-right shrink-0">
-        <p className="text-white font-semibold text-sm font-mono">${(item.price / 1000).toFixed(1)}k</p>
+        <p className="text-[var(--text-strong)] font-semibold text-sm font-mono">${(item.price / 1000).toFixed(1)}k</p>
         {margin !== null && (
-          <p className={`text-[10px] font-mono ${margin > 60 ? 'text-emerald-400/70' : margin > 40 ? 'text-yellow-400/70' : 'text-red-400/70'}`}>
+          <p className={`text-[10px] font-mono ${margin > 60 ? 'text-emerald-700/70' : margin > 40 ? 'text-yellow-700/70' : 'text-red-700/70'}`}>
             {margin}% margen
           </p>
         )}
@@ -884,16 +884,16 @@ function ItemRow({ item, onEdit, onDelete, onToggle, onRecipe, restaurantId }: {
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={onToggle}
-          className={`p-1.5 rounded-lg transition-colors ${item.available ? 'text-emerald-400 hover:bg-emerald-400/10' : 'text-white/20 hover:bg-white/5'}`}>
+          className={`p-1.5 rounded-lg transition-colors ${item.available ? 'text-emerald-700 hover:bg-emerald-400/10' : 'text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
           {item.available ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
         </button>
-        <button onClick={onRecipe} title="Configurar receta" className={`p-1.5 rounded-lg transition-colors ${hasRecipe ? 'text-emerald-400/70 hover:text-emerald-400 hover:bg-emerald-400/10' : 'text-white/25 hover:text-white/60 hover:bg-white/5'}`}>
+        <button onClick={onRecipe} title="Configurar receta" className={`p-1.5 rounded-lg transition-colors ${hasRecipe ? 'text-emerald-700/70 hover:text-emerald-700 hover:bg-emerald-400/10' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
           <BookOpen size={13} />
         </button>
-        <button onClick={onEdit} className="p-1.5 rounded-lg text-white/25 hover:text-white/60 hover:bg-white/5 transition-colors">
+        <button onClick={onEdit} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] transition-colors">
           <Edit2 size={13} />
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-400/10 transition-colors">
+        <button onClick={onDelete} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-400/10 transition-colors">
           <Trash2 size={13} />
         </button>
       </div>
@@ -1179,7 +1179,7 @@ export default function CartaPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen">
-        <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+        <RefreshCw size={20} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -1189,23 +1189,23 @@ export default function CartaPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold">Carta digital</h1>
-          <div className="flex items-center gap-3 mt-1 text-xs text-white/35">
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Carta digital</h1>
+          <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
             <span>{stats.total} productos</span>
             <span>·</span>
-            <span className="text-emerald-400/80">{stats.available} disponibles</span>
-            {stats.avgMargin !== null && <><span>·</span><span className="text-[#FF6B35]/70">{stats.avgMargin}% margen promedio</span></>}
+            <span className="text-emerald-700/80">{stats.available} disponibles</span>
+            {stats.avgMargin !== null && <><span>·</span><span className="text-[#E55A2B]">{stats.avgMargin}% margen promedio</span></>}
           </div>
         </div>
         <div className="flex items-center gap-2">
-          <button onClick={loadItems} className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors">
+          <button onClick={loadItems} className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
             <RefreshCw size={14} />
           </button>
           <button
             onClick={() => setImporting(true)}
-            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 hover:bg-white/10 hover:text-white hover:border-[#FF6B35]/40 text-sm font-medium transition-colors"
+            className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-strong)] hover:border-[#FF6B35]/40 text-sm font-medium transition-colors"
           >
-            <Sparkles size={13} className="text-[#FF6B35]" /> Importar carta
+            <Sparkles size={13} className="text-[#E55A2B]" /> Importar carta
           </button>
           <button onClick={() => setAdding(true)} disabled={adding}
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-50 transition-colors">
@@ -1220,15 +1220,15 @@ export default function CartaPage() {
       {/* Filters */}
       <div className="flex items-center gap-3 flex-wrap">
         <div className="relative">
-          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/25" />
+          <Search size={13} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar producto..."
-            className="pl-8 pr-4 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40 w-44 transition-colors" />
+            className="pl-8 pr-4 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40 w-44 transition-colors" />
         </div>
-        <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
+        <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1">
           {cats.map(c => (
             <button key={c} onClick={() => setCatFilter(c)}
               className={`px-3 py-1 rounded-lg text-xs capitalize transition-all
-                ${catFilter === c ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/35 hover:text-white/60'}`}>
+                ${catFilter === c ? 'bg-[#FF6B35] text-white font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`}>
               {c}
             </button>
           ))}
@@ -1252,7 +1252,7 @@ export default function CartaPage() {
           if (catItems.length === 0) return null
           return (
             <div key={cat}>
-              <h3 className="text-white/40 text-xs font-semibold uppercase tracking-widest mb-2 capitalize">{cat}</h3>
+              <h3 className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-widest mb-2 capitalize">{cat}</h3>
               <div className="space-y-2">
                 {catItems.map(item => (
                   editing === item.id
@@ -1285,8 +1285,8 @@ export default function CartaPage() {
       {/* Sync notice */}
       {items.length > 0 && (
         <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl px-4 py-3 flex items-center gap-2">
-          <Check size={14} className="text-emerald-400 shrink-0" />
-          <p className="text-emerald-400/70 text-xs">
+          <Check size={14} className="text-emerald-700 shrink-0" />
+          <p className="text-emerald-700/70 text-xs">
             Los cambios se sincronizan automáticamente con tu perfil público en HiChapi Discovery.
           </p>
         </div>
@@ -1304,19 +1304,19 @@ export default function CartaPage() {
       {/* Delete confirm */}
       {deleting && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
-          <div className="bg-[#1C1C2E] border border-white/10 rounded-2xl p-6 max-w-sm w-full space-y-4">
+          <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6 max-w-sm w-full space-y-4">
             <div className="flex items-start gap-3">
-              <AlertCircle size={20} className="text-red-400 shrink-0 mt-0.5" />
+              <AlertCircle size={20} className="text-red-700 shrink-0 mt-0.5" />
               <div>
-                <p className="text-white font-semibold">¿Eliminar producto?</p>
-                <p className="text-white/40 text-sm mt-1">
+                <p className="text-[var(--text-strong)] font-semibold">¿Eliminar producto?</p>
+                <p className="text-[var(--text-muted)] text-sm mt-1">
                   &quot;{items.find(i => i.id === deleting)?.name}&quot; se eliminará permanentemente de la carta.
                 </p>
               </div>
             </div>
             <div className="flex gap-2">
               <button onClick={() => setDeleting(null)}
-                className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 transition-colors">
+                className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors">
                 Cancelar
               </button>
               <button onClick={() => deleteItem(deleting)}

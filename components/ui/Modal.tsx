@@ -47,20 +47,20 @@ export function Modal({ open, onClose, title, description, size = 'md', children
       onClick={onClose}
     >
       <div
-        className={`bg-[#161622] border border-white/10 rounded-2xl w-full ${SIZE_CLASS[size]} max-h-[90vh] flex flex-col shadow-2xl`}
+        className={`bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full ${SIZE_CLASS[size]} max-h-[90vh] flex flex-col shadow-2xl`}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-start justify-between gap-4 p-5 border-b border-white/5 shrink-0">
+        <div className="flex items-start justify-between gap-4 p-5 border-b border-[var(--border-subtle)] shrink-0">
           <div className="min-w-0">
-            <p className="text-white font-semibold text-sm">{title}</p>
+            <p className="text-[var(--text-strong)] font-semibold text-sm">{title}</p>
             {description && (
-              <p className="text-white/40 text-xs mt-0.5">{description}</p>
+              <p className="text-[var(--text-muted)] text-xs mt-0.5">{description}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            className="text-white/40 hover:text-white transition-colors shrink-0"
+            className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors shrink-0"
             aria-label="Cerrar"
           >
             <X size={16} />
@@ -72,7 +72,7 @@ export function Modal({ open, onClose, title, description, size = 'md', children
 
         {/* Footer */}
         {footer && (
-          <div className="p-5 pt-4 border-t border-white/5 shrink-0 flex items-center justify-end gap-2">
+          <div className="p-5 pt-4 border-t border-[var(--border-subtle)] shrink-0 flex items-center justify-end gap-2">
             {footer}
           </div>
         )}

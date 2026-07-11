@@ -74,26 +74,26 @@ type GarzonUIMode =
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const TABLE_STATUS_STYLES: Record<TableStatus, { bg: string; border: string; text: string; dot: string }> = {
-  libre:     { bg: 'bg-white/3',         border: 'border-white/8',        text: 'text-white/30',  dot: 'bg-white/20'    },
-  ocupada:   { bg: 'bg-[#FF6B35]/10',    border: 'border-[#FF6B35]/30',   text: 'text-[#FF6B35]', dot: 'bg-[#FF6B35]'  },
-  reservada: { bg: 'bg-violet-500/10',   border: 'border-violet-500/30',  text: 'text-violet-400', dot: 'bg-violet-400' },
-  bloqueada: { bg: 'bg-white/5',         border: 'border-white/10',       text: 'text-white/20',  dot: 'bg-white/15'    },
+  libre:     { bg: 'bg-[var(--surface-sunken)]',         border: 'border-[var(--border-subtle)]',        text: 'text-[var(--text-muted)]',  dot: 'bg-[var(--surface-sunken)]'    },
+  ocupada:   { bg: 'bg-[#FF6B35]/10',    border: 'border-[#FF6B35]/30',   text: 'text-[#E55A2B]', dot: 'bg-[#FF6B35]'  },
+  reservada: { bg: 'bg-violet-500/10',   border: 'border-violet-500/30',  text: 'text-violet-700', dot: 'bg-violet-400' },
+  bloqueada: { bg: 'bg-[var(--surface-sunken)]',         border: 'border-[var(--border-subtle)]',       text: 'text-[var(--text-muted)]',  dot: 'bg-[var(--surface-sunken)]'    },
 }
 
 const ORDER_STATUS_CONFIG: Record<OrderStatus, { label: string; color: string; bg: string; icon: React.ReactNode; next: OrderStatus | null; nextLabel: string }> = {
-  pending:   { label: 'Nuevo pedido',  color: '#60A5FA', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,        next: 'preparing', nextLabel: 'Enviar pedido' },
-  confirmed: { label: 'Confirmado',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar pedido' },
-  preparing: { label: 'Preparando',    color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,     next: 'ready',     nextLabel: 'Marcar listo'    },
-  ready:     { label: '¡Listo!',       color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'delivered', nextLabel: 'Entregar'        },
-  delivered: { label: 'Entregado',     color: '#34D399', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',    nextLabel: 'Cobrar'          },
-  paying:    { label: 'Cobrando',      color: '#FBBF24', bg: 'bg-yellow-500/15',  icon: <Banknote size={13} />,    next: 'paid',      nextLabel: 'Pagado ✓'        },
-  paid:      { label: 'Pagado',        color: '#6B7280', bg: 'bg-white/8',        icon: <CheckCircle2 size={13} />, next: null,       nextLabel: ''                },
-  cancelled: { label: 'Cancelado',     color: '#6B7280', bg: 'bg-white/8',        icon: <AlertCircle size={13} />, next: null,        nextLabel: ''                },
+  pending:   { label: 'Nuevo pedido',  color: '#1D4ED8', bg: 'bg-blue-500/15',    icon: <Bell size={13} />,        next: 'preparing', nextLabel: 'Enviar pedido' },
+  confirmed: { label: 'Confirmado',    color: '#B45309', bg: 'bg-yellow-500/15',  icon: <CheckCircle2 size={13} />, next: 'preparing', nextLabel: 'Enviar pedido' },
+  preparing: { label: 'Preparando',    color: '#B45309', bg: 'bg-yellow-500/15',  icon: <ChefHat size={13} />,     next: 'ready',     nextLabel: 'Marcar listo'    },
+  ready:     { label: '¡Listo!',       color: '#15803D', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'delivered', nextLabel: 'Entregar'        },
+  delivered: { label: 'Entregado',     color: '#15803D', bg: 'bg-emerald-500/15', icon: <CheckCircle2 size={13} />, next: 'paying',    nextLabel: 'Cobrar'          },
+  paying:    { label: 'Cobrando',      color: '#B45309', bg: 'bg-yellow-500/15',  icon: <Banknote size={13} />,    next: 'paid',      nextLabel: 'Pagado ✓'        },
+  paid:      { label: 'Pagado',        color: '#6B7280', bg: 'bg-[var(--surface-sunken)]',        icon: <CheckCircle2 size={13} />, next: null,       nextLabel: ''                },
+  cancelled: { label: 'Cancelado',     color: '#6B7280', bg: 'bg-[var(--surface-sunken)]',        icon: <AlertCircle size={13} />, next: null,        nextLabel: ''                },
 }
 
 // Defensive fallback for any unrecognized status (nunca debería dispararse, pero evita crash).
 const ORDER_STATUS_FALLBACK = {
-  label: 'Desconocido', color: '#6B7280', bg: 'bg-white/8',
+  label: 'Desconocido', color: '#6B7280', bg: 'bg-[var(--surface-sunken)]',
   icon: <AlertCircle size={13} />, next: null as OrderStatus | null, nextLabel: '',
 }
 
@@ -147,7 +147,7 @@ function TableCell({
         </span>
       )}
 
-      <p className="text-white font-bold text-base leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className="text-[var(--text-strong)] font-bold text-base leading-none" style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {table.label.replace(/^Mesa\s+/i, '')}
       </p>
       <span className={`text-[9px] font-medium ${s.text}`}>
@@ -641,8 +641,8 @@ export default function GarzonPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen bg-[#0A0A14]">
-        <RefreshCw size={20} className="text-[#FF6B35] animate-spin" />
+      <div className="flex items-center justify-center h-screen bg-[var(--bg-canvas)]">
+        <RefreshCw size={20} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -653,9 +653,9 @@ export default function GarzonPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold">Panel Garzón</h1>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Panel Garzón</h1>
           <div className="flex items-center gap-2 mt-0.5">
-            <p className="text-white/35 text-xs">
+            <p className="text-[var(--text-muted)] text-xs">
               {lastRefresh.toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
             </p>
             <span className="flex items-center gap-1 text-xs font-medium" style={{ color: online ? '#34D399' : '#F87171' }}>
@@ -670,14 +670,14 @@ export default function GarzonPage() {
             <div className="group relative">
               <button
                 disabled
-                className="flex items-center gap-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white/30 text-sm font-semibold transition-colors shadow-sm cursor-not-allowed"
+                className="flex items-center gap-1.5 px-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm font-semibold transition-colors shadow-sm cursor-not-allowed"
                 style={{ minHeight: 44 }}
               >
                 <Plus size={14} />
                 <span className="hidden sm:inline">Nueva comanda</span>
                 <span className="sm:hidden">Comanda</span>
               </button>
-              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-[#1A1A2E] border border-white/10 rounded-lg shadow-xl text-xs text-white/80 whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
+              <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 px-3 py-2 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-lg shadow-xl text-xs text-[var(--text-body)] whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50">
                 {!hasMenu ? 'Debes agregar al menos un ítem a la carta.' : 'Debes tener al menos una persona en el equipo.'}
               </div>
             </div>
@@ -694,15 +694,15 @@ export default function GarzonPage() {
           )}
           <button
             onClick={() => setShowCoupon(true)}
-            className="flex items-center gap-1.5 px-3 rounded-xl bg-white/5 border border-white/10 text-white text-xs font-semibold hover:bg-white/10 transition-colors"
+            className="flex items-center gap-1.5 px-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs font-semibold hover:bg-[var(--surface-sunken)] transition-colors"
             style={{ minHeight: 44 }}
             title="Canjear cupón de fidelidad"
           >
-            <Ticket size={13} className="text-[#FF6B35]" /> Cupón
+            <Ticket size={13} className="text-[#E55A2B]" /> Cupón
           </button>
           <button
             onClick={loadData}
-            className="rounded-xl bg-white/5 border border-white/8 text-white/40 hover:bg-white/8 hover:text-white transition-colors flex items-center justify-center"
+            className="rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-[var(--text-strong)] transition-colors flex items-center justify-center"
             style={{ minHeight: 44, minWidth: 44 }}
           >
             <RefreshCw size={14} />
@@ -713,13 +713,13 @@ export default function GarzonPage() {
       {/* KPI strip */}
       <div className="grid grid-cols-3 gap-3">
         {[
-          { label: 'Nuevos',     count: pendingCount,   color: '#60A5FA' },
-          { label: 'Preparando',  count: preparingCount, color: '#FBBF24' },
-          { label: 'Listos',     count: readyCount,     color: '#34D399' },
+          { label: 'Nuevos',     count: pendingCount,   color: '#1D4ED8' },
+          { label: 'Preparando',  count: preparingCount, color: '#B45309' },
+          { label: 'Listos',     count: readyCount,     color: '#15803D' },
         ].map(({ label, count, color }) => (
-          <div key={label} className="bg-[#161622] border border-white/5 rounded-xl p-3 text-center">
+          <div key={label} className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl p-3 text-center">
             <p className="text-2xl font-bold" style={{ color, fontFamily: 'var(--font-dm-mono)' }}>{count}</p>
-            <p className="text-white/35 text-xs mt-0.5">{label}</p>
+            <p className="text-[var(--text-muted)] text-xs mt-0.5">{label}</p>
           </div>
         ))}
       </div>
@@ -727,27 +727,27 @@ export default function GarzonPage() {
       {/* Bill requested alert */}
       {payingCount > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-500/10 border-amber-500/40 animate-pulse-amber">
-          <Banknote size={18} className="text-[#FBBF24] shrink-0" />
+          <Banknote size={18} className="text-[#B45309] shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[#FBBF24] font-bold text-sm">
+            <p className="text-[#B45309] font-bold text-sm">
               {payingCount === 1 ? '¡1 mesa pide la cuenta!' : `¡${payingCount} mesas piden la cuenta!`}
             </p>
-            <p className="text-white/45 text-xs truncate">
+            <p className="text-[var(--text-muted)] text-xs truncate">
               {orders
                 .filter(o => o.status === 'paying')
                 .map(o => tables.find(t => t.id === o.table_id)?.label ?? 'Mesa')
                 .join(' · ')}
             </p>
           </div>
-          <span className="text-xs text-amber-300/60 shrink-0">Cobrar →</span>
+          <span className="text-xs text-amber-700/60 shrink-0">Cobrar →</span>
         </div>
       )}
 
       {/* Table grid */}
-      <div className="bg-[#161622] border border-white/5 rounded-2xl p-4">
-        <p className="text-white/40 text-xs uppercase tracking-widest font-semibold mb-3">Mesas</p>
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4">
+        <p className="text-[var(--text-muted)] text-xs uppercase tracking-widest font-semibold mb-3">Mesas</p>
         {tables.length === 0 ? (
-          <p className="text-white/25 text-sm text-center py-4">
+          <p className="text-[var(--text-muted)] text-sm text-center py-4">
             No hay mesas configuradas. Agrégalas en el panel de Mesas.
           </p>
         ) : (
@@ -773,7 +773,7 @@ export default function GarzonPage() {
           {Object.entries(TABLE_STATUS_STYLES).map(([status, s]) => (
             <div key={status} className="flex items-center gap-1.5">
               <span className={`w-1.5 h-1.5 rounded-full ${s.dot}`} />
-              <span className="text-white/25 text-[10px] capitalize">{status}</span>
+              <span className="text-[var(--text-muted)] text-[10px] capitalize">{status}</span>
             </div>
           ))}
         </div>
@@ -781,7 +781,7 @@ export default function GarzonPage() {
 
       {/* New order flow — StepPax */}
       {mode.type === 'new-pax' && (
-        <div className="bg-[#161622] border border-white/5 rounded-2xl p-4">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4">
           <StepPax
             table={mode.table}
             pax={newPax}
@@ -861,7 +861,7 @@ export default function GarzonPage() {
 
         return (
           <div className="space-y-2">
-            <p className="text-white/40 text-xs uppercase tracking-widest font-semibold px-0.5">
+            <p className="text-[var(--text-muted)] text-xs uppercase tracking-widest font-semibold px-0.5">
               Pedidos activos ({orders.length})
             </p>
 
@@ -887,27 +887,27 @@ export default function GarzonPage() {
                   <button
                     key={order.id}
                     onClick={() => { if (table) setMode({ type: 'open', table }) }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[#161622] border border-white/5 hover:border-[#FF6B35]/30 transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-[var(--surface-card)] border border-[var(--border-subtle)] hover:border-[#FF6B35]/30 transition-colors text-left"
                   >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                          style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
                       {cfg.icon}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="text-white text-sm font-semibold">
+                      <p className="text-[var(--text-strong)] text-sm font-semibold">
                         {table?.label ?? 'Mesa'} — {order.order_items.length} ítem{order.order_items.length !== 1 ? 's' : ''}
                       </p>
-                      <p className="text-white/30 text-xs truncate">
+                      <p className="text-[var(--text-muted)] text-xs truncate">
                         {order.order_items.map(i => `${i.quantity}× ${i.name}`).join(', ')}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-white font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                      <p className="text-[var(--text-strong)] font-semibold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                         {clp(order.total)}
                       </p>
                       <div className="flex items-center gap-1 justify-end mt-0.5">
-                        <Clock size={9} className="text-white/25" />
-                        <span className="text-white/25 text-[10px]">{elapsedMin(order.created_at)}m</span>
+                        <Clock size={9} className="text-[var(--text-muted)]" />
+                        <span className="text-[var(--text-muted)] text-[10px]">{elapsedMin(order.created_at)}m</span>
                       </div>
                     </div>
                   </button>
@@ -918,12 +918,12 @@ export default function GarzonPage() {
               return (
                 <div
                   key={tableId}
-                  className="rounded-xl border border-[#FF6B35]/25 bg-[#161622] overflow-hidden"
+                  className="rounded-xl border border-[#FF6B35]/25 bg-[var(--surface-card)] overflow-hidden"
                 >
                   {/* Header del grupo — click abre el panel de la mesa */}
                   <button
                     onClick={() => { if (table) setMode({ type: 'open', table }) }}
-                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-white/3 transition-colors text-left"
+                    className="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-sunken)] transition-colors text-left"
                   >
                     <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
                          style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
@@ -931,22 +931,22 @@ export default function GarzonPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-white text-sm font-semibold">
+                        <p className="text-[var(--text-strong)] text-sm font-semibold">
                           {table?.label ?? 'Mesa'}
                         </p>
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#FF6B35]">
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#E55A2B]">
                           {group.length} comandas
                         </span>
                       </div>
-                      <p className="text-white/30 text-xs mt-0.5">
+                      <p className="text-[var(--text-muted)] text-xs mt-0.5">
                         {totalItems} ítems · {group.map(o => getOrderStatusCfg(o.status).label).join(', ')}
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-white font-bold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                      <p className="text-[var(--text-strong)] font-bold text-sm" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                         {clp(totalAmount)}
                       </p>
-                      <p className="text-white/25 text-[10px]">total mesa</p>
+                      <p className="text-[var(--text-muted)] text-[10px]">total mesa</p>
                     </div>
                   </button>
 
@@ -958,7 +958,7 @@ export default function GarzonPage() {
                       <button
                         key={order.id}
                         onClick={() => { if (table) setMode({ type: 'open', table }) }}
-                        className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-white/3 transition-colors text-left ${idx < group.length - 1 ? 'border-b border-white/5' : ''}`}
+                        className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-[var(--surface-sunken)] transition-colors text-left ${idx < group.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''}`}
                         style={{ paddingLeft: '3.5rem' }}
                       >
                         <span
@@ -967,14 +967,14 @@ export default function GarzonPage() {
                         >
                           {oc.label}
                         </span>
-                        <p className="flex-1 text-white/50 text-xs truncate">
+                        <p className="flex-1 text-[var(--text-muted)] text-xs truncate">
                           {order.order_items.map(i => `${i.quantity}× ${i.name}`).join(', ')}
                         </p>
                         <div className="flex items-center gap-2 shrink-0">
-                          <span className="text-white/30 text-[10px] flex items-center gap-0.5">
+                          <span className="text-[var(--text-muted)] text-[10px] flex items-center gap-0.5">
                             <Clock size={8} />{elapsed}m
                           </span>
-                          <span className="text-white/60 text-xs font-semibold tabular-nums" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                          <span className="text-[var(--text-muted)] text-xs font-semibold tabular-nums" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                             {clp(order.total)}
                           </span>
                         </div>
@@ -996,7 +996,7 @@ export default function GarzonPage() {
                             pax: maxPax || 2
                           })
                         }}
-                        className="w-full py-2 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 bg-[#FF6B35]/18 text-[#FF6B35] border border-[#FF6B35]/30 hover:bg-[#FF6B35]/28"
+                        className="w-full py-2 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5 bg-[#FF6B35]/18 text-[#E55A2B] border border-[#FF6B35]/30 hover:bg-[#FF6B35]/28"
                       >
                         <Banknote size={13} />
                         Cobrar mesa · {clp(totalAmount)}
@@ -1013,11 +1013,11 @@ export default function GarzonPage() {
       {/* Empty state */}
       {mode.type === 'map' && orders.length === 0 && (
         <div className="flex flex-col items-center justify-center py-12 gap-3">
-          <div className="w-14 h-14 rounded-2xl bg-white/3 border border-white/8 flex items-center justify-center">
-            <CheckCircle2 size={24} className="text-white/15" />
+          <div className="w-14 h-14 rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center">
+            <CheckCircle2 size={24} className="text-[var(--text-muted)]" />
           </div>
-          <p className="text-white/25 text-sm">Sin pedidos activos 🎉</p>
-          <p className="text-white/15 text-xs">Los nuevos pedidos aparecerán aquí en tiempo real</p>
+          <p className="text-[var(--text-muted)] text-sm">Sin pedidos activos 🎉</p>
+          <p className="text-[var(--text-muted)] text-xs">Los nuevos pedidos aparecerán aquí en tiempo real</p>
         </div>
       )}
 

@@ -614,7 +614,7 @@ export default function DtePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -678,13 +678,13 @@ export default function DtePage() {
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-center gap-3">
-            <h1 className="text-white text-xl font-bold flex items-center gap-2">
-              <FileText size={20} className="text-[#FF6B35]" />
+            <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+              <FileText size={20} className="text-[#E55A2B]" />
               DTE Chile
             </h1>
             <EnvironmentBadge environment={dteEnvironment} />
           </div>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
             Boletas y facturas electrónicas integradas con el SII
           </p>
         </div>
@@ -692,7 +692,7 @@ export default function DtePage() {
 
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
@@ -701,22 +701,22 @@ export default function DtePage() {
       <Section
         id="resumen"
         title="Resumen"
-        icon={<FileText size={14} className="text-[#FF6B35]" />}
+        icon={<FileText size={14} className="text-[#E55A2B]" />}
         open={openSections.resumen}
         onToggle={() => toggleSection('resumen')}
       >
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatCard label="Emitidas"     value={totals.count.toString()}    icon={<FileText size={14} />} />
-          <StatCard label="Aceptadas SII" value={totals.accepted.toString()} icon={<CheckCircle2 size={14} className="text-emerald-400" />} />
+          <StatCard label="Aceptadas SII" value={totals.accepted.toString()} icon={<CheckCircle2 size={14} className="text-emerald-700" />} />
           <StatCard label="Facturado"    value={fmtCLP(totals.gross)}       icon={<ShieldCheck size={14} />} />
         </div>
 
         {/* Folio counters */}
-        <div className="bg-[#0f0f1a] border border-white/5 rounded-xl p-4 space-y-3 mt-3">
-          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Folios disponibles</p>
+        <div className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl p-4 space-y-3 mt-3">
+          <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">Folios disponibles</p>
           {folios === null ? (
-            <p className="text-white/30 text-xs">No se pudieron cargar los folios.</p>
+            <p className="text-[var(--text-muted)] text-xs">No se pudieron cargar los folios.</p>
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
               {([33, 39, 41, 56, 61] as const).map(docType => (
@@ -731,14 +731,14 @@ export default function DtePage() {
       <Section
         id="config"
         title="Certificado y CAFs"
-        icon={<ShieldCheck size={14} className="text-[#FF6B35]" />}
+        icon={<ShieldCheck size={14} className="text-[#E55A2B]" />}
         open={openSections.config}
         onToggle={() => toggleSection('config')}
-        badge={!credential ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">Sin certificado</span> : undefined}
+        badge={!credential ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold">Sin certificado</span> : undefined}
       >
         {/* Ambiente SII */}
         <div className="space-y-3">
-          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Ambiente SII</p>
+          <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">Ambiente SII</p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <button
               onClick={() => handleEnvironmentChange('certification')}
@@ -746,14 +746,14 @@ export default function DtePage() {
               className={`p-4 rounded-xl border transition-all ${
                 dteEnvironment === 'certification'
                   ? 'bg-[#FBBF24]/10 border-[#FBBF24]/40 ring-2 ring-[#FBBF24]/30'
-                  : 'bg-white/3 border-white/8 hover:border-white/20'
+                  : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] hover:border-[var(--border-subtle)]'
               } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <div className={`w-2.5 h-2.5 rounded-full ${dteEnvironment === 'certification' ? 'bg-[#FBBF24]' : 'bg-white/20'}`} />
-                <span className="text-white font-semibold text-sm">Certificación</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${dteEnvironment === 'certification' ? 'bg-[#FBBF24]' : 'bg-[var(--surface-sunken)]'}`} />
+                <span className="text-[var(--text-strong)] font-semibold text-sm">Certificación</span>
               </div>
-              <p className="text-white/40 text-xs text-left">Ambiente de pruebas del SII</p>
+              <p className="text-[var(--text-muted)] text-xs text-left">Ambiente de pruebas del SII</p>
             </button>
             <button
               onClick={() => handleEnvironmentChange('production')}
@@ -761,31 +761,31 @@ export default function DtePage() {
               className={`p-4 rounded-xl border transition-all ${
                 dteEnvironment === 'production'
                   ? 'bg-[#34D399]/10 border-[#34D399]/40 ring-2 ring-[#34D399]/30'
-                  : 'bg-white/3 border-white/8 hover:border-white/20'
+                  : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] hover:border-[var(--border-subtle)]'
               } disabled:opacity-40 disabled:cursor-not-allowed`}
             >
               <div className="flex items-center gap-2 mb-1">
-                <div className={`w-2.5 h-2.5 rounded-full ${dteEnvironment === 'production' ? 'bg-[#34D399]' : 'bg-white/20'}`} />
-                <span className="text-white font-semibold text-sm">Producción</span>
+                <div className={`w-2.5 h-2.5 rounded-full ${dteEnvironment === 'production' ? 'bg-[#34D399]' : 'bg-[var(--surface-sunken)]'}`} />
+                <span className="text-[var(--text-strong)] font-semibold text-sm">Producción</span>
               </div>
-              <p className="text-white/40 text-xs text-left">Ambiente real del SII</p>
+              <p className="text-[var(--text-muted)] text-xs text-left">Ambiente real del SII</p>
             </button>
           </div>
           {dteEnvironment === 'production' && (
             <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <AlertCircle size={14} className="text-amber-300 shrink-0 mt-0.5" />
+              <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
               <p className="text-amber-200 text-xs"><strong>Producción:</strong> Los documentos emitidos tienen validez legal y se reportan al SII.</p>
             </div>
           )}
         </div>
 
         {/* Certificado */}
-        <div className="border-t border-white/5 pt-4 space-y-3">
+        <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
           <div className="flex items-center justify-between">
-            <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">Certificado SII</p>
+            <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">Certificado SII</p>
             <button
               onClick={() => { setShowUpload(v => !v); setError(null) }}
-              className="text-xs text-[#FF6B35] hover:text-[#FF8A5B] transition-colors"
+              className="text-xs text-[#E55A2B] hover:text-[#E55A2B] transition-colors"
             >
               {credential ? 'Rotar certificado' : 'Subir certificado'}
             </button>
@@ -802,28 +802,28 @@ export default function DtePage() {
               <Row label="Subido" value={new Date(credential.rotated_at ?? credential.uploaded_at).toLocaleString('es-CL')} />
             </div>
           ) : (
-            <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-center">
-              <p className="text-white/50 text-xs">Aún no has subido tu certificado. Sin él, no puedes emitir DTE.</p>
+            <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 text-center">
+              <p className="text-[var(--text-muted)] text-xs">Aún no has subido tu certificado. Sin él, no puedes emitir DTE.</p>
             </div>
           )}
           {showUpload && (
-            <div className="border-t border-white/5 pt-4 space-y-3">
+            <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
               {error && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                  <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
+                  <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
                   <p className="text-red-200 text-xs">{error}</p>
                 </div>
               )}
               <div className="space-y-1.5">
-                <label className="text-white/40 text-xs font-medium">Archivo .pfx / .p12</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Archivo .pfx / .p12</label>
                 <input type="file" accept=".pfx,.p12" onChange={e => { setCertFile(e.target.files?.[0] ?? null); setError(null) }}
-                  className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30" />
+                  className="block w-full text-xs text-[var(--text-muted)] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#E55A2B] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-white/40 text-xs font-medium">Contraseña del certificado</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Contraseña del certificado</label>
                 <input type="password" value={certPassword} onChange={e => { setCertPassword(e.target.value); setError(null) }}
-                  className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
-                <p className="text-white/20 text-[10px]">Se cifra con AES-256-GCM antes de guardarse. Nunca queda en logs.</p>
+                  className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                <p className="text-[var(--text-muted)] text-[10px]">Se cifra con AES-256-GCM antes de guardarse. Nunca queda en logs.</p>
               </div>
               <button onClick={handleUpload} disabled={!certFile || !certPassword || uploading}
                 className="w-full py-2.5 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e85d2a] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2">
@@ -835,24 +835,24 @@ export default function DtePage() {
         </div>
 
         {/* CAF */}
-        <div className="border-t border-white/5 pt-4 space-y-3">
-          <p className="text-white/50 text-xs font-semibold uppercase tracking-wider">CAFs</p>
-          <p className="text-white/40 text-xs">Sube los archivos CAF (XML) emitidos por el SII para autorizar folios por tipo de documento.</p>
+        <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
+          <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">CAFs</p>
+          <p className="text-[var(--text-muted)] text-xs">Sube los archivos CAF (XML) emitidos por el SII para autorizar folios por tipo de documento.</p>
           {!credential ? (
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <AlertCircle size={13} className="text-amber-300 shrink-0 mt-0.5" />
+              <AlertCircle size={13} className="text-amber-700 shrink-0 mt-0.5" />
               <p className="text-amber-200 text-xs">Debes subir un certificado SII antes de cargar archivos CAF</p>
             </div>
           ) : (
             <div className="space-y-3">
               <div className="space-y-1.5">
-                <label className="text-white/40 text-xs font-medium">Archivo CAF (.xml)</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Archivo CAF (.xml)</label>
                 <input ref={cafFileRef} type="file" accept=".xml" onChange={e => { setCafFile(e.target.files?.[0] ?? null); setCafError(null) }}
-                  className="block w-full text-xs text-white/60 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#FF6B35] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30" />
+                  className="block w-full text-xs text-[var(--text-muted)] file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:bg-[#FF6B35]/20 file:text-[#E55A2B] file:text-xs file:font-semibold hover:file:bg-[#FF6B35]/30" />
               </div>
               {cafError && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                  <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
+                  <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
                   <p className="text-red-200 text-xs">{cafError}</p>
                 </div>
               )}
@@ -870,17 +870,17 @@ export default function DtePage() {
       <Section
         id="emisiones"
         title="Emisiones"
-        icon={<FileText size={14} className="text-[#FF6B35]" />}
+        icon={<FileText size={14} className="text-[#E55A2B]" />}
         open={openSections.emisiones}
         onToggle={() => toggleSection('emisiones')}
         badge={
           emissions.some(e => e.status === 'sent')
-            ? <span className="flex items-center gap-1 text-[10px] text-[#FF6B35]/70 animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35] inline-block" />Auto-actualizando</span>
+            ? <span className="flex items-center gap-1 text-[10px] text-[#E55A2B] animate-pulse"><span className="w-1.5 h-1.5 rounded-full bg-[#FF6B35] inline-block" />Auto-actualizando</span>
             : undefined
         }
         action={
           <button onClick={() => batchPoll(false)} disabled={autoPolling}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40">
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] text-xs transition-colors disabled:opacity-40">
             <RefreshCw size={11} className={autoPolling ? 'animate-spin' : ''} />
             {autoPolling ? 'Actualizando…' : 'Actualizar'}
           </button>
@@ -894,36 +894,36 @@ export default function DtePage() {
             <div className="flex flex-wrap items-center gap-2">
               {[null, 33, 56, 61, 39, 41].map(type => (
                 <button key={type ?? 'all'} onClick={() => { setFilterDocType(type); setEmisionPage(1) }}
-                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${filterDocType === type ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>
+                  className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${filterDocType === type ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-white'}`}>
                   {type === null ? 'Todos' : DOC_TYPE_LABEL[type] ?? `Tipo ${type}`}
                 </button>
               ))}
               <div className="relative ml-auto">
-                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+                <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
                 <input
                   type="text"
                   placeholder="Buscar folio, RUT, razón…"
                   value={emisionSearch}
                   onChange={e => { setEmisionSearch(e.target.value); setEmisionPage(1) }}
-                  className="pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 w-52"
+                  className="pl-8 pr-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 w-52"
                 />
               </div>
             </div>
 
             {/* Tabla */}
-            <div className="bg-[#0f0f1a] border border-white/5 rounded-xl overflow-hidden">
+            <div className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
               {/* Header */}
-              <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 border-b border-white/5">
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Tipo / Folio</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">RUT receptor</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider text-right">Monto</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Estado</span>
+              <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 border-b border-[var(--border-subtle)]">
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">Tipo / Folio</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">RUT receptor</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider text-right">Monto</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">Estado</span>
               </div>
 
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-[var(--border-subtle)]">
                 {emisionPaged.length === 0 ? (
-                  <p className="text-white/30 text-xs text-center py-8">Sin resultados</p>
+                  <p className="text-[var(--text-muted)] text-xs text-center py-8">Sin resultados</p>
                 ) : emisionPaged.map(em => {
                   const style     = STATUS_STYLE[em.status] ?? STATUS_STYLE.draft
                   const hasDetail = em.status === 'rejected'
@@ -937,31 +937,31 @@ export default function DtePage() {
                   return (
                     <div key={em.id}>
                       <div
-                        className={`px-4 py-3 grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 sm:gap-3 items-center ${hasDetail ? 'cursor-pointer hover:bg-white/2' : ''}`}
+                        className={`px-4 py-3 grid grid-cols-1 sm:grid-cols-[2fr_1fr_1fr_1fr_auto] gap-2 sm:gap-3 items-center ${hasDetail ? 'cursor-pointer hover:bg-[var(--surface-sunken)]' : ''}`}
                         onClick={hasDetail ? () => toggleRow(em.id) : undefined}
                         role={hasDetail ? 'button' : undefined}
                         aria-expanded={hasDetail ? expanded : undefined}
                       >
                         <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-white text-sm font-semibold whitespace-nowrap">
+                            <span className="text-[var(--text-strong)] text-sm font-semibold whitespace-nowrap">
                               {DOC_TYPE_LABEL[em.document_type] ?? `Tipo ${em.document_type}`} #{em.folio}
                             </span>
                             {/* Indicador de documento anulado */}
                             {em.status === 'cancelled' && (
-                              <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-400 text-[9px] font-bold flex items-center gap-1">
+                              <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-700 text-[9px] font-bold flex items-center gap-1">
                                 <XCircle size={9} />
                                 ANULADA
                               </span>
                             )}
                             {em.razon_receptor && (
-                              <span className="text-white/40 text-xs truncate max-w-[160px]">· {em.razon_receptor}</span>
+                              <span className="text-[var(--text-muted)] text-xs truncate max-w-[160px]">· {em.razon_receptor}</span>
                             )}
                           </div>
                         </div>
-                        <span className="text-white/50 text-xs font-mono truncate">{em.rut_receptor ?? '—'}</span>
-                        <p className="text-white font-mono text-sm text-right">{fmtCLP(em.total_amount)}</p>
-                        <p className="text-white/30 text-[11px] whitespace-nowrap">
+                        <span className="text-[var(--text-muted)] text-xs font-mono truncate">{em.rut_receptor ?? '—'}</span>
+                        <p className="text-[var(--text-strong)] font-mono text-sm text-right">{fmtCLP(em.total_amount)}</p>
+                        <p className="text-[var(--text-muted)] text-[11px] whitespace-nowrap">
                           {new Date(em.emitted_at).toLocaleString('es-CL', { dateStyle: 'short', timeStyle: 'short' })}
                         </p>
                         <div className="flex items-center gap-1.5 flex-wrap">
@@ -971,12 +971,12 @@ export default function DtePage() {
                             <AecBadge status={em.aec_status} emittedAt={em.emitted_at} />
                           )}
                           <button onClick={e => { e.stopPropagation(); setDetailEmission(em) }} title="Ver detalle"
-                            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/40 hover:text-white transition-colors">
+                            className="p-1.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
                             <Eye size={11} />
                           </button>
                           {isSent && (
                             <button onClick={e => { e.stopPropagation(); pollStatus(em.id) }} disabled={polling}
-                              className="px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-[10px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-1">
+                              className="px-2 py-1 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] text-[10px] font-semibold transition-colors disabled:opacity-40 flex items-center gap-1">
                               {polling ? <Loader2 size={10} className="animate-spin" /> : <Clock size={10} />}
                               {polling ? 'Consultando…' : 'Consultar SII'}
                             </button>
@@ -989,7 +989,7 @@ export default function DtePage() {
                                 setSelectedEmission(em)
                                 setNotaCreditoModal(true)
                               }}
-                              className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 hover:text-red-300 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                              className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-700 hover:text-red-700 text-[10px] font-semibold transition-colors flex items-center gap-1"
                               title="Anular este documento"
                             >
                               <XCircle size={10} />
@@ -1004,20 +1004,20 @@ export default function DtePage() {
                                 setDebitoEmission(em)
                                 setNotaDebitoModal(true)
                               }}
-                              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-400 hover:text-amber-300 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 hover:text-amber-700 text-[10px] font-semibold transition-colors flex items-center gap-1"
                               title="Emitir nota de débito"
                             >
                               <TrendingUp size={10} />
                               N. Débito
                             </button>
                           )}
-                          {hasDetail && (expanded ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />)}
+                          {hasDetail && (expanded ? <ChevronUp size={12} className="text-[var(--text-muted)]" /> : <ChevronDown size={12} className="text-[var(--text-muted)]" />)}
                         </div>
                       </div>
                       {hasDetail && expanded && (
                         <div className="px-4 pb-3">
                           <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-                            <p className="text-red-300 text-[11px] font-semibold mb-1">Motivo del rechazo</p>
+                            <p className="text-red-700 text-[11px] font-semibold mb-1">Motivo del rechazo</p>
                             <p className="text-red-200/80 text-xs break-words">{em.error_detail ?? 'Sin detalle disponible.'}</p>
                           </div>
                         </div>
@@ -1025,7 +1025,7 @@ export default function DtePage() {
                       {em.document_type === 33 && relatedDocs.length > 0 && (
                         <div className="px-4 pb-3">
                           <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3">
-                            <p className="text-blue-300 text-[11px] font-semibold mb-2">Documentos relacionados ({relatedDocs.length})</p>
+                            <p className="text-blue-700 text-[11px] font-semibold mb-2">Documentos relacionados ({relatedDocs.length})</p>
                             <div className="space-y-1">
                               {relatedDocs.map(rd => (
                                 <div key={rd.id} className="flex items-center justify-between text-xs">
@@ -1047,7 +1047,7 @@ export default function DtePage() {
                           return notasCredito.length > 0 ? (
                             <div className="px-4 pb-3">
                               <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-                                <p className="text-red-300 text-[11px] font-semibold mb-2">
+                                <p className="text-red-700 text-[11px] font-semibold mb-2">
                                   Notas de crédito ({notasCredito.length})
                                 </p>
                                 <div className="space-y-1.5">
@@ -1125,12 +1125,12 @@ export default function DtePage() {
       <Section
         id="recibidas"
         title="Facturas recibidas"
-        icon={<Inbox size={14} className="text-[#FF6B35]" />}
+        icon={<Inbox size={14} className="text-[#E55A2B]" />}
         open={openSections.recibidas}
         onToggle={() => toggleSection('recibidas')}
         badge={
           incomingInvoices.filter(i => i.reception_status === 'pendiente').length > 0
-            ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">
+            ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold">
                 {incomingInvoices.filter(i => i.reception_status === 'pendiente').length} pendientes
               </span>
             : undefined
@@ -1138,11 +1138,11 @@ export default function DtePage() {
         action={
           <div className="flex items-center gap-2">
             <button onClick={() => { setShowAddIncoming(v => !v); setIncomingFormError(null) }}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold transition-colors">
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[#FF6B35]/20 hover:bg-[#FF6B35]/30 text-[#E55A2B] text-xs font-semibold transition-colors">
               <Plus size={11} />Registrar
             </button>
             <button onClick={() => restaurant && fetchIncomingInvoices(restaurant.id, incomingFilter)} disabled={incomingLoading}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-white/50 hover:text-white text-xs transition-colors disabled:opacity-40">
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:text-[var(--text-strong)] text-xs transition-colors disabled:opacity-40">
               <RefreshCw size={11} className={incomingLoading ? 'animate-spin' : ''} />
             </button>
           </div>
@@ -1150,29 +1150,29 @@ export default function DtePage() {
       >
         {/* Formulario de registro manual */}
         {showAddIncoming && (
-          <div className="bg-[#0f0f1a] border border-white/5 rounded-xl p-4 space-y-3 mb-3">
-            <p className="text-white/60 text-xs font-semibold">Registrar factura recibida</p>
+          <div className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl p-4 space-y-3 mb-3">
+            <p className="text-[var(--text-muted)] text-xs font-semibold">Registrar factura recibida</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="space-y-1 sm:col-span-2" ref={proveedorSuggestRef}>
-                <label className="text-white/40 text-[11px]">RUT emisor *</label>
+                <label className="text-[var(--text-muted)] text-[11px]">RUT emisor *</label>
                 <div className="relative">
                   <input type="text" placeholder="77042148-9" value={incomingForm.rut_emisor}
                     onChange={e => handleProveedorRutChange(e.target.value)}
                     onFocus={() => proveedorSuggestions.length > 0 && setShowProveedorSuggestions(true)}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 pr-8" />
-                  {loadingProveedorSuggest && <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />}
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 pr-8" />
+                  {loadingProveedorSuggest && <Loader2 size={12} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] animate-spin" />}
                   {showProveedorSuggestions && proveedorSuggestions.length > 0 && (
-                    <div className="absolute z-20 w-full mt-1 bg-[#1a1a2e] border border-white/15 rounded-xl shadow-xl overflow-hidden">
+                    <div className="absolute z-20 w-full mt-1 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-xl overflow-hidden">
                       {proveedorSuggestions.map(p => (
                         <button key={p.rut} type="button" onMouseDown={() => applyProveedorSuggestion(p)}
-                          className="w-full px-3 py-2.5 text-left hover:bg-white/5 transition-colors border-b border-white/5 last:border-0">
+                          className="w-full px-3 py-2.5 text-left hover:bg-[var(--surface-sunken)] transition-colors border-b border-[var(--border-subtle)] last:border-0">
                           <div className="flex items-center justify-between gap-2">
                             <div className="min-w-0">
-                              <p className="text-white text-xs font-semibold truncate">{p.razon_social}</p>
-                              <p className="text-white/40 text-[10px] font-mono">{p.rut}</p>
-                              {p.giro && <p className="text-white/30 text-[10px] truncate">{p.giro}</p>}
+                              <p className="text-[var(--text-strong)] text-xs font-semibold truncate">{p.razon_social}</p>
+                              <p className="text-[var(--text-muted)] text-[10px] font-mono">{p.rut}</p>
+                              {p.giro && <p className="text-[var(--text-muted)] text-[10px] truncate">{p.giro}</p>}
                             </div>
-                            <span className="text-white/20 text-[10px] shrink-0">{p.facturas_emitidas} reg.</span>
+                            <span className="text-[var(--text-muted)] text-[10px] shrink-0">{p.facturas_emitidas} reg.</span>
                           </div>
                         </button>
                       ))}
@@ -1181,57 +1181,57 @@ export default function DtePage() {
                 </div>
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Razón social *</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Razón social *</label>
                 <input type="text" placeholder="Proveedor S.A." value={incomingForm.razon_emisor}
                   onChange={e => setIncomingForm(f => ({ ...f, razon_emisor: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Giro</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Giro</label>
                 <input type="text" placeholder="Venta al por mayor" value={incomingForm.giro_emisor}
                   onChange={e => setIncomingForm(f => ({ ...f, giro_emisor: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Email emisor</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Email emisor</label>
                 <input type="email" placeholder="proveedor@empresa.cl" value={incomingForm.email_emisor}
                   onChange={e => setIncomingForm(f => ({ ...f, email_emisor: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Folio *</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Folio *</label>
                 <input type="number" placeholder="123" value={incomingForm.folio}
                   onChange={e => setIncomingForm(f => ({ ...f, folio: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Fecha emisión *</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Fecha emisión *</label>
                 <input type="date" value={incomingForm.fecha_emision}
                   onChange={e => setIncomingForm(f => ({ ...f, fecha_emision: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Monto total (CLP) *</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Monto total (CLP) *</label>
                 <input type="number" placeholder="119000" value={incomingForm.total_amount}
                   onChange={e => setIncomingForm(f => ({ ...f, total_amount: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
               <div className="space-y-1">
-                <label className="text-white/40 text-[11px]">Neto (CLP)</label>
+                <label className="text-[var(--text-muted)] text-[11px]">Neto (CLP)</label>
                 <input type="number" placeholder="100000" value={incomingForm.net_amount}
                   onChange={e => setIncomingForm(f => ({ ...f, net_amount: e.target.value }))}
-                  className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50" />
+                  className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50" />
               </div>
             </div>
             {incomingFormError && (
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                <AlertCircle size={13} className="text-red-300 shrink-0 mt-0.5" />
+                <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
                 <p className="text-red-200 text-xs">{incomingFormError}</p>
               </div>
             )}
             <div className="flex items-center gap-2 justify-end">
               <button onClick={() => { setShowAddIncoming(false); setIncomingForm(defaultIncomingForm()); setIncomingFormError(null) }}
-                className="px-4 py-2 rounded-xl bg-white/5 text-white/60 text-xs font-semibold hover:bg-white/10 transition-colors">
+                className="px-4 py-2 rounded-xl bg-[var(--surface-sunken)] text-[var(--text-muted)] text-xs font-semibold hover:bg-[var(--surface-sunken)] transition-colors">
                 Cancelar
               </button>
               <button onClick={handleAddIncoming} disabled={incomingFormSaving}
@@ -1247,41 +1247,41 @@ export default function DtePage() {
         <div className="flex flex-wrap items-center gap-2 mb-3">
           {[null, 'pendiente', 'aceptado', 'rechazado', 'reclamado'].map(s => (
             <button key={s ?? 'all'} onClick={() => { setIncomingFilter(s); setIncomingPage(1); if (restaurant) fetchIncomingInvoices(restaurant.id, s) }}
-              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${incomingFilter === s ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10 hover:text-white'}`}>
+              className={`px-3 py-1 rounded-lg text-xs font-semibold transition-colors ${incomingFilter === s ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:text-white'}`}>
               {s === null ? 'Todas' : s.charAt(0).toUpperCase() + s.slice(1)}
             </button>
           ))}
           <div className="relative ml-auto">
-            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-white/30" />
+            <Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]" />
             <input type="text" placeholder="Buscar folio, RUT, razón…" value={incomingSearch}
               onChange={e => { setIncomingSearch(e.target.value); setIncomingPage(1) }}
-              className="pl-8 pr-3 py-1.5 rounded-lg bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 w-52" />
+              className="pl-8 pr-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 w-52" />
           </div>
         </div>
 
         {/* Lista */}
         {incomingLoading ? (
           <div className="flex items-center justify-center py-10">
-            <Loader2 size={18} className="text-[#FF6B35] animate-spin" />
+            <Loader2 size={18} className="text-[#E55A2B] animate-spin" />
           </div>
         ) : incomingFiltered.length === 0 ? (
           <div className="py-10 text-center">
-            <Inbox size={28} className="text-white/10 mx-auto mb-3" />
-            <p className="text-white/30 text-sm">No hay facturas recibidas</p>
-            <p className="text-white/20 text-xs mt-1">Registra manualmente las facturas de tus proveedores para gestionarlas aquí</p>
+            <Inbox size={28} className="text-[var(--text-muted)] mx-auto mb-3" />
+            <p className="text-[var(--text-muted)] text-sm">No hay facturas recibidas</p>
+            <p className="text-[var(--text-muted)] text-xs mt-1">Registra manualmente las facturas de tus proveedores para gestionarlas aquí</p>
           </div>
         ) : (
           <>
-            <div className="bg-[#0f0f1a] border border-white/5 rounded-xl overflow-hidden">
+            <div className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
               {/* Header */}
-              <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 border-b border-white/5">
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Emisor / Folio</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">RUT emisor</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider text-right">Monto</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
-                <span className="text-white/30 text-[10px] font-semibold uppercase tracking-wider">Estado</span>
+              <div className="hidden sm:grid grid-cols-[2fr_1fr_1fr_1fr_auto] gap-3 px-4 py-2 border-b border-[var(--border-subtle)]">
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">Emisor / Folio</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">RUT emisor</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider text-right">Monto</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">Fecha</span>
+                <span className="text-[var(--text-muted)] text-[10px] font-semibold uppercase tracking-wider">Estado</span>
               </div>
-              <div className="divide-y divide-white/5">
+              <div className="divide-y divide-[var(--border-subtle)]">
                 {incomingPaged.map(inv => (
                   <IncomingInvoiceRow key={inv.id} invoice={inv} processing={processingIncoming === inv.id} onAction={handleIncomingAction} />
                 ))}
@@ -1314,19 +1314,19 @@ function Section({
   children:  React.ReactNode
 }) {
   return (
-    <div className="bg-[#161622] border border-white/5 rounded-2xl overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
         {/* Lado izquierdo — clickeable para colapsar */}
         <button
           onClick={onToggle}
           className="flex items-center gap-2 flex-1 min-w-0 hover:opacity-80 transition-opacity text-left"
         >
           {icon}
-          <span className="text-white font-semibold text-sm">{title}</span>
+          <span className="text-[var(--text-strong)] font-semibold text-sm">{title}</span>
           {badge}
           {open
-            ? <ChevronUp size={14} className="text-white/30 ml-1" />
-            : <ChevronDown size={14} className="text-white/30 ml-1" />}
+            ? <ChevronUp size={14} className="text-[var(--text-muted)] ml-1" />
+            : <ChevronDown size={14} className="text-[var(--text-muted)] ml-1" />}
         </button>
         {/* Lado derecho — acciones, no colapsan */}
         {action && <div className="flex items-center gap-2 ml-3 shrink-0">{action}</div>}
@@ -1353,23 +1353,23 @@ function Paginator({ page, total, onChange, count, pageSize }: {
   const to   = Math.min(page * pageSize, count)
   return (
     <div className="flex items-center justify-between pt-3">
-      <span className="text-white/30 text-xs">{from}–{to} de {count}</span>
+      <span className="text-[var(--text-muted)] text-xs">{from}–{to} de {count}</span>
       <div className="flex items-center gap-1">
         <button onClick={() => onChange(page - 1)} disabled={page <= 1}
-          className="px-2.5 py-1 rounded-lg bg-white/5 text-white/50 text-xs hover:bg-white/10 disabled:opacity-30 transition-colors">
+          className="px-2.5 py-1 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] disabled:opacity-30 transition-colors">
           ‹
         </button>
         {Array.from({ length: Math.min(total, 7) }, (_, i) => {
           const p = total <= 7 ? i + 1 : page <= 4 ? i + 1 : page >= total - 3 ? total - 6 + i : page - 3 + i
           return (
             <button key={p} onClick={() => onChange(p)}
-              className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${p === page ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/50 hover:bg-white/10'}`}>
+              className={`px-2.5 py-1 rounded-lg text-xs transition-colors ${p === page ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
               {p}
             </button>
           )
         })}
         <button onClick={() => onChange(page + 1)} disabled={page >= total}
-          className="px-2.5 py-1 rounded-lg bg-white/5 text-white/50 text-xs hover:bg-white/10 disabled:opacity-30 transition-colors">
+          className="px-2.5 py-1 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] disabled:opacity-30 transition-colors">
           ›
         </button>
       </div>
@@ -1388,8 +1388,8 @@ function AecBadge({ status, emittedAt }: { status: string | null; emittedAt: str
 
   const config: Record<string, { color: string; label: string }> = {
     pendiente:  { color: '#9CA3AF', label: 'AEC Pendiente' },
-    aceptado:   { color: '#34D399', label: 'AEC Aceptado' },
-    rechazado:  { color: '#F87171', label: 'AEC Rechazado' },
+    aceptado:   { color: '#15803D', label: 'AEC Aceptado' },
+    rechazado:  { color: '#C11F1F', label: 'AEC Rechazado' },
     reclamado:  { color: '#FB923C', label: 'AEC Reclamado' },
   }
 
@@ -1421,8 +1421,8 @@ function EnvironmentBadge({ environment }: { environment: string | null }) {
       className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-semibold border"
       style={
         isProd
-          ? { color: '#34D399', backgroundColor: '#34D3991a', borderColor: '#34D39940' }
-          : { color: '#FBBF24', backgroundColor: '#FBBF241a', borderColor: '#FBBF2440' }
+          ? { color: '#15803D', backgroundColor: '#34D3991a', borderColor: '#34D39940' }
+          : { color: '#B45309', backgroundColor: '#FBBF241a', borderColor: '#FBBF2440' }
       }
     >
       <Globe size={9} strokeWidth={2.5} />
@@ -1446,7 +1446,7 @@ function FolioCounter({ label, count }: { label: string; count: number }) {
       className="rounded-xl p-4 border space-y-1"
       style={{ backgroundColor: `${color}0d`, borderColor: `${color}30` }}
     >
-      <p className="text-white/50 text-[11px] font-medium">{label}</p>
+      <p className="text-[var(--text-muted)] text-[11px] font-medium">{label}</p>
       <p className="text-2xl font-bold" style={{ color }}>{count}</p>
       <p className="text-[10px]" style={{ color: `${color}cc` }}>
         {isCritical
@@ -1461,12 +1461,12 @@ function FolioCounter({ label, count }: { label: string; count: number }) {
 
 function StatCard({ label, value, icon }: { label: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="bg-[#161622] border border-white/5 rounded-2xl p-4">
+    <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4">
       <div className="flex items-center justify-between mb-1">
-        <span className="text-white/40 text-[11px] font-medium">{label}</span>
-        <span className="text-white/40">{icon}</span>
+        <span className="text-[var(--text-muted)] text-[11px] font-medium">{label}</span>
+        <span className="text-[var(--text-muted)]">{icon}</span>
       </div>
-      <p className="text-white text-xl font-bold">{value}</p>
+      <p className="text-[var(--text-strong)] text-xl font-bold">{value}</p>
     </div>
   )
 }
@@ -1474,8 +1474,8 @@ function StatCard({ label, value, icon }: { label: string; value: string; icon: 
 function Row({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start gap-3">
-      <span className="text-white/30 w-20 shrink-0">{label}</span>
-      <span className="text-white/70 break-all">{value}</span>
+      <span className="text-[var(--text-muted)] w-20 shrink-0">{label}</span>
+      <span className="text-[var(--text-body)] break-all">{value}</span>
     </div>
   )
 }
@@ -1502,19 +1502,19 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
       onClick={onClose}
     >
       <div
-        className="bg-[#161622] border border-white/10 rounded-2xl w-full max-w-lg shadow-2xl"
+        className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-lg shadow-2xl"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-white/5">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
-            <FileText size={15} className="text-[#FF6B35]" />
-            <p className="text-white font-semibold text-sm">
+            <FileText size={15} className="text-[#E55A2B]" />
+            <p className="text-[var(--text-strong)] font-semibold text-sm">
               {DOC_TYPE_LABEL[emission.document_type] ?? `Tipo ${emission.document_type}`}
               {emission.folio ? ` #${emission.folio}` : ''}
             </p>
           </div>
-          <button onClick={onClose} className="text-white/30 hover:text-white transition-colors">
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">
             <X size={16} />
           </button>
         </div>
@@ -1523,7 +1523,7 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
         <div className="px-5 py-4 space-y-4">
           {/* Status */}
           <div className="flex items-center justify-between">
-            <span className="text-white/40 text-xs">Estado</span>
+            <span className="text-[var(--text-muted)] text-xs">Estado</span>
             <StatusBadge tone={style.tone} icon={style.icon} label={style.label} />
           </div>
 
@@ -1551,7 +1551,7 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
           {/* Error detail — solo mostrar si el documento está rechazado */}
           {emission.status === 'rejected' && emission.error_detail && (
             <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-              <p className="text-red-300 text-[11px] font-semibold mb-1">Error</p>
+              <p className="text-red-700 text-[11px] font-semibold mb-1">Error</p>
               <p className="text-red-200/80 text-xs break-words">{emission.error_detail}</p>
             </div>
           )}
@@ -1559,8 +1559,8 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
           {/* XML preview */}
           {emission.xml_signed && (
             <div className="space-y-2">
-              <p className="text-white/40 text-[11px] font-semibold uppercase tracking-wide">XML firmado</p>
-              <pre className="bg-black/30 border border-white/5 rounded-xl p-3 text-[10px] text-white/50 overflow-auto max-h-40 font-mono leading-relaxed">
+              <p className="text-[var(--text-muted)] text-[11px] font-semibold uppercase tracking-wide">XML firmado</p>
+              <pre className="bg-black/30 border border-[var(--border-subtle)] rounded-xl p-3 text-[10px] text-[var(--text-muted)] overflow-auto max-h-40 font-mono leading-relaxed">
                 {emission.xml_signed.slice(0, 800)}{emission.xml_signed.length > 800 ? '\n…' : ''}
               </pre>
             </div>
@@ -1568,11 +1568,11 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
         </div>
 
         {/* Footer */}
-        <div className="px-5 py-4 border-t border-white/5 flex items-center justify-end gap-2">
+        <div className="px-5 py-4 border-t border-[var(--border-subtle)] flex items-center justify-end gap-2">
           {emission.xml_signed && (
             <button
               onClick={downloadXml}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/5 hover:bg-white/10 text-white/70 hover:text-white text-xs font-semibold transition-colors"
+              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] text-[var(--text-body)] hover:text-[var(--text-strong)] text-xs font-semibold transition-colors"
             >
               <Download size={12} />
               Descargar XML
@@ -1593,8 +1593,8 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
 function DetailRow({ label, value, mono }: { label: string; value: string; mono?: boolean }) {
   return (
     <div className="flex items-start justify-between gap-4">
-      <span className="text-white/30 shrink-0">{label}</span>
-      <span className={`text-white/70 text-right break-all ${mono ? 'font-mono' : ''}`}>{value}</span>
+      <span className="text-[var(--text-muted)] shrink-0">{label}</span>
+      <span className={`text-[var(--text-body)] text-right break-all ${mono ? 'font-mono' : ''}`}>{value}</span>
     </div>
   )
 }
@@ -1603,8 +1603,8 @@ function DetailRow({ label, value, mono }: { label: string; value: string; mono?
 
 const INCOMING_STATUS_CONFIG: Record<string, { color: string; label: string; icon: React.ReactNode }> = {
   pendiente: { color: '#9CA3AF', label: 'Pendiente',  icon: <Clock size={10} /> },
-  aceptado:  { color: '#34D399', label: 'Aceptada',   icon: <CheckCircle2 size={10} /> },
-  rechazado: { color: '#F87171', label: 'Rechazada',  icon: <XCircle size={10} /> },
+  aceptado:  { color: '#15803D', label: 'Aceptada',   icon: <CheckCircle2 size={10} /> },
+  rechazado: { color: '#C11F1F', label: 'Rechazada',  icon: <XCircle size={10} /> },
   reclamado: { color: '#FB923C', label: 'Reclamada',  icon: <AlertCircle size={10} /> },
 }
 
@@ -1627,35 +1627,35 @@ function IncomingInvoiceRow({
   return (
     <div>
       <div
-        className="px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 items-center cursor-pointer hover:bg-white/2"
+        className="px-5 py-3 grid grid-cols-1 sm:grid-cols-[1fr_auto_auto_auto] gap-2 sm:gap-4 items-center cursor-pointer hover:bg-[var(--surface-sunken)]"
         onClick={() => setExpanded(v => !v)}
       >
         {/* Emisor / Folio */}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-white text-sm font-semibold">
+            <span className="text-[var(--text-strong)] text-sm font-semibold">
               Factura #{invoice.folio}
             </span>
-            <span className="text-white/40 text-xs truncate">· {invoice.razon_emisor}</span>
+            <span className="text-[var(--text-muted)] text-xs truncate">· {invoice.razon_emisor}</span>
             {invoice.vencido && (
-              <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 text-[9px] font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-700 text-[9px] font-bold">
                 PLAZO VENCIDO
               </span>
             )}
             {isPending && !invoice.vencido && invoice.dias_restantes <= 3 && (
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[9px] font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 text-[9px] font-bold">
                 {invoice.dias_restantes}d restantes
               </span>
             )}
           </div>
-          <p className="text-white/30 text-[11px] mt-0.5 font-mono">{invoice.rut_emisor}</p>
+          <p className="text-[var(--text-muted)] text-[11px] mt-0.5 font-mono">{invoice.rut_emisor}</p>
         </div>
 
         {/* Monto */}
-        <p className="text-white font-mono text-sm shrink-0">{fmtCLP(invoice.total_amount)}</p>
+        <p className="text-[var(--text-strong)] font-mono text-sm shrink-0">{fmtCLP(invoice.total_amount)}</p>
 
         {/* Fecha */}
-        <p className="text-white/30 text-[11px] shrink-0">
+        <p className="text-[var(--text-muted)] text-[11px] shrink-0">
           {new Date(invoice.fecha_emision).toLocaleDateString('es-CL')}
         </p>
 
@@ -1668,14 +1668,14 @@ function IncomingInvoiceRow({
             {cfg.icon}
             {cfg.label}
           </span>
-          {expanded ? <ChevronUp size={12} className="text-white/30" /> : <ChevronDown size={12} className="text-white/30" />}
+          {expanded ? <ChevronUp size={12} className="text-[var(--text-muted)]" /> : <ChevronDown size={12} className="text-[var(--text-muted)]" />}
         </div>
       </div>
 
       {/* Detalle expandido */}
       {expanded && (
         <div className="px-5 pb-4 space-y-3">
-          <div className="bg-white/3 border border-white/8 rounded-xl p-4 space-y-2 text-xs">
+          <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 space-y-2 text-xs">
             <DetailRow label="RUT emisor"    value={invoice.rut_emisor} mono />
             <DetailRow label="Razón social"  value={invoice.razon_emisor} />
             {invoice.giro_emisor && <DetailRow label="Giro"         value={invoice.giro_emisor} />}
@@ -1696,7 +1696,7 @@ function IncomingInvoiceRow({
               <DetailRow label="Motivo" value={invoice.reception_glosa} />
             )}
             {isPending && !invoice.vencido && (
-              <p className="text-amber-300/70 text-[10px] pt-1">
+              <p className="text-amber-700/70 text-[10px] pt-1">
                 ⏱ Plazo legal: {invoice.dias_restantes} día{invoice.dias_restantes !== 1 ? 's' : ''} restante{invoice.dias_restantes !== 1 ? 's' : ''} para aceptar o rechazar
               </p>
             )}
@@ -1712,19 +1712,19 @@ function IncomingInvoiceRow({
                     value={rejectGlosa}
                     onChange={e => setRejectGlosa(e.target.value)}
                     rows={2}
-                    className="w-full px-3 py-2 rounded-xl bg-white/5 border border-white/8 text-white text-xs placeholder:text-white/20 focus:outline-none focus:border-red-500/50 resize-none"
+                    className="w-full px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-xs placeholder:text-[var(--text-muted)] focus:outline-none focus:border-red-500/50 resize-none"
                   />
                   <div className="flex items-center gap-2">
                     <button
                       onClick={() => setShowReject(false)}
-                      className="px-3 py-1.5 rounded-lg bg-white/5 text-white/50 text-xs hover:bg-white/10 transition-colors"
+                      className="px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] transition-colors"
                     >
                       Cancelar
                     </button>
                     <button
                       onClick={() => onAction(invoice.id, 'rechazado', rejectGlosa)}
                       disabled={processing || !rejectGlosa.trim()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
                     >
                       {processing ? <Loader2 size={10} className="animate-spin" /> : <XCircle size={10} />}
                       Confirmar rechazo
@@ -1736,7 +1736,7 @@ function IncomingInvoiceRow({
                   <button
                     onClick={() => onAction(invoice.id, 'aceptado')}
                     disabled={processing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-700 text-xs font-semibold hover:bg-emerald-500/30 disabled:opacity-40 transition-colors"
                   >
                     {processing ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
                     Aceptar
@@ -1745,7 +1745,7 @@ function IncomingInvoiceRow({
                     <button
                       onClick={() => setShowReject(true)}
                       disabled={processing}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-300 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
                     >
                       <XCircle size={10} />
                       Rechazar
@@ -1754,7 +1754,7 @@ function IncomingInvoiceRow({
                   <button
                     onClick={() => onAction(invoice.id, 'reclamado', 'Reclamo comercial')}
                     disabled={processing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 text-xs font-semibold hover:bg-amber-500/30 disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-700 text-xs font-semibold hover:bg-amber-500/30 disabled:opacity-40 transition-colors"
                   >
                     <AlertCircle size={10} />
                     Reclamar

@@ -24,10 +24,10 @@ interface PrinterRow {
 // ── Constants ─────────────────────────────────────────────────────────────────
 
 const KIND_CONFIG: Record<PrinterKind, { label: string; icon: typeof ChefHat; color: string }> = {
-  cocina: { label: 'Cocina',  icon: ChefHat,     color: '#FBBF24' },
-  barra:  { label: 'Barra',   icon: Wine,        color: '#60A5FA' },
-  caja:   { label: 'Caja',    icon: CreditCard,  color: '#34D399' },
-  otro:   { label: 'Otro',    icon: Package,     color: '#A78BFA' },
+  cocina: { label: 'Cocina',  icon: ChefHat,     color: '#B45309' },
+  barra:  { label: 'Barra',   icon: Wine,        color: '#1D4ED8' },
+  caja:   { label: 'Caja',    icon: CreditCard,  color: '#15803D' },
+  otro:   { label: 'Otro',    icon: Package,     color: '#6D28D9' },
 }
 
 // ── Page ──────────────────────────────────────────────────────────────────────
@@ -143,7 +143,7 @@ export default function ImpresorasPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -160,11 +160,11 @@ export default function ImpresorasPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <Printer size={20} className="text-[#FF6B35]" />
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <Printer size={20} className="text-[#E55A2B]" />
             Impresoras
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
             Nombres de impresoras registradas en el notifier de impresión
           </p>
         </div>
@@ -179,12 +179,12 @@ export default function ImpresorasPage() {
 
       {/* Info banner */}
       <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-500/8 border border-blue-500/20">
-        <Printer size={14} className="text-blue-400 shrink-0 mt-0.5" />
+        <Printer size={14} className="text-blue-700 shrink-0 mt-0.5" />
         <div>
-          <p className="text-blue-300 text-xs font-semibold">Cómo funciona</p>
-          <p className="text-white/40 text-xs mt-0.5">
-            Cada impresora tiene un nombre (ej: <span className="font-mono text-white/60">COCINA1</span>) que se envía al notifier{' '}
-            <span className="font-mono text-white/50">api.notifier.realdev.cl</span>.
+          <p className="text-blue-700 text-xs font-semibold">Cómo funciona</p>
+          <p className="text-[var(--text-muted)] text-xs mt-0.5">
+            Cada impresora tiene un nombre (ej: <span className="font-mono text-[var(--text-muted)]">COCINA1</span>) que se envía al notifier{' '}
+            <span className="font-mono text-[var(--text-muted)]">api.notifier.realdev.cl</span>.
             El notifier enruta a la impresora física según ese nombre.
             Los productos y categorías pueden apuntar a una impresora específica.
           </p>
@@ -193,37 +193,37 @@ export default function ImpresorasPage() {
 
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <AlertCircle size={14} className="text-red-300 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
 
       {/* Add form */}
       {showAdd && (
-        <div className="bg-[#161622] border border-white/8 rounded-2xl p-5 space-y-4">
-          <p className="text-white font-semibold text-sm">Nueva impresora</p>
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Nueva impresora</p>
 
           {addError && (
-            <p className="text-red-400 text-xs">{addError}</p>
+            <p className="text-red-700 text-xs">{addError}</p>
           )}
 
           <div className="grid grid-cols-2 gap-4">
             {/* Name */}
             <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">
-                Nombre <span className="text-white/20">(se enviará en mayúsculas)</span>
+              <label className="text-[var(--text-muted)] text-xs font-medium">
+                Nombre <span className="text-[var(--text-muted)]">(se enviará en mayúsculas)</span>
               </label>
               <input
                 value={newName}
                 onChange={e => setNewName(e.target.value)}
                 placeholder="COCINA1, BARRA, CAJA…"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors font-mono"
               />
             </div>
 
             {/* Kind */}
             <div className="space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Tipo</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Tipo</label>
               <div className="grid grid-cols-2 gap-1.5">
                 {(Object.entries(KIND_CONFIG) as [PrinterKind, typeof KIND_CONFIG[PrinterKind]][]).map(([k, cfg]) => {
                   const Icon = cfg.icon
@@ -233,8 +233,8 @@ export default function ImpresorasPage() {
                       onClick={() => setNewKind(k)}
                       className={`py-2 rounded-xl border text-xs font-semibold flex items-center justify-center gap-1.5 transition-all ${
                         newKind === k
-                          ? 'border-opacity-50 text-white'
-                          : 'bg-white/3 border-white/8 text-white/30 hover:text-white/60'
+                          ? 'border-opacity-50 text-[var(--text-strong)]'
+                          : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-muted)]'
                       }`}
                       style={newKind === k ? { background: cfg.color + '20', borderColor: cfg.color + '60', color: cfg.color } : {}}
                     >
@@ -248,12 +248,12 @@ export default function ImpresorasPage() {
 
             {/* Description */}
             <div className="col-span-2 space-y-1.5">
-              <label className="text-white/40 text-xs font-medium">Descripción <span className="text-white/20">(opcional)</span></label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Descripción <span className="text-[var(--text-muted)]">(opcional)</span></label>
               <input
                 value={newDesc}
                 onChange={e => setNewDesc(e.target.value)}
                 placeholder="Ej: Impresora cocina planta baja"
-                className="w-full px-4 py-2.5 rounded-xl bg-white/5 border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                className="w-full px-4 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
               />
             </div>
           </div>
@@ -261,7 +261,7 @@ export default function ImpresorasPage() {
           <div className="flex gap-2">
             <button
               onClick={() => { setShowAdd(false); setAddError(null) }}
-              className="flex-1 py-2.5 rounded-xl border border-white/10 text-white/40 text-sm hover:bg-white/5 transition-colors"
+              className="flex-1 py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors"
             >
               Cancelar
             </button>
@@ -279,7 +279,7 @@ export default function ImpresorasPage() {
 
       {/* Printers list */}
       {printers.length === 0 ? (
-        <div className="bg-[#161622] border border-white/5 rounded-2xl">
+        <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl">
           <EmptyState
             icon={Printer}
             title="Aún no tienes impresoras registradas"
@@ -294,21 +294,21 @@ export default function ImpresorasPage() {
             .map(([kind, cfg]) => {
               const Icon = cfg.icon
               return (
-                <div key={kind} className="bg-[#161622] border border-white/5 rounded-2xl overflow-hidden">
+                <div key={kind} className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
                   {/* Kind header */}
                   <div
-                    className="flex items-center gap-2 px-5 py-3 border-b border-white/5"
+                    className="flex items-center gap-2 px-5 py-3 border-b border-[var(--border-subtle)]"
                     style={{ background: cfg.color + '08' }}
                   >
                     <Icon size={13} style={{ color: cfg.color }} />
                     <p className="text-xs font-semibold uppercase tracking-widest" style={{ color: cfg.color }}>
                       {cfg.label}
                     </p>
-                    <span className="text-[10px] text-white/25 ml-1">({grouped[kind].length})</span>
+                    <span className="text-[10px] text-[var(--text-muted)] ml-1">({grouped[kind].length})</span>
                   </div>
 
                   {/* Printers in this kind */}
-                  <div className="divide-y divide-white/5">
+                  <div className="divide-y divide-[var(--border-subtle)]">
                     {grouped[kind].map(p => (
                       <div key={p.id} className="px-5 py-3.5 flex items-center gap-3">
                         {editId === p.id ? (
@@ -317,13 +317,13 @@ export default function ImpresorasPage() {
                             <input
                               value={editName}
                               onChange={e => setEditName(e.target.value)}
-                              className="px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-white text-sm font-mono focus:outline-none focus:border-[#FF6B35]/50 w-36"
+                              className="px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm font-mono focus:outline-none focus:border-[#FF6B35]/50 w-36"
                             />
                             <input
                               value={editDesc}
                               onChange={e => setEditDesc(e.target.value)}
                               placeholder="Descripción…"
-                              className="flex-1 px-3 py-1.5 rounded-lg bg-white/5 border border-white/15 text-white text-sm focus:outline-none focus:border-[#FF6B35]/50 min-w-0"
+                              className="flex-1 px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/50 min-w-0"
                             />
                             <div className="flex gap-1">
                               {(Object.entries(KIND_CONFIG) as [PrinterKind, typeof KIND_CONFIG[PrinterKind]][]).map(([k, c]) => (
@@ -331,7 +331,7 @@ export default function ImpresorasPage() {
                                   key={k}
                                   onClick={() => setEditKind(k)}
                                   className={`px-2 py-1 rounded-lg text-[10px] font-semibold transition-all ${
-                                    editKind === k ? 'text-white' : 'bg-white/3 text-white/30'
+                                    editKind === k ? 'text-[var(--text-strong)]' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
                                   }`}
                                   style={editKind === k ? { background: c.color + '25', color: c.color } : {}}
                                 >
@@ -342,13 +342,13 @@ export default function ImpresorasPage() {
                             <button
                               onClick={saveEdit}
                               disabled={saving}
-                              className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+                              className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-700 hover:bg-emerald-500/30 transition-colors"
                             >
                               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                             </button>
                             <button
                               onClick={() => setEditId(null)}
-                              className="p-1.5 rounded-lg bg-white/5 text-white/40 hover:bg-white/10 transition-colors"
+                              className="p-1.5 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] transition-colors"
                             >
                               <X size={13} />
                             </button>
@@ -358,15 +358,15 @@ export default function ImpresorasPage() {
                           <>
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2">
-                                <span className="font-mono text-sm font-semibold text-white">{p.name}</span>
+                                <span className="font-mono text-sm font-semibold text-[var(--text-strong)]">{p.name}</span>
                                 {!p.active && (
-                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-white/8 text-white/30">
+                                  <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)]">
                                     inactiva
                                   </span>
                                 )}
                               </div>
                               {p.description && (
-                                <p className="text-white/35 text-xs mt-0.5">{p.description}</p>
+                                <p className="text-[var(--text-muted)] text-xs mt-0.5">{p.description}</p>
                               )}
                             </div>
 
@@ -377,7 +377,7 @@ export default function ImpresorasPage() {
                                 onClick={() => toggleActive(p)}
                                 title={p.active ? 'Desactivar' : 'Activar'}
                                 className={`w-8 h-5 rounded-full transition-colors relative ${
-                                  p.active ? 'bg-[#FF6B35]' : 'bg-white/15'
+                                  p.active ? 'bg-[#FF6B35]' : 'bg-[var(--surface-sunken)]'
                                 }`}
                               >
                                 <span
@@ -389,14 +389,14 @@ export default function ImpresorasPage() {
 
                               <button
                                 onClick={() => startEdit(p)}
-                                className="p-1.5 rounded-lg text-white/25 hover:text-white/70 hover:bg-white/5 transition-colors"
+                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-body)] hover:bg-[var(--surface-sunken)] transition-colors"
                               >
                                 <Pencil size={13} />
                               </button>
 
                               <button
                                 onClick={() => deletePrinter(p.id)}
-                                className="p-1.5 rounded-lg text-white/25 hover:text-red-400 hover:bg-red-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors"
                               >
                                 <Trash2 size={13} />
                               </button>

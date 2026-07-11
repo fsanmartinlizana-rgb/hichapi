@@ -103,22 +103,22 @@ export function ElectronicReceiptOptions({
   return (
     <div
       className="px-4 py-3 border-t space-y-3"
-      style={{ borderColor: 'rgba(255,255,255,0.06)' }}
+      style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}
     >
       {/* Section label */}
-      <p className="text-[10px] font-semibold uppercase tracking-widest text-white/25">
+      <p className="text-[10px] font-semibold uppercase tracking-widest text-[var(--text-muted)]">
         Boleta electrónica
       </p>
 
       {/* Total display */}
-      <p className="text-xs text-white/50">
+      <p className="text-xs text-[var(--text-muted)]">
         Total:{' '}
-        <span className="text-white/80 font-semibold">{formatCurrency(total)}</span>
+        <span className="text-[var(--text-body)] font-semibold">{formatCurrency(total)}</span>
       </p>
 
       {/* Success state */}
       {isSuccess && (
-        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-emerald-400">
+        <div className="flex items-center gap-2 rounded-xl border border-emerald-500/30 bg-emerald-500/10 px-3 py-3 text-emerald-700">
           <CheckCircle2 size={15} className="shrink-0" />
           <p className="text-sm font-semibold">
             {selectedOption === 'email'
@@ -131,12 +131,12 @@ export function ElectronicReceiptOptions({
       {/* Error state */}
       {isError && submitError && (
         <div className="flex items-start gap-2 rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2.5">
-          <AlertCircle size={13} className="shrink-0 mt-0.5 text-red-400" />
+          <AlertCircle size={13} className="shrink-0 mt-0.5 text-red-700" />
           <div className="flex-1 min-w-0">
-            <p className="text-xs text-red-300 leading-snug">{submitError}</p>
+            <p className="text-xs text-red-700 leading-snug">{submitError}</p>
             <button
               onClick={handleRetry}
-              className="mt-1.5 text-[11px] font-semibold text-red-400 hover:text-red-300 underline underline-offset-2"
+              className="mt-1.5 text-[11px] font-semibold text-red-700 hover:text-red-700 underline underline-offset-2"
             >
               Reintentar
             </button>
@@ -161,8 +161,8 @@ export function ElectronicReceiptOptions({
               isProcessing ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.97]',
               // Selected vs unselected styles (Req 9.2)
               selectedOption === 'print'
-                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/50 text-[#FF6B35]'
-                : 'bg-white/5 border-white/12 text-white/60 hover:bg-white/8 hover:border-white/20 hover:text-white/80',
+                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/50 text-[#E55A2B]'
+                : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:border-[var(--border-subtle)] hover:text-[var(--text-body)]',
             ].join(' ')}
           >
             <Printer size={18} className="shrink-0" />
@@ -183,8 +183,8 @@ export function ElectronicReceiptOptions({
               isProcessing ? 'cursor-not-allowed opacity-50' : 'active:scale-[0.97]',
               // Selected vs unselected styles (Req 9.2)
               selectedOption === 'email'
-                ? 'bg-blue-500/15 border-blue-500/50 text-blue-400'
-                : 'bg-white/5 border-white/12 text-white/60 hover:bg-white/8 hover:border-white/20 hover:text-white/80',
+                ? 'bg-blue-500/15 border-blue-500/50 text-blue-700'
+                : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] hover:border-[var(--border-subtle)] hover:text-[var(--text-body)]',
             ].join(' ')}
           >
             <Mail size={18} className="shrink-0" />
@@ -211,7 +211,7 @@ export function ElectronicReceiptOptions({
             className={[
               // Min 44px height for touch target (Req 9.1)
               'w-full min-h-[44px] rounded-xl border px-3 py-2',
-              'bg-white/5 text-sm text-white placeholder:text-white/30',
+              'bg-[var(--surface-sunken)] text-sm text-[var(--text-strong)] placeholder:text-[var(--text-muted)]',
               'outline-none transition-all duration-200',
               'focus:ring-1',
               isProcessing ? 'cursor-not-allowed opacity-50' : '',
@@ -219,13 +219,13 @@ export function ElectronicReceiptOptions({
                 ? 'border-red-500/50 focus:border-red-500/70 focus:ring-red-500/30'
                 : emailValidation.isValid
                 ? 'border-emerald-500/40 focus:border-emerald-500/60 focus:ring-emerald-500/20'
-                : 'border-white/12 focus:border-white/30 focus:ring-white/10',
+                : 'border-[var(--border-subtle)] focus:border-[var(--border-subtle)] focus:ring-[var(--border-subtle)]',
             ].join(' ')}
           />
 
           {/* Inline validation error (Req 3.4) */}
           {emailValidation.email.length > 0 && !emailValidation.isValid && (
-            <div className="flex items-center gap-1.5 text-red-400/80">
+            <div className="flex items-center gap-1.5 text-red-700/80">
               <AlertCircle size={11} className="shrink-0" />
               <p className="text-[11px]">{emailValidation.error}</p>
             </div>
@@ -242,12 +242,12 @@ export function ElectronicReceiptOptions({
             disabled={isProcessing}
             aria-label="Cancelar"
             className={[
-              'min-h-[44px] flex-1 rounded-xl border border-white/12 bg-white/5',
-              'text-sm font-semibold text-white/50',
+              'min-h-[44px] flex-1 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)]',
+              'text-sm font-semibold text-[var(--text-muted)]',
               'transition-all duration-200',
               isProcessing
                 ? 'cursor-not-allowed opacity-40'
-                : 'hover:bg-white/8 hover:text-white/70 active:scale-[0.98]',
+                : 'hover:bg-[var(--surface-sunken)] hover:text-[var(--text-body)] active:scale-[0.98]',
             ].join(' ')}
           >
             Cancelar
@@ -274,12 +274,12 @@ export function ElectronicReceiptOptions({
               'rounded-xl border text-sm font-semibold',
               'transition-all duration-200',
               isProcessing
-                ? 'bg-white/5 border-white/10 text-white/40 cursor-not-allowed'
+                ? 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed'
                 : selectedOption === 'email' && !emailValidation.isValid
-                ? 'bg-white/5 border-white/10 text-white/30 cursor-not-allowed'
+                ? 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed'
                 : selectedOption === 'print'
-                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35] hover:bg-[#FF6B35]/20 active:scale-[0.98]'
-                : 'bg-blue-500/15 border-blue-500/40 text-blue-400 hover:bg-blue-500/20 active:scale-[0.98]',
+                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#E55A2B] hover:bg-[#FF6B35]/20 active:scale-[0.98]'
+                : 'bg-blue-500/15 border-blue-500/40 text-blue-700 hover:bg-blue-500/20 active:scale-[0.98]',
             ].join(' ')}
           >
             {isProcessing ? (
@@ -309,12 +309,12 @@ export function ElectronicReceiptOptions({
           disabled={isProcessing}
           aria-label="Cancelar"
           className={[
-            'w-full min-h-[44px] rounded-xl border border-white/12 bg-white/5',
-            'text-sm font-semibold text-white/50',
+            'w-full min-h-[44px] rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)]',
+            'text-sm font-semibold text-[var(--text-muted)]',
             'transition-all duration-200',
             isProcessing
               ? 'cursor-not-allowed opacity-40'
-              : 'hover:bg-white/8 hover:text-white/70 active:scale-[0.98]',
+              : 'hover:bg-[var(--surface-sunken)] hover:text-[var(--text-body)] active:scale-[0.98]',
           ].join(' ')}
         >
           Cancelar

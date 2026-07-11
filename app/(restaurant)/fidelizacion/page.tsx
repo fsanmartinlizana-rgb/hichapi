@@ -151,7 +151,7 @@ export default function FidelizacionPage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-96">
-        <Loader2 size={20} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={20} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -162,34 +162,34 @@ export default function FidelizacionPage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <Gift size={18} className="text-[#FF6B35]" /> Fidelización
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <Gift size={18} className="text-[#E55A2B]" /> Fidelización
           </h1>
-          <p className="text-white/40 text-xs mt-0.5">
+          <p className="text-[var(--text-muted)] text-xs mt-0.5">
             Premia a quienes vuelven — sellos, puntos y cupones con canje seguro.
           </p>
         </div>
         {program?.active && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
             <CheckCircle2 size={10} /> Activo
           </span>
         )}
       </div>
 
       {err && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-sm">
+        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-sm">
           {err}
         </div>
       )}
 
       {/* Program card */}
-      <section className="bg-[#161622] border border-white/8 rounded-2xl p-4 space-y-4">
+      <section className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4 space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-            <Sparkles size={14} className="text-[#FF6B35]" /> Configuración del programa
+          <h2 className="text-[var(--text-strong)] font-semibold text-sm flex items-center gap-2">
+            <Sparkles size={14} className="text-[#E55A2B]" /> Configuración del programa
           </h2>
           <label className="flex items-center gap-2 cursor-pointer select-none">
-            <span className="text-white/60 text-xs">{draft.active ? 'Encendido' : 'Apagado'}</span>
+            <span className="text-[var(--text-muted)] text-xs">{draft.active ? 'Encendido' : 'Apagado'}</span>
             <input
               type="checkbox"
               checked={!!draft.active}
@@ -197,7 +197,7 @@ export default function FidelizacionPage() {
               className="sr-only"
             />
             <span
-              className={`w-9 h-5 rounded-full transition-colors relative ${draft.active ? 'bg-[#FF6B35]' : 'bg-white/15'}`}
+              className={`w-9 h-5 rounded-full transition-colors relative ${draft.active ? 'bg-[#FF6B35]' : 'bg-[var(--surface-sunken)]'}`}
             >
               <span
                 className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform ${draft.active ? 'translate-x-4' : 'translate-x-0.5'}`}
@@ -211,7 +211,7 @@ export default function FidelizacionPage() {
             <input
               value={draft.name ?? ''}
               onChange={e => setDraft(d => ({ ...d, name: e.target.value }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+              className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
             />
           </Field>
 
@@ -219,7 +219,7 @@ export default function FidelizacionPage() {
             <select
               value={draft.mechanic ?? 'stamps'}
               onChange={e => setDraft(d => ({ ...d, mechanic: e.target.value as Mechanic }))}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
+              className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
             >
               <option value="stamps">Sellos (tarjeta)</option>
               <option value="points">Puntos (por gasto)</option>
@@ -234,7 +234,7 @@ export default function FidelizacionPage() {
                   type="number" min={1} max={100}
                   value={draft.stamps_per_reward ?? 10}
                   onChange={e => setDraft(d => ({ ...d, stamps_per_reward: Number(e.target.value) }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
                 />
               </Field>
 
@@ -242,7 +242,7 @@ export default function FidelizacionPage() {
                 <select
                   value={draft.stamp_trigger ?? 'per_visit'}
                   onChange={e => setDraft(d => ({ ...d, stamp_trigger: e.target.value as StampTrigger }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
                 >
                   <option value="per_visit">Por visita</option>
                   <option value="per_order">Por pedido</option>
@@ -256,7 +256,7 @@ export default function FidelizacionPage() {
                     type="number" min={100} step={500}
                     value={draft.stamp_amount_threshold ?? 5000}
                     onChange={e => setDraft(d => ({ ...d, stamp_amount_threshold: Number(e.target.value) }))}
-                    className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+                    className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
                   />
                 </Field>
               )}
@@ -270,9 +270,9 @@ export default function FidelizacionPage() {
                   type="number" min={0} step={0.001} max={1}
                   value={draft.points_per_clp ?? 0.01}
                   onChange={e => setDraft(d => ({ ...d, points_per_clp: Number(e.target.value) }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
                 />
-                <p className="text-white/30 text-[10px] mt-1">
+                <p className="text-[var(--text-muted)] text-[10px] mt-1">
                   Ej: 0.01 → 1 punto cada $100
                 </p>
               </Field>
@@ -282,15 +282,15 @@ export default function FidelizacionPage() {
                   type="number" min={0} max={100000}
                   value={draft.welcome_points ?? 0}
                   onChange={e => setDraft(d => ({ ...d, welcome_points: Number(e.target.value) }))}
-                  className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+                  className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
                 />
               </Field>
             </>
           )}
         </div>
 
-        <div className="flex items-center justify-between pt-1 border-t border-white/6">
-          <p className="text-white/35 text-xs">
+        <div className="flex items-center justify-between pt-1 border-t border-[var(--border-subtle)]">
+          <p className="text-[var(--text-muted)] text-xs">
             {savedAt && Date.now() - savedAt < 3000
               ? '✓ Guardado'
               : dirty ? 'Hay cambios sin guardar' : 'Todo al día'}
@@ -307,16 +307,16 @@ export default function FidelizacionPage() {
       </section>
 
       {/* Reward catalog */}
-      <section className="bg-[#161622] border border-white/8 rounded-2xl p-4 space-y-3">
+      <section className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-            <Trophy size={14} className="text-[#FF6B35]" /> Catálogo de recompensas
+          <h2 className="text-[var(--text-strong)] font-semibold text-sm flex items-center gap-2">
+            <Trophy size={14} className="text-[#E55A2B]" /> Catálogo de recompensas
           </h2>
-          <span className="text-white/40 text-xs">{rewards.filter(r => r.active).length} activas</span>
+          <span className="text-[var(--text-muted)] text-xs">{rewards.filter(r => r.active).length} activas</span>
         </div>
 
         {rewards.length === 0 ? (
-          <p className="text-white/25 text-sm py-2">Aún no hay recompensas.</p>
+          <p className="text-[var(--text-muted)] text-sm py-2">Aún no hay recompensas.</p>
         ) : (
           <div className="space-y-2">
             {rewards.map(r => (
@@ -338,11 +338,11 @@ export default function FidelizacionPage() {
       </section>
 
       {/* Manual coupon issuance */}
-      <section className="bg-[#161622] border border-white/8 rounded-2xl p-4 space-y-3">
-        <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-          <Ticket size={14} className="text-[#FF6B35]" /> Emitir cupón manual
+      <section className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4 space-y-3">
+        <h2 className="text-[var(--text-strong)] font-semibold text-sm flex items-center gap-2">
+          <Ticket size={14} className="text-[#E55A2B]" /> Emitir cupón manual
         </h2>
-        <p className="text-white/40 text-xs">
+        <p className="text-[var(--text-muted)] text-xs">
           Pega el ID de cliente y elige una recompensa. El cupón generado se valida server-side al canjear.
         </p>
         <ManualIssue restId={restId!} rewards={rewards.filter(r => r.active)} />
@@ -356,7 +356,7 @@ export default function FidelizacionPage() {
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="block">
-      <span className="text-white/50 text-[11px] font-semibold uppercase tracking-wide mb-1 block">
+      <span className="text-[var(--text-muted)] text-[11px] font-semibold uppercase tracking-wide mb-1 block">
         {label}
       </span>
       {children}
@@ -400,17 +400,17 @@ function RewardRow({ reward, onChanged, restId }: { reward: Reward; onChanged: (
   }
 
   return (
-    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${reward.active ? 'bg-white/3 border-white/8' : 'bg-white/2 border-white/5 opacity-60'}`}>
+    <div className={`flex items-center gap-3 px-3 py-2.5 rounded-xl border ${reward.active ? 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] opacity-60'}`}>
       <div className="flex-1 min-w-0">
-        <p className="text-white text-sm font-medium truncate">{reward.name}</p>
-        <p className="text-white/40 text-[11px]">
+        <p className="text-[var(--text-strong)] text-sm font-medium truncate">{reward.name}</p>
+        <p className="text-[var(--text-muted)] text-[11px]">
           {typeLabel[reward.type]} · {reward.points_cost ? `${reward.points_cost} pts` : ''} {reward.stamps_cost ? `· ${reward.stamps_cost} sellos` : ''}
         </p>
       </div>
-      <button onClick={toggle} disabled={busy} className="text-[11px] font-semibold text-white/50 hover:text-white px-2 py-1 rounded-lg hover:bg-white/5">
+      <button onClick={toggle} disabled={busy} className="text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text-strong)] px-2 py-1 rounded-lg hover:bg-[var(--surface-sunken)]">
         {reward.active ? 'Pausar' : 'Activar'}
       </button>
-      <button onClick={del} disabled={busy} className="text-red-400/70 hover:text-red-300 p-1.5 rounded-lg hover:bg-red-500/10">
+      <button onClick={del} disabled={busy} className="text-red-700/70 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-500/10">
         <Trash2 size={13} />
       </button>
     </div>
@@ -463,7 +463,7 @@ function RewardCreate({ disabled, restId, onCreated }: { disabled: boolean; rest
       <button
         onClick={() => setOpen(true)}
         disabled={disabled}
-        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-white/15 text-white/50 text-xs font-semibold hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors disabled:opacity-40"
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-dashed border-[var(--border-subtle)] text-[var(--text-muted)] text-xs font-semibold hover:border-[#FF6B35]/40 hover:text-[#E55A2B] transition-colors disabled:opacity-40"
       >
         <Plus size={13} /> Nueva recompensa
       </button>
@@ -478,14 +478,14 @@ function RewardCreate({ disabled, restId, onCreated }: { disabled: boolean; rest
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Ej: Café gratis"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
           />
         </Field>
         <Field label="Tipo">
           <select
             value={type}
             onChange={e => setType(e.target.value as RewardType)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
           >
             <option value="discount_percent">Descuento %</option>
             <option value="discount_amount">Descuento $</option>
@@ -495,23 +495,23 @@ function RewardCreate({ disabled, restId, onCreated }: { disabled: boolean; rest
         </Field>
         {type === 'discount_percent' && (
           <Field label="% Descuento">
-            <input type="number" min={1} max={100} value={percent} onChange={e => setPercent(Number(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
+            <input type="number" min={1} max={100} value={percent} onChange={e => setPercent(Number(e.target.value))} className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
           </Field>
         )}
         {type === 'discount_amount' && (
           <Field label="Monto $ CLP">
-            <input type="number" min={100} step={500} value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
+            <input type="number" min={100} step={500} value={amount} onChange={e => setAmount(Number(e.target.value))} className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
           </Field>
         )}
         <Field label="Costo en puntos">
-          <input type="number" min={0} value={points} onChange={e => setPoints(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
+          <input type="number" min={0} value={points} onChange={e => setPoints(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
         </Field>
         <Field label="Costo en sellos">
-          <input type="number" min={0} value={stamps} onChange={e => setStamps(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
+          <input type="number" min={0} value={stamps} onChange={e => setStamps(e.target.value === '' ? '' : Number(e.target.value))} className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none" />
         </Field>
       </div>
 
-      {err && <p className="text-red-300 text-xs">{err}</p>}
+      {err && <p className="text-red-700 text-xs">{err}</p>}
 
       <div className="flex gap-2">
         <button
@@ -522,7 +522,7 @@ function RewardCreate({ disabled, restId, onCreated }: { disabled: boolean; rest
           {busy ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
           Crear
         </button>
-        <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/20 hover:text-white/80">
+        <button onClick={() => setOpen(false)} className="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] hover:text-[var(--text-body)]">
           Cancelar
         </button>
       </div>
@@ -589,7 +589,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
   }
 
   if (rewards.length === 0) {
-    return <p className="text-white/30 text-xs">Crea al menos una recompensa activa primero.</p>
+    return <p className="text-[var(--text-muted)] text-xs">Crea al menos una recompensa activa primero.</p>
   }
 
   return (
@@ -601,7 +601,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
             value={email}
             onChange={e => setEmail(e.target.value)}
             placeholder="cliente@correo.cl"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
           />
         </Field>
         <Field label="Nombre (opcional)">
@@ -609,14 +609,14 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
             value={name}
             onChange={e => setName(e.target.value)}
             placeholder="Para personalizar el email"
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm focus:border-[#FF6B35]/40 focus:outline-none"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm focus:border-[#FF6B35]/40 focus:outline-none"
           />
         </Field>
         <Field label="Recompensa">
           <select
             value={rewardId}
             onChange={e => setRewardId(e.target.value)}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2 text-white text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2 text-[var(--text-strong)] text-sm cursor-pointer focus:border-[#FF6B35]/40 focus:outline-none"
           >
             <option value="">— Elegir —</option>
             {rewards.map(r => <option key={r.id} value={r.id}>{r.name}</option>)}
@@ -651,7 +651,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
             <span className="font-mono font-bold select-all">{result.code}</span>
             <button
               onClick={() => { if (result.code) navigator.clipboard?.writeText(result.code) }}
-              className="ml-auto text-emerald-300/70 hover:text-emerald-300 text-[10px] underline underline-offset-2"
+              className="ml-auto text-emerald-700/70 hover:text-emerald-700 text-[10px] underline underline-offset-2"
             >
               copiar
             </button>
@@ -671,12 +671,12 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
               onClick={() => navigator.clipboard?.writeText(
                 `Cupón ${rewardName}: ${result.code} (reclamalo en ${baseUrl}/mi-wallet)`
               )}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white/8 border border-white/15 text-white/70 text-[10px] font-medium hover:bg-white/15 transition-colors"
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-[10px] font-medium hover:bg-[var(--surface-sunken)] transition-colors"
             >
               📋 Copiar mensaje completo
             </button>
           </div>
-          <div className="text-emerald-300/80 text-[11px]">
+          <div className="text-emerald-700/80 text-[11px]">
             {result.emailCarrier === 'resend' && (
               result.existingUser
                 ? '✉ Email branded enviado (Resend). Ya está en el wallet del cliente.'
@@ -699,7 +699,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
             )}
           </div>
           {result.createdNewUser && (
-            <div className="text-emerald-300/50 text-[10px] pt-1 border-t border-emerald-500/15">
+            <div className="text-emerald-700/50 text-[10px] pt-1 border-t border-emerald-500/15">
               🆕 Se creó una cuenta nueva para este cliente.
             </div>
           )}
@@ -707,15 +707,15 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
         )
       })()}
       {result?.error && (
-        <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs">
+        <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs">
           {result.error}
         </div>
       )}
 
-      <p className="text-white/30 text-[10px]">
+      <p className="text-[var(--text-muted)] text-[10px]">
         Se envía un email al cliente con el código. Si aún no tiene cuenta HiChapi, el correo lo invita a registrarse y el cupón queda reclamado en su wallet virtual al registrarse.
       </p>
-      <p className="text-white/20 text-[10px]">
+      <p className="text-[var(--text-muted)] text-[10px]">
         Formato moneda: {clp(1000)}
       </p>
     </div>

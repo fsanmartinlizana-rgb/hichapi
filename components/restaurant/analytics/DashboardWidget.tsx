@@ -24,7 +24,7 @@ function clp(n: number) {
 export function DashboardWidget({ type, summary }: { type: string; summary: AnalyticsSummary | null }) {
   if (!summary) {
     return (
-      <div className="h-full rounded-2xl border border-white/5 bg-white/[0.02] animate-pulse" />
+      <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-white/[0.02] animate-pulse" />
     )
   }
 
@@ -55,7 +55,7 @@ export function DashboardWidget({ type, summary }: { type: string; summary: Anal
       return <WasteBreakdown summary={summary} />
     default:
       return (
-        <div className="h-full flex items-center justify-center rounded-2xl border border-white/8 bg-[#161622] text-white/40 text-xs">
+        <div className="h-full flex items-center justify-center rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] text-[var(--text-muted)] text-xs">
           Widget desconocido: {type}
         </div>
       )
@@ -68,51 +68,51 @@ function RevenueKpi({ summary }: { summary: AnalyticsSummary }) {
   const delta = summary.comparison.delta_pct
   const positive = delta >= 0
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col justify-between">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col justify-between">
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-[11px] uppercase tracking-wider">Ingresos ({summary.period})</p>
-        <DollarSign size={14} className="text-emerald-400" />
+        <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Ingresos ({summary.period})</p>
+        <DollarSign size={14} className="text-emerald-700" />
       </div>
       <div className="space-y-1">
-        <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+        <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
           {clp(summary.revenue.total_paid)}
         </p>
-        <p className={`text-[11px] flex items-center gap-1 ${positive ? 'text-emerald-400/80' : 'text-red-400/80'}`}>
+        <p className={`text-[11px] flex items-center gap-1 ${positive ? 'text-emerald-700/80' : 'text-red-700/80'}`}>
           {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
           {positive ? '+' : ''}{delta}% vs período anterior
         </p>
       </div>
-      <p className="text-white/30 text-[10px]">{summary.revenue.orders_count} pedidos pagados</p>
+      <p className="text-[var(--text-muted)] text-[10px]">{summary.revenue.orders_count} pedidos pagados</p>
     </div>
   )
 }
 
 function AvgTicket({ summary }: { summary: AnalyticsSummary }) {
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col justify-between">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col justify-between">
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-[11px] uppercase tracking-wider">Ticket promedio</p>
-        <Receipt size={14} className="text-[#60A5FA]" />
+        <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Ticket promedio</p>
+        <Receipt size={14} className="text-[#1D4ED8]" />
       </div>
-      <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {clp(summary.revenue.avg_ticket)}
       </p>
-      <p className="text-white/30 text-[10px]">{summary.revenue.orders_count} pedidos pagados · {summary.period}</p>
+      <p className="text-[var(--text-muted)] text-[10px]">{summary.revenue.orders_count} pedidos pagados · {summary.period}</p>
     </div>
   )
 }
 
 function OpenTables({ summary }: { summary: AnalyticsSummary }) {
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col justify-between">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col justify-between">
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-[11px] uppercase tracking-wider">Mesas ocupadas</p>
-        <Grid3x3 size={14} className="text-[#FF6B35]" />
+        <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Mesas ocupadas</p>
+        <Grid3x3 size={14} className="text-[#E55A2B]" />
       </div>
-      <p className="text-white text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {summary.open_tables}
       </p>
-      <p className="text-white/30 text-[10px]">En este momento</p>
+      <p className="text-[var(--text-muted)] text-[10px]">En este momento</p>
     </div>
   )
 }
@@ -121,15 +121,15 @@ function LowStock({ summary }: { summary: AnalyticsSummary }) {
   const count = summary.stock_alerts
   const alert = count > 0
   return (
-    <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${alert ? 'border-amber-500/25 bg-amber-500/5' : 'border-white/8 bg-[#161622]'}`}>
+    <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${alert ? 'border-amber-500/25 bg-amber-500/5' : 'border-[var(--border-subtle)] bg-[var(--surface-card)]'}`}>
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-[11px] uppercase tracking-wider">Stock bajo</p>
-        <AlertTriangle size={14} className={alert ? 'text-amber-400' : 'text-white/30'} />
+        <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Stock bajo</p>
+        <AlertTriangle size={14} className={alert ? 'text-amber-700' : 'text-[var(--text-muted)]'} />
       </div>
-      <p className={`text-2xl font-bold ${alert ? 'text-amber-300' : 'text-white'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className={`text-2xl font-bold ${alert ? 'text-amber-700' : 'text-[var(--text-strong)]'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {count}
       </p>
-      <p className="text-white/30 text-[10px]">Insumos bajo el umbral mínimo</p>
+      <p className="text-[var(--text-muted)] text-[10px]">Insumos bajo el umbral mínimo</p>
     </div>
   )
 }
@@ -138,22 +138,22 @@ function TopItems({ summary }: { summary: AnalyticsSummary }) {
   const items = summary.top_items
   const max = Math.max(...items.map(i => i.qty), 1)
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-white font-semibold text-sm">Top productos</p>
-        <TrendingUp size={14} className="text-white/30" />
+        <p className="text-[var(--text-strong)] font-semibold text-sm">Top productos</p>
+        <TrendingUp size={14} className="text-[var(--text-muted)]" />
       </div>
       {items.length === 0 ? (
-        <p className="text-white/30 text-xs italic">Sin datos en el período</p>
+        <p className="text-[var(--text-muted)] text-xs italic">Sin datos en el período</p>
       ) : (
         <div className="space-y-2">
           {items.map(i => (
             <div key={i.name} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/80 truncate flex-1 mr-3">{i.name}</span>
-                <span className="text-white/40 font-mono shrink-0">{i.qty} · {clp(i.revenue)}</span>
+                <span className="text-[var(--text-body)] truncate flex-1 mr-3">{i.name}</span>
+                <span className="text-[var(--text-muted)] font-mono shrink-0">{i.qty} · {clp(i.revenue)}</span>
               </div>
-              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-1.5 rounded-full bg-[var(--surface-sunken)] overflow-hidden">
                 <div className="h-full rounded-full bg-[#FF6B35]" style={{ width: `${(i.qty / max) * 100}%` }} />
               </div>
             </div>
@@ -186,8 +186,8 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
 
   if (rows.length === 0) {
     return (
-      <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex items-center justify-center">
-        <p className="text-white/30 text-xs italic">Sin datos de ocupación en el período</p>
+      <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex items-center justify-center">
+        <p className="text-[var(--text-muted)] text-xs italic">Sin datos de ocupación en el período</p>
       </div>
     )
   }
@@ -232,16 +232,16 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
   const showNumbers = rowHeight >= 22
 
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col">
       <div className="flex items-start justify-between mb-3 gap-2">
         <div>
-          <p className="text-white font-semibold text-sm">Ocupación por fecha y hora</p>
-          <p className="text-white/35 text-[10px]">
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Ocupación por fecha y hora</p>
+          <p className="text-[var(--text-muted)] text-[10px]">
             {rows.length} día{rows.length === 1 ? '' : 's'} · período: {summary.period}
             {valleyCount > 0 && ` · ${valleyCount} horas valle`}
           </p>
         </div>
-        <div className="flex items-center gap-1.5 text-[9px] text-white/40 shrink-0 flex-wrap">
+        <div className="flex items-center gap-1.5 text-[9px] text-[var(--text-muted)] shrink-0 flex-wrap">
           <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm inline-block" style={{ background: 'rgba(255,107,53,0.08)' }} />0</span>
           <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#FF6B35]/60 inline-block" /></span>
           <span className="flex items-center gap-1"><span className="w-3 h-2 rounded-sm bg-[#FF6B35] inline-block" />pico</span>
@@ -252,9 +252,9 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
       <div className="flex-1 overflow-auto">
         <div className="min-w-full">
           {/* Header row con horas */}
-          <div className="flex gap-[3px] mb-1 pl-[88px] sticky top-0 bg-[#161622] z-10 pb-1">
+          <div className="flex gap-[3px] mb-1 pl-[88px] sticky top-0 bg-[var(--surface-card)] z-10 pb-1">
             {hours.map(h => (
-              <div key={h} className="flex-1 text-center text-[9px] text-white/30 font-mono min-w-[22px]">
+              <div key={h} className="flex-1 text-center text-[9px] text-[var(--text-muted)] font-mono min-w-[22px]">
                 {h}h
               </div>
             ))}
@@ -262,7 +262,7 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
           {/* Day rows */}
           {rows.map(r => (
             <div key={r.date} className="flex items-center gap-[3px] mb-[3px]">
-              <span className="w-[84px] text-[10px] text-white/50 shrink-0 font-medium truncate pr-1">
+              <span className="w-[84px] text-[10px] text-[var(--text-muted)] shrink-0 font-medium truncate pr-1">
                 {formatDateLabel(r.date)}
               </span>
               {hours.map(h => {
@@ -278,12 +278,12 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
                     style={{
                       height: `${rowHeight}px`,
                       backgroundColor: v === 0
-                        ? 'rgba(255,255,255,0.03)'
+                        ? 'rgba(26, 26, 46, 0.04)'
                         : `rgba(255,107,53,${0.1 + intensity * 0.8})`,
                     }}
                   >
                     {showNumbers && intensity > 0.4 && (
-                      <span className="text-[9px] font-mono text-white/90">{v}</span>
+                      <span className="text-[9px] font-mono text-[var(--text-body)]">{v}</span>
                     )}
                   </div>
                 )
@@ -294,10 +294,10 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
       </div>
 
       {valleyCount > 0 && (
-        <div className="mt-3 pt-3 border-t border-white/5 flex items-start gap-2">
+        <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-start gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
-          <p className="text-white/50 text-[11px] leading-relaxed">
-            Las celdas con borde rojo son <span className="text-red-300">horas valle</span> (5-35% del pico).
+          <p className="text-[var(--text-muted)] text-[11px] leading-relaxed">
+            Las celdas con borde rojo son <span className="text-red-700">horas valle</span> (5-35% del pico).
             Son oportunidades para activar promociones y balancear la demanda.
           </p>
         </div>
@@ -325,16 +325,16 @@ function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
   const yTicks = [0.25, 0.5, 0.75, 1].map(f => Math.ceil(max * f))
 
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col">
       <div className="flex items-center justify-between mb-1">
         <div>
-          <p className="text-white font-semibold text-sm">Órdenes por hora</p>
-          <p className="text-white/35 text-[10px]">
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Órdenes por hora</p>
+          <p className="text-[var(--text-muted)] text-[10px]">
             {totalOrders} pedido{totalOrders === 1 ? '' : 's'} en el período
             {peak && peak.orders > 0 && ` · pico ${String(peak.hour).padStart(2, '0')}:00 con ${peak.orders}`}
           </p>
         </div>
-        <Clock size={14} className="text-white/30" />
+        <Clock size={14} className="text-[var(--text-muted)]" />
       </div>
 
       {/* Chart area: eje Y izquierdo con ticks + barras */}
@@ -342,9 +342,9 @@ function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
         {/* Y axis labels */}
         <div className="flex flex-col justify-between py-1 pr-1 text-right">
           {[...yTicks].reverse().map(t => (
-            <span key={t} className="text-[9px] text-white/30 font-mono leading-none">{t}</span>
+            <span key={t} className="text-[9px] text-[var(--text-muted)] font-mono leading-none">{t}</span>
           ))}
-          <span className="text-[9px] text-white/30 font-mono leading-none">0</span>
+          <span className="text-[9px] text-[var(--text-muted)] font-mono leading-none">0</span>
         </div>
 
         {/* Bars + grid */}
@@ -352,7 +352,7 @@ function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
           {/* Grid lines */}
           <div className="absolute inset-0 flex flex-col justify-between pointer-events-none">
             {[...yTicks, 0].reverse().map((_, i) => (
-              <div key={i} className="border-t border-white/5" />
+              <div key={i} className="border-t border-[var(--border-subtle)]" />
             ))}
           </div>
 
@@ -368,11 +368,11 @@ function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
                 >
                   {/* Tooltip */}
                   {d.orders > 0 && (
-                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black text-white text-[10px] font-medium px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
+                    <div className="absolute bottom-full mb-1 left-1/2 -translate-x-1/2 bg-black text-[var(--text-strong)] text-[10px] font-medium px-2 py-1 rounded whitespace-nowrap opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-10 shadow-lg">
                       {String(d.hour).padStart(2, '0')}:00
-                      <span className="text-white/50"> · </span>
+                      <span className="text-[var(--text-muted)]"> · </span>
                       {d.orders} pedido{d.orders === 1 ? '' : 's'}
-                      <span className="text-white/50"> · </span>
+                      <span className="text-[var(--text-muted)]"> · </span>
                       {clp(d.revenue)}
                     </div>
                   )}
@@ -382,7 +382,7 @@ function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
                         ? 'bg-[#FF6B35] group-hover:bg-[#ff7a4a]'
                         : d.orders > 0
                         ? 'bg-[#FF6B35]/60 group-hover:bg-[#FF6B35]'
-                        : 'bg-white/5 group-hover:bg-white/10'
+                        : 'bg-[var(--surface-sunken)] group-hover:bg-[var(--surface-sunken)]'
                     }`}
                     style={{ height: `${Math.max(h, d.orders > 0 ? 3 : 0)}%` }}
                   />
@@ -398,7 +398,7 @@ function HourlyOrders({ summary }: { summary: AnalyticsSummary }) {
         {data.map(d => (
           <div key={d.hour} className="flex-1 text-center">
             {(d.hour - startHour) % 2 === 0 && (
-              <span className="text-[9px] text-white/35 font-mono">{String(d.hour).padStart(2, '0')}</span>
+              <span className="text-[9px] text-[var(--text-muted)] font-mono">{String(d.hour).padStart(2, '0')}</span>
             )}
           </div>
         ))}
@@ -411,15 +411,15 @@ function WasteCost({ summary }: { summary: AnalyticsSummary }) {
   const total  = summary.waste?.total_cost   ?? 0
   const events = summary.waste?.events_count ?? 0
   return (
-    <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${total > 0 ? 'border-red-500/20 bg-red-500/5' : 'border-white/8 bg-[#161622]'}`}>
+    <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${total > 0 ? 'border-red-500/20 bg-red-500/5' : 'border-[var(--border-subtle)] bg-[var(--surface-card)]'}`}>
       <div className="flex items-center justify-between">
-        <p className="text-white/40 text-[11px] uppercase tracking-wider">Pérdidas ({summary.period})</p>
-        <Trash2 size={14} className={total > 0 ? 'text-red-400' : 'text-white/30'} />
+        <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Pérdidas ({summary.period})</p>
+        <Trash2 size={14} className={total > 0 ? 'text-red-700' : 'text-[var(--text-muted)]'} />
       </div>
-      <p className={`text-2xl font-bold ${total > 0 ? 'text-red-300' : 'text-white'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className={`text-2xl font-bold ${total > 0 ? 'text-red-700' : 'text-[var(--text-strong)]'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {clp(total)}
       </p>
-      <p className="text-white/30 text-[10px]">
+      <p className="text-[var(--text-muted)] text-[10px]">
         {events} evento{events === 1 ? '' : 's'} registrado{events === 1 ? '' : 's'}
       </p>
     </div>
@@ -443,27 +443,27 @@ function WasteBreakdown({ summary }: { summary: AnalyticsSummary }) {
   const max     = Math.max(...reasons.map(r => r.cost), 1)
   const total   = summary.waste?.total_cost ?? 0
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <p className="text-white font-semibold text-sm">Mermas por razón</p>
-          <p className="text-white/35 text-[10px]">Costo total: {clp(total)}</p>
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Mermas por razón</p>
+          <p className="text-[var(--text-muted)] text-[10px]">Costo total: {clp(total)}</p>
         </div>
-        <Trash2 size={14} className="text-white/30" />
+        <Trash2 size={14} className="text-[var(--text-muted)]" />
       </div>
       {reasons.length === 0 ? (
-        <p className="text-white/30 text-xs italic">Sin mermas en el período. Bien ahí.</p>
+        <p className="text-[var(--text-muted)] text-xs italic">Sin mermas en el período. Bien ahí.</p>
       ) : (
         <div className="space-y-2">
           {reasons.map(r => (
             <div key={r.reason} className="space-y-1">
               <div className="flex items-center justify-between text-xs">
-                <span className="text-white/80">{REASON_LABEL[r.reason] ?? r.reason}</span>
-                <span className="text-white/40 font-mono">
+                <span className="text-[var(--text-body)]">{REASON_LABEL[r.reason] ?? r.reason}</span>
+                <span className="text-[var(--text-muted)] font-mono">
                   {r.count} · {clp(r.cost)}
                 </span>
               </div>
-              <div className="h-1.5 rounded-full bg-white/5 overflow-hidden">
+              <div className="h-1.5 rounded-full bg-[var(--surface-sunken)] overflow-hidden">
                 <div className="h-full rounded-full bg-red-400/70" style={{ width: `${(r.cost / max) * 100}%` }} />
               </div>
             </div>
@@ -495,11 +495,11 @@ function ChapiTip({ summary }: { summary: AnalyticsSummary }) {
   return (
     <div className="h-full rounded-2xl border border-[#FF6B35]/20 bg-gradient-to-br from-[#FF6B35]/10 to-transparent p-5 flex flex-col justify-between">
       <div className="flex items-center gap-2">
-        <Sparkles size={14} className="text-[#FF6B35]" />
-        <p className="text-white font-semibold text-sm">Chapi dice</p>
+        <Sparkles size={14} className="text-[#E55A2B]" />
+        <p className="text-[var(--text-strong)] font-semibold text-sm">Chapi dice</p>
       </div>
-      <p className="text-white/80 text-sm leading-relaxed">{tip}</p>
-      <p className="text-white/30 text-[10px]">Actualizado ahora</p>
+      <p className="text-[var(--text-body)] text-sm leading-relaxed">{tip}</p>
+      <p className="text-[var(--text-muted)] text-[10px]">Actualizado ahora</p>
     </div>
   )
 }
@@ -534,7 +534,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'opportunity',
       icon:  <Target size={14} />,
-      color: 'text-emerald-400',
+      color: 'text-emerald-700',
       bg:    'bg-emerald-500/10 border-emerald-500/20',
       title: `${star.name} es tu plato estrella`,
       body: `Representa ${pct}% del revenue del período (${star.qty} unidades). Si tiene alto pedido y margen, podés probar una subida de $500-$1000 sin impactar ventas.`,
@@ -551,7 +551,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'insight',
       icon:  <Clock size={14} />,
-      color: 'text-blue-400',
+      color: 'text-blue-700',
       bg:    'bg-blue-500/10 border-blue-500/20',
       title: `Tu hora pico es ${String(peakHour.hour).padStart(2, '0')}:00`,
       body: `Con ${peakHour.orders} pedidos en ese horario. Asegurate de tener suficiente personal en turno y los insumos críticos stockeados.`,
@@ -590,7 +590,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
         recs.push({
           type:  'warning',
           icon:  <AlertCircle size={14} />,
-          color: 'text-yellow-400',
+          color: 'text-yellow-700',
           bg:    'bg-yellow-500/10 border-yellow-500/20',
           title: `Horario muerto: ${String(worstHour).padStart(2, '0')}:00`,
           body: `Tenés en promedio ${worstAvg.toFixed(1)} pedidos a esa hora — muy por debajo del pico. Activá una promoción happy-hour para llenar el salón.`,
@@ -605,7 +605,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'warning',
       icon:  <AlertTriangle size={14} />,
-      color: 'text-amber-400',
+      color: 'text-amber-700',
       bg:    'bg-amber-500/10 border-amber-500/20',
       title: `${stock_alerts} insumo${stock_alerts === 1 ? '' : 's'} bajo el umbral mínimo`,
       body: 'Revisá stock antes del próximo servicio. Faltante de ingredientes = pedidos perdidos + clientes molestos.',
@@ -620,7 +620,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
       recs.push({
         type:  'warning',
         icon:  <Trash2 size={14} />,
-        color: 'text-red-400',
+        color: 'text-red-700',
         bg:    'bg-red-500/10 border-red-500/20',
         title: `Mermas representan ${wastePct.toFixed(1)}% del revenue`,
         body: `${clp(waste.total_cost)} perdidos en el período. Revisá la razón principal y ajustá procesos.`,
@@ -635,7 +635,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  up ? 'insight' : 'warning',
       icon:  up ? <TrendingUp size={14} /> : <TrendingDown size={14} />,
-      color: up ? 'text-emerald-400' : 'text-red-400',
+      color: up ? 'text-emerald-700' : 'text-red-700',
       bg:    up ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20',
       title: up
         ? `Vas +${comparison.delta_pct}% vs período anterior`
@@ -651,7 +651,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'opportunity',
       icon:  <Tag size={14} />,
-      color: 'text-[#FF6B35]',
+      color: 'text-[#E55A2B]',
       bg:    'bg-[#FF6B35]/10 border-[#FF6B35]/20',
       title: 'Probá un combo para subir el ticket promedio',
       body: `Tu ticket promedio es ${clp(revenue.avg_ticket)}. Un combo plato+bebida o plato+postre con 10% de descuento puede aumentarlo 15-20%.`,
@@ -661,8 +661,8 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
 
   if (recs.length === 0) {
     return (
-      <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex items-center justify-center">
-        <p className="text-white/30 text-xs italic text-center">
+      <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex items-center justify-center">
+        <p className="text-[var(--text-muted)] text-xs italic text-center">
           Sin recomendaciones todavía. Seguí registrando pedidos y Chapi te dirá qué mejorar.
         </p>
       </div>
@@ -670,13 +670,13 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
   }
 
   return (
-    <div className="h-full rounded-2xl border border-white/8 bg-[#161622] p-5 flex flex-col">
+    <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col">
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center gap-2">
-          <Sparkles size={14} className="text-[#FF6B35]" />
-          <p className="text-white font-semibold text-sm">Chapi recomienda</p>
+          <Sparkles size={14} className="text-[#E55A2B]" />
+          <p className="text-[var(--text-strong)] font-semibold text-sm">Chapi recomienda</p>
         </div>
-        <span className="text-white/30 text-[10px]">{recs.length} insight{recs.length === 1 ? '' : 's'}</span>
+        <span className="text-[var(--text-muted)] text-[10px]">{recs.length} insight{recs.length === 1 ? '' : 's'}</span>
       </div>
 
       <div className="space-y-2.5 flex-1 overflow-y-auto pr-1">
@@ -684,9 +684,9 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
           <div key={i} className={`border rounded-xl p-3 space-y-1.5 ${r.bg}`}>
             <div className="flex items-center gap-2">
               <span className={r.color}>{r.icon}</span>
-              <p className="text-white text-xs font-semibold flex-1">{r.title}</p>
+              <p className="text-[var(--text-strong)] text-xs font-semibold flex-1">{r.title}</p>
             </div>
-            <p className="text-white/70 text-[11px] leading-relaxed">{r.body}</p>
+            <p className="text-[var(--text-body)] text-[11px] leading-relaxed">{r.body}</p>
             {r.cta && (
               <Link
                 href={r.cta.href}

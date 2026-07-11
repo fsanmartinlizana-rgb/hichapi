@@ -21,10 +21,10 @@ import {
 } from '@/lib/turnos/grouping'
 
 const STATUS_CONFIG: Record<WorkerShift['status'], { label: string; color: string }> = {
-  scheduled: { label: 'Programado', color: 'bg-blue-500/15 text-blue-300 border-blue-500/30' },
-  open:      { label: 'En curso',   color: 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30' },
-  closed:    { label: 'Cerrado',    color: 'bg-white/10 text-white/40 border-white/10' },
-  no_show:   { label: 'Ausente',    color: 'bg-red-500/15 text-red-300 border-red-500/30' },
+  scheduled: { label: 'Programado', color: 'bg-blue-500/15 text-blue-700 border-blue-500/30' },
+  open:      { label: 'En curso',   color: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
+  closed:    { label: 'Cerrado',    color: 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]' },
+  no_show:   { label: 'Ausente',    color: 'bg-red-500/15 text-red-700 border-red-500/30' },
 }
 
 const DAYS_FULL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -99,16 +99,16 @@ export default function MisTurnosPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <CalendarDays size={20} className="text-[#FF6B35]" /> Mis turnos
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <CalendarDays size={20} className="text-[#E55A2B]" /> Mis turnos
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
             {name ? `Hola ${name}, ` : ''}estos son tus próximos turnos.
           </p>
         </div>
         <button
           onClick={load}
-          className="p-2 rounded-lg border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+          className="p-2 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"
           aria-label="Refrescar"
         >
           <RefreshCw size={15} className={loading ? 'animate-spin' : ''} />
@@ -120,46 +120,46 @@ export default function MisTurnosPage() {
           {error}
         </div>
       ) : loading ? (
-        <div className="flex items-center gap-2 text-white/40 text-sm py-10 justify-center">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm py-10 justify-center">
           <RefreshCw size={16} className="animate-spin" /> Cargando tus turnos…
         </div>
       ) : (
         <>
           {/* Resumen */}
           <div className="grid grid-cols-2 gap-3">
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
-              <p className="text-white/40 text-xs">Próximo turno</p>
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-4">
+              <p className="text-[var(--text-muted)] text-xs">Próximo turno</p>
               {nextShift ? (
                 <>
-                  <p className="text-white font-bold text-lg mt-0.5">{formatDayLabel(upcoming[0].date).split(' de ')[0]}</p>
-                  <p className="text-[#FF6B35] text-sm font-mono">{nextShift.start_time.slice(0, 5)}–{nextShift.end_time.slice(0, 5)}</p>
+                  <p className="text-[var(--text-strong)] font-bold text-lg mt-0.5">{formatDayLabel(upcoming[0].date).split(' de ')[0]}</p>
+                  <p className="text-[#E55A2B] text-sm font-mono">{nextShift.start_time.slice(0, 5)}–{nextShift.end_time.slice(0, 5)}</p>
                 </>
               ) : (
-                <p className="text-white/30 text-sm mt-1">Sin turnos próximos</p>
+                <p className="text-[var(--text-muted)] text-sm mt-1">Sin turnos próximos</p>
               )}
             </div>
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-4">
-              <p className="text-white/40 text-xs">Horas programadas</p>
-              <p className="text-white font-bold text-lg mt-0.5 font-mono">{Math.round(totalHours)}h</p>
-              <p className="text-white/30 text-xs">próximos días</p>
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-4">
+              <p className="text-[var(--text-muted)] text-xs">Horas programadas</p>
+              <p className="text-[var(--text-strong)] font-bold text-lg mt-0.5 font-mono">{Math.round(totalHours)}h</p>
+              <p className="text-[var(--text-muted)] text-xs">próximos días</p>
             </div>
           </div>
 
           {/* Lista de turnos por día */}
           {upcoming.length === 0 ? (
-            <div className="rounded-2xl border border-white/8 bg-white/3 p-8 text-center">
-              <CalendarX size={28} className="mx-auto text-white/20 mb-2" />
-              <p className="text-white/50 text-sm">No tenés turnos programados.</p>
-              <p className="text-white/30 text-xs mt-1">Cuando tu encargado te asigne turnos, aparecerán acá.</p>
+            <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-8 text-center">
+              <CalendarX size={28} className="mx-auto text-[var(--text-muted)] mb-2" />
+              <p className="text-[var(--text-muted)] text-sm">No tenés turnos programados.</p>
+              <p className="text-[var(--text-muted)] text-xs mt-1">Cuando tu encargado te asigne turnos, aparecerán acá.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {upcoming.map(group => {
                 const isToday = group.date === today
                 return (
-                  <div key={group.date} className={`rounded-2xl border p-4 ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-white/8 bg-white/3'}`}>
+                  <div key={group.date} className={`rounded-2xl border p-4 ${isToday ? 'border-[#FF6B35]/40 bg-[#FF6B35]/5' : 'border-[var(--border-subtle)] bg-[var(--surface-sunken)]'}`}>
                     <div className="flex items-center justify-between mb-2">
-                      <p className={`font-bold text-sm ${isToday ? 'text-[#FF6B35]' : 'text-white/80'}`}>
+                      <p className={`font-bold text-sm ${isToday ? 'text-[#E55A2B]' : 'text-[var(--text-body)]'}`}>
                         {formatDayLabel(group.date)}{isToday ? ' · Hoy' : ''}
                       </p>
                     </div>
@@ -167,12 +167,12 @@ export default function MisTurnosPage() {
                       {group.shifts.map(s => {
                         const cfg = STATUS_CONFIG[s.status]
                         return (
-                          <div key={s.id} className="flex items-center gap-3 rounded-xl bg-white/4 border border-white/8 px-3 py-2.5">
-                            <div className="flex items-center gap-1.5 text-white font-mono text-sm">
-                              <Clock size={13} className="text-white/40" />
+                          <div key={s.id} className="flex items-center gap-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] px-3 py-2.5">
+                            <div className="flex items-center gap-1.5 text-[var(--text-strong)] font-mono text-sm">
+                              <Clock size={13} className="text-[var(--text-muted)]" />
                               {s.start_time.slice(0, 5)}–{s.end_time.slice(0, 5)}
                             </div>
-                            <span className="text-white/30 text-xs">
+                            <span className="text-[var(--text-muted)] text-xs">
                               {shiftHours(s.start_time.slice(0, 5), s.end_time.slice(0, 5))}h
                             </span>
                             <span className={`ml-auto text-[10px] font-semibold px-2 py-0.5 rounded-full border ${cfg.color}`}>
@@ -184,15 +184,15 @@ export default function MisTurnosPage() {
                       {group.shifts.some(s => s.notes) && (
                         <div className="space-y-1 pt-1">
                           {group.shifts.filter(s => s.notes).map(s => (
-                            <p key={s.id} className="text-white/50 text-[11px] flex items-start gap-1.5">
-                              <StickyNote size={11} className="mt-0.5 shrink-0 text-white/30" /> {s.notes}
+                            <p key={s.id} className="text-[var(--text-muted)] text-[11px] flex items-start gap-1.5">
+                              <StickyNote size={11} className="mt-0.5 shrink-0 text-[var(--text-muted)]" /> {s.notes}
                             </p>
                           ))}
                         </div>
                       )}
                       {group.shifts.some(s => (s.tables_assigned?.length ?? 0) > 0) && (
-                        <p className="text-white/40 text-[11px] flex items-center gap-1.5">
-                          <MapPin size={11} className="text-white/30" />
+                        <p className="text-[var(--text-muted)] text-[11px] flex items-center gap-1.5">
+                          <MapPin size={11} className="text-[var(--text-muted)]" />
                           {group.shifts.reduce((n, s) => n + (s.tables_assigned?.length ?? 0), 0)} mesa(s) asignada(s)
                         </p>
                       )}

@@ -129,34 +129,34 @@ export default function MisRestaurantesPage() {
     <div className="max-w-3xl mx-auto p-6 md:p-10">
       <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
         <div>
-          <h1 className="text-white text-2xl font-bold">Mis restaurantes</h1>
-          <p className="text-white/50 text-sm mt-1">
+          <h1 className="text-[var(--text-strong)] text-2xl font-bold">Mis restaurantes</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">
             Locales donde tu cuenta tiene acceso. Podés cambiar entre ellos desde la barra lateral.
           </p>
         </div>
         <Link
           href="/agregar-restaurante"
-          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/15 transition-colors"
+          className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/30 text-[#E55A2B] text-xs font-semibold hover:bg-[#FF6B35]/15 transition-colors"
         >
           <Plus size={12} /> Agregar restaurante
         </Link>
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-300 text-xs mb-4">
+        <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs mb-4">
           <AlertCircle size={12} className="mt-0.5 shrink-0" />
           <p>{error}</p>
         </div>
       )}
 
       {loading && (
-        <div className="flex items-center justify-center gap-2 text-white/50 text-sm py-10">
+        <div className="flex items-center justify-center gap-2 text-[var(--text-muted)] text-sm py-10">
           <Loader2 size={14} className="animate-spin" /> Cargando…
         </div>
       )}
 
       {!loading && list && list.length === 0 && (
-        <p className="text-white/40 text-sm py-8 text-center">No tenés restaurantes activos.</p>
+        <p className="text-[var(--text-muted)] text-sm py-8 text-center">No tenés restaurantes activos.</p>
       )}
 
       {!loading && list && list.length > 0 && (
@@ -167,19 +167,19 @@ export default function MisRestaurantesPage() {
             return (
               <div
                 key={m.team_member_id}
-                className={`bg-[#13132A] border rounded-2xl p-4 flex items-center gap-3 ${
-                  isCurrent ? 'border-[#FF6B35]/40' : 'border-white/10'
+                className={`bg-[var(--surface-card)] border rounded-2xl p-4 flex items-center gap-3 ${
+                  isCurrent ? 'border-[#FF6B35]/40' : 'border-[var(--border-subtle)]'
                 }`}
               >
-                <div className="w-10 h-10 rounded-xl bg-white/5 border border-white/8 flex items-center justify-center text-white/60 shrink-0">
+                <div className="w-10 h-10 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] shrink-0">
                   <Icon size={16} />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-semibold text-sm truncate">
+                  <p className="text-[var(--text-strong)] font-semibold text-sm truncate">
                     {m.name}
-                    {isCurrent && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#FF6B35]/80">actual</span>}
+                    {isCurrent && <span className="ml-2 text-[10px] uppercase tracking-wider text-[#E55A2B]">actual</span>}
                   </p>
-                  <p className="text-white/40 text-xs">
+                  <p className="text-[var(--text-muted)] text-xs">
                     {ROLE_LABEL[m.role] ?? m.role}
                     {m.neighborhood ? ` · ${m.neighborhood}` : ''}
                   </p>
@@ -187,7 +187,7 @@ export default function MisRestaurantesPage() {
                 <Link
                   href={`/r/${m.slug}`}
                   target="_blank"
-                  className="text-white/40 hover:text-white text-xs inline-flex items-center gap-1 transition-colors"
+                  className="text-[var(--text-muted)] hover:text-[var(--text-strong)] text-xs inline-flex items-center gap-1 transition-colors"
                   title="Ver perfil público"
                 >
                   <ExternalLink size={12} />
@@ -195,7 +195,7 @@ export default function MisRestaurantesPage() {
                 <button
                   onClick={() => setConfirmLeave(m)}
                   disabled={leaving === m.restaurant_id}
-                  className="text-white/40 hover:text-red-300 text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="text-[var(--text-muted)] hover:text-red-700 text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {leaving === m.restaurant_id ? (
                     <Loader2 size={12} className="animate-spin" />
@@ -210,7 +210,7 @@ export default function MisRestaurantesPage() {
         </div>
       )}
 
-      <p className="text-white/30 text-[11px] mt-6 leading-relaxed">
+      <p className="text-[var(--text-muted)] text-[11px] mt-6 leading-relaxed">
         Al salir de un local, perdés acceso a su panel. Si sos el único propietario activo,
         tenés que transferir la propiedad o dar de baja el restaurante antes de salir.
         El historial de tu participación se conserva.
@@ -220,14 +220,14 @@ export default function MisRestaurantesPage() {
       {confirmLeave && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmLeave(null)} />
-          <div className="relative bg-[#161622] border border-white/10 rounded-2xl w-full max-w-md p-5">
+          <div className="relative bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-5">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-300 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-700 shrink-0">
                 <LogOut size={16} />
               </div>
               <div>
-                <h3 className="text-white font-bold text-base">Salir de {confirmLeave.name}</h3>
-                <p className="text-white/50 text-xs mt-1">
+                <h3 className="text-[var(--text-strong)] font-bold text-base">Salir de {confirmLeave.name}</h3>
+                <p className="text-[var(--text-muted)] text-xs mt-1">
                   Vas a perder acceso al panel de este restaurante. Para volver a entrar, el propietario
                   tendrá que invitarte de nuevo. ¿Confirmás?
                 </p>
@@ -244,7 +244,7 @@ export default function MisRestaurantesPage() {
               </button>
               <button
                 onClick={() => setConfirmLeave(null)}
-                className="w-full py-2.5 rounded-xl border border-white/10 text-white/60 text-sm hover:bg-white/5 transition-colors"
+                className="w-full py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors"
               >
                 Cancelar
               </button>

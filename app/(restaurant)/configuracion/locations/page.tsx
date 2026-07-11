@@ -170,7 +170,7 @@ export default function LocationsConfigPage() {
   if (!restaurant) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -180,24 +180,24 @@ export default function LocationsConfigPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-white text-xl font-bold flex items-center gap-2">
-            <Building2 size={20} className="text-[#FF6B35]" /> Locales y Marca
+          <h1 className="text-[var(--text-strong)] text-xl font-bold flex items-center gap-2">
+            <Building2 size={20} className="text-[#E55A2B]" /> Locales y Marca
           </h1>
-          <p className="text-white/40 text-sm mt-0.5">
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">
             Gestiona tus sucursales y decide qué compartir entre ellas
           </p>
         </div>
         {canAccessModule(restaurant?.plan ?? 'free', 'enterprise') ? (
           <button
             onClick={() => setShowCreate(true)}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35]/90 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35] transition-colors"
           >
             <Plus size={14} /> Agregar local
           </button>
         ) : (
           <a
             href="/modulos"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold bg-[#FF6B35]/5 hover:bg-[#FF6B35]/15 transition-colors"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl border border-[#FF6B35]/30 text-[#E55A2B] text-xs font-semibold bg-[#FF6B35]/5 hover:bg-[#FF6B35]/15 transition-colors"
             title="Multi-local requiere plan Enterprise"
           >
             <Plus size={14} /> Agregar local · Plan Enterprise
@@ -207,19 +207,19 @@ export default function LocationsConfigPage() {
 
       {/* Toast */}
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-white/10 backdrop-blur border border-white/20 text-white px-4 py-2.5 rounded-xl text-sm animate-in fade-in slide-in-from-top-2">
+        <div className="fixed top-6 right-6 z-50 bg-[var(--surface-sunken)] backdrop-blur border border-[var(--border-subtle)] text-[var(--text-strong)] px-4 py-2.5 rounded-xl text-sm animate-in fade-in slide-in-from-top-2">
           {toast}
         </div>
       )}
 
       {/* Brand sharing toggles */}
       {brand && hasMultiple && (
-        <section className="bg-white/[0.02] border border-white/8 rounded-2xl p-5 space-y-4">
+        <section className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
           <div className="flex items-center gap-2">
-            <Share2 size={16} className="text-[#FF6B35]" />
-            <h2 className="text-white font-semibold text-sm">Compartir entre locales — {brand.name}</h2>
+            <Share2 size={16} className="text-[#E55A2B]" />
+            <h2 className="text-[var(--text-strong)] font-semibold text-sm">Compartir entre locales — {brand.name}</h2>
           </div>
-          <p className="text-white/40 text-xs">
+          <p className="text-[var(--text-muted)] text-xs">
             Configura qué se comparte por default entre los {locations.length} locales.
             Cada local puede override individualmente más abajo.
           </p>
@@ -233,14 +233,14 @@ export default function LocationsConfigPage() {
               onChange={v => toggleBrand('share_menu', v)}
             />
             <ToggleCard
-              icon={<Package size={16} className="text-emerald-400" />}
+              icon={<Package size={16} className="text-emerald-700" />}
               label="Compartir stock"
               desc="Inventario único. Ideal si compran insumos juntos."
               value={brand.share_stock}
               onChange={v => toggleBrand('share_stock', v)}
             />
             <ToggleCard
-              icon={<BarChart2 size={16} className="text-blue-400" />}
+              icon={<BarChart2 size={16} className="text-blue-700" />}
               label="Reporte consolidado"
               desc="Dashboard único con métricas combinadas de todos los locales."
               value={brand.share_reports}
@@ -253,7 +253,7 @@ export default function LocationsConfigPage() {
       {/* Locations list */}
       {loading ? (
         <div className="flex items-center justify-center py-12">
-          <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+          <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
         </div>
       ) : locations.length === 0 ? (
         <EmptyState icon={MapPin} title="Sin locales" description="Todavía no tenés locales configurados. Agregá el primero arriba." />
@@ -281,9 +281,9 @@ export default function LocationsConfigPage() {
       {/* Create modal */}
       {showCreate && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setShowCreate(false)}>
-          <form onClick={e => e.stopPropagation()} onSubmit={createLocation} className="w-full max-w-md bg-[#111111] border border-white/10 rounded-2xl p-6 space-y-4">
-            <h3 className="text-white font-bold text-lg flex items-center gap-2">
-              <Store size={18} className="text-[#FF6B35]" /> Nuevo local
+          <form onClick={e => e.stopPropagation()} onSubmit={createLocation} className="w-full max-w-md bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-2xl p-6 space-y-4">
+            <h3 className="text-[var(--text-strong)] font-bold text-lg flex items-center gap-2">
+              <Store size={18} className="text-[#E55A2B]" /> Nuevo local
             </h3>
             <Input label="Nombre *" value={form.name} onChange={v => setForm(f => ({ ...f, name: v }))} required />
             <Input label="Dirección" value={form.address} onChange={v => setForm(f => ({ ...f, address: v }))} />
@@ -293,10 +293,10 @@ export default function LocationsConfigPage() {
               <Input label="WhatsApp" value={form.whatsapp_number} onChange={v => setForm(f => ({ ...f, whatsapp_number: v }))} />
             </div>
             <div className="flex gap-2 pt-2">
-              <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl bg-white/5 border border-white/10 text-white/60 text-sm hover:bg-white/10 transition-colors">
+              <button type="button" onClick={() => setShowCreate(false)} className="flex-1 py-2.5 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:bg-[var(--surface-sunken)] transition-colors">
                 Cancelar
               </button>
-              <button type="submit" disabled={saving || !form.name} className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-black text-sm font-bold hover:bg-[#FF6B35]/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
+              <button type="submit" disabled={saving || !form.name} className="flex-1 py-2.5 rounded-xl bg-[#FF6B35] text-black text-sm font-bold hover:bg-[#FF6B35] transition-colors disabled:opacity-50 flex items-center justify-center gap-2">
                 {saving ? <Loader2 size={14} className="animate-spin" /> : <Save size={14} />} Crear
               </button>
             </div>
@@ -319,22 +319,22 @@ function ToggleCard({ icon, label, desc, value, onChange }: {
   return (
     <button
       onClick={() => onChange(!value)}
-      className={`text-left p-4 rounded-xl border transition-all ${value ? 'bg-[#FF6B35]/10 border-[#FF6B35]/30' : 'bg-white/[0.02] border-white/8 hover:bg-white/5'}`}
+      className={`text-left p-4 rounded-xl border transition-all ${value ? 'bg-[#FF6B35]/10 border-[#FF6B35]/30' : 'bg-white/[0.02] border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)]'}`}
     >
       <div className="flex items-start justify-between gap-2 mb-2">
         {icon}
-        <div className={`w-9 h-5 rounded-full relative transition-colors ${value ? 'bg-[#FF6B35]' : 'bg-white/10'}`}>
+        <div className={`w-9 h-5 rounded-full relative transition-colors ${value ? 'bg-[#FF6B35]' : 'bg-[var(--surface-sunken)]'}`}>
           <div className={`absolute top-0.5 w-4 h-4 rounded-full bg-white transition-all ${value ? 'left-[18px]' : 'left-0.5'}`} />
         </div>
       </div>
-      <p className="text-white font-semibold text-sm mb-0.5">{label}</p>
-      <p className="text-white/35 text-xs leading-relaxed">{desc}</p>
+      <p className="text-[var(--text-strong)] font-semibold text-sm mb-0.5">{label}</p>
+      <p className="text-[var(--text-muted)] text-xs leading-relaxed">{desc}</p>
     </button>
   )
 }
 
 function BookIcon() {
-  return <Store size={16} className="text-yellow-400" />
+  return <Store size={16} className="text-yellow-700" />
 }
 
 function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchTo, onUpdate, onDelete }: {
@@ -363,28 +363,28 @@ function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchT
   }
 
   return (
-    <div className="bg-white/[0.02] border border-white/8 rounded-2xl overflow-hidden">
+    <div className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
       {/* Header */}
       <div className="flex items-center gap-3 p-4">
-        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCurrent ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/20' : 'bg-white/5 border border-white/10'}`}>
-          <MapPin size={16} className={isCurrent ? 'text-[#FF6B35]' : 'text-white/40'} />
+        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isCurrent ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/20' : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)]'}`}>
+          <MapPin size={16} className={isCurrent ? 'text-[#E55A2B]' : 'text-[var(--text-muted)]'} />
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-white font-semibold text-sm">{location.name}</p>
+            <p className="text-[var(--text-strong)] font-semibold text-sm">{location.name}</p>
             {isCurrent && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FF6B35]/15 text-[#FF6B35] font-semibold">Actual</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[#FF6B35]/15 text-[#E55A2B] font-semibold">Actual</span>
             )}
             {!location.active && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-white/5 text-white/30">Inactivo</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--text-muted)]">Inactivo</span>
             )}
           </div>
-          <p className="text-white/40 text-xs truncate">{location.address ?? 'Sin dirección'}</p>
+          <p className="text-[var(--text-muted)] text-xs truncate">{location.address ?? 'Sin dirección'}</p>
         </div>
         {canSwitchTo && (
           <button
             onClick={onSwitchTo}
-            className="text-[#FF6B35] text-xs font-semibold hover:text-[#FF6B35]/80 transition-colors px-3 py-1.5 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20"
+            className="text-[#E55A2B] text-xs font-semibold hover:text-[#E55A2B] transition-colors px-3 py-1.5 rounded-lg bg-[#FF6B35]/10 border border-[#FF6B35]/20"
           >
             Gestionar
           </button>
@@ -392,7 +392,7 @@ function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchT
         {isCurrent && (
           <button
             onClick={() => setExpanded(e => !e)}
-            className="text-white/40 text-xs hover:text-white transition-colors px-3 py-1.5 rounded-lg bg-white/5 border border-white/8"
+            className="text-[var(--text-muted)] text-xs hover:text-[var(--text-strong)] transition-colors px-3 py-1.5 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)]"
           >
             {expanded ? 'Cerrar' : 'Editar'}
           </button>
@@ -401,7 +401,7 @@ function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchT
 
       {/* Expanded editor */}
       {expanded && (
-        <div className="px-4 pb-4 space-y-4 border-t border-white/8 pt-4">
+        <div className="px-4 pb-4 space-y-4 border-t border-[var(--border-subtle)] pt-4">
           <div className="grid grid-cols-2 gap-3">
             <Input label="Nombre" value={name} onChange={v => { setName(v); setDirty(true) }} />
             <Input label="Dirección" value={address} onChange={v => { setAddress(v); setDirty(true) }} />
@@ -409,8 +409,8 @@ function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchT
 
           {/* Override toggles — solo visibles si hay multiple locations */}
           {hasMultiple && (
-            <div className="space-y-2 bg-white/[0.02] rounded-xl p-3 border border-white/5">
-              <p className="text-white/50 text-xs font-medium">Override por local (deja vacío para heredar de la marca):</p>
+            <div className="space-y-2 bg-white/[0.02] rounded-xl p-3 border border-[var(--border-subtle)]">
+              <p className="text-[var(--text-muted)] text-xs font-medium">Override por local (deja vacío para heredar de la marca):</p>
               <div className="grid grid-cols-3 gap-2 text-xs">
                 <Tri label="Menú"    value={location.share_menu_override}    onChange={v => onUpdate({ share_menu_override: v })} />
                 <Tri label="Stock"   value={location.share_stock_override}   onChange={v => onUpdate({ share_stock_override: v })} />
@@ -422,14 +422,14 @@ function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchT
           <div className="flex gap-2 justify-end pt-1">
             <button
               onClick={onDelete}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-xs hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors"
             >
               <Trash2 size={12} /> Eliminar
             </button>
             <button
               onClick={save}
               disabled={!dirty}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35]/90 transition-colors disabled:opacity-40"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-[#FF6B35] text-black text-xs font-bold hover:bg-[#FF6B35] transition-colors disabled:opacity-40"
             >
               <Save size={12} /> Guardar
             </button>
@@ -448,13 +448,13 @@ function Input({ label, value, onChange, required }: {
 }) {
   return (
     <label className="block">
-      <span className="text-white/50 text-xs font-medium mb-1 block">{label}</span>
+      <span className="text-[var(--text-muted)] text-xs font-medium mb-1 block">{label}</span>
       <input
         type="text"
         value={value}
         onChange={e => onChange(e.target.value)}
         required={required}
-        className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-white/8 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/40 transition-colors"
+        className="w-full px-3 py-2 rounded-lg bg-white/[0.03] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40 transition-colors"
       />
     </label>
   )
@@ -466,19 +466,19 @@ function Tri({ label, value, onChange }: {
   onChange: (v: boolean | null) => void
 }) {
   const states: [boolean | null, string, string][] = [
-    [null,  'Heredar', 'bg-white/5 text-white/40'],
-    [true,  'Sí',      'bg-emerald-500/15 text-emerald-400'],
-    [false, 'No',      'bg-red-500/15 text-red-400'],
+    [null,  'Heredar', 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'],
+    [true,  'Sí',      'bg-emerald-500/15 text-emerald-700'],
+    [false, 'No',      'bg-red-500/15 text-red-700'],
   ]
   return (
     <div>
-      <p className="text-white/40 text-[10px] mb-1">{label}</p>
-      <div className="flex rounded-lg overflow-hidden border border-white/8">
+      <p className="text-[var(--text-muted)] text-[10px] mb-1">{label}</p>
+      <div className="flex rounded-lg overflow-hidden border border-[var(--border-subtle)]">
         {states.map(([v, txt, cls]) => (
           <button
             key={String(v)}
             onClick={() => onChange(v)}
-            className={`flex-1 py-1 text-[10px] font-medium transition-colors ${value === v ? cls : 'text-white/25 hover:text-white/50'}`}
+            className={`flex-1 py-1 text-[10px] font-medium transition-colors ${value === v ? cls : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`}
           >
             {txt}
           </button>

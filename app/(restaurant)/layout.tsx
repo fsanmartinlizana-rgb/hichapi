@@ -259,7 +259,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
           <p className="text-[var(--text-strong)] font-bold text-sm leading-tight">
             <span className="text-orange-500">Hi</span>Chapi
           </p>
-          <p className="text-[var(--text-subtle)] text-[10px]">Panel Restaurante</p>
+          <p className="text-[var(--text-muted)] text-[10px]">Panel Restaurante</p>
         </div>
         <ThemeToggle />
         <NotificationsBell />
@@ -292,7 +292,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                   <p className="text-[var(--text-strong)] text-sm font-semibold leading-tight truncate flex-1 mr-1">
                     {restaurant?.name ?? 'Sin restaurante'}
                   </p>
-                  {showDropdown && <ChevronDown size={12} className={`text-[var(--text-subtle)] shrink-0 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />}
+                  {showDropdown && <ChevronDown size={12} className={`text-[var(--text-muted)] shrink-0 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />}
                 </div>
                 {restaurant?.neighborhood && (
                   <p className="text-[var(--text-muted)] text-[10px] mt-0.5">{restaurant.neighborhood}</p>
@@ -330,7 +330,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                         : <span className="w-2.5 shrink-0" />}
                       <div className="flex-1 min-w-0">
                         <p className="text-[var(--text-strong)] text-[12px] font-medium truncate">{r.name}</p>
-                        {r.neighborhood && <p className="text-[var(--text-subtle)] text-[10px]">{r.neighborhood}</p>}
+                        {r.neighborhood && <p className="text-[var(--text-muted)] text-[10px]">{r.neighborhood}</p>}
                       </div>
                     </button>
                   ))}
@@ -481,7 +481,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
         <button
           onClick={logout}
           title="Cerrar sesión"
-          className="p-1.5 rounded-lg hover:bg-[var(--danger-surface)] text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0"
+          className="p-1.5 rounded-lg hover:bg-[var(--danger-surface)] text-[var(--text-muted)] hover:text-[var(--danger)] transition-colors shrink-0"
         >
           <LogOut size={13} />
         </button>
@@ -574,7 +574,7 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   }
 
   return (
-    <div className="flex h-screen bg-[#0A0A14] text-white overflow-hidden"
+    <div className="flex h-screen bg-[var(--bg-canvas)] text-[var(--text-strong)] overflow-hidden"
          style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
       {/* Sidebar desktop — el componente decide internamente con `hidden md:flex` */}
       <SidebarContent />

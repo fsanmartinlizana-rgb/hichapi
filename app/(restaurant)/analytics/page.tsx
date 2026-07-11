@@ -109,17 +109,17 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className="flex items-start justify-between flex-wrap gap-3">
         <div>
-          <h1 className="text-white text-xl font-bold">Analytics</h1>
-          <p className="text-white/40 text-sm mt-0.5">Datos reales de tu operación · {restaurant?.name}</p>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold">Analytics</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-0.5">Datos reales de tu operación · {restaurant?.name}</p>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex gap-1 bg-white/3 border border-white/6 rounded-xl p-1">
+          <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1">
             {(['dia', 'semana', 'mes', '30d'] as const).map(p => (
               <button
                 key={p}
                 onClick={() => setPeriod(p)}
                 className={`px-3 py-1.5 rounded-lg text-xs capitalize transition-all
-                  ${period === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-white/35 hover:text-white/60'}`}
+                  ${period === p ? 'bg-[#FF6B35] text-white font-medium' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`}
               >
                 {p === 'dia' ? 'Hoy' : p === 'semana' ? '7 días' : p === 'mes' ? '30 días' : '30d'}
               </button>
@@ -127,7 +127,7 @@ export default function AnalyticsPage() {
           </div>
           <button
             onClick={loadSummary}
-            className="p-2 rounded-xl border border-white/10 text-white/40 hover:text-white transition-colors"
+            className="p-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
@@ -135,7 +135,7 @@ export default function AnalyticsPage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-white/10 gap-1">
+      <div className="flex border-b border-[var(--border-subtle)] gap-1">
         <TabButton active={tab === 'resumen'}   icon={Sparkles}          onClick={() => changeTab('resumen')}>Resumen del día</TabButton>
         <TabButton active={tab === 'metricas'}  icon={BarChart2}         onClick={() => changeTab('metricas')}>Métricas</TabButton>
         <TabButton active={tab === 'dashboard'} icon={LayoutDashboard}   onClick={() => changeTab('dashboard')} locked={!canUseDashboard}>Mi dashboard</TabButton>
@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
       {/* Content */}
       {loading && !summary ? (
         <div className="flex items-center justify-center py-16">
-          <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+          <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
         </div>
       ) : tab === 'resumen' ? (
         <ResumenTab summary={summary} />
@@ -166,12 +166,12 @@ export default function AnalyticsPage() {
       {/* Widget picker */}
       {picker && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4" onClick={() => setPicker(false)}>
-          <div className="w-full max-w-2xl bg-[#111111] border border-white/10 rounded-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
+          <div className="w-full max-w-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-2xl p-6 space-y-4 max-h-[80vh] overflow-y-auto" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between">
-              <h3 className="text-white font-bold text-lg flex items-center gap-2">
-                <Plus size={18} className="text-[#FF6B35]" /> Agregar widget
+              <h3 className="text-[var(--text-strong)] font-bold text-lg flex items-center gap-2">
+                <Plus size={18} className="text-[#E55A2B]" /> Agregar widget
               </h3>
-              <button onClick={() => setPicker(false)} className="text-white/40 hover:text-white"><X size={16} /></button>
+              <button onClick={() => setPicker(false)} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"><X size={16} /></button>
             </div>
             <div className="grid grid-cols-2 gap-3">
               {WIDGET_CATALOG.map(w => {
@@ -184,14 +184,14 @@ export default function AnalyticsPage() {
                     onClick={() => addWidget(w.type)}
                     className={`text-left p-4 rounded-xl border transition-all ${
                       blocked || already
-                        ? 'bg-white/[0.02] border-white/5 opacity-40 cursor-not-allowed'
-                        : 'bg-white/[0.02] border-white/8 hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5'
+                        ? 'bg-white/[0.02] border-[var(--border-subtle)] opacity-40 cursor-not-allowed'
+                        : 'bg-white/[0.02] border-[var(--border-subtle)] hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/5'
                     }`}
                   >
-                    <p className="text-white text-sm font-semibold">{w.label}</p>
-                    <p className="text-white/40 text-xs mt-0.5">{w.description}</p>
-                    {blocked && <p className="text-amber-400/80 text-[10px] mt-2">Requiere plan {w.planRequired}+</p>}
-                    {already && <p className="text-emerald-400/80 text-[10px] mt-2">Ya en el dashboard</p>}
+                    <p className="text-[var(--text-strong)] text-sm font-semibold">{w.label}</p>
+                    <p className="text-[var(--text-muted)] text-xs mt-0.5">{w.description}</p>
+                    {blocked && <p className="text-amber-700/80 text-[10px] mt-2">Requiere plan {w.planRequired}+</p>}
+                    {already && <p className="text-emerald-700/80 text-[10px] mt-2">Ya en el dashboard</p>}
                   </button>
                 )
               })}
@@ -215,13 +215,13 @@ function TabButton({ active, icon: Icon, children, onClick, locked }: {
       onClick={onClick}
       className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium -mb-px border-b-2 transition-colors ${
         active
-          ? 'border-[#FF6B35] text-white'
-          : 'border-transparent text-white/40 hover:text-white/70'
+          ? 'border-[#FF6B35] text-[var(--text-strong)]'
+          : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-body)]'
       }`}
     >
       <Icon size={14} />
       {children}
-      {locked && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400">Pro</span>}
+      {locked && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">Pro</span>}
     </button>
   )
 }
@@ -278,7 +278,7 @@ function DashboardTab({ widgets, summary, editing, onToggleEdit, onAdd, onRemove
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
-        <p className="text-white/50 text-xs">
+        <p className="text-[var(--text-muted)] text-xs">
           {widgets.length === 0
             ? 'Tu dashboard está vacío. Agregá widgets para armar tu vista personalizada.'
             : `${widgets.length} widget${widgets.length === 1 ? '' : 's'} · personalizalo a tu gusto`}
@@ -289,14 +289,14 @@ function DashboardTab({ widgets, summary, editing, onToggleEdit, onAdd, onRemove
             className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium transition-colors ${
               editing
                 ? 'bg-[#FF6B35] text-white'
-                : 'bg-white/5 border border-white/10 text-white/70 hover:text-white hover:border-white/25'
+                : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] hover:text-[var(--text-strong)] hover:border-[var(--border-subtle)]'
             }`}
           >
             <Settings size={12} /> {editing ? 'Listo' : 'Editar'}
           </button>
           <button
             onClick={onAdd}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#E55A2B] text-xs font-semibold hover:bg-[#FF6B35]/25 transition-colors"
           >
             <Plus size={12} /> Agregar widget
           </button>
@@ -305,8 +305,8 @@ function DashboardTab({ widgets, summary, editing, onToggleEdit, onAdd, onRemove
 
       {widgets.length === 0 ? (
         <div className="py-16 text-center">
-          <LayoutDashboard size={36} className="text-white/15 mx-auto mb-3" />
-          <p className="text-white/40 text-sm mb-4">Dashboard vacío</p>
+          <LayoutDashboard size={36} className="text-[var(--text-muted)] mx-auto mb-3" />
+          <p className="text-[var(--text-muted)] text-sm mb-4">Dashboard vacío</p>
           <button
             onClick={onAdd}
             className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors"
@@ -347,10 +347,10 @@ function UpgradeGate() {
   return (
     <div className="py-16 text-center">
       <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 mb-4">
-        <LayoutDashboard size={20} className="text-[#FF6B35]" />
+        <LayoutDashboard size={20} className="text-[#E55A2B]" />
       </div>
-      <h3 className="text-white font-semibold text-lg mb-2">Mi dashboard está disponible en plan Pro</h3>
-      <p className="text-white/50 text-sm max-w-md mx-auto mb-5">
+      <h3 className="text-[var(--text-strong)] font-semibold text-lg mb-2">Mi dashboard está disponible en plan Pro</h3>
+      <p className="text-[var(--text-muted)] text-sm max-w-md mx-auto mb-5">
         Configurá widgets con las métricas que te importan. Reportes, fidelización y analytics avanzados incluidos.
       </p>
       <a href="/modulos" className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-[#FF6B35] text-white text-sm font-semibold hover:bg-[#e55a2b] transition-colors">

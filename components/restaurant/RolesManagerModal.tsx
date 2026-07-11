@@ -77,34 +77,34 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4" onClick={onClose}>
       <div
-        className="bg-[#1C1C2E] border border-white/10 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
+        className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between p-5 border-b border-white/5">
+        <div className="flex items-center justify-between p-5 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-3 min-w-0">
             {showingEditor && (
               <button
                 onClick={() => { setCreating(false); setEditing(null) }}
-                className="w-8 h-8 rounded-lg border border-white/10 text-white/40 hover:text-white hover:border-white/25 flex items-center justify-center shrink-0"
+                className="w-8 h-8 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:border-[var(--border-subtle)] flex items-center justify-center shrink-0"
                 title="Volver a la lista"
               >
                 <ArrowLeft size={13} />
               </button>
             )}
             <div className="min-w-0">
-              <h3 className="text-white font-bold flex items-center gap-2">
-                <Shield size={14} className="text-[#FF6B35]" />
+              <h3 className="text-[var(--text-strong)] font-bold flex items-center gap-2">
+                <Shield size={14} className="text-[#E55A2B]" />
                 {showingEditor ? (editing ? 'Editar rol' : 'Nuevo rol') : 'Roles personalizados'}
               </h3>
-              <p className="text-white/40 text-xs mt-0.5 truncate">
+              <p className="text-[var(--text-muted)] text-xs mt-0.5 truncate">
                 {showingEditor
                   ? 'Asigna permisos granulares a este rol'
                   : 'Crea roles a tu medida (ej. Cajero, Sommelier, Bartender)'}
               </p>
             </div>
           </div>
-          <button onClick={onClose} className="w-8 h-8 rounded-full border border-white/10 text-white/40 hover:text-white hover:border-white/25 flex items-center justify-center shrink-0">
+          <button onClick={onClose} className="w-8 h-8 rounded-full border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:border-[var(--border-subtle)] flex items-center justify-center shrink-0">
             <X size={14} />
           </button>
         </div>
@@ -114,23 +114,23 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
           <div className="p-5 overflow-y-auto flex-1">
             {loading ? (
               <div className="flex items-center justify-center py-16">
-                <RefreshCw size={18} className="text-white/40 animate-spin" />
+                <RefreshCw size={18} className="text-[var(--text-muted)] animate-spin" />
               </div>
             ) : errorMsg ? (
               <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 space-y-2">
-                <p className="text-red-300 text-sm font-semibold">No se pudieron cargar los roles</p>
-                <p className="text-white/50 text-xs">{errorMsg}</p>
-                <p className="text-white/40 text-[11px]">
-                  Si acabas de actualizar, aplica primero la migración <code className="text-[#FF6B35]">20260414_043_custom_roles.sql</code> en Supabase.
+                <p className="text-red-700 text-sm font-semibold">No se pudieron cargar los roles</p>
+                <p className="text-[var(--text-muted)] text-xs">{errorMsg}</p>
+                <p className="text-[var(--text-muted)] text-[11px]">
+                  Si acabas de actualizar, aplica primero la migración <code className="text-[#E55A2B]">20260414_043_custom_roles.sql</code> en Supabase.
                 </p>
               </div>
             ) : roles.length === 0 ? (
               <div className="text-center py-10 space-y-3">
-                <div className="w-14 h-14 mx-auto rounded-2xl bg-white/3 border border-white/8 flex items-center justify-center">
-                  <Shield size={22} className="text-white/30" />
+                <div className="w-14 h-14 mx-auto rounded-2xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center">
+                  <Shield size={22} className="text-[var(--text-muted)]" />
                 </div>
-                <p className="text-white/80 text-sm font-semibold">Aún no tienes roles personalizados</p>
-                <p className="text-white/40 text-xs max-w-sm mx-auto">
+                <p className="text-[var(--text-body)] text-sm font-semibold">Aún no tienes roles personalizados</p>
+                <p className="text-[var(--text-muted)] text-xs max-w-sm mx-auto">
                   Los roles custom te permiten dar acceso específico a cada miembro del equipo.
                 </p>
                 <button
@@ -145,7 +145,7 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
                 {roles.map(r => (
                   <div
                     key={r.id}
-                    className="bg-white/3 border border-white/8 rounded-xl p-4 hover:border-white/15 transition-colors cursor-pointer"
+                    className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 hover:border-[var(--border-subtle)] transition-colors cursor-pointer"
                     onClick={() => setEditing(r)}
                   >
                     <div className="flex items-start gap-3">
@@ -157,19 +157,19 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
                       </span>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="text-white font-semibold text-sm truncate">{r.name}</h3>
+                          <h3 className="text-[var(--text-strong)] font-semibold text-sm truncate">{r.name}</h3>
                           {r.base_role && (
-                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-white/5 text-white/40 uppercase">base: {r.base_role}</span>
+                            <span className="text-[9px] px-1.5 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)] uppercase">base: {r.base_role}</span>
                           )}
                         </div>
-                        {r.description && <p className="text-white/40 text-xs mt-0.5 line-clamp-2">{r.description}</p>}
-                        <p className="text-white/30 text-[11px] mt-2">
+                        {r.description && <p className="text-[var(--text-muted)] text-xs mt-0.5 line-clamp-2">{r.description}</p>}
+                        <p className="text-[var(--text-muted)] text-[11px] mt-2">
                           {r.permissions.length} permiso{r.permissions.length === 1 ? '' : 's'}
                         </p>
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); deleteRole(r.id) }}
-                        className="text-white/25 hover:text-red-400 hover:bg-red-500/10 w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0"
+                        className="text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -195,8 +195,8 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
 
         {/* Footer action (only in list mode) */}
         {!showingEditor && !loading && !errorMsg && (
-          <div className="flex items-center justify-between gap-2 p-4 border-t border-white/5 shrink-0">
-            <p className="text-white/30 text-[11px]">
+          <div className="flex items-center justify-between gap-2 p-4 border-t border-[var(--border-subtle)] shrink-0">
+            <p className="text-[var(--text-muted)] text-[11px]">
               {roles.length} rol{roles.length === 1 ? '' : 'es'} configurado{roles.length === 1 ? '' : 's'}
             </p>
             <button
@@ -305,21 +305,21 @@ function RoleEditor({
         {/* Name + color */}
         <div className="flex gap-3">
           <div className="flex-1 space-y-1.5">
-            <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Nombre del rol *</label>
+            <label className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Nombre del rol *</label>
             <input
               value={name}
               onChange={e => setName(e.target.value)}
               placeholder="Ej. Cajero, Sommelier, Bartender"
               maxLength={40}
-              className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40"
+              className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Color</label>
+            <label className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Color</label>
             <div className="flex items-center gap-1.5 flex-wrap w-36">
               {SWATCHES.map(c => (
                 <button key={c} type="button" onClick={() => setColor(c)}
-                  className={`w-6 h-6 rounded-full border-2 transition-transform ${color === c ? 'scale-125 border-white' : 'border-white/20'}`}
+                  className={`w-6 h-6 rounded-full border-2 transition-transform ${color === c ? 'scale-125 border-[var(--border-subtle)]' : 'border-[var(--border-subtle)]'}`}
                   style={{ backgroundColor: c }} />
               ))}
             </div>
@@ -328,29 +328,29 @@ function RoleEditor({
 
         {/* Description */}
         <div className="space-y-1.5">
-          <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Descripción</label>
+          <label className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Descripción</label>
           <input
             value={description}
             onChange={e => setDescription(e.target.value)}
             placeholder="Ej. Gestiona pagos y cierre de turno, sin ver reportes"
             maxLength={200}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-3 py-2.5 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-3 py-2.5 text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40"
           />
         </div>
 
         {/* Preset */}
         <div className="space-y-1.5">
-          <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">Partir desde un rol base (opcional)</label>
+          <label className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">Partir desde un rol base (opcional)</label>
           <div className="flex gap-1.5 flex-wrap">
             {BASE_ROLES.map(r => (
               <button key={r} type="button" onClick={() => applyPreset(r)}
                 className={`px-3 py-1.5 rounded-lg text-xs font-medium border capitalize transition-colors
-                  ${baseRole === r ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]' : 'bg-white/3 border-white/8 text-white/50 hover:border-white/20'}`}>
+                  ${baseRole === r ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#E55A2B]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)]'}`}>
                 {r}
               </button>
             ))}
             {baseRole && (
-              <button type="button" onClick={() => setBaseRole('')} className="px-3 py-1.5 rounded-lg text-xs text-white/40 hover:text-white/70">
+              <button type="button" onClick={() => setBaseRole('')} className="px-3 py-1.5 rounded-lg text-xs text-[var(--text-muted)] hover:text-[var(--text-body)]">
                 Limpiar
               </button>
             )}
@@ -360,14 +360,14 @@ function RoleEditor({
         {/* Permissions */}
         <div className="space-y-2">
           <div className="flex items-center justify-between">
-            <label className="text-white/40 text-[10px] font-medium uppercase tracking-wide">
+            <label className="text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wide">
               Permisos · {permissions.length}/{PERMISSIONS.length}
             </label>
             <div className="flex gap-2">
               <button type="button" onClick={() => setPermissions(PERMISSIONS.map(p => p.key))}
-                className="text-[10px] text-white/40 hover:text-white/70">Todos</button>
+                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-body)]">Todos</button>
               <button type="button" onClick={() => setPermissions([])}
-                className="text-[10px] text-white/40 hover:text-white/70">Ninguno</button>
+                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--text-body)]">Ninguno</button>
             </div>
           </div>
           {Object.entries(grouped).map(([mod, perms]) => {
@@ -375,18 +375,18 @@ function RoleEditor({
             const allSelected = selectedInModule.length === perms.length
             const isOpen = openModules.has(mod)
             return (
-              <div key={mod} className="bg-white/3 border border-white/8 rounded-xl overflow-hidden">
+              <div key={mod} className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
                 <button type="button" onClick={() => toggleModuleOpen(mod)}
-                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-white/3 transition-colors">
+                  className="w-full flex items-center justify-between px-3 py-2.5 hover:bg-[var(--surface-sunken)] transition-colors">
                   <div className="flex items-center gap-2">
-                    {isOpen ? <ChevronDown size={13} className="text-white/40" /> : <ChevronRight size={13} className="text-white/40" />}
-                    <span className="text-white text-sm font-semibold">{mod}</span>
-                    <span className="text-white/40 text-[10px]">{selectedInModule.length}/{perms.length}</span>
+                    {isOpen ? <ChevronDown size={13} className="text-[var(--text-muted)]" /> : <ChevronRight size={13} className="text-[var(--text-muted)]" />}
+                    <span className="text-[var(--text-strong)] text-sm font-semibold">{mod}</span>
+                    <span className="text-[var(--text-muted)] text-[10px]">{selectedInModule.length}/{perms.length}</span>
                   </div>
                   <span
                     onClick={e => { e.stopPropagation(); toggleAllInModule(mod, allSelected) }}
                     className={`text-[10px] px-2 py-0.5 rounded-full border cursor-pointer
-                      ${allSelected ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#FF6B35]' : 'bg-white/3 border-white/10 text-white/50 hover:text-white'}`}>
+                      ${allSelected ? 'bg-[#FF6B35]/20 border-[#FF6B35]/40 text-[#E55A2B]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white'}`}>
                     {allSelected ? 'Quitar todos' : 'Todos'}
                   </span>
                 </button>
@@ -395,15 +395,15 @@ function RoleEditor({
                     {perms.map(p => {
                       const on = permissions.includes(p.key)
                       return (
-                        <label key={p.key} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-white/3 cursor-pointer">
+                        <label key={p.key} className="flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--surface-sunken)] cursor-pointer">
                           <span
                             className={`w-4 h-4 rounded border transition-colors flex items-center justify-center
-                              ${on ? 'bg-[#FF6B35] border-[#FF6B35]' : 'bg-white/3 border-white/15'}`}>
-                            {on && <Check size={10} className="text-white" strokeWidth={3} />}
+                              ${on ? 'bg-[#FF6B35] border-[#FF6B35]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'}`}>
+                            {on && <Check size={10} className="text-[var(--text-strong)]" strokeWidth={3} />}
                           </span>
                           <input type="checkbox" checked={on} onChange={() => togglePerm(p.key)} className="sr-only" />
-                          <span className="text-white/80 text-sm flex-1">{p.label}</span>
-                          <span className="text-white/20 text-[10px] font-mono">{p.key}</span>
+                          <span className="text-[var(--text-body)] text-sm flex-1">{p.label}</span>
+                          <span className="text-[var(--text-muted)] text-[10px] font-mono">{p.key}</span>
                         </label>
                       )
                     })}
@@ -414,13 +414,13 @@ function RoleEditor({
           })}
         </div>
 
-        {error && <p className="text-red-400 text-xs">{error}</p>}
+        {error && <p className="text-red-700 text-xs">{error}</p>}
       </div>
 
       {/* Footer */}
-      <div className="flex items-center justify-end gap-2 p-4 border-t border-white/5 shrink-0">
+      <div className="flex items-center justify-end gap-2 p-4 border-t border-[var(--border-subtle)] shrink-0">
         <button onClick={onBack}
-          className="px-4 py-2 rounded-xl border border-white/10 text-white/50 text-sm hover:border-white/25 hover:text-white/80 transition-colors">
+          className="px-4 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] hover:text-[var(--text-body)] transition-colors">
           Cancelar
         </button>
         <button onClick={save} disabled={saving || !name.trim()}
