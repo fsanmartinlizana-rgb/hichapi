@@ -45,25 +45,43 @@ type NavSection = {
   }[]
 }
 
+// Grupos temáticos más chicos (antes eran 4, con "Mi Restaurante" y
+// "Configuración" gigantes). Combinado con el acordeón (solo 1 grupo abierto),
+// el sidebar deja de verse saturado. Los hrefs/roles/íconos de cada ítem se
+// mantienen — solo cambia en qué grupo vive.
 const ALL_NAV: NavSection[] = [
   {
-    key: 'mi-restaurante',
-    label: 'Mi Restaurante',
+    key: 'operacion',
+    label: 'Operación',
     icon: Utensils,
     items: [
-      { label: 'Dashboard',     href: '/dashboard', icon: LayoutDashboard, roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
-      { label: 'Garzón',        href: '/garzon',    icon: Users,           roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
-      { label: 'Comandas',      href: '/comandas',  icon: ClipboardList,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
-      { label: 'Mesas',         href: '/mesas',     icon: Grid3X3,         roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
-      { label: 'Comensales',    href: '/clientes',  icon: Users,           roles: ['admin','owner','supervisor','garzon','super_admin'] },
-      { label: 'Reservas',      href: '/reservas',  icon: CalendarDays,    roles: ['admin','owner','supervisor','anfitrion','super_admin'] },
-      { label: 'Carta digital', href: '/carta',     icon: BookOpen,        roles: ['admin','owner','supervisor','garzon','waiter','super_admin'] },
-      { label: 'Stock',         href: '/stock',     icon: Package,         roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Mermas',        href: '/mermas',    icon: Trash2,          roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Caja',          href: '/caja',      icon: Banknote,        roles: ['owner','admin','supervisor','super_admin'] },
-      ...(process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' ? [{ label: 'Delivery',      href: '/delivery',  icon: Bike,            roles: ['owner','admin','super_admin'] }] : []),
-      { label: 'Turnos',        href: '/turnos',    icon: CalendarDays,    roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Mis turnos',    href: '/mis-turnos', icon: CalendarDays,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
+      { label: 'Dashboard',  href: '/dashboard', icon: LayoutDashboard, roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Garzón',     href: '/garzon',    icon: Users,           roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Comandas',   href: '/comandas',  icon: ClipboardList,   roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
+      { label: 'Mesas',      href: '/mesas',     icon: Grid3X3,         roles: ['admin','owner','supervisor','garzon','waiter','anfitrion','super_admin'] },
+      { label: 'Caja',       href: '/caja',      icon: Banknote,        roles: ['owner','admin','supervisor','super_admin'] },
+      { label: 'Comensales', href: '/clientes',  icon: Users,           roles: ['admin','owner','supervisor','garzon','super_admin'] },
+    ],
+  },
+  {
+    key: 'carta-stock',
+    label: 'Carta y stock',
+    icon: Package,
+    items: [
+      { label: 'Carta digital', href: '/carta',  icon: BookOpen, roles: ['admin','owner','supervisor','garzon','waiter','super_admin'] },
+      { label: 'Stock',         href: '/stock',  icon: Package,  roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Mermas',        href: '/mermas', icon: Trash2,   roles: ['admin','owner','supervisor','super_admin'] },
+    ],
+  },
+  {
+    key: 'agenda',
+    label: 'Agenda',
+    icon: CalendarDays,
+    items: [
+      { label: 'Reservas',   href: '/reservas',   icon: CalendarDays, roles: ['admin','owner','supervisor','anfitrion','super_admin'] },
+      { label: 'Turnos',     href: '/turnos',     icon: CalendarDays, roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Mis turnos', href: '/mis-turnos', icon: CalendarDays, roles: ['admin','owner','supervisor','garzon','waiter','cocina','anfitrion','super_admin'] },
+      ...(process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' ? [{ label: 'Delivery', href: '/delivery', icon: Bike, roles: ['owner','admin','super_admin'] }] : []),
     ],
   },
   {
@@ -71,8 +89,18 @@ const ALL_NAV: NavSection[] = [
     label: 'Inteligencia',
     icon: BrainCircuit,
     items: [
-      { label: 'Analytics',       href: '/analytics', icon: TrendingUp, roles: ['admin','owner','supervisor','super_admin'] },
-      { label: 'Chapi insights',  href: '/insights',  icon: Sparkles,   roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Analytics',      href: '/analytics', icon: TrendingUp, roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Chapi insights', href: '/insights',  icon: Sparkles,   roles: ['admin','owner','supervisor','super_admin'] },
+    ],
+  },
+  {
+    key: 'marketing',
+    label: 'Marketing',
+    icon: Gift,
+    items: [
+      { label: 'Fidelización',   href: '/fidelizacion',              icon: Gift, roles: ['admin','owner','super_admin'] },
+      { label: 'Promociones',    href: '/promociones',               icon: Tag,  roles: ['admin','owner','supervisor','super_admin'] },
+      { label: 'Comensales app', href: '/configuracion/comensales',  icon: Gift, roles: ['admin','owner','super_admin'] },
     ],
   },
   {
@@ -87,14 +115,11 @@ const ALL_NAV: NavSection[] = [
       { label: 'Categorías',     href: '/configuracion/categorias',  icon: BookOpen,  roles: ['admin','owner','super_admin'] },
       { label: 'API pública',    href: '/configuracion/api-keys',    icon: ShieldCheck, roles: ['admin','owner','super_admin'] },
       { label: 'Geofencing',     href: '/configuracion/geofencing',  icon: MapPin,      roles: ['admin','owner','super_admin'] },
-      { label: 'Comensales app', href: '/configuracion/comensales',  icon: Gift,        roles: ['admin','owner','super_admin'] },
       { label: 'Módulos y Plan', href: '/modulos',       icon: Boxes,             roles: ['admin','owner','super_admin'] },
       { label: 'Impresoras',     href: '/impresoras',    icon: Printer,           roles: ['owner','admin','supervisor','super_admin'] },
       { label: 'DTE Chile',      href: '/dte',           icon: FileText,          roles: ['owner','admin','super_admin'] },
       { label: 'Tono de Chapi',  href: '/tono',          icon: SlidersHorizontal, roles: ['admin','owner','super_admin'] },
       ...(process.env.NEXT_PUBLIC_ENABLE_DELIVERY === 'true' ? [{ label: 'Integraciones',  href: '/integraciones', icon: Bike,              roles: ['admin','owner','super_admin'] }] : []),
-      { label: 'Fidelización',   href: '/fidelizacion',  icon: Gift,              roles: ['admin','owner','super_admin'] },
-      { label: 'Promociones',    href: '/promociones',   icon: Tag,               roles: ['admin','owner','supervisor','super_admin'] },
     ],
   },
   {
@@ -182,48 +207,39 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
     () => findActiveSection(pathname, nav) ?? nav[0]?.key ?? null,
     [pathname, nav]
   )
-  const [openGroups, setOpenGroups] = useState<Set<string>>(() => new Set())
+  // Acordeón: un solo grupo abierto a la vez (menos saturación visual). null =
+  // todos cerrados. Se recuerda por pestaña en sessionStorage.
+  const [openGroup, setOpenGroup] = useState<string | null>(null)
 
   // Hydrate from sessionStorage; auto-open active section
   useEffect(() => {
-    let initial: Set<string>
+    let initial: string | null = null
     try {
-      const raw = sessionStorage.getItem('hichapi_sidebar_groups')
-      initial = raw ? new Set(JSON.parse(raw)) : new Set()
+      initial = sessionStorage.getItem('hichapi_sidebar_group')
     } catch {
-      initial = new Set()
+      initial = null
     }
-    if (activeSectionKey) initial.add(activeSectionKey)
-    setOpenGroups(initial)
+    setOpenGroup(activeSectionKey ?? initial)
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  // When the user navigates to a different section, auto-open it (without
-  // closing other manually-opened groups).
+  // When the user navigates to a different section, open it (accordion → the
+  // others close automatically).
   useEffect(() => {
     if (!activeSectionKey) return
-    setOpenGroups(prev => {
-      if (prev.has(activeSectionKey)) return prev
-      const next = new Set(prev)
-      next.add(activeSectionKey)
-      return next
-    })
+    setOpenGroup(activeSectionKey)
   }, [activeSectionKey])
 
-  // Persist open groups
+  // Persist open group
   useEffect(() => {
     try {
-      sessionStorage.setItem('hichapi_sidebar_groups', JSON.stringify(Array.from(openGroups)))
+      if (openGroup) sessionStorage.setItem('hichapi_sidebar_group', openGroup)
+      else sessionStorage.removeItem('hichapi_sidebar_group')
     } catch { /* ignore */ }
-  }, [openGroups])
+  }, [openGroup])
 
   function toggleGroup(key: string) {
-    setOpenGroups(prev => {
-      const next = new Set(prev)
-      if (next.has(key)) next.delete(key)
-      else next.add(key)
-      return next
-    })
+    setOpenGroup(prev => (prev === key ? null : key))
   }
 
   // En desktop: aside fijo con `hidden md:flex` (oculto en mobile).
@@ -231,7 +247,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
   // está dentro del drawer fullscreen).
   const asideCls = mode === 'drawer'
     ? 'w-full flex flex-col bg-surface text-[var(--text-body)]'
-    : 'w-[230px] shrink-0 hidden md:flex flex-col bg-surface text-[var(--text-body)] border-r border-[var(--border-subtle)]'
+    : 'w-[256px] shrink-0 hidden md:flex flex-col bg-surface text-[var(--text-body)] border-r border-[var(--border-subtle)]'
 
   return (
     <aside className={asideCls}>
@@ -350,28 +366,28 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
         )
       })()}
 
-      {/* Nav — collapsible groups */}
-      <nav className="flex-1 overflow-y-auto px-2 pb-2 sidebar-scroll">
+      {/* Nav — grupos colapsables en acordeón */}
+      <nav className="flex-1 overflow-y-auto px-2.5 pb-2 sidebar-scroll">
         {nav.map(({ key, label, icon: SectionIcon, items }) => {
-          const open = openGroups.has(key)
+          const open = openGroup === key
           const sectionHasActive = items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
           return (
-            <div key={key} className="mb-1">
+            <div key={key} className="mb-1.5">
               <button
                 type="button"
                 onClick={() => toggleGroup(key)}
                 aria-expanded={open}
                 className={[
-                  'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-semibold tracking-wider transition-colors',
+                  'w-full flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[12px] font-semibold tracking-wide transition-colors',
                   sectionHasActive
                     ? 'text-[var(--text-strong)]'
-                    : 'text-[var(--text-subtle)] hover:text-[var(--text-body)]',
+                    : 'text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-hover)]',
                 ].join(' ')}
               >
-                <SectionIcon size={13} strokeWidth={2} className="shrink-0 opacity-70" />
+                <SectionIcon size={16} strokeWidth={2} className="shrink-0 opacity-80" />
                 <span className="flex-1 text-left uppercase">{label}</span>
                 <ChevronDown
-                  size={12}
+                  size={14}
                   className={`shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
                 />
               </button>
@@ -383,7 +399,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                 ].join(' ')}
               >
                 <div className="overflow-hidden">
-                  <div className="space-y-0.5 pt-1 pb-1.5 pl-1">
+                  <div className="space-y-0.5 pt-1 pb-2 pl-1.5">
                     {items.map(({ label, href, icon: Icon }) => {
                       const active = pathname === href || pathname.startsWith(href + '/')
                       const requiredPlan = ROUTE_PLAN_REQUIRED[href] ?? 'free'
@@ -399,13 +415,13 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                           key={href}
                           href={href}
                           className={[
-                            'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all',
+                            'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-[14px] transition-all',
                             active
                               ? 'bg-orange-500 text-white font-medium shadow-[var(--shadow-brand)]'
                               : 'text-[var(--text-body)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-hover)]',
                           ].join(' ')}
                         >
-                          <Icon size={14} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
+                          <Icon size={17} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
                           <span className="flex-1 truncate">{label}</span>
                         </Link>
                       )
