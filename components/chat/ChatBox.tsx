@@ -77,9 +77,13 @@ interface ChatBoxProps {
    *  allow_alternatives=true. El padre lo incrementa al clicar el botón
    *  "ver alternativas en {zone}". null/0 = no acción. */
   pendingAlternativeNonce?: number
-  /** Si el padre detecta una ciudad distinta por IP, la pasa acá para que 
+  /** Si el padre detecta una ciudad distinta por IP, la pasa acá para que
    * el chat sepa desde el inicio dónde buscar. */
   defaultZone?: string
+  /** Texto inicial para pre-cargar el input (ej: viene de la mini-búsqueda
+   *  del hero de la landing vía /buscar?q=…). Solo prefill — NO auto-envía:
+   *  el user confirma con Enter/botón. Se aplica una única vez. */
+  initialInput?: string
 }
 
 // ── Typing dots animation ────────────────────────────────────────────────────
@@ -123,6 +127,7 @@ export function ChatBox({
   onNoResultsDetail,
   pendingAlternativeNonce,
   defaultZone,
+  initialInput,
 }: ChatBoxProps) {
   const [input, setInput]               = useState('')
   const [loading, setLoading]           = useState(false)
@@ -133,6 +138,17 @@ export function ChatBox({
   const [askingForZone, setAskingForZone] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const lastQueryRef = useRef<string>('')
+  const appliedInitialRef = useRef(false)
+
+  // Prefill del input desde ?q= (mini-búsqueda del hero). Una sola vez, sin
+  // auto-enviar — el user decide cuándo mandar. El prop puede llegar después
+  // del mount (el padre lo lee en un useEffect), por eso se observa.
+  useEffect(() => {
+    if (appliedInitialRef.current || !initialInput) return
+    appliedInitialRef.current = true
+    setInput(initialInput)
+    inputRef.current?.focus()
+  }, [initialInput])
 
   // Cuando el padre incrementa pendingAlternativeNonce, reenviamos la última
   // query con allow_alternatives=true (opt-in del user al clic del banner).

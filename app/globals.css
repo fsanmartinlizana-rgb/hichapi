@@ -1,11 +1,277 @@
 @import "tailwindcss";
 
+/* ============================================================================
+   HiChapi — Design System light-first (migración capa de tokens)
+   ----------------------------------------------------------------------------
+   Fuente: HiChapi Design System (Claude Design) — handoff panel-light.
+   El panel operativo era casi negro (#0A0A14 / #161622, gris sobre gris) y no
+   se leía. Acá se re-basa sobre lienzo crema (#FAFAF8), tarjetas blancas y
+   tinta navy de alto contraste. Naranjo #FF6B35 y navy #1A1A2E se mantienen.
+
+   Estrategia de migración (importante):
+   - En @theme solo van COLORES → generan utilidades Tailwind v4 (bg-surface,
+     text-ink-900, border-line, bg-orange-500, bg-info-bg…). Las superficies /
+     texto / bordes / estados apuntan a los tokens semánticos (var(--...)) para
+     que el tema oscuro (data-theme="dark") los haga flipear solos.
+   - Radios, sombras, spacing, motion y escala tipográfica van como CSS vars en
+     :root (NO en @theme) a propósito: sobrescribir los rounded- y shadow- de
+     Tailwind cambiaría ~960 rounded y ~23 shadow en páginas del panel que
+     todavía NO se migran en esta fase. Los componentes nuevos los consumen con
+     rounded-[var(--radius-xl)] / shadow-[var(--shadow-sm)].
+   ============================================================================ */
+
+@theme {
+  /* ── Marca: naranjo (canónico = #FF6B35, antes algunas páginas usaban el
+        orange-500 de Tailwind #F97316) ─────────────────────────────────────*/
+  --color-orange-50:  #FFF4EF;
+  --color-orange-100: #FFE7DC;
+  --color-orange-200: #FFD4C2;
+  --color-orange-300: #FFB494;
+  --color-orange-400: #FF8C5F;
+  --color-orange-500: #FF6B35;  /* brand / --color-primary */
+  --color-orange-600: #E55A2B;  /* hover / pressed */
+  --color-orange-700: #C24A22;
+  --color-orange-800: #9B3A1A;
+
+  /* ── Ink (navy) ──────────────────────────────────────────────────────────*/
+  --color-ink-950: #12121E;
+  --color-ink-900: #1A1A2E;     /* --color-dark */
+  --color-ink-800: #24243C;
+  --color-ink-700: #2D2D4E;
+  --color-ink-600: #3C3C5A;
+
+  /* ── Superficies / bordes — apuntan a semánticos para flipear en dark ─────*/
+  --color-canvas:      var(--bg-canvas);
+  --color-surface:     var(--surface-card);
+  --color-sunken:      var(--surface-sunken);
+  --color-line:        var(--border-subtle);
+  --color-line-strong: var(--border-default);
+
+  /* ── Estados (trío -/-fg/-bg) sobre semánticos ───────────────────────────*/
+  --color-info:    var(--info);
+  --color-info-fg: var(--info-text);
+  --color-info-bg: var(--info-surface);
+  --color-success:    var(--success);
+  --color-success-fg: var(--success-text);
+  --color-success-bg: var(--success-surface);
+  --color-warning:    var(--warning);
+  --color-warning-fg: var(--warning-text);
+  --color-warning-bg: var(--warning-surface);
+  --color-danger:    var(--danger);
+  --color-danger-fg: var(--danger-text);
+  --color-danger-bg: var(--danger-surface);
+  --color-barra:    var(--accent-violet);
+  --color-barra-fg: var(--accent-violet-text);
+  --color-barra-bg: var(--accent-violet-surface);
+
+  /* ── Familias tipográficas (integradas con next/font/google del layout) ──*/
+  --font-sans: var(--font-dm-sans), system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: var(--font-dm-mono), ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+/* ============================================================================
+   Capa de tokens semánticos (CSS custom properties) — tema claro por defecto.
+   Los componentes usan ESTOS, no hexes crudos. Espejo del handoff
+   design_handoff_panel_light/design-tokens/hichapi-light-tokens.css.
+   ============================================================================ */
 :root {
+  /* ── Compat: tokens preexistentes de la app (no romper nada que los use) ──*/
   --color-primary: #FF6B35;
-  --color-dark: #1A1A2E;
-  --color-bg: #FAFAF8;
-  --font-display: var(--font-dm-sans), sans-serif;
-  --font-mono: var(--font-dm-mono), monospace;
+  --color-dark:    #1A1A2E;
+  --color-bg:      #FAFAF8;
+  --font-display:  var(--font-dm-sans), sans-serif;
+
+  /* ── Marca: naranjo ──────────────────────────────────────────────────────*/
+  --orange-50:  #FFF4EF;
+  --orange-100: #FFE7DC;
+  --orange-200: #FFD4C2;
+  --orange-300: #FFB494;
+  --orange-400: #FF8C5F;
+  --orange-500: #FF6B35;
+  --orange-600: #E55A2B;
+  --orange-700: #C24A22;
+  --orange-800: #9B3A1A;
+
+  /* ── Ink: navy ───────────────────────────────────────────────────────────*/
+  --ink-950: #12121E;
+  --ink-900: #1A1A2E;
+  --ink-800: #24243C;
+  --ink-700: #2D2D4E;
+  --ink-600: #3C3C5A;
+
+  /* ── Neutrales: warm slate ───────────────────────────────────────────────*/
+  --neutral-0:   #FFFFFF;
+  --neutral-25:  #FCFCFA;
+  --neutral-50:  #FAFAF8;
+  --neutral-100: #F2F2EE;
+  --neutral-150: #ECECE7;
+  --neutral-200: #E2E2DC;
+  --neutral-300: #D2D2CA;
+  --neutral-400: #A8A8A0;
+  --neutral-500: #84848C;
+  --neutral-600: #62626E;
+  --neutral-700: #4A4A56;
+  --neutral-800: #33333E;
+  --neutral-900: #1F1F2C;
+
+  /* ── Estados semánticos (tuneados para superficies claras) ───────────────*/
+  --info:         #2563EB;
+  --info-text:    #1D4ED8;
+  --info-surface: #EFF4FF;
+  --info-border:  #C7D9FF;
+
+  --success:         #16A34A;
+  --success-text:    #15803D;
+  --success-surface: #ECFDF3;
+  --success-border:  #BBE9C9;
+
+  --warning:         #D97706;
+  --warning-text:    #B45309;
+  --warning-surface: #FFF7E6;
+  --warning-border:  #F5D9A0;
+
+  --danger:         #DC2626;
+  --danger-text:    #C11F1F;
+  --danger-surface: #FEF1F1;
+  --danger-border:  #F5C2C2;
+
+  --accent-violet:         #7C3AED;
+  --accent-violet-text:    #6D28D9;
+  --accent-violet-surface: #F4EEFE;
+  --accent-violet-border:  #DDCBF7;
+
+  /* ── Aliases semánticos — superficies ────────────────────────────────────*/
+  --bg-canvas:          var(--neutral-50);
+  --surface-card:       var(--neutral-0);
+  --surface-sunken:     var(--neutral-100);
+  --surface-hover:      var(--neutral-100);
+  --surface-raised:     var(--neutral-0);
+  --surface-inverse:    var(--ink-900);
+  --surface-brand:      var(--orange-500);
+  --surface-brand-soft: var(--orange-50);
+
+  /* ── Aliases semánticos — bordes ─────────────────────────────────────────*/
+  --border-subtle:  var(--neutral-150);
+  --border-default: var(--neutral-200);
+  --border-strong:  var(--neutral-300);
+  --border-brand:   var(--orange-200);
+  --border-focus:   var(--orange-500);
+
+  /* ── Aliases semánticos — texto ──────────────────────────────────────────*/
+  --text-strong:   var(--ink-900);
+  --text-body:     var(--neutral-700);
+  --text-muted:    var(--neutral-600);
+  --text-subtle:   var(--neutral-400);
+  --text-brand:    var(--orange-600);
+  --text-inverse:  var(--neutral-0);
+  --text-on-brand: var(--neutral-0);
+
+  /* ── Radios (NO en @theme: no pisar rounded-* global de Tailwind) ─────────*/
+  --radius-sm:   0.5rem;
+  --radius-md:   0.75rem;
+  --radius-lg:   1rem;
+  --radius-xl:   1.25rem;
+  --radius-2xl:  1.5rem;
+  --radius-3xl:  2rem;
+  --radius-pill: 999px;
+
+  /* ── Sombras (NO en @theme: no pisar shadow-* global de Tailwind) ─────────*/
+  --shadow-xs:  0 1px 2px rgba(26, 26, 46, 0.04);
+  --shadow-sm:  0 1px 3px rgba(26, 26, 46, 0.06), 0 1px 2px rgba(26, 26, 46, 0.04);
+  --shadow-md:  0 4px 12px rgba(26, 26, 46, 0.07), 0 1px 3px rgba(26, 26, 46, 0.05);
+  --shadow-lg:  0 12px 28px rgba(26, 26, 46, 0.10), 0 3px 8px rgba(26, 26, 46, 0.06);
+  --shadow-xl:  0 24px 48px rgba(26, 26, 46, 0.16), 0 8px 16px rgba(26, 26, 46, 0.08);
+  --shadow-brand: 0 8px 20px rgba(255, 107, 53, 0.28);
+
+  /* ── Focus ring ──────────────────────────────────────────────────────────*/
+  --ring-brand: 0 0 0 3px rgba(255, 107, 53, 0.35);
+  --ring-focus: 0 0 0 3px rgba(255, 107, 53, 0.35);
+
+  /* ── Motion ──────────────────────────────────────────────────────────────*/
+  --ease-out:  cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast:  120ms;
+  --dur-base:  180ms;
+  --dur-slow:  300ms;
+
+  /* ── Escala tipográfica (para consumo puntual; no genera utilidades) ─────*/
+  --font-mono-family: var(--font-dm-mono), monospace;
+  --weight-regular:  400;
+  --weight-medium:   500;
+  --weight-semibold: 600;
+  --weight-bold:     700;
+  --weight-extra:    800;
+
+  /* ── Layout ──────────────────────────────────────────────────────────────*/
+  --sidebar-width: 240px;
+}
+
+/* ============================================================================
+   Tema oscuro opt-in — data-theme="dark" en <html> (o cualquier subárbol).
+   Solo se sobrescriben los aliases semánticos: los componentes que usan
+   --surface-card / --text-strong / --border-subtle / estados flipean solos.
+   El naranjo de marca sigue siendo el ancla. "El buen oscuro": navy-black
+   cálido con texto legible (no gris sobre gris).
+   ============================================================================ */
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --bg-canvas:          #131320;
+  --surface-card:       #1E1E2D;
+  --surface-sunken:     #181826;
+  --surface-hover:      #28283A;
+  --surface-raised:     #242434;
+  --surface-inverse:    #F2F2EE;
+  --surface-brand:      var(--orange-500);
+  --surface-brand-soft: #2B1B11;
+
+  --border-subtle:  #2A2A3C;
+  --border-default: #34344A;
+  --border-strong:  #45455E;
+  --border-brand:   #57341F;
+  --border-focus:   var(--orange-500);
+
+  --text-strong:   #F6F6FB;
+  --text-body:     #CACAD8;
+  --text-muted:    #9C9CB0;
+  --text-subtle:   #6F6F86;
+  --text-brand:    #FF8C5F;
+  --text-inverse:  #1A1A2E;
+  --text-on-brand: #FFFFFF;
+
+  --info:         #60A5FA;
+  --info-text:    #7DB3FF;
+  --info-surface: #172339;
+  --info-border:  #2C3F63;
+
+  --success:         #34D399;
+  --success-text:    #4FE0A6;
+  --success-surface: #14271E;
+  --success-border:  #20452F;
+
+  --warning:         #FBBF24;
+  --warning-text:    #FBC94A;
+  --warning-surface: #2A2113;
+  --warning-border:  #4A3A1A;
+
+  --danger:         #F87171;
+  --danger-text:    #FB8585;
+  --danger-surface: #2C1719;
+  --danger-border:  #4D262E;
+
+  --accent-violet:         #A78BFA;
+  --accent-violet-text:    #C4A6FF;
+  --accent-violet-surface: #211A36;
+  --accent-violet-border:  #392B5C;
+
+  --shadow-xs:  0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-sm:  0 1px 3px rgba(0, 0, 0, 0.40), 0 1px 2px rgba(0, 0, 0, 0.30);
+  --shadow-md:  0 4px 12px rgba(0, 0, 0, 0.45), 0 1px 3px rgba(0, 0, 0, 0.35);
+  --shadow-lg:  0 12px 28px rgba(0, 0, 0, 0.55), 0 3px 8px rgba(0, 0, 0, 0.40);
+  --shadow-xl:  0 24px 48px rgba(0, 0, 0, 0.60), 0 8px 16px rgba(0, 0, 0, 0.45);
+  --shadow-brand: 0 8px 20px rgba(255, 107, 53, 0.35);
+
+  --ring-focus: 0 0 0 3px rgba(255, 107, 53, 0.45);
 }
 
 * {
@@ -17,13 +283,22 @@ html {
 }
 
 body {
-  background: var(--color-bg);
-  color: var(--color-dark);
+  background: var(--bg-canvas);
+  color: var(--text-strong);
   -webkit-font-smoothing: antialiased;
 }
 
 .font-price {
   font-family: var(--font-mono);
+}
+
+/* Eyebrow: label uppercase sobre títulos de sección / captions de KPI */
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-subtle);
 }
 
 /* Landing page animations */
@@ -37,7 +312,8 @@ body {
 }
 
 /* ── Dark-themed select dropdowns ─────────────────────────────────────────── */
-/* Fixes white option backgrounds in dark UI sections */
+/* Fixes white option backgrounds in dark UI sections. Se mantiene mientras las
+   páginas internas del panel sigan oscuras (migran en la próxima fase). */
 select option,
 select optgroup {
   background-color: #161622;

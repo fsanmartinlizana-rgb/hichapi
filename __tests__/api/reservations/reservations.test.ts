@@ -35,6 +35,16 @@ vi.mock('@/lib/email/sender', () => ({
 import { createAdminClient } from '@/lib/supabase/server'
 import { requireUser } from '@/lib/supabase/auth-guard'
 
+// Fecha YYYY-MM-DD en hora LOCAL. No usar toISOString() acá: es UTC, y en
+// Chile (UTC-4) después de las 20:00 "ayer UTC" = "hoy local" — los tests de
+// fecha pasada/futura se volvían flaky según la hora del día en que corrían.
+function toLocalDateStr(d: Date): string {
+  const y = d.getFullYear()
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${y}-${m}-${day}`
+}
+
 describe('POST /api/reservations', () => {
   beforeEach(() => {
     vi.clearAllMocks()
@@ -47,7 +57,7 @@ describe('POST /api/reservations', () => {
       const today = new Date()
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -109,7 +119,7 @@ describe('POST /api/reservations', () => {
       const today = new Date()
       const tomorrow = new Date(today)
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -167,7 +177,7 @@ describe('POST /api/reservations', () => {
       const restaurantId = crypto.randomUUID()
       const yesterday = new Date()
       yesterday.setDate(yesterday.getDate() - 1)
-      const pastDate = yesterday.toISOString().split('T')[0]
+      const pastDate = toLocalDateStr(yesterday)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -210,7 +220,7 @@ describe('POST /api/reservations', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -256,7 +266,7 @@ describe('POST /api/reservations', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -295,7 +305,7 @@ describe('POST /api/reservations', () => {
       const restaurantId = crypto.randomUUID()
       const farFuture = new Date()
       farFuture.setDate(farFuture.getDate() + 60)
-      const futureDate = farFuture.toISOString().split('T')[0]
+      const futureDate = toLocalDateStr(farFuture)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -345,7 +355,7 @@ describe('POST /api/reservations', () => {
 
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const requestBody = {
         restaurant_id: crypto.randomUUID(),
@@ -383,7 +393,7 @@ describe('POST /api/reservations', () => {
 
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const requestBody = {
         restaurant_id: restaurantId,
@@ -408,7 +418,7 @@ describe('POST /api/reservations', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const requestBody = {
         restaurant_id: restaurantId,
@@ -452,7 +462,7 @@ describe('POST /api/reservations', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const reservationDate = tomorrow.toISOString().split('T')[0]
+      const reservationDate = toLocalDateStr(tomorrow)
 
       const requestBody = {
         restaurant_id: restaurantId,
@@ -483,7 +493,7 @@ describe('GET /api/reservations/availability', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const date = tomorrow.toISOString().split('T')[0]
+      const date = toLocalDateStr(tomorrow)
       
       // Get the day name for tomorrow
       const dayNames = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']
@@ -534,7 +544,7 @@ describe('GET /api/reservations/availability', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const date = tomorrow.toISOString().split('T')[0]
+      const date = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -588,7 +598,7 @@ describe('GET /api/reservations/availability', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const date = tomorrow.toISOString().split('T')[0]
+      const date = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {
@@ -642,7 +652,7 @@ describe('GET /api/reservations/availability', () => {
       const restaurantId = crypto.randomUUID()
       const tomorrow = new Date()
       tomorrow.setDate(tomorrow.getDate() + 1)
-      const date = tomorrow.toISOString().split('T')[0]
+      const date = toLocalDateStr(tomorrow)
 
       const mockSupabase = createSupabaseMock({
         tables: {

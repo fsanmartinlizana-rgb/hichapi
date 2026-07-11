@@ -339,7 +339,7 @@ function Navbar() {
         >
           <HiChapiLogo size={28} />
           <span className="hidden sm:inline">
-            hi<span style={{ color: '#FF6B35' }}>chapi</span>
+            <span style={{ color: '#FF6B35' }}>Hi</span>Chapi
           </span>
         </Link>
         <div className="hidden sm:flex items-center gap-7 text-sm text-neutral-500">
@@ -375,7 +375,8 @@ function StatsBar() {
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
           {STATS.map(({ value, label }) => (
             <div key={label} className="text-center">
-              <p className="text-3xl font-extrabold text-[#FF6B35] mb-1">{value}</p>
+              {/* Valores en DM Mono + navy, según el DS (Stat spec) */}
+              <p className="font-price text-3xl font-medium text-[#1A1A2E] mb-1">{value}</p>
               <p className="text-sm text-neutral-400">{label}</p>
             </div>
           ))}
@@ -920,8 +921,9 @@ function Footer() {
         <div className="grid grid-cols-1 sm:grid-cols-4 gap-8 mb-10">
           {/* Brand */}
           <div className="sm:col-span-2">
-            <p className="font-bold text-xl tracking-tight mb-3" style={{ color: '#1A1A2E' }}>
-              hi<span style={{ color: '#FF6B35' }}>chapi</span>
+            <p className="flex items-center gap-2 font-bold text-xl tracking-tight mb-3" style={{ color: '#1A1A2E' }}>
+              <HiChapiLogo size={24} />
+              <span><span style={{ color: '#FF6B35' }}>Hi</span>Chapi</span>
             </p>
             <p className="text-sm text-neutral-400 max-w-xs leading-relaxed">
               Tu guia gastronomica inteligente en Santiago. Potenciado por IA,

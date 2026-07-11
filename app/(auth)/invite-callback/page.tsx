@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Loader2, AlertCircle, CheckCircle2, Shield, RefreshCw, Mail } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 // ─────────────────────────────────────────────────────────────────────────────
 // /invite-callback
@@ -130,9 +131,7 @@ export default function InviteCallbackPage() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
-          hi
-        </div>
+        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
         <h1 className="text-white font-bold text-2xl">Bienvenido a HiChapi</h1>
         <p className="text-white/40 text-sm">
           {expired ? 'Tu invitación expiró o ya fue usada' : 'Estamos validando tu invitación…'}

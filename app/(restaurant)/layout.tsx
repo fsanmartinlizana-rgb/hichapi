@@ -22,6 +22,8 @@ import { NotificationsProvider } from '@/lib/notifications-context'
 import { NotificationsBell } from '@/components/restaurant/NotificationsBell'
 import { BillRequestFloater } from '@/components/restaurant/BillRequestFloater'
 import MobileBottomNav from '@/components/restaurant/MobileBottomNav'
+import { ThemeToggle } from '@/components/ui/ThemeToggle'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 // ── Nav definition ────────────────────────────────────────────────────────────
 //
@@ -228,21 +230,22 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
   // En drawer (mobile): aside full-flex (siempre visible — el wrapper ya
   // está dentro del drawer fullscreen).
   const asideCls = mode === 'drawer'
-    ? 'w-full flex flex-col bg-[#0F0F1C]'
-    : 'w-[230px] shrink-0 hidden md:flex flex-col bg-[#0F0F1C] border-r border-white/5'
+    ? 'w-full flex flex-col bg-surface text-[var(--text-body)]'
+    : 'w-[230px] shrink-0 hidden md:flex flex-col bg-surface text-[var(--text-body)] border-r border-[var(--border-subtle)]'
 
   return (
     <aside className={asideCls}>
 
-      {/* Logo + Notifications bell */}
+      {/* Logo + theme toggle + Notifications bell */}
       <div className="px-4 pt-5 pb-3 flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm shrink-0">
-          hi
-        </div>
+        <HiChapiLogo size={26} className="shrink-0" />
         <div className="flex-1 min-w-0">
-          <p className="text-white font-semibold text-sm leading-tight">HiChapi</p>
-          <p className="text-white/40 text-[10px]">Panel Restaurante</p>
+          <p className="text-[var(--text-strong)] font-bold text-sm leading-tight">
+            <span className="text-orange-500">Hi</span>Chapi
+          </p>
+          <p className="text-[var(--text-subtle)] text-[10px]">Panel Restaurante</p>
         </div>
+        <ThemeToggle />
         <NotificationsBell />
       </div>
 
@@ -262,31 +265,31 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
         <div className="mx-3 mb-3 relative">
           <button
             onClick={() => showDropdown && setPickerOpen(o => !o)}
-            className={`w-full p-3 rounded-xl bg-white/5 border border-white/8 text-left transition-colors
-              ${showDropdown ? 'hover:bg-white/8 cursor-pointer' : 'cursor-default'}`}
+            className={`w-full p-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-left transition-colors
+              ${showDropdown ? 'hover:bg-[var(--surface-hover)] cursor-pointer' : 'cursor-default'}`}
           >
             {loading ? (
-              <div className="h-4 w-24 bg-white/10 rounded animate-pulse" />
+              <div className="h-4 w-24 bg-[var(--surface-hover)] rounded animate-pulse" />
             ) : (
               <>
                 <div className="flex items-center justify-between">
-                  <p className="text-white text-sm font-semibold leading-tight truncate flex-1 mr-1">
+                  <p className="text-[var(--text-strong)] text-sm font-semibold leading-tight truncate flex-1 mr-1">
                     {restaurant?.name ?? 'Sin restaurante'}
                   </p>
-                  {showDropdown && <ChevronDown size={12} className={`text-white/30 shrink-0 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />}
+                  {showDropdown && <ChevronDown size={12} className={`text-[var(--text-subtle)] shrink-0 transition-transform ${pickerOpen ? 'rotate-180' : ''}`} />}
                 </div>
                 {restaurant?.neighborhood && (
-                  <p className="text-white/40 text-[10px] mt-0.5">{restaurant.neighborhood}</p>
+                  <p className="text-[var(--text-muted)] text-[10px] mt-0.5">{restaurant.neighborhood}</p>
                 )}
                 <div className="flex items-center gap-2 mt-1.5">
                   {isSuperAdmin && (
                     <span className="flex items-center gap-1">
-                      <ShieldCheck size={9} className="text-[#FF6B35]" />
-                      <span className="text-[#FF6B35] text-[9px] font-medium">Super Admin</span>
+                      <ShieldCheck size={9} className="text-orange-500" />
+                      <span className="text-orange-600 text-[9px] font-medium">Super Admin</span>
                     </span>
                   )}
                   {!isSuperAdmin && restaurants.length > 1 && (
-                    <span className="text-white/35 text-[9px]">
+                    <span className="text-[var(--text-muted)] text-[9px]">
                       {restaurants.length} sucursales
                     </span>
                   )}
@@ -297,21 +300,21 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
 
           {/* Restaurant picker dropdown + add sucursal */}
           {pickerOpen && (
-            <div className="absolute top-full left-0 right-0 mt-1 bg-[#1A1A2E] border border-white/12 rounded-xl shadow-2xl z-50 max-h-80 overflow-y-auto sidebar-scroll">
+            <div className="absolute top-full left-0 right-0 mt-1 bg-surface border border-[var(--border-default)] rounded-xl shadow-[var(--shadow-xl)] z-50 max-h-80 overflow-y-auto sidebar-scroll">
               {restaurants.length > 0 && (
                 <div className="py-1">
                   {restaurants.map(r => (
                     <button
                       key={r.id}
                       onClick={() => { switchTo(r.id); setPickerOpen(false) }}
-                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/5 transition-colors text-left"
+                      className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--surface-hover)] transition-colors text-left"
                     >
                       {restaurant?.id === r.id
-                        ? <Check size={10} className="text-[#FF6B35] shrink-0" />
+                        ? <Check size={10} className="text-orange-500 shrink-0" />
                         : <span className="w-2.5 shrink-0" />}
                       <div className="flex-1 min-w-0">
-                        <p className="text-white text-[12px] font-medium truncate">{r.name}</p>
-                        {r.neighborhood && <p className="text-white/30 text-[10px]">{r.neighborhood}</p>}
+                        <p className="text-[var(--text-strong)] text-[12px] font-medium truncate">{r.name}</p>
+                        {r.neighborhood && <p className="text-[var(--text-subtle)] text-[10px]">{r.neighborhood}</p>}
                       </div>
                     </button>
                   ))}
@@ -324,9 +327,9 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                 <Link
                   href="/agregar-restaurante"
                   onClick={() => setPickerOpen(false)}
-                  className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-[#FF6B35] hover:bg-white/5 transition-colors flex items-center gap-2"
+                  className="block border-t border-[var(--border-subtle)] px-3 py-2.5 text-[11px] text-orange-600 hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
                 >
-                  <span className="w-4 h-4 rounded-full bg-[#FF6B35]/15 border border-[#FF6B35]/40 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold">+</span>
+                  <span className="w-4 h-4 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 text-[10px] font-bold">+</span>
                   Agregar otro restaurante
                 </Link>
               )}
@@ -335,9 +338,9 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                 <Link
                   href="/agregar-sucursal"
                   onClick={() => setPickerOpen(false)}
-                  className="block border-t border-white/10 px-3 py-2.5 text-[11px] text-white/60 hover:bg-white/5 transition-colors flex items-center gap-2"
+                  className="block border-t border-[var(--border-subtle)] px-3 py-2.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
                 >
-                  <span className="w-4 h-4 rounded-full bg-white/10 border border-white/20 flex items-center justify-center text-white/60 text-[10px] font-bold">+</span>
+                  <span className="w-4 h-4 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold">+</span>
                   Agregar sucursal (mismo brand)
                 </Link>
               )}
@@ -361,8 +364,8 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                 className={[
                   'w-full flex items-center gap-2 px-2.5 py-2 rounded-lg text-[11px] font-semibold tracking-wider transition-colors',
                   sectionHasActive
-                    ? 'text-white/85'
-                    : 'text-white/40 hover:text-white/70',
+                    ? 'text-[var(--text-strong)]'
+                    : 'text-[var(--text-subtle)] hover:text-[var(--text-body)]',
                 ].join(' ')}
               >
                 <SectionIcon size={13} strokeWidth={2} className="shrink-0 opacity-70" />
@@ -398,8 +401,8 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                           className={[
                             'flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] transition-all',
                             active
-                              ? 'bg-[#FF6B35] text-white font-medium shadow-sm shadow-[#FF6B35]/20'
-                              : 'text-white/55 hover:text-white hover:bg-white/5',
+                              ? 'bg-orange-500 text-white font-medium shadow-[var(--shadow-brand)]'
+                              : 'text-[var(--text-body)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-hover)]',
                           ].join(' ')}
                         >
                           <Icon size={14} strokeWidth={active ? 2.5 : 1.8} className="shrink-0" />
@@ -416,17 +419,17 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
       </nav>
 
       {/* Support + NPS buttons */}
-      <div className="px-3 py-2 space-y-1 border-t border-white/5">
+      <div className="px-3 py-2 space-y-1 border-t border-[var(--border-subtle)]">
         <button
           onClick={() => setSupportOpen(true)}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5 transition-all"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-hover)] transition-all"
         >
           <HelpCircle size={14} strokeWidth={1.8} className="shrink-0" />
           <span className="flex-1 text-left truncate">Soporte</span>
         </button>
         <button
           onClick={() => setNpsOpen(true)}
-          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-white/40 hover:text-white hover:bg-white/5 transition-all"
+          className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg text-[13px] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-hover)] transition-all"
         >
           <MessageSquare size={14} strokeWidth={1.8} className="shrink-0" />
           <span className="flex-1 text-left truncate">Feedback</span>
@@ -449,26 +452,26 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
       />
 
       {/* User + Logout */}
-      <div className="px-3 py-3 border-t border-white/5 flex items-center gap-2">
-        <div className="w-7 h-7 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[#FF6B35] text-[10px] font-bold shrink-0">
+      <div className="px-3 py-3 border-t border-[var(--border-subtle)] flex items-center gap-2">
+        <div className="w-7 h-7 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 text-[10px] font-bold shrink-0">
           {initials}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-white text-[11px] font-medium truncate">
+          <p className="text-[var(--text-strong)] text-[11px] font-medium truncate">
             {profile?.email?.split('@')[0] ?? '—'}
           </p>
-          <p className="text-white/35 text-[9px]">{ROLE_LABEL[role] ?? role}</p>
+          <p className="text-[var(--text-muted)] text-[9px]">{ROLE_LABEL[role] ?? role}</p>
         </div>
         <button
           onClick={logout}
           title="Cerrar sesión"
-          className="p-1.5 rounded-lg hover:bg-red-500/15 text-white/30 hover:text-red-400 transition-colors shrink-0"
+          className="p-1.5 rounded-lg hover:bg-[var(--danger-surface)] text-[var(--text-subtle)] hover:text-[var(--danger)] transition-colors shrink-0"
         >
           <LogOut size={13} />
         </button>
       </div>
 
-      {/* Themed scrollbar — matches the dark sidebar tone */}
+      {/* Themed scrollbar — hairline sobre superficie clara, hover naranjo */}
       <style jsx global>{`
         .sidebar-scroll {
           scrollbar-width: thin;
@@ -482,7 +485,7 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
           background: transparent;
         }
         .sidebar-scroll::-webkit-scrollbar-thumb {
-          background: rgba(255,255,255,0.08);
+          background: rgba(26,26,46,0.12);
           border-radius: 999px;
           transition: background 0.2s;
         }
@@ -534,18 +537,18 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
 
   if (isPastDue && !isBillingPage) {
     return (
-      <div className="flex h-screen bg-[#0A0A14] text-white flex-col items-center justify-center p-6 text-center" style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
-        <div className="w-20 h-20 rounded-2xl bg-red-500/10 flex items-center justify-center mb-6">
-          <Lock size={32} className="text-red-500" />
+      <div className="flex h-screen bg-canvas text-[var(--text-strong)] flex-col items-center justify-center p-6 text-center" style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+        <div className="w-20 h-20 rounded-2xl bg-[var(--danger-surface)] border border-[var(--danger-border)] flex items-center justify-center mb-6">
+          <Lock size={32} className="text-[var(--danger)]" />
         </div>
         <h1 className="text-3xl font-bold mb-4">Acceso bloqueado</h1>
-        <p className="text-white/60 mb-8 max-w-md">
-          Tu periodo de prueba ha finalizado o tienes un pago pendiente. 
+        <p className="text-[var(--text-muted)] mb-8 max-w-md">
+          Tu periodo de prueba ha finalizado o tienes un pago pendiente.
           Por favor, regulariza tu suscripción para continuar usando HiChapi.
         </p>
-        <Link 
-          href="/modulos" 
-          className="px-6 py-3 bg-[#FF6B35] rounded-xl font-semibold hover:bg-[#FF6B35]/90 transition-colors flex items-center gap-2"
+        <Link
+          href="/modulos"
+          className="px-6 py-3 bg-orange-500 text-white rounded-xl font-semibold hover:bg-orange-600 transition-colors flex items-center gap-2"
         >
           <Banknote size={18} />
           Ir a Facturación

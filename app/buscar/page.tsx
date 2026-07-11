@@ -330,6 +330,7 @@ export default function Home() {
   const [showMap, setShowMap]           = useState(false)
   const [detectedCity, setDetectedCity] = useState<string>('Santiago')
   const [cityLoading, setCityLoading]   = useState(true)
+  const [heroQuery, setHeroQuery]       = useState('')
   const hydratedRef = useRef(false)
 
   // Rehidratar al montar — si el usuario viene de "Volver" desde /r/[slug],
@@ -337,6 +338,15 @@ export default function Home() {
   useEffect(() => {
     if (hydratedRef.current) return
     hydratedRef.current = true
+
+    // ?q= viene de la mini-búsqueda del hero de la landing: pre-carga el
+    // input del chat (sin auto-enviar). Se lee de location.search en vez de
+    // useSearchParams para no requerir Suspense boundary.
+    try {
+      const q = new URLSearchParams(window.location.search).get('q')
+      if (q) setHeroQuery(q)
+    } catch { /* ignore */ }
+
     const persisted = loadPersisted()
     if (persisted && persisted.results.length > 0) {
       setResults(persisted.results)
@@ -491,6 +501,7 @@ export default function Home() {
           onNoResultsDetail={handleNoResultsDetail}
           pendingAlternativeNonce={pendingAltNonce}
           defaultZone={detectedCity !== 'Santiago' ? detectedCity : undefined}
+          initialInput={heroQuery || undefined}
         />
 
         {/* Guía explícita: mostrar los 3 datos óptimos para una búsqueda

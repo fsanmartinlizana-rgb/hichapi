@@ -18,6 +18,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { Loader2, Store, ChefHat, Users, ShoppingBag, ArrowRight, LogOut } from 'lucide-react'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 const ROLE_HOME: Record<string, string> = {
   owner:       '/dashboard',
@@ -154,9 +155,7 @@ export default function SeleccionarRestaurantePage() {
     <main className="min-h-screen flex items-center justify-center bg-[#0A0A14] text-white p-6">
       <div className="w-full max-w-md">
         <div className="text-center mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto mb-3">
-            hi
-          </div>
+          <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto mb-3" />
           <h1 className="text-xl font-bold">¿Con qué restaurante querés entrar?</h1>
           <p className="text-white/45 text-sm mt-1">Tu cuenta tiene acceso a varios locales.</p>
         </div>

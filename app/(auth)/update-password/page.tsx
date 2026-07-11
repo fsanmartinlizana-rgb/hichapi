@@ -5,6 +5,7 @@ import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { Eye, EyeOff, Loader2, Shield, Check, X, AlertCircle, CheckCircle2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 const RULES = [
   { label: 'Al menos 12 caracteres',     test: (p: string) => p.length >= 12 },
@@ -154,9 +155,7 @@ function UpdatePasswordInner() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
-          hi
-        </div>
+        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
         <h1 className="text-white font-bold text-2xl">Nueva contraseña</h1>
         <p className="text-white/40 text-sm">
           {sessionEmail

@@ -5,6 +5,16 @@ export default defineConfig({
   test: {
     environment: 'node',
     globals: true,
+    // hichapi-mobile-app usa Jest (su propio framework/config) — vitest no
+    // debe recogerlo (revientan los 21 archivos por APIs de Jest). .claude/
+    // worktrees duplica la suite completa; hichapi-dev-kit es config vieja.
+    exclude: [
+      '**/node_modules/**',
+      '**/dist/**',
+      'hichapi-mobile-app/**',
+      '.claude/**',
+      'hichapi-dev-kit/**',
+    ],
     coverage: {
       provider: 'v8',
       reporter: ['text', 'json', 'html'],

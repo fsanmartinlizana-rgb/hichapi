@@ -5,6 +5,7 @@ import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { Clock, Users, Bell, CheckCircle2, X, ChevronRight, Loader2 } from 'lucide-react'
 import { formatEta } from '@/lib/waitlist/eta'
 import type { WaitlistEntry } from '@/lib/waitlist/types'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 // ── Join form ─────────────────────────────────────────────────────────────────
 
@@ -332,11 +333,8 @@ export default function EsperaPage() {
       {/* Header */}
       <div className="w-full max-w-sm mb-6 text-center">
         <div className="inline-flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center
-                          text-white font-bold text-sm">
-            hi
-          </div>
-          <span className="text-white/50 text-sm">HiChapi</span>
+          <HiChapiLogo size={24} accentColor="#FFFFFF" />
+          <span className="text-white/80 text-sm font-bold"><span className="text-[#FF6B35]">Hi</span>Chapi</span>
         </div>
         <h1 className="text-white font-bold text-lg">{restaurantName}</h1>
         <p className="text-white/30 text-sm mt-0.5">Lista de espera</p>

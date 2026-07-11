@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { Loader2, Shield, AlertCircle, CheckCircle2, ArrowLeft } from 'lucide-react'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 export default function RecuperarPage() {
   const [email, setEmail]   = useState('')
@@ -46,9 +47,7 @@ export default function RecuperarPage() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
-          hi
-        </div>
+        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
         <h1 className="text-white font-bold text-2xl">Recuperar contraseña</h1>
         <p className="text-white/40 text-sm">Te enviaremos un enlace para crear una nueva</p>
       </div>

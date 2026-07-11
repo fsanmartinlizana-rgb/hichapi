@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams, useSearchParams, useRouter } from 'next/navigation'
 import { CalendarDays, Clock, Users, CheckCircle2, X, Loader2, ChevronLeft, ChevronRight, MapPin, Phone as PhoneIcon } from 'lucide-react'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -330,8 +331,8 @@ export default function ReservarPage() {
       {/* Header */}
       <div className="w-full max-w-sm mb-6 text-center">
         <div className="inline-flex items-center gap-2 mb-4">
-          <div className="w-8 h-8 rounded-lg bg-[#FF6B35] flex items-center justify-center text-white font-bold text-sm">hi</div>
-          <span className="text-white/50 text-sm">HiChapi</span>
+          <HiChapiLogo size={24} accentColor="#FFFFFF" />
+          <span className="text-white/80 text-sm font-bold"><span className="text-[#FF6B35]">Hi</span>Chapi</span>
         </div>
         <h1 className="text-white font-bold text-lg">{restaurant?.name || 'Cargando...'}</h1>
         <p className="text-white/30 text-sm mt-0.5">Reservar mesa</p>

@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
 import { Eye, EyeOff, Loader2, Shield, AlertCircle } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import HiChapiLogo from '@/components/landing/HiChapiLogo'
 
 // Rate limiting — client-side guard (real limiting is server-side via Supabase)
 const attempts: { count: number; since: number } = { count: 0, since: Date.now() }
@@ -88,9 +89,7 @@ function LoginForm() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <div className="w-12 h-12 rounded-2xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-xl mx-auto">
-          hi
-        </div>
+        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
         <h1 className="text-white font-bold text-2xl">Bienvenido de vuelta</h1>
         <p className="text-white/40 text-sm">Ingresa a tu panel de restaurante</p>
       </div>

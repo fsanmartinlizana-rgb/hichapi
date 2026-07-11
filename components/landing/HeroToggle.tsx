@@ -1,6 +1,8 @@
 'use client'
 
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 import {
   MessageCircle,
   Utensils,
@@ -16,6 +18,7 @@ import {
   ClipboardList,
   Package,
   Sparkles,
+  Send,
 } from 'lucide-react'
 
 /* ── Data per audience ─────────────────────────────────────────────── */
@@ -73,6 +76,63 @@ const AUDIENCES = {
 } as const
 
 export type Audience = keyof typeof AUDIENCES
+
+/* ── Mini-búsqueda Chapi (hero comensal, según el DS) ──────────────────
+   El input navega a /buscar?q=… — la búsqueda real vive en el chat. */
+
+const QUICK_CHIPS = [
+  'Sin gluten cerca de mí',
+  'Vegano en Providencia',
+  'Algo rico por menos de 15 lucas',
+  'Japonés en Barrio Italia',
+]
+
+function MiniChapi() {
+  const router = useRouter()
+  const [msg, setMsg] = useState('')
+
+  function send(text: string) {
+    const q = text.trim()
+    router.push(q ? `/buscar?q=${encodeURIComponent(q)}` : '/buscar')
+  }
+
+  return (
+    <div className="w-full max-w-xl mx-auto lg:mx-0 mb-8">
+      <div className="relative bg-white rounded-3xl shadow-lg border border-neutral-100">
+        <input
+          value={msg}
+          onChange={e => setMsg(e.target.value)}
+          onKeyDown={e => { if (e.key === 'Enter') send(msg) }}
+          placeholder="¿Qué quieres comer hoy? Cuéntale a Chapi…"
+          aria-label="Buscar con Chapi"
+          className="w-full border-none outline-none bg-transparent rounded-3xl
+                     py-5 pl-6 pr-16 text-base text-[#1A1A2E] placeholder:text-neutral-400"
+        />
+        <button
+          onClick={() => send(msg)}
+          aria-label="Enviar a Chapi"
+          className="absolute right-3 top-1/2 -translate-y-1/2 w-11 h-11 rounded-xl
+                     bg-[#FF6B35] text-white flex items-center justify-center
+                     hover:bg-[#e55a2b] transition-colors shadow-lg shadow-[#FF6B35]/25"
+        >
+          <Send size={18} />
+        </button>
+      </div>
+      <div className="flex flex-wrap gap-2 justify-center lg:justify-start mt-3.5">
+        {QUICK_CHIPS.map(c => (
+          <button
+            key={c}
+            onClick={() => send(c)}
+            className="text-xs px-3.5 py-1.5 rounded-full bg-white border border-neutral-200
+                       text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35] transition-colors"
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+}
 
 interface HeroToggleProps {
   active: Audience
@@ -143,28 +203,32 @@ export default function HeroToggle({ active, onChange }: HeroToggleProps) {
               ))}
             </div>
 
-            {/* CTAs */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
-              <Link
-                href={data.cta.href}
-                className="group inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl
-                           bg-[#FF6B35] text-white font-bold text-base
-                           hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/25
-                           hover:shadow-xl hover:shadow-[#FF6B35]/30 hover:-translate-y-0.5"
-              >
-                <CtaIcon size={17} />
-                {data.cta.label}
-                <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
-              </Link>
-              <Link
-                href={data.secondaryCta.href}
-                className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl
-                           border-2 border-neutral-200 text-[#1A1A2E] font-semibold text-sm
-                           hover:border-[#FF6B35] hover:text-[#FF6B35] transition-all"
-              >
-                {data.secondaryCta.label}
-              </Link>
-            </div>
+            {/* CTA: comensal busca directo con Chapi (DS hero); restaurante mantiene botones */}
+            {active === 'comensal' ? (
+              <MiniChapi />
+            ) : (
+              <div className="flex flex-col sm:flex-row gap-3 justify-center lg:justify-start">
+                <Link
+                  href={data.cta.href}
+                  className="group inline-flex items-center justify-center gap-2.5 px-7 py-4 rounded-2xl
+                             bg-[#FF6B35] text-white font-bold text-base
+                             hover:bg-[#e55a2b] transition-all shadow-lg shadow-[#FF6B35]/25
+                             hover:shadow-xl hover:shadow-[#FF6B35]/30 hover:-translate-y-0.5"
+                >
+                  <CtaIcon size={17} />
+                  {data.cta.label}
+                  <ArrowRight size={14} className="group-hover:translate-x-1 transition-transform" />
+                </Link>
+                <Link
+                  href={data.secondaryCta.href}
+                  className="inline-flex items-center justify-center gap-2 px-6 py-4 rounded-2xl
+                             border-2 border-neutral-200 text-[#1A1A2E] font-semibold text-sm
+                             hover:border-[#FF6B35] hover:text-[#FF6B35] transition-all"
+                >
+                  {data.secondaryCta.label}
+                </Link>
+              </div>
+            )}
           </div>
 
           {/* Right: image card */}
