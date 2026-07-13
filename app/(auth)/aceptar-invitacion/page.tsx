@@ -73,9 +73,9 @@ function AcceptInviteInner() {
   return (
     <div className="space-y-6">
       <div className="text-center space-y-2">
-        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
-        <h1 className="text-white font-bold text-2xl">Bienvenido a HiChapi</h1>
-        <p className="text-white/40 text-sm">
+        <HiChapiLogo size={44} className="mx-auto" />
+        <h1 className="text-[var(--text-strong)] font-bold text-2xl">Bienvenido a HiChapi</h1>
+        <p className="text-[var(--text-muted)] text-sm">
           {status === 'loading' && 'Validando tu invitación…'}
           {status === 'ok'      && '¡Listo! Te llevamos a tu cuenta…'}
           {status === 'manual'  && 'Cuenta activa'}
@@ -83,22 +83,22 @@ function AcceptInviteInner() {
         </p>
       </div>
 
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6">
         {status === 'loading' && (
           <div className="text-center py-6">
-            <Loader2 size={28} className="text-[#FF6B35] animate-spin mx-auto" />
-            <p className="text-white/40 text-sm mt-3">Procesando…</p>
+            <Loader2 size={28} className="text-[#E55A2B] animate-spin mx-auto" />
+            <p className="text-[var(--text-muted)] text-sm mt-3">Procesando…</p>
           </div>
         )}
 
         {status === 'ok' && (
           <div className="text-center space-y-4 py-2">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto">
-              <CheckCircle2 size={26} className="text-emerald-400" />
+              <CheckCircle2 size={26} className="text-emerald-700" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Invitación aceptada!</h2>
-              <p className="text-white/40 text-sm mt-1">
+              <h2 className="text-[var(--text-strong)] font-bold text-lg">¡Invitación aceptada!</h2>
+              <p className="text-[var(--text-muted)] text-sm mt-1">
                 {info?.email ? `Entrando como ${info.email}…` : 'Entrando…'}
               </p>
             </div>
@@ -108,8 +108,8 @@ function AcceptInviteInner() {
         {status === 'manual' && (
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-4 py-3">
-              <CheckCircle2 size={15} className="text-emerald-400 shrink-0 mt-0.5" />
-              <p className="text-emerald-300 text-sm leading-relaxed">
+              <CheckCircle2 size={15} className="text-emerald-700 shrink-0 mt-0.5" />
+              <p className="text-emerald-700 text-sm leading-relaxed">
                 Tu cuenta ya está activa. Iniciá sesión con tu email{info?.email ? ` (${info.email})` : ''}.
               </p>
             </div>
@@ -125,18 +125,18 @@ function AcceptInviteInner() {
         {status === 'error' && (
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-              <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-              <p className="text-red-400 text-sm leading-relaxed">{error}</p>
+              <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+              <p className="text-red-700 text-sm leading-relaxed">{error}</p>
             </div>
             <Link
               href="/invite-callback"
-              className="block w-full text-center py-3 rounded-xl border border-white/10 text-white/60 text-sm hover:border-white/20 transition-colors flex items-center justify-center gap-2"
+              className="block w-full text-center py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors flex items-center justify-center gap-2"
             >
               <Mail size={14} /> Pedir un link nuevo
             </Link>
             <Link
               href="/login"
-              className="block w-full text-center py-2.5 rounded-xl text-white/40 text-xs hover:text-white/60 transition-colors"
+              className="block w-full text-center py-2.5 rounded-xl text-[var(--text-muted)] text-xs hover:text-[var(--text-muted)] transition-colors"
             >
               Iniciar sesión con cuenta existente
             </Link>
@@ -144,7 +144,7 @@ function AcceptInviteInner() {
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 text-white/15">
+      <div className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
         <Shield size={11} />
         <span className="text-[10px]">Conexión segura · Datos encriptados</span>
       </div>
@@ -154,7 +154,7 @@ function AcceptInviteInner() {
 
 export default function AcceptInvitePage() {
   return (
-    <Suspense fallback={<div className="text-white/40 text-sm">Cargando…</div>}>
+    <Suspense fallback={<div className="text-[var(--text-muted)] text-sm">Cargando…</div>}>
       <AcceptInviteInner />
     </Suspense>
   )

@@ -23,7 +23,7 @@ function PasswordStrength({ password }: { password: string }) {
     <div className="space-y-2 mt-2">
       <div className="flex gap-1">
         {RULES.map((_, i) => (
-          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < passed ? color : 'bg-white/8'}`} />
+          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < passed ? color : 'bg-[var(--surface-sunken)]'}`} />
         ))}
       </div>
       <div className="space-y-1">
@@ -32,10 +32,10 @@ function PasswordStrength({ password }: { password: string }) {
           return (
             <div key={rule.label} className="flex items-center gap-1.5">
               {ok
-                ? <Check size={10} className="text-emerald-400 shrink-0" />
-                : <X size={10} className="text-white/20 shrink-0" />
+                ? <Check size={10} className="text-emerald-700 shrink-0" />
+                : <X size={10} className="text-[var(--text-muted)] shrink-0" />
               }
-              <span className={`text-[10px] ${ok ? 'text-white/50' : 'text-white/20'}`}>{rule.label}</span>
+              <span className={`text-[10px] ${ok ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>{rule.label}</span>
             </div>
           )
         })}
@@ -46,7 +46,7 @@ function PasswordStrength({ password }: { password: string }) {
 
 export default function UpdatePasswordPage() {
   return (
-    <Suspense fallback={<div className="text-white/40 text-sm text-center py-8">Cargando…</div>}>
+    <Suspense fallback={<div className="text-[var(--text-muted)] text-sm text-center py-8">Cargando…</div>}>
       <UpdatePasswordInner />
     </Suspense>
   )
@@ -155,11 +155,11 @@ function UpdatePasswordInner() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
-        <h1 className="text-white font-bold text-2xl">Nueva contraseña</h1>
-        <p className="text-white/40 text-sm">
+        <HiChapiLogo size={44} className="mx-auto" />
+        <h1 className="text-[var(--text-strong)] font-bold text-2xl">Nueva contraseña</h1>
+        <p className="text-[var(--text-muted)] text-sm">
           {sessionEmail
-            ? <>Configurá la contraseña para <span className="text-[#FF6B35] font-semibold">{sessionEmail}</span></>
+            ? <>Configurá la contraseña para <span className="text-[#E55A2B] font-semibold">{sessionEmail}</span></>
             : 'Elige una contraseña segura para tu cuenta'}
         </p>
       </div>
@@ -167,7 +167,7 @@ function UpdatePasswordInner() {
       {/* Mismatch warning (bug fixed 2026-04-20) */}
       {mismatchError && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 flex items-start gap-2.5">
-          <AlertCircle size={16} className="text-amber-400 shrink-0 mt-0.5" />
+          <AlertCircle size={16} className="text-amber-700 shrink-0 mt-0.5" />
           <div className="flex-1">
             <p className="text-amber-200 text-sm font-semibold mb-1">Sesión cerrada por seguridad</p>
             <p className="text-amber-100/80 text-xs leading-relaxed">{mismatchError}</p>
@@ -175,24 +175,24 @@ function UpdatePasswordInner() {
         </div>
       )}
 
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6">
 
         {sessionChecking ? (
           <div className="text-center py-8">
-            <Loader2 size={24} className="text-[#FF6B35] animate-spin mx-auto" />
-            <p className="text-white/40 text-xs mt-3">Validando sesión…</p>
+            <Loader2 size={24} className="text-[#E55A2B] animate-spin mx-auto" />
+            <p className="text-[var(--text-muted)] text-xs mt-3">Validando sesión…</p>
           </div>
         ) : !sessionEmail ? (
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-              <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-              <p className="text-red-400 text-sm leading-relaxed">
+              <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+              <p className="text-red-700 text-sm leading-relaxed">
                 No hay sesión activa. Volvé a abrir el link de tu email (en ventana de incógnito si ya tenías otra cuenta abierta).
               </p>
             </div>
             <Link
               href="/login"
-              className="block w-full text-center py-3 rounded-xl border border-white/10 text-white/60 text-sm hover:border-white/20 transition-colors"
+              className="block w-full text-center py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors"
             >
               Volver al login
             </Link>
@@ -201,14 +201,14 @@ function UpdatePasswordInner() {
           <>
             {error && (
               <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
-                <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-                <p className="text-red-400 text-sm leading-relaxed">{error}</p>
+                <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+                <p className="text-red-700 text-sm leading-relaxed">{error}</p>
               </div>
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1.5">
-                <label className="text-white/50 text-xs font-medium">Nueva contraseña</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Nueva contraseña</label>
                 <div className="relative">
                   <input
                     type={showPass ? 'text' : 'password'}
@@ -217,12 +217,12 @@ function UpdatePasswordInner() {
                     required
                     autoComplete="new-password"
                     placeholder="Mínimo 12 caracteres"
-                    className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+                    className="w-full px-4 py-3 pr-11 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPass(v => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-muted)]"
                   >
                     {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                   </button>
@@ -231,7 +231,7 @@ function UpdatePasswordInner() {
               </div>
 
               <div className="space-y-1.5">
-                <label className="text-white/50 text-xs font-medium">Confirmar contraseña</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Confirmar contraseña</label>
                 <div className="relative">
                   <input
                     type="password"
@@ -240,15 +240,15 @@ function UpdatePasswordInner() {
                     required
                     autoComplete="new-password"
                     placeholder="Repite la contraseña"
-                    className={`w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border text-white
-                               placeholder:text-white/20 text-sm focus:outline-none transition-colors
-                               ${confirm && !passwordsMatch ? 'border-red-500/40' : confirm && passwordsMatch ? 'border-emerald-500/40' : 'border-white/8'}`}
+                    className={`w-full px-4 py-3 pr-11 rounded-xl bg-[var(--surface-sunken)] border text-[var(--text-strong)]
+                               placeholder:text-[var(--text-muted)] text-sm focus:outline-none transition-colors
+                               ${confirm && !passwordsMatch ? 'border-red-500/40' : confirm && passwordsMatch ? 'border-emerald-500/40' : 'border-[var(--border-subtle)]'}`}
                   />
                   {confirm && (
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       {passwordsMatch
-                        ? <Check size={16} className="text-emerald-400" />
-                        : <X size={16} className="text-red-400" />
+                        ? <Check size={16} className="text-emerald-700" />
+                        : <X size={16} className="text-red-700" />
                       }
                     </div>
                   )}
@@ -270,11 +270,11 @@ function UpdatePasswordInner() {
         ) : (
           <div className="text-center space-y-4 py-2">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto">
-              <CheckCircle2 size={26} className="text-emerald-400" />
+              <CheckCircle2 size={26} className="text-emerald-700" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Contraseña actualizada!</h2>
-              <p className="text-white/40 text-sm mt-1">
+              <h2 className="text-[var(--text-strong)] font-bold text-lg">¡Contraseña actualizada!</h2>
+              <p className="text-[var(--text-muted)] text-sm mt-1">
                 Tu contraseña fue cambiada exitosamente.
               </p>
             </div>
@@ -289,14 +289,14 @@ function UpdatePasswordInner() {
       </div>
 
       {!done && (
-        <p className="text-center text-white/30 text-sm">
-          <Link href="/login" className="text-[#FF6B35]/70 hover:text-[#FF6B35] transition-colors">
+        <p className="text-center text-[var(--text-muted)] text-sm">
+          <Link href="/login" className="text-[#E55A2B] hover:text-[#E55A2B] transition-colors">
             Volver al inicio de sesión
           </Link>
         </p>
       )}
 
-      <div className="flex items-center justify-center gap-1.5 text-white/15">
+      <div className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
         <Shield size={11} />
         <span className="text-[10px]">Conexión segura · Datos encriptados · Supabase Auth</span>
       </div>

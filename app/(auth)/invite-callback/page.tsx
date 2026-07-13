@@ -131,22 +131,22 @@ export default function InviteCallbackPage() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
-        <h1 className="text-white font-bold text-2xl">Bienvenido a HiChapi</h1>
-        <p className="text-white/40 text-sm">
+        <HiChapiLogo size={44} className="mx-auto" />
+        <h1 className="text-[var(--text-strong)] font-bold text-2xl">Bienvenido a HiChapi</h1>
+        <p className="text-[var(--text-muted)] text-sm">
           {expired ? 'Tu invitación expiró o ya fue usada' : 'Estamos validando tu invitación…'}
         </p>
       </div>
 
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6">
         {error ? (
           <div className="space-y-4">
             <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-              <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-              <div className="text-red-400 text-sm leading-relaxed">
+              <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+              <div className="text-red-700 text-sm leading-relaxed">
                 <p>{error}</p>
                 {expired && (
-                  <p className="text-red-300/70 text-xs mt-2 leading-relaxed">
+                  <p className="text-red-700/70 text-xs mt-2 leading-relaxed">
                     Esto puede pasar porque (1) el link expiró, (2) ya fue usado, o (3) tu cliente de email lo
                     consumió en una vista previa antes que vos. Pedí uno nuevo abajo y entrá apenas te llegue.
                   </p>
@@ -156,7 +156,7 @@ export default function InviteCallbackPage() {
 
             {expired ? (
               <form onSubmit={handleResend} className="space-y-3">
-                <label className="text-white/60 text-xs font-medium block">
+                <label className="text-[var(--text-muted)] text-xs font-medium block">
                   Tu email
                 </label>
                 <input
@@ -165,7 +165,7 @@ export default function InviteCallbackPage() {
                   value={resendEmail}
                   onChange={e => setResendEmail(e.target.value)}
                   placeholder="tu@email.com"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/25 text-sm focus:outline-none focus:border-[#FF6B35]/50"
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50"
                 />
                 <button
                   type="submit"
@@ -181,8 +181,8 @@ export default function InviteCallbackPage() {
                 {resendMsg && (
                   <div className={`flex items-start gap-2 px-3 py-2.5 rounded-xl border text-xs ${
                     resendMsg.ok
-                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                      : 'bg-red-500/10 border-red-500/20 text-red-300'
+                      ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700'
+                      : 'bg-red-500/10 border-red-500/20 text-red-700'
                   }`}>
                     <Mail size={12} className="shrink-0 mt-0.5" />
                     <p>{resendMsg.text}</p>
@@ -191,7 +191,7 @@ export default function InviteCallbackPage() {
 
                 <Link
                   href="/login"
-                  className="block w-full text-center py-2.5 rounded-xl border border-white/10 text-white/50 text-xs hover:border-white/20 transition-colors"
+                  className="block w-full text-center py-2.5 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:border-[var(--border-subtle)] transition-colors"
                 >
                   ¿Ya tienes cuenta? Iniciá sesión
                 </Link>
@@ -208,24 +208,24 @@ export default function InviteCallbackPage() {
         ) : status === 'ok' ? (
           <div className="text-center space-y-4 py-2">
             <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto">
-              <CheckCircle2 size={26} className="text-emerald-400" />
+              <CheckCircle2 size={26} className="text-emerald-700" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Invitación aceptada!</h2>
-              <p className="text-white/40 text-sm mt-1">
+              <h2 className="text-[var(--text-strong)] font-bold text-lg">¡Invitación aceptada!</h2>
+              <p className="text-[var(--text-muted)] text-sm mt-1">
                 Te llevamos a crear tu contraseña…
               </p>
             </div>
           </div>
         ) : (
           <div className="text-center py-6">
-            <Loader2 size={28} className="text-[#FF6B35] animate-spin mx-auto" />
-            <p className="text-white/40 text-sm mt-3">Procesando tu invitación…</p>
+            <Loader2 size={28} className="text-[#E55A2B] animate-spin mx-auto" />
+            <p className="text-[var(--text-muted)] text-sm mt-3">Procesando tu invitación…</p>
           </div>
         )}
       </div>
 
-      <div className="flex items-center justify-center gap-1.5 text-white/15">
+      <div className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
         <Shield size={11} />
         <span className="text-[10px]">Conexión segura · Datos encriptados · Supabase Auth</span>
       </div>

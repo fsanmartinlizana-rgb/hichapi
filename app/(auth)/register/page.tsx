@@ -98,7 +98,7 @@ function PasswordStrength({ password }: { password: string }) {
     <div className="space-y-2 mt-2">
       <div className="flex gap-1">
         {RULES.map((_, i) => (
-          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < passed ? color : 'bg-white/8'}`} />
+          <div key={i} className={`h-1 flex-1 rounded-full transition-all ${i < passed ? color : 'bg-[var(--surface-sunken)]'}`} />
         ))}
       </div>
       <div className="space-y-1">
@@ -107,10 +107,10 @@ function PasswordStrength({ password }: { password: string }) {
           return (
             <div key={rule.label} className="flex items-center gap-1.5">
               {ok
-                ? <Check size={10} className="text-emerald-400 shrink-0" />
-                : <X size={10} className="text-white/20 shrink-0" />
+                ? <Check size={10} className="text-emerald-700 shrink-0" />
+                : <X size={10} className="text-[var(--text-muted)] shrink-0" />
               }
-              <span className={`text-[10px] ${ok ? 'text-white/50' : 'text-white/20'}`}>{rule.label}</span>
+              <span className={`text-[10px] ${ok ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]'}`}>{rule.label}</span>
             </div>
           )
         })}
@@ -125,7 +125,7 @@ const STEPS = ['Cuenta', 'Restaurante', 'Listo']
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={<div className="text-white/40 text-sm text-center py-8">Cargando…</div>}>
+    <Suspense fallback={<div className="text-[var(--text-muted)] text-sm text-center py-8">Cargando…</div>}>
       <RegisterPageInner />
     </Suspense>
   )
@@ -254,9 +254,9 @@ function RegisterPageInner() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
-        <h1 className="text-white font-bold text-2xl">Registra tu restaurante</h1>
-        <p className="text-white/40 text-sm">
+        <HiChapiLogo size={44} className="mx-auto" />
+        <h1 className="text-[var(--text-strong)] font-bold text-2xl">Registra tu restaurante</h1>
+        <p className="text-[var(--text-muted)] text-sm">
           {planInfo.trial
             ? 'Trial 30 días sin tarjeta de crédito'
             : 'Gratis para empezar · Sin tarjeta de crédito'}
@@ -282,29 +282,29 @@ function RegisterPageInner() {
                 border: '1px solid rgba(255,107,53,0.4)',
               }}
             >
-              <Sparkles size={16} className="text-[#FF6B35]" />
+              <Sparkles size={16} className="text-[#E55A2B]" />
             </div>
             <div className="flex-1">
               <div className="flex items-center gap-2 mb-1">
-                <span className="text-white/50 text-[10px] font-bold uppercase tracking-wider">
+                <span className="text-[var(--text-muted)] text-[10px] font-bold uppercase tracking-wider">
                   Activarás
                 </span>
-                <span className="text-white font-extrabold text-base leading-none">
+                <span className="text-[var(--text-strong)] font-extrabold text-base leading-none">
                   Plan {planInfo.name}
                 </span>
                 {planInfo.trial && (
-                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
                     30 días gratis
                   </span>
                 )}
               </div>
-              <p className="text-white/55 text-xs mb-2 leading-relaxed">
+              <p className="text-[var(--text-muted)] text-xs mb-2 leading-relaxed">
                 {planInfo.description}
               </p>
               <ul className="flex flex-wrap gap-x-3 gap-y-1">
                 {planInfo.bullets.map(b => (
-                  <li key={b} className="flex items-center gap-1 text-[11px] text-white/65">
-                    <Check size={10} className="text-[#FF6B35] shrink-0" />
+                  <li key={b} className="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                    <Check size={10} className="text-[#E55A2B] shrink-0" />
                     {b}
                   </li>
                 ))}
@@ -319,22 +319,22 @@ function RegisterPageInner() {
         {STEPS.map((label, i) => (
           <div key={label} className="flex items-center gap-2">
             <div className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-bold
-              transition-all ${i < step ? 'bg-emerald-500 text-white' : i === step ? 'bg-[#FF6B35] text-white' : 'bg-white/8 text-white/25'}`}>
+              transition-all ${i < step ? 'bg-emerald-500 text-white' : i === step ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'}`}>
               {i < step ? <Check size={12} /> : i + 1}
             </div>
-            <span className={`text-xs ${i === step ? 'text-white/70' : 'text-white/20'}`}>{label}</span>
-            {i < STEPS.length - 1 && <div className="w-6 h-px bg-white/10" />}
+            <span className={`text-xs ${i === step ? 'text-[var(--text-body)]' : 'text-[var(--text-muted)]'}`}>{label}</span>
+            {i < STEPS.length - 1 && <div className="w-6 h-px bg-[var(--surface-sunken)]" />}
           </div>
         ))}
       </div>
 
       {/* Card */}
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-6">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6">
 
         {error && !accountExists && (
           <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 mb-4">
-            <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-            <p className="text-red-400 text-sm">{error}</p>
+            <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+            <p className="text-red-700 text-sm">{error}</p>
           </div>
         )}
         {accountExists && (
@@ -367,28 +367,28 @@ function RegisterPageInner() {
         {step === 0 && (
           <form onSubmit={handleStep0} className="space-y-4">
             <div className="space-y-1.5">
-              <label className="text-white/50 text-xs font-medium">Email</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Email</label>
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required
                 autoComplete="email" placeholder="tu@restaurante.cl"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-white/50 text-xs font-medium">Tu nombre</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Tu nombre</label>
               <input type="text" value={ownerName} onChange={e => setOwnerName(e.target.value)} required
                 placeholder="María González"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-white/50 text-xs font-medium">Contraseña</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Contraseña</label>
               <div className="relative">
                 <input type={showPass ? 'text' : 'password'} value={password}
                   onChange={e => setPassword(e.target.value)} required autoComplete="new-password"
                   placeholder="Mínimo 12 caracteres"
-                  className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                  className="w-full px-4 py-3 pr-11 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
                 <button type="button" onClick={() => setShowPass(v => !v)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60">
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-muted)]">
                   {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
                 </button>
               </div>
@@ -396,18 +396,18 @@ function RegisterPageInner() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-white/50 text-xs font-medium">Confirmar contraseña</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Confirmar contraseña</label>
               <div className="relative">
                 <input type="password" value={confirm} onChange={e => setConfirm(e.target.value)}
                   required autoComplete="new-password" placeholder="Repite la contraseña"
-                  className={`w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border text-white
-                             placeholder:text-white/20 text-sm focus:outline-none transition-colors
-                             ${confirm && !passwordsMatch ? 'border-red-500/40' : confirm && passwordsMatch ? 'border-emerald-500/40' : 'border-white/8'}`} />
+                  className={`w-full px-4 py-3 pr-11 rounded-xl bg-[var(--surface-sunken)] border text-[var(--text-strong)]
+                             placeholder:text-[var(--text-muted)] text-sm focus:outline-none transition-colors
+                             ${confirm && !passwordsMatch ? 'border-red-500/40' : confirm && passwordsMatch ? 'border-emerald-500/40' : 'border-[var(--border-subtle)]'}`} />
                 {confirm && (
                   <div className="absolute right-3 top-1/2 -translate-y-1/2">
                     {passwordsMatch
-                      ? <Check size={16} className="text-emerald-400" />
-                      : <X size={16} className="text-red-400" />
+                      ? <Check size={16} className="text-emerald-700" />
+                      : <X size={16} className="text-red-700" />
                     }
                   </div>
                 )}
@@ -424,19 +424,19 @@ function RegisterPageInner() {
         {/* ── Step 1: Restaurante ──────────────────────────────────────────── */}
         {step === 1 && (
           <form onSubmit={handleStep1} className="space-y-4">
-            <p className="text-white/40 text-xs mb-2">
+            <p className="text-[var(--text-muted)] text-xs mb-2">
               Esta info aparecerá en HiChapi para que los clientes te encuentren.
             </p>
 
             <div className="space-y-1.5">
-              <label className="text-white/50 text-xs font-medium">Nombre del restaurante</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Nombre del restaurante</label>
               <input type="text" value={restName} onChange={e => setRestName(e.target.value)} required
                 placeholder="El Rincón de Don José"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
               {restName.length >= 2 && (
                 <div className="flex items-center gap-1.5 mt-2">
-                  <span className="text-white/30 text-xs">Tu URL será:</span>
-                  <span className="text-[#FF6B35] text-xs font-mono">
+                  <span className="text-[var(--text-muted)] text-xs">Tu URL será:</span>
+                  <span className="text-[#E55A2B] text-xs font-mono">
                     hichapi.cl/{toSlug(restName)}
                   </span>
                 </div>
@@ -444,30 +444,30 @@ function RegisterPageInner() {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-white/50 text-xs font-medium">Dirección</label>
+              <label className="text-[var(--text-muted)] text-xs font-medium">Dirección</label>
               <input type="text" value={restAddr} onChange={e => setRestAddr(e.target.value)} required
                 placeholder="Av. Italia 1234"
-                className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
-                <label className="text-white/50 text-xs font-medium">Barrio</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Barrio</label>
                 <input type="text" value={restBarrio} onChange={e => setRestBarrio(e.target.value)} required
                   placeholder="Providencia"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
               </div>
               <div className="space-y-1.5">
-                <label className="text-white/50 text-xs font-medium">Tipo de cocina</label>
+                <label className="text-[var(--text-muted)] text-xs font-medium">Tipo de cocina</label>
                 <input type="text" value={restCocina} onChange={e => setRestCocina(e.target.value)} required
                   placeholder="Italiana"
-                  className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+                  className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
               </div>
             </div>
 
             <div className="flex gap-2 pt-2">
               <button type="button" onClick={() => setStep(0)}
-                className="px-4 py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors">
+                className="px-4 py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors">
                 ← Volver
               </button>
               <button type="submit" disabled={loading || blocked || !restName || !restAddr || !restBarrio || !restCocina}
@@ -482,25 +482,25 @@ function RegisterPageInner() {
         {step === 2 && (
           <div className="text-center space-y-4 py-4">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-500/25 flex items-center justify-center mx-auto">
-              <Check size={28} className="text-emerald-400" />
+              <Check size={28} className="text-emerald-700" />
             </div>
             <div>
-              <h2 className="text-white font-bold text-lg">¡Bienvenido a HiChapi!</h2>
-              <p className="text-white/40 text-sm mt-1 leading-relaxed">
+              <h2 className="text-[var(--text-strong)] font-bold text-lg">¡Bienvenido a HiChapi!</h2>
+              <p className="text-[var(--text-muted)] text-sm mt-1 leading-relaxed">
                 Tu restaurante ya está creado y activo. Te llevamos al panel…
               </p>
             </div>
-            <div className="bg-white/3 border border-white/8 rounded-xl p-4 text-left space-y-2">
-              <p className="text-white/60 text-xs font-semibold uppercase tracking-wide">Próximos pasos sugeridos</p>
+            <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4 text-left space-y-2">
+              <p className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wide">Próximos pasos sugeridos</p>
               <div className="space-y-1.5">
-                <p className="text-white/40 text-xs flex items-center gap-2">
-                  <span className="text-emerald-400">1.</span> Cargar tu carta y fotos de platos
+                <p className="text-[var(--text-muted)] text-xs flex items-center gap-2">
+                  <span className="text-emerald-700">1.</span> Cargar tu carta y fotos de platos
                 </p>
-                <p className="text-white/40 text-xs flex items-center gap-2">
-                  <span className="text-emerald-400">2.</span> Crear las mesas y descargar los QR
+                <p className="text-[var(--text-muted)] text-xs flex items-center gap-2">
+                  <span className="text-emerald-700">2.</span> Crear las mesas y descargar los QR
                 </p>
-                <p className="text-white/40 text-xs flex items-center gap-2">
-                  <span className="text-emerald-400">3.</span> Invitar a tu equipo (garzones, cocina)
+                <p className="text-[var(--text-muted)] text-xs flex items-center gap-2">
+                  <span className="text-emerald-700">3.</span> Invitar a tu equipo (garzones, cocina)
                 </p>
               </div>
             </div>
@@ -513,13 +513,13 @@ function RegisterPageInner() {
       </div>
 
       {step < 2 && (
-        <p className="text-center text-white/30 text-sm">
+        <p className="text-center text-[var(--text-muted)] text-sm">
           ¿Ya tienes cuenta?{' '}
-          <Link href="/login" className="text-[#FF6B35] hover:underline font-medium">Ingresar</Link>
+          <Link href="/login" className="text-[#E55A2B] hover:underline font-medium">Ingresar</Link>
         </p>
       )}
 
-      <div className="flex items-center justify-center gap-1.5 text-white/15">
+      <div className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
         <Shield size={11} />
         <span className="text-[10px]">Conexión segura · Datos encriptados · Supabase Auth</span>
       </div>
@@ -579,17 +579,17 @@ function ClaimedWelcome({ restaurantId }: { restaurantId: string }) {
 
   if (authOk === null) {
     return (
-      <div className="w-full max-w-sm bg-[#13132A] rounded-2xl border border-white/8 p-8 text-center">
-        <Loader2 size={20} className="text-white/40 mx-auto animate-spin" />
+      <div className="w-full max-w-sm bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-8 text-center">
+        <Loader2 size={20} className="text-[var(--text-muted)] mx-auto animate-spin" />
       </div>
     )
   }
   if (!restaurant) {
     return (
-      <div className="w-full max-w-sm bg-[#13132A] rounded-2xl border border-white/8 p-8 text-center space-y-3">
-        <AlertCircle size={24} className="text-amber-400 mx-auto" />
-        <p className="text-sm text-white/70">No pudimos cargar el restaurant. El link puede haber expirado.</p>
-        <Link href="/login" className="text-sm text-[#FF6B35] underline">Iniciar sesión</Link>
+      <div className="w-full max-w-sm bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-8 text-center space-y-3">
+        <AlertCircle size={24} className="text-amber-700 mx-auto" />
+        <p className="text-sm text-[var(--text-body)]">No pudimos cargar el restaurant. El link puede haber expirado.</p>
+        <Link href="/login" className="text-sm text-[#E55A2B] underline">Iniciar sesión</Link>
       </div>
     )
   }
@@ -604,30 +604,30 @@ function ClaimedWelcome({ restaurantId }: { restaurantId: string }) {
   }
 
   return (
-    <div className="w-full max-w-md bg-[#13132A] rounded-2xl border border-white/8 p-8 space-y-5">
+    <div className="w-full max-w-md bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-8 space-y-5">
       <div className="text-center space-y-2">
-        <Sparkles size={28} className="text-[#FF6B35] mx-auto" />
-        <h1 className="text-xl font-bold text-white">¡Bienvenido a HiChapi!</h1>
-        <p className="text-sm text-white/60">
-          <span className="font-semibold text-white">{restaurant.name}</span> ya es tuyo.
+        <Sparkles size={28} className="text-[#E55A2B] mx-auto" />
+        <h1 className="text-xl font-bold text-[var(--text-strong)]">¡Bienvenido a HiChapi!</h1>
+        <p className="text-sm text-[var(--text-muted)]">
+          <span className="font-semibold text-[var(--text-strong)]">{restaurant.name}</span> ya es tuyo.
         </p>
       </div>
 
       {/* Pre-cargado */}
-      <div className="bg-white/5 rounded-xl border border-white/8 p-4 space-y-2">
-        <p className="text-[10px] uppercase tracking-wide font-semibold text-emerald-400">Ya tenemos esto cargado</p>
-        <ul className="text-xs text-white/70 space-y-1">
-          <li>• Nombre: <span className="text-white">{restaurant.name}</span></li>
-          {restaurant.address && <li>• Dirección: <span className="text-white">{restaurant.address}</span></li>}
-          {restaurant.neighborhood && <li>• Barrio: <span className="text-white">{restaurant.neighborhood}</span></li>}
-          {restaurant.cuisine_type && <li>• Cocina: <span className="text-white capitalize">{restaurant.cuisine_type}</span></li>}
+      <div className="bg-[var(--surface-sunken)] rounded-xl border border-[var(--border-subtle)] p-4 space-y-2">
+        <p className="text-[10px] uppercase tracking-wide font-semibold text-emerald-700">Ya tenemos esto cargado</p>
+        <ul className="text-xs text-[var(--text-body)] space-y-1">
+          <li>• Nombre: <span className="text-[var(--text-strong)]">{restaurant.name}</span></li>
+          {restaurant.address && <li>• Dirección: <span className="text-[var(--text-strong)]">{restaurant.address}</span></li>}
+          {restaurant.neighborhood && <li>• Barrio: <span className="text-[var(--text-strong)]">{restaurant.neighborhood}</span></li>}
+          {restaurant.cuisine_type && <li>• Cocina: <span className="text-[var(--text-strong)] capitalize">{restaurant.cuisine_type}</span></li>}
         </ul>
       </div>
 
       {/* Qué falta */}
       {missing.length > 0 && (
         <div className="bg-amber-500/5 rounded-xl border border-amber-500/15 p-4 space-y-2">
-          <p className="text-[10px] uppercase tracking-wide font-semibold text-amber-300">Para completar tu perfil</p>
+          <p className="text-[10px] uppercase tracking-wide font-semibold text-amber-700">Para completar tu perfil</p>
           <div className="flex flex-wrap gap-1.5">
             {missing.map(m => (
               <span key={m.key} className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-200 border border-amber-500/20">
@@ -646,7 +646,7 @@ function ClaimedWelcome({ restaurantId }: { restaurantId: string }) {
         Ir a editar mi perfil →
       </button>
 
-      <p className="text-[10px] text-white/30 text-center leading-relaxed">
+      <p className="text-[10px] text-[var(--text-muted)] text-center leading-relaxed">
         Los datos los obtuvimos de fuentes públicas (Google Maps). Vos sos el dueño,
         así que tu edición es la versión oficial.
       </p>

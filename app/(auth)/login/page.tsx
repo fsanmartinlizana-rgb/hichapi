@@ -89,18 +89,18 @@ function LoginForm() {
 
       {/* Logo */}
       <div className="text-center space-y-2">
-        <HiChapiLogo size={44} accentColor="#FFFFFF" className="mx-auto" />
-        <h1 className="text-white font-bold text-2xl">Bienvenido de vuelta</h1>
-        <p className="text-white/40 text-sm">Ingresa a tu panel de restaurante</p>
+        <HiChapiLogo size={44} className="mx-auto" />
+        <h1 className="text-[var(--text-strong)] font-bold text-2xl">Bienvenido de vuelta</h1>
+        <p className="text-[var(--text-muted)] text-sm">Ingresa a tu panel de restaurante</p>
       </div>
 
       {/* Form */}
-      <div className="bg-[#161622] border border-white/8 rounded-2xl p-6 space-y-4">
+      <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6 space-y-4">
 
         {error && (
           <div className="flex items-start gap-2.5 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
-            <AlertCircle size={15} className="text-red-400 shrink-0 mt-0.5" />
-            <p className="text-red-400 text-sm leading-relaxed">{error}</p>
+            <AlertCircle size={15} className="text-red-700 shrink-0 mt-0.5" />
+            <p className="text-red-700 text-sm leading-relaxed">{error}</p>
           </div>
         )}
 
@@ -108,7 +108,7 @@ function LoginForm() {
 
           {/* Email */}
           <div className="space-y-1.5">
-            <label className="text-white/50 text-xs font-medium">Email</label>
+            <label className="text-[var(--text-muted)] text-xs font-medium">Email</label>
             <input
               type="email"
               value={email}
@@ -117,15 +117,15 @@ function LoginForm() {
               autoComplete="email"
               disabled={blocked}
               placeholder="tu@restaurante.cl"
-              className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
+              className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
             />
           </div>
 
           {/* Password */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-white/50 text-xs font-medium">Contraseña</label>
-              <Link href="/recuperar" className="text-[#FF6B35]/70 text-xs hover:text-[#FF6B35] transition-colors">
+              <label className="text-[var(--text-muted)] text-xs font-medium">Contraseña</label>
+              <Link href="/recuperar" className="text-[#E55A2B] text-xs hover:text-[#E55A2B] transition-colors">
                 ¿Olvidaste tu contraseña?
               </Link>
             </div>
@@ -138,12 +138,12 @@ function LoginForm() {
                 autoComplete="current-password"
                 disabled={blocked}
                 placeholder="••••••••••••"
-                className="w-full px-4 py-3 pr-11 rounded-xl bg-white/5 border border-white/8 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
+                className="w-full px-4 py-3 pr-11 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors disabled:opacity-40"
               />
               <button
                 type="button"
                 onClick={() => setShowPass(v => !v)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-white/30 hover:text-white/60 transition-colors"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-muted)] transition-colors"
               >
                 {showPass ? <EyeOff size={16} /> : <Eye size={16} />}
               </button>
@@ -165,9 +165,9 @@ function LoginForm() {
 
         {/* Divider */}
         <div className="flex items-center gap-3">
-          <div className="flex-1 h-px bg-white/6" />
-          <span className="text-white/20 text-xs">o</span>
-          <div className="flex-1 h-px bg-white/6" />
+          <div className="flex-1 h-px bg-[var(--surface-sunken)]" />
+          <span className="text-[var(--text-muted)] text-xs">o</span>
+          <div className="flex-1 h-px bg-[var(--surface-sunken)]" />
         </div>
 
         {/* Google SSO */}
@@ -181,7 +181,7 @@ function LoginForm() {
             })
           }}
           disabled={loading || blocked}
-          className="w-full py-3 rounded-xl bg-white/5 border border-white/8 text-white/70 text-sm hover:bg-white/8 hover:text-white disabled:opacity-40 transition-colors flex items-center justify-center gap-2.5"
+          className="w-full py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-sm hover:bg-[var(--surface-sunken)] hover:text-[var(--text-strong)] disabled:opacity-40 transition-colors flex items-center justify-center gap-2.5"
         >
           <svg width="16" height="16" viewBox="0 0 24 24">
             <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -194,15 +194,15 @@ function LoginForm() {
       </div>
 
       {/* Register link */}
-      <p className="text-center text-white/30 text-sm">
+      <p className="text-center text-[var(--text-muted)] text-sm">
         ¿Tu restaurante aún no está en HiChapi?{' '}
-        <Link href="/register" className="text-[#FF6B35] hover:underline font-medium">
+        <Link href="/register" className="text-[#E55A2B] hover:underline font-medium">
           Regístrate gratis
         </Link>
       </p>
 
       {/* Security badge */}
-      <div className="flex items-center justify-center gap-1.5 text-white/15">
+      <div className="flex items-center justify-center gap-1.5 text-[var(--text-muted)]">
         <Shield size={11} />
         <span className="text-[10px]">Conexión segura · Datos encriptados · Supabase Auth</span>
       </div>
