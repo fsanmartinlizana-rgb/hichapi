@@ -471,125 +471,6 @@ function DinerFeatures() {
   )
 }
 
-/* ─── RestaurantShowcase ─────────────────────────────────────────────
-   Reemplaza la vieja ComparisonSection. Vitrina visual de restaurants
-   que ya están en HiChapi: recupera las fotos que había antes y
-   transmite confianza mostrando que la plataforma tiene uso real. */
-function RestaurantShowcase() {
-  const restaurants = [
-    {
-      name: 'La Parrilla de Don Martín',
-      zone: 'Providencia',
-      tag: 'Parrilla · Chile',
-      image: 'https://images.unsplash.com/photo-1544025162-d76694265947?w=800&q=80',
-    },
-    {
-      name: 'Sazón Patagónica',
-      zone: 'Ñuñoa',
-      tag: 'Cocina de autor',
-      image: 'https://images.unsplash.com/photo-1514933651103-005eec06c04b?w=800&q=80',
-    },
-    {
-      name: 'Pizzería Trattoria',
-      zone: 'Lastarria',
-      tag: 'Italiana · Horno a leña',
-      image: 'https://images.unsplash.com/photo-1513104890138-7c749659a591?w=800&q=80',
-    },
-    {
-      name: 'Sushi Ko',
-      zone: 'Las Condes',
-      tag: 'Japonés fusión',
-      image: 'https://images.unsplash.com/photo-1579871494447-9811cf80d66c?w=800&q=80',
-    },
-    {
-      name: 'Fuente Alemana',
-      zone: 'Centro',
-      tag: 'Comida clásica chilena',
-      image: 'https://images.unsplash.com/photo-1555939594-58d7cb561ad1?w=800&q=80',
-    },
-    {
-      name: 'Café Colmado',
-      zone: 'Barrio Italia',
-      tag: 'Brunch · Café de especialidad',
-      image: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=800&q=80',
-    },
-  ]
-
-  return (
-    <section id="restaurantes-ya-dentro" className="py-14 lg:py-20 bg-white">
-      <div className="max-w-6xl mx-auto px-6">
-        <div className="text-center mb-12">
-          <div
-            className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1.5
-                       rounded-full border mb-4"
-            style={{ background: '#FFF4EF', borderColor: '#FFD4C2', color: '#FF6B35' }}
-          >
-            <Star size={12} /> Ya confían en HiChapi
-          </div>
-          <h2 className="text-3xl lg:text-4xl font-extrabold text-[#1A1A2E] mb-4">
-            Restaurantes que ya usan HiChapi
-          </h2>
-          <p className="text-neutral-400 text-lg max-w-xl mx-auto">
-            Desde parrillas de barrio hasta cocina de autor. Todos empezaron gratis.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 lg:gap-6">
-          {restaurants.map(r => (
-            <div
-              key={r.name}
-              className="group relative rounded-2xl overflow-hidden border border-neutral-100 bg-[#FAFAF8]
-                         shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300"
-            >
-              {/* Image */}
-              <div className="aspect-[4/3] overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={r.image}
-                  alt={r.name}
-                  className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                  loading="lazy"
-                />
-              </div>
-              {/* Overlay text */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent
-                              flex flex-col justify-end p-4 lg:p-5">
-                <p className="text-white font-bold text-sm lg:text-base leading-tight">{r.name}</p>
-                <div className="flex items-center gap-2 mt-1">
-                  <MapPin size={10} className="text-[#FF6B35]" />
-                  <p className="text-neutral-300 text-[11px]">{r.zone}</p>
-                  <span className="text-neutral-500 text-[11px]">·</span>
-                  <p className="text-neutral-300 text-[11px]">{r.tag}</p>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Trust signal */}
-        <div className="mt-12 flex items-center justify-center gap-8 flex-wrap">
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <Shield size={14} className="text-[#FF6B35]" />
-            Datos encriptados
-          </div>
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <Zap size={14} className="text-[#FF6B35]" />
-            99.9% uptime
-          </div>
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <Users size={14} className="text-[#FF6B35]" />
-            Soporte en español
-          </div>
-          <div className="flex items-center gap-2 text-sm text-neutral-500">
-            <Check size={14} className="text-[#FF6B35]" />
-            Cancelas cuando quieras
-          </div>
-        </div>
-      </div>
-    </section>
-  )
-}
-
 /* CAMBIO 2: Numeros concretos para restaurantes — fondo oscuro */
 function RestaurantNumbers() {
   return (
@@ -989,9 +870,7 @@ export default function LandingPage() {
     <>
       {/* 1. Wow factor: ecosistema visual + Garzón 24/7 */}
       <HiChapiSolar />
-      {/* 2. Vitrina de restaurantes que ya operan con HiChapi */}
-      <RestaurantShowcase />
-      {/* 3. Números / ROI rápido */}
+      {/* 2. Números / ROI rápido */}
       <RestaurantNumbers />
       {/* 4. Pricing — momento de la decisión */}
       <PricingSection />

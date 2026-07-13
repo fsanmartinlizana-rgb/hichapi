@@ -12,7 +12,7 @@ import {
   Crown, FileText, Printer, Bike, Utensils, Settings, BrainCircuit,
   Gift, MapPin, ChefHat, Tag, Lock,
 } from 'lucide-react'
-import { canAccessModule } from '@/lib/plans'
+import { canAccessModule, getPlanLevel } from '@/lib/plans'
 import { ROUTE_PLAN_REQUIRED } from '@/lib/plans-gating'
 import PlanGate from '@/components/restaurant/PlanGate'
 import SupportModal from '@/components/SupportModal'
@@ -183,6 +183,8 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
   const [pickerOpen, setPickerOpen] = useState(false)
   const [supportOpen, setSupportOpen] = useState(false)
   const [npsOpen, setNpsOpen] = useState(false)
+  // Confirmación de costo al agregar un local adicional ($29.990/mes).
+  const [addLocationPrompt, setAddLocationPrompt] = useState<{ href: string; label: string } | null>(null)
 
   const role        = profile?.role ?? 'admin'
   const initials    = profile?.initials ?? '??'
@@ -271,11 +273,15 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
           sucursal" para que pueda crear más. */}
       {(() => {
         const canPick      = isSuperAdmin || restaurants.length > 1
-        const canAddSuc    = !isSuperAdmin && (role === 'owner' || role === 'admin')
+        // Multi-local (sucursal o restaurante extra) es capacidad Pro+: cada
+        // local adicional cuesta $29.990/mes (info transparentada en la web).
+        // Los planes Free/Starter no ven el CTA; deben subir a Pro primero.
+        const isPro        = getPlanLevel(currentPlan) >= getPlanLevel('pro')
+        const canAddSuc    = !isSuperAdmin && (role === 'owner' || role === 'admin') && isPro
         // "Agregar otro restaurante" (cuenta única, locales independientes)
         // solo para owner. Un garzón o cocinero invitado a otro local no debe
         // tener un CTA desde el panel ajeno para abrir su propio negocio.
-        const canAddOther  = !isSuperAdmin && role === 'owner'
+        const canAddOther  = !isSuperAdmin && role === 'owner' && isPro
         const showDropdown = canPick || canAddSuc || canAddOther
         return (
         <div className="mx-3 mb-3 relative">
@@ -340,25 +346,23 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
                   Solo para owner — un garzón invitado en otro local no debe
                   poder usar este CTA desde un panel ajeno. */}
               {canAddOther && (
-                <Link
-                  href="/agregar-restaurante"
-                  onClick={() => setPickerOpen(false)}
-                  className="block border-t border-[var(--border-subtle)] px-3 py-2.5 text-[11px] text-orange-600 hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
+                <button
+                  onClick={() => { setPickerOpen(false); setAddLocationPrompt({ href: '/agregar-restaurante', label: 'otro restaurante' }) }}
+                  className="w-full text-left border-t border-[var(--border-subtle)] px-3 py-2.5 text-[11px] text-orange-600 hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
                 >
                   <span className="w-4 h-4 rounded-full bg-orange-50 border border-orange-200 flex items-center justify-center text-orange-600 text-[10px] font-bold">+</span>
                   Agregar otro restaurante
-                </Link>
+                </button>
               )}
-              {/* Agregar SUCURSAL (mismo brand_id) — solo Enterprise. */}
+              {/* Agregar SUCURSAL (mismo brand_id). Local adicional = $29.990/mes. */}
               {canAddSuc && (
-                <Link
-                  href="/agregar-sucursal"
-                  onClick={() => setPickerOpen(false)}
-                  className="block border-t border-[var(--border-subtle)] px-3 py-2.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
+                <button
+                  onClick={() => { setPickerOpen(false); setAddLocationPrompt({ href: '/agregar-sucursal', label: 'una sucursal' }) }}
+                  className="w-full text-left border-t border-[var(--border-subtle)] px-3 py-2.5 text-[11px] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors flex items-center gap-2"
                 >
                   <span className="w-4 h-4 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-default)] flex items-center justify-center text-[var(--text-muted)] text-[10px] font-bold">+</span>
                   Agregar sucursal (mismo brand)
-                </Link>
+                </button>
               )}
             </div>
           )}
@@ -466,6 +470,47 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
         restaurantId={restaurant?.id}
         userId={profile?.id}
       />
+
+      {/* Confirmación de costo por local adicional ($29.990/mes) */}
+      {addLocationPrompt && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-[#1A1A2E]/35 backdrop-blur-sm"
+          onClick={() => setAddLocationPrompt(null)}
+        >
+          <div
+            className="w-full max-w-sm bg-surface border border-[var(--border-subtle)] rounded-2xl shadow-[var(--shadow-xl)] p-6"
+            onClick={e => e.stopPropagation()}
+          >
+            <div className="w-11 h-11 rounded-xl bg-orange-50 border border-orange-200 flex items-center justify-center mb-4">
+              <Store size={20} className="text-orange-600" />
+            </div>
+            <h3 className="text-[var(--text-strong)] font-bold text-base mb-1.5">
+              Agregar {addLocationPrompt.label}
+            </h3>
+            <p className="text-[var(--text-muted)] text-[13px] leading-relaxed mb-4">
+              Cada local adicional tiene un costo de{' '}
+              <span className="font-price font-semibold text-[var(--text-strong)]">$29.990</span> al mes
+              {' '}(+ 1% por transacción), según los planes publicados en la web. Se agrega a tu
+              facturación cuando actives el nuevo local.
+            </p>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setAddLocationPrompt(null)}
+                className="flex-1 h-10 rounded-xl border border-[var(--border-default)] text-[13px] font-semibold text-[var(--text-body)] hover:bg-[var(--surface-hover)] transition-colors"
+              >
+                Cancelar
+              </button>
+              <Link
+                href={addLocationPrompt.href}
+                onClick={() => setAddLocationPrompt(null)}
+                className="flex-1 h-10 rounded-xl bg-orange-500 text-white text-[13px] font-semibold flex items-center justify-center hover:bg-orange-600 transition-colors shadow-[var(--shadow-brand)]"
+              >
+                Continuar
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* User + Logout */}
       <div className="px-3 py-3 border-t border-[var(--border-subtle)] flex items-center gap-2">
