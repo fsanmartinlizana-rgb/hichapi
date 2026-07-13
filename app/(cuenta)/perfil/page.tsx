@@ -134,7 +134,7 @@ export default function CuentaPerfilPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="animate-spin text-[#FF6B35]" size={28} />
+        <Loader2 className="animate-spin text-[#E55A2B]" size={28} />
       </div>
     )
   }
@@ -142,54 +142,54 @@ export default function CuentaPerfilPage() {
   return (
     <div className="space-y-8">
       {toast && (
-        <div className="fixed top-4 right-4 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-300 px-4 py-2 rounded-xl text-sm">
+        <div className="fixed top-4 right-4 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-4 py-2 rounded-xl text-sm">
           {toast}
         </div>
       )}
 
       <div>
-        <h1 className="text-2xl font-bold text-white">Perfil</h1>
-        <p className="text-white/45 text-sm mt-1">Tu información y direcciones de entrega</p>
+        <h1 className="text-2xl font-bold text-[var(--text-strong)]">Perfil</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1">Tu información y direcciones de entrega</p>
       </div>
 
       {profile && (
         <div className="flex items-center gap-3 bg-[#FF6B35]/10 border border-[#FF6B35]/25 rounded-2xl px-4 py-3">
-          <Star size={18} className="text-[#FF6B35] fill-[#FF6B35]" />
+          <Star size={18} className="text-[#E55A2B] fill-[#FF6B35]" />
           <div>
-            <p className="text-white/50 text-xs">Puntos de fidelidad</p>
-            <p className="text-[#FF6B35] font-bold text-lg">{profile.loyalty_points} pts</p>
+            <p className="text-[var(--text-muted)] text-xs">Puntos de fidelidad</p>
+            <p className="text-[#E55A2B] font-bold text-lg">{profile.loyalty_points} pts</p>
           </div>
         </div>
       )}
 
-      <form onSubmit={saveProfile} className="bg-white/[0.03] border border-white/8 rounded-2xl p-5 space-y-4">
-        <h2 className="text-white font-semibold text-sm">Datos personales</h2>
+      <form onSubmit={saveProfile} className="bg-white/[0.03] border border-[var(--border-subtle)] rounded-2xl p-5 space-y-4">
+        <h2 className="text-[var(--text-strong)] font-semibold text-sm">Datos personales</h2>
         <label className="block">
-          <span className="text-white/50 text-xs mb-1 block">Nombre</span>
+          <span className="text-[var(--text-muted)] text-xs mb-1 block">Nombre</span>
           <input
             value={displayName}
             onChange={(e) => setDisplayName(e.target.value)}
             required
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
           />
         </label>
         <label className="block">
-          <span className="text-white/50 text-xs mb-1 block">Teléfono</span>
+          <span className="text-[var(--text-muted)] text-xs mb-1 block">Teléfono</span>
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             placeholder="+56 9 …"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
           />
         </label>
         <label className="block">
-          <span className="text-white/50 text-xs mb-1 block">URL foto de perfil</span>
+          <span className="text-[var(--text-muted)] text-xs mb-1 block">URL foto de perfil</span>
           <input
             value={photoUrl}
             onChange={(e) => setPhotoUrl(e.target.value)}
             type="url"
             placeholder="https://…"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm focus:outline-none focus:border-[#FF6B35]/40"
+            className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm focus:outline-none focus:border-[#FF6B35]/40"
           />
         </label>
         <button
@@ -204,15 +204,15 @@ export default function CuentaPerfilPage() {
 
       <section className="space-y-3">
         <div className="flex items-center justify-between">
-          <h2 className="text-white font-semibold text-sm flex items-center gap-2">
-            <MapPin size={16} className="text-[#FF6B35]" />
+          <h2 className="text-[var(--text-strong)] font-semibold text-sm flex items-center gap-2">
+            <MapPin size={16} className="text-[#E55A2B]" />
             Direcciones guardadas
           </h2>
           {!showAddressForm && addresses.length < 10 && (
             <button
               type="button"
               onClick={() => { resetAddressForm(); setShowAddressForm(true) }}
-              className="flex items-center gap-1 text-xs text-[#FF6B35] font-medium"
+              className="flex items-center gap-1 text-xs text-[#E55A2B] font-medium"
             >
               <Plus size={14} /> Agregar
             </button>
@@ -220,35 +220,35 @@ export default function CuentaPerfilPage() {
         </div>
 
         {showAddressForm && (
-          <form onSubmit={saveAddress} className="bg-white/[0.03] border border-white/10 rounded-xl p-4 space-y-3">
+          <form onSubmit={saveAddress} className="bg-white/[0.03] border border-[var(--border-subtle)] rounded-xl p-4 space-y-3">
             <input
               value={addrLabel}
               onChange={(e) => setAddrLabel(e.target.value)}
               placeholder="Etiqueta (Casa, Trabajo…)"
               required
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm"
             />
             <input
               value={addrStreet}
               onChange={(e) => setAddrStreet(e.target.value)}
               placeholder="Calle y número"
               required
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm"
             />
             <input
               value={addrCity}
               onChange={(e) => setAddrCity(e.target.value)}
               placeholder="Ciudad"
               required
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm"
             />
             <input
               value={addrNotes}
               onChange={(e) => setAddrNotes(e.target.value)}
               placeholder="Notas (depto, timbre…)"
-              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm"
+              className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm"
             />
-            <label className="flex items-center gap-2 text-sm text-white/60">
+            <label className="flex items-center gap-2 text-sm text-[var(--text-muted)]">
               <input
                 type="checkbox"
                 checked={addrDefault}
@@ -260,7 +260,7 @@ export default function CuentaPerfilPage() {
               <button type="submit" className="flex-1 py-2 rounded-lg bg-[#FF6B35] text-white text-sm font-semibold">
                 {editingId ? 'Actualizar' : 'Guardar'}
               </button>
-              <button type="button" onClick={resetAddressForm} className="px-4 py-2 rounded-lg border border-white/10 text-white/50 text-sm">
+              <button type="button" onClick={resetAddressForm} className="px-4 py-2 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm">
                 Cancelar
               </button>
             </div>
@@ -268,28 +268,28 @@ export default function CuentaPerfilPage() {
         )}
 
         {addresses.length === 0 && !showAddressForm ? (
-          <p className="text-white/35 text-sm italic">No tienes direcciones guardadas.</p>
+          <p className="text-[var(--text-muted)] text-sm italic">No tienes direcciones guardadas.</p>
         ) : (
           <ul className="space-y-2">
             {addresses.map((a) => (
               <li
                 key={a.id}
-                className="flex items-start gap-3 bg-white/[0.02] border border-white/8 rounded-xl px-4 py-3"
+                className="flex items-start gap-3 bg-white/[0.02] border border-[var(--border-subtle)] rounded-xl px-4 py-3"
               >
                 <div className="flex-1 min-w-0">
-                  <p className="text-white font-medium text-sm">
+                  <p className="text-[var(--text-strong)] font-medium text-sm">
                     {a.label}
                     {a.is_default && (
-                      <span className="ml-2 text-[10px] text-[#FF6B35] font-semibold uppercase">Default</span>
+                      <span className="ml-2 text-[10px] text-[#E55A2B] font-semibold uppercase">Default</span>
                     )}
                   </p>
-                  <p className="text-white/50 text-xs mt-0.5">{a.street}, {a.city}</p>
-                  {a.notes && <p className="text-white/35 text-xs mt-1">{a.notes}</p>}
+                  <p className="text-[var(--text-muted)] text-xs mt-0.5">{a.street}, {a.city}</p>
+                  {a.notes && <p className="text-[var(--text-muted)] text-xs mt-1">{a.notes}</p>}
                 </div>
-                <button type="button" onClick={() => startEdit(a)} className="p-1.5 text-white/40 hover:text-white">
+                <button type="button" onClick={() => startEdit(a)} className="p-1.5 text-[var(--text-muted)] hover:text-[var(--text-strong)]">
                   <Pencil size={14} />
                 </button>
-                <button type="button" onClick={() => deleteAddress(a.id)} className="p-1.5 text-red-400/70 hover:text-red-400">
+                <button type="button" onClick={() => deleteAddress(a.id)} className="p-1.5 text-red-700/70 hover:text-red-700">
                   <Trash2 size={14} />
                 </button>
               </li>

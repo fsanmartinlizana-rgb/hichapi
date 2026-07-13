@@ -80,7 +80,7 @@ export default function CuentaTrackingPage() {
   if (loading) {
     return (
       <div className="flex justify-center py-20">
-        <Loader2 className="animate-spin text-[#FF6B35]" size={28} />
+        <Loader2 className="animate-spin text-[#E55A2B]" size={28} />
       </div>
     )
   }
@@ -88,10 +88,10 @@ export default function CuentaTrackingPage() {
   if (!data) {
     return (
       <div className="space-y-4">
-        <Link href="/cuenta/pedidos" className="text-white/50 text-sm flex items-center gap-1">
+        <Link href="/cuenta/pedidos" className="text-[var(--text-muted)] text-sm flex items-center gap-1">
           <ArrowLeft size={14} /> Volver
         </Link>
-        <p className="text-white/50">Pedido no encontrado.</p>
+        <p className="text-[var(--text-muted)]">Pedido no encontrado.</p>
       </div>
     )
   }
@@ -102,22 +102,22 @@ export default function CuentaTrackingPage() {
 
   return (
     <div className="space-y-6">
-      <Link href={`/cuenta/pedidos/${deliveryOrderId}`} className="text-white/50 text-sm flex items-center gap-1 hover:text-white">
+      <Link href={`/cuenta/pedidos/${deliveryOrderId}`} className="text-[var(--text-muted)] text-sm flex items-center gap-1 hover:text-[var(--text-strong)]">
         <ArrowLeft size={14} /> Detalle del pedido
       </Link>
 
       <div>
-        <h1 className="text-xl font-bold text-white">Seguimiento de delivery</h1>
-        <p className="text-white/45 text-sm mt-1 truncate">{data.delivery_address}</p>
+        <h1 className="text-xl font-bold text-[var(--text-strong)]">Seguimiento de delivery</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1 truncate">{data.delivery_address}</p>
       </div>
 
       <DeliveryProgress status={status} />
 
       {delivered && (
         <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl px-4 py-4 text-center">
-          <p className="text-emerald-300 font-semibold">¡Pedido entregado!</p>
+          <p className="text-emerald-700 font-semibold">¡Pedido entregado!</p>
           {data.delivered_at && (
-            <p className="text-emerald-400/70 text-xs mt-1">
+            <p className="text-emerald-700/70 text-xs mt-1">
               {new Date(data.delivered_at).toLocaleString('es-CL')}
             </p>
           )}
@@ -125,7 +125,7 @@ export default function CuentaTrackingPage() {
       )}
 
       {data.rider && (
-        <div className="flex items-center gap-3 bg-white/[0.03] border border-white/8 rounded-xl px-4 py-3">
+        <div className="flex items-center gap-3 bg-white/[0.03] border border-[var(--border-subtle)] rounded-xl px-4 py-3">
           {data.rider.profile_photo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -135,15 +135,15 @@ export default function CuentaTrackingPage() {
             />
           ) : (
             <div className="w-12 h-12 rounded-full bg-[#FF6B35]/20 flex items-center justify-center">
-              <User size={20} className="text-[#FF6B35]" />
+              <User size={20} className="text-[#E55A2B]" />
             </div>
           )}
           <div>
-            <p className="text-white/40 text-xs">Tu repartidor</p>
-            <p className="text-white font-semibold">{data.rider.first_name}</p>
+            <p className="text-[var(--text-muted)] text-xs">Tu repartidor</p>
+            <p className="text-[var(--text-strong)] font-semibold">{data.rider.first_name}</p>
           </div>
           {status === 'in_transit' && (
-            <p className="ml-auto text-[#FF6B35] text-xs font-medium">~15–25 min</p>
+            <p className="ml-auto text-[#E55A2B] text-xs font-medium">~15–25 min</p>
           )}
         </div>
       )}

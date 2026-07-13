@@ -123,9 +123,9 @@ export default function AdminRidersPage() {
       <main className="min-h-screen flex items-center justify-center" style={{ background: '#FAFAF8' }}>
         <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-8 w-full max-w-sm">
           <h1 className="text-xl font-bold text-[#1A1A2E] mb-1">
-            hi<span style={{ color: '#FF6B35' }}>chapi</span> admin
+            hi<span style={{ color: '#E55A2B' }}>chapi</span> admin
           </h1>
-          <p className="text-sm text-neutral-400 mb-6">Verificación de Repartidores</p>
+          <p className="text-sm text-[var(--text-muted)] mb-6">Verificación de Repartidores</p>
 
           <div className="flex flex-col gap-3">
             <input
@@ -160,13 +160,13 @@ export default function AdminRidersPage() {
       {/* Header */}
       <header className="bg-white border-b border-neutral-100 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <h1 className="font-bold text-[#1A1A2E]">
-          hi<span style={{ color: '#FF6B35' }}>chapi</span>
-          <span className="text-neutral-400 font-normal ml-2 text-sm">· Panel Repartidores</span>
+          hi<span style={{ color: '#E55A2B' }}>chapi</span>
+          <span className="text-[var(--text-muted)] font-normal ml-2 text-sm">· Panel Repartidores</span>
         </h1>
         <div className="flex gap-4 items-center">
           <a
             href="/admin"
-            className="text-xs text-neutral-500 hover:text-[#FF6B35] font-semibold transition-colors"
+            className="text-xs text-neutral-500 hover:text-[#E55A2B] font-semibold transition-colors"
           >
             Ver Solicitudes de Locales
           </a>
@@ -174,7 +174,7 @@ export default function AdminRidersPage() {
             onClick={() => load()}
             className="flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full
                        border border-neutral-200 text-neutral-500 hover:border-[#FF6B35]
-                       hover:text-[#FF6B35] transition-colors"
+                       hover:text-[#E55A2B] transition-colors"
           >
             <RefreshCw size={11} />
             Actualizar
@@ -194,7 +194,7 @@ export default function AdminRidersPage() {
                   'px-4 py-2 rounded-lg text-sm font-medium capitalize transition-all',
                   tab === s
                     ? 'bg-[#FF6B35] text-white shadow-sm'
-                    : 'text-neutral-400 hover:text-[#1A1A2E]',
+                    : 'text-[var(--text-muted)] hover:text-[#1A1A2E]',
                 ].join(' ')}
               >
                 {STATUS_LABELS[s]}
@@ -211,7 +211,7 @@ export default function AdminRidersPage() {
             ))}
           </div>
         ) : riders.length === 0 ? (
-          <div className="text-center py-20 text-neutral-300">
+          <div className="text-center py-20 text-[var(--text-muted)]">
             <Clock size={40} className="mx-auto mb-3" strokeWidth={1} />
             <p className="text-sm">No hay repartidores con documentos en estado {STATUS_LABELS[tab].toLowerCase()}</p>
           </div>
@@ -229,7 +229,7 @@ export default function AdminRidersPage() {
                     onClick={() => setExpanded(isOpen ? null : rider.id)}
                   >
                     <div className="flex items-center gap-3 min-w-0">
-                      <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center text-[#FF6B35] font-bold text-sm shrink-0">
+                      <div className="w-10 h-10 rounded-full bg-[#FF6B35]/10 border border-[#FF6B35]/20 flex items-center justify-center text-[#E55A2B] font-bold text-sm shrink-0">
                         {rider.full_name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0">
@@ -239,7 +239,7 @@ export default function AdminRidersPage() {
                             {STATUS_LABELS[rider.document_status]}
                           </span>
                         </div>
-                        <p className="text-xs text-neutral-400 truncate">
+                        <p className="text-xs text-[var(--text-muted)] truncate">
                           Vehículo: {VEHICLE_LABELS[rider.vehicle_type] ?? rider.vehicle_type}
                           {rider.vehicle_model ? ` (${rider.vehicle_model})` : ''}
                           {rider.license_plate ? ` · Patente: ${rider.license_plate}` : ''}
@@ -248,10 +248,10 @@ export default function AdminRidersPage() {
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <p className="text-xs text-neutral-300 hidden sm:block">
+                      <p className="text-xs text-[var(--text-muted)] hidden sm:block">
                         Actualizado: {new Date(rider.updated_at).toLocaleDateString('es-CL')}
                       </p>
-                      {isOpen ? <ChevronUp size={14} className="text-neutral-400" /> : <ChevronDown size={14} className="text-neutral-400" />}
+                      {isOpen ? <ChevronUp size={14} className="text-[var(--text-muted)]" /> : <ChevronDown size={14} className="text-[var(--text-muted)]" />}
                     </div>
                   </button>
 
@@ -265,7 +265,7 @@ export default function AdminRidersPage() {
                       </div>
 
                       {/* Documents Grid */}
-                      <p className="text-xs text-neutral-400 uppercase tracking-wide font-bold mb-3">Documentos Cargados</p>
+                      <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide font-bold mb-3">Documentos Cargados</p>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                         <DocumentCard label="RUT (Cédula de Identidad)" url={rider.doc_national_id_url} />
                         <DocumentCard label="Licencia de Conducir" url={rider.doc_license_url} />
@@ -280,7 +280,7 @@ export default function AdminRidersPage() {
                             disabled={!!isActing}
                             className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
                                        bg-green-500 hover:bg-green-600 disabled:bg-neutral-200
-                                       text-white transition-colors shadow-sm"
+                                       text-[var(--text-strong)] transition-colors shadow-sm"
                           >
                             <CheckCircle size={14} />
                             {actionLoading === rider.id + 'approve' ? 'Aprobando…' : 'Aprobar Repartidor'}
@@ -311,7 +311,7 @@ export default function AdminRidersPage() {
         <div className={[
           'fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-xl text-sm font-medium shadow-lg',
           'transition-all duration-200 z-50',
-          toast.ok ? 'bg-[#1A1A2E] text-white' : 'bg-red-500 text-white',
+          toast.ok ? 'bg-[var(--surface-card)] text-white' : 'bg-red-500 text-white',
         ].join(' ')}>
           {toast.msg}
         </div>
@@ -323,7 +323,7 @@ export default function AdminRidersPage() {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-medium mb-0.5">{label}</p>
+      <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide font-medium mb-0.5">{label}</p>
       <p className="text-sm text-[#1A1A2E] font-medium">{value}</p>
     </div>
   )
@@ -344,15 +344,15 @@ function DocumentCard({ label, url }: { label: string; url?: string }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity"
+            className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[var(--text-strong)] text-xs font-semibold transition-opacity"
           >
             Abrir original <ExternalLink size={12} className="ml-1" />
           </a>
         </div>
       ) : (
         <div className="flex-1 rounded-lg border border-dashed border-neutral-200 flex flex-col items-center justify-center bg-neutral-50/50">
-          <ImageIcon className="text-neutral-300 mb-1" size={24} />
-          <p className="text-[11px] text-neutral-400">No cargado</p>
+          <ImageIcon className="text-[var(--text-muted)] mb-1" size={24} />
+          <p className="text-[11px] text-[var(--text-muted)]">No cargado</p>
         </div>
       )}
     </div>

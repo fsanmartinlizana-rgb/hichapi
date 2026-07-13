@@ -104,7 +104,7 @@ function AddressAutocomplete({
   return (
     <div ref={wrapperRef} className="relative">
       <div className="relative">
-        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/30 pointer-events-none" />
+        <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] pointer-events-none" />
         <input
           type="text"
           value={query}
@@ -112,25 +112,25 @@ function AddressAutocomplete({
           onFocus={() => suggestions.length > 0 && setOpen(true)}
           placeholder={placeholder ?? 'Ej: Ariztía 100, Ovalle'}
           autoComplete="off"
-          className="w-full pl-9 pr-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
+          className="w-full pl-9 pr-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors"
         />
         {loading && (
-          <Loader2 size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-white/30 animate-spin" />
+          <Loader2 size={13} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-[var(--text-muted)] animate-spin" />
         )}
       </div>
 
       {/* Suggestions dropdown */}
       {open && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[#1A1A2E] border border-white/15 rounded-xl shadow-2xl overflow-hidden">
+        <div className="absolute top-full left-0 right-0 mt-1.5 z-50 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-xl shadow-2xl overflow-hidden">
           {suggestions.map(feature => (
             <button
               key={feature.id}
               type="button"
               onClick={() => selectSuggestion(feature)}
-              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-white/6 transition-colors text-left border-b border-white/6 last:border-0"
+              className="w-full flex items-start gap-3 px-4 py-3 hover:bg-[var(--surface-sunken)] transition-colors text-left border-b border-[var(--border-subtle)] last:border-0"
             >
-              <MapPin size={13} className="text-[#FF6B35] shrink-0 mt-0.5" />
-              <span className="text-white text-sm leading-snug">{feature.place_name}</span>
+              <MapPin size={13} className="text-[#E55A2B] shrink-0 mt-0.5" />
+              <span className="text-[var(--text-strong)] text-sm leading-snug">{feature.place_name}</span>
             </button>
           ))}
         </div>
@@ -164,8 +164,8 @@ export function MenuItemCard({ item }: { item: OrderableItem }) {
     <div
       className={`group relative flex items-start gap-4 p-4 rounded-2xl border transition-all duration-200
         ${item.available
-          ? 'bg-[#0F0F1C] border-white/8 hover:border-[#FF6B35]/30 hover:bg-[#FF6B35]/5 cursor-pointer'
-          : 'bg-[#0A0A14] border-white/5 opacity-50'}`}
+          ? 'bg-[var(--bg-canvas)] border-[var(--border-subtle)] hover:border-[#FF6B35]/30 hover:bg-[#FF6B35]/5 cursor-pointer'
+          : 'bg-[var(--bg-canvas)] border-[var(--border-subtle)] opacity-50'}`}
       onClick={handleAdd}
       id={`menu-item-${item.id}`}
       role="button"
@@ -173,7 +173,7 @@ export function MenuItemCard({ item }: { item: OrderableItem }) {
       onKeyDown={e => e.key === 'Enter' && handleAdd()}
     >
       {item.photo_url && (
-        <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-white/10">
+        <div className="w-20 h-20 rounded-xl overflow-hidden shrink-0 border border-[var(--border-subtle)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={item.photo_url} alt={item.name} className="w-full h-full object-cover" />
         </div>
@@ -181,26 +181,26 @@ export function MenuItemCard({ item }: { item: OrderableItem }) {
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-1.5 mb-1">
           {isPromoted && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#FF6B35] font-semibold border border-[#FF6B35]/20">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/15 text-[#E55A2B] font-semibold border border-[#FF6B35]/20">
               ⭐ Chapi recomienda
             </span>
           )}
           {!item.available && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/30 font-medium">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)] font-medium">
               Agotado
             </span>
           )}
         </div>
-        <p className={`text-sm font-semibold leading-tight ${item.available ? 'text-white' : 'text-white/40 line-through'}`}>
+        <p className={`text-sm font-semibold leading-tight ${item.available ? 'text-[var(--text-strong)]' : 'text-[var(--text-muted)] line-through'}`}>
           {item.name}
         </p>
         {item.description && (
-          <p className="text-xs text-white/40 mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
         )}
         {item.tags && item.tags.filter(t => t !== 'promovido').length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
             {item.tags.filter(t => t !== 'promovido').map(t => (
-              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/40 font-medium capitalize">
+              <span key={t} className="text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)] font-medium capitalize">
                 {t}
               </span>
             ))}
@@ -208,7 +208,7 @@ export function MenuItemCard({ item }: { item: OrderableItem }) {
         )}
       </div>
       <div className="shrink-0 flex flex-col items-end gap-2">
-        <p className="text-sm font-bold text-white font-mono">{formatCLP(item.price)}</p>
+        <p className="text-sm font-bold text-[var(--text-strong)] font-mono">{formatCLP(item.price)}</p>
         {item.available && (
           <button
             className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 shrink-0
@@ -219,8 +219,8 @@ export function MenuItemCard({ item }: { item: OrderableItem }) {
             aria-label={`Agregar ${item.name} al carrito`}
           >
             {adding
-              ? <CheckCircle2 size={14} className="text-green-400" />
-              : <Plus size={14} className="text-[#FF6B35] group-hover:text-white transition-colors" />}
+              ? <CheckCircle2 size={14} className="text-green-700" />
+              : <Plus size={14} className="text-[#E55A2B] group-hover:text-[var(--text-strong)] transition-colors" />}
           </button>
         )}
       </div>
@@ -232,7 +232,7 @@ export function MenuItemCard({ item }: { item: OrderableItem }) {
 
 type OrderStep = 'cart' | 'checkout' | 'success'
 
-const inputCls = 'w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors'
+const inputCls = 'w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors'
 
 export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
   const [items, setItems]           = useState<CartItem[]>([])
@@ -341,22 +341,22 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
         <div className="fixed inset-0 z-50 flex">
           <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => step !== 'success' && setOpen(false)} />
 
-          <div className="relative ml-auto w-full max-w-md h-full bg-[#0F0F1C] border-l border-white/10 flex flex-col shadow-2xl overflow-hidden">
+          <div className="relative ml-auto w-full max-w-md h-full bg-[var(--bg-canvas)] border-l border-[var(--border-subtle)] flex flex-col shadow-2xl overflow-hidden">
 
             {/* Header */}
-            <div className="flex items-center justify-between px-6 py-5 border-b border-white/8 shrink-0">
+            <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--border-subtle)] shrink-0">
               <div className="flex items-center gap-3">
-                {step === 'cart'     && <ShoppingCart  size={18} className="text-[#FF6B35]"  />}
-                {step === 'checkout' && <Bike          size={18} className="text-[#FF6B35]"  />}
-                {step === 'success'  && <CheckCircle2  size={18} className="text-green-400"  />}
-                <p className="text-white font-bold text-base">
+                {step === 'cart'     && <ShoppingCart  size={18} className="text-[#E55A2B]"  />}
+                {step === 'checkout' && <Bike          size={18} className="text-[#E55A2B]"  />}
+                {step === 'success'  && <CheckCircle2  size={18} className="text-green-700"  />}
+                <p className="text-[var(--text-strong)] font-bold text-base">
                   {step === 'cart'     && 'Tu pedido'}
                   {step === 'checkout' && 'Datos de entrega'}
                   {step === 'success'  && '¡Pedido recibido!'}
                 </p>
               </div>
-              <button onClick={() => step === 'success' ? resetCart() : setOpen(false)} className="w-8 h-8 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-                <X size={16} className="text-white/60" />
+              <button onClick={() => step === 'success' ? resetCart() : setOpen(false)} className="w-8 h-8 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] flex items-center justify-center transition-colors">
+                <X size={16} className="text-[var(--text-muted)]" />
               </button>
             </div>
 
@@ -368,36 +368,36 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
                 <div className="p-6 space-y-3">
                   {items.length === 0 ? (
                     <div className="text-center py-16 space-y-3">
-                      <ShoppingCart size={40} className="text-white/10 mx-auto" />
-                      <p className="text-white/30 text-sm">Tu carrito está vacío</p>
-                      <p className="text-white/20 text-xs">Agrega platos desde la carta</p>
+                      <ShoppingCart size={40} className="text-[var(--text-muted)] mx-auto" />
+                      <p className="text-[var(--text-muted)] text-sm">Tu carrito está vacío</p>
+                      <p className="text-[var(--text-muted)] text-xs">Agrega platos desde la carta</p>
                     </div>
                   ) : (
                     <>
-                      <p className="text-white/30 text-xs uppercase tracking-widest font-semibold mb-4">{restaurantName}</p>
+                      <p className="text-[var(--text-muted)] text-xs uppercase tracking-widest font-semibold mb-4">{restaurantName}</p>
                       {items.map(item => (
-                        <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-white/4 border border-white/6">
+                        <div key={item.id} className="flex items-center gap-3 p-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)]">
                           <div className="flex-1 min-w-0">
-                            <p className="text-white text-sm font-medium truncate">{item.name}</p>
-                            <p className="text-white/40 text-xs">{formatCLP(item.price)} c/u</p>
+                            <p className="text-[var(--text-strong)] text-sm font-medium truncate">{item.name}</p>
+                            <p className="text-[var(--text-muted)] text-xs">{formatCLP(item.price)} c/u</p>
                           </div>
                           <div className="flex items-center gap-2 shrink-0">
-                            <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-lg bg-white/5 hover:bg-white/10 flex items-center justify-center transition-colors">
-                              <Minus size={12} className="text-white/60" />
+                            <button onClick={() => updateQty(item.id, -1)} className="w-7 h-7 rounded-lg bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)] flex items-center justify-center transition-colors">
+                              <Minus size={12} className="text-[var(--text-muted)]" />
                             </button>
-                            <span className="text-white text-sm font-bold w-5 text-center">{item.quantity}</span>
+                            <span className="text-[var(--text-strong)] text-sm font-bold w-5 text-center">{item.quantity}</span>
                             <button onClick={() => updateQty(item.id, 1)} className="w-7 h-7 rounded-lg bg-[#FF6B35]/15 hover:bg-[#FF6B35]/25 flex items-center justify-center transition-colors">
-                              <Plus size={12} className="text-[#FF6B35]" />
+                              <Plus size={12} className="text-[#E55A2B]" />
                             </button>
                           </div>
-                          <p className="text-white font-bold text-sm w-20 text-right shrink-0">{formatCLP(item.price * item.quantity)}</p>
+                          <p className="text-[var(--text-strong)] font-bold text-sm w-20 text-right shrink-0">{formatCLP(item.price * item.quantity)}</p>
                         </div>
                       ))}
-                      <div className="border-t border-white/8 pt-4 mt-4 space-y-1.5">
-                        <div className="flex justify-between text-white/40 text-xs"><span>Subtotal</span><span>{formatCLP(total)}</span></div>
+                      <div className="border-t border-[var(--border-subtle)] pt-4 mt-4 space-y-1.5">
+                        <div className="flex justify-between text-[var(--text-muted)] text-xs"><span>Subtotal</span><span>{formatCLP(total)}</span></div>
                         <div className="flex justify-between">
-                          <span className="text-white font-bold text-base">Total</span>
-                          <span className="text-[#FF6B35] font-bold text-base">{formatCLP(total)}</span>
+                          <span className="text-[var(--text-strong)] font-bold text-base">Total</span>
+                          <span className="text-[#E55A2B] font-bold text-base">{formatCLP(total)}</span>
                         </div>
                       </div>
                     </>
@@ -409,16 +409,16 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
               {step === 'checkout' && (
                 <div className="p-6 space-y-5">
                   {/* Order summary */}
-                  <div className="p-4 rounded-xl bg-white/4 border border-white/8 space-y-2">
+                  <div className="p-4 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] space-y-2">
                     {items.map(item => (
                       <div key={item.id} className="flex justify-between text-sm">
-                        <span className="text-white/60">{item.quantity}× {item.name}</span>
-                        <span className="text-white font-medium">{formatCLP(item.price * item.quantity)}</span>
+                        <span className="text-[var(--text-muted)]">{item.quantity}× {item.name}</span>
+                        <span className="text-[var(--text-strong)] font-medium">{formatCLP(item.price * item.quantity)}</span>
                       </div>
                     ))}
-                    <div className="border-t border-white/8 pt-2 flex justify-between font-bold">
-                      <span className="text-white">Total</span>
-                      <span className="text-[#FF6B35]">{formatCLP(total)}</span>
+                    <div className="border-t border-[var(--border-subtle)] pt-2 flex justify-between font-bold">
+                      <span className="text-[var(--text-strong)]">Total</span>
+                      <span className="text-[#E55A2B]">{formatCLP(total)}</span>
                     </div>
                   </div>
 
@@ -426,21 +426,21 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
                   <div className="space-y-4">
                     {/* Name */}
                     <div>
-                      <label className="text-white/40 text-xs font-medium block mb-1.5">Tu nombre *</label>
+                      <label className="text-[var(--text-muted)] text-xs font-medium block mb-1.5">Tu nombre *</label>
                       <input type="text" value={clientName} onChange={e => setClientName(e.target.value)}
                         placeholder="Ej: María González" className={inputCls} />
                     </div>
 
                     {/* Phone */}
                     <div>
-                      <label className="text-white/40 text-xs font-medium block mb-1.5">Teléfono *</label>
+                      <label className="text-[var(--text-muted)] text-xs font-medium block mb-1.5">Teléfono *</label>
                       <input type="tel" value={clientPhone} onChange={e => setClientPhone(e.target.value)}
                         placeholder="+56 9 1234 5678" className={inputCls} />
                     </div>
 
                     {/* Street autocomplete */}
                     <div>
-                      <label className="text-white/40 text-xs font-medium block mb-1.5">
+                      <label className="text-[var(--text-muted)] text-xs font-medium block mb-1.5">
                         Dirección (calle y número) *
                       </label>
                       <AddressAutocomplete
@@ -448,19 +448,19 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
                         onChange={setStreet}
                         placeholder="Ej: Ariztía 100"
                       />
-                      <p className="text-white/20 text-[10px] mt-1">Escribe para ver sugerencias de calles</p>
+                      <p className="text-[var(--text-muted)] text-[10px] mt-1">Escribe para ver sugerencias de calles</p>
                     </div>
 
                     {/* Comuna */}
                     <div>
-                      <label className="text-white/40 text-xs font-medium block mb-1.5">Ciudad / Comuna</label>
+                      <label className="text-[var(--text-muted)] text-xs font-medium block mb-1.5">Ciudad / Comuna</label>
                       <input type="text" value={comuna} onChange={e => setComuna(e.target.value)}
                         placeholder="Ovalle" className={inputCls} />
                     </div>
 
                     {/* References */}
                     <div>
-                      <label className="text-white/40 text-xs font-medium block mb-1.5">Número Dpto y/o referencias</label>
+                      <label className="text-[var(--text-muted)] text-xs font-medium block mb-1.5">Número Dpto y/o referencias</label>
                       <input type="text" value={references} onChange={e => setReferences(e.target.value)}
                         placeholder="Depto 305, casa azul, portón negro…" className={inputCls} />
                     </div>
@@ -468,22 +468,22 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
                     {/* Full address preview */}
                     {street.trim().length > 3 && (
                       <div className="flex items-start gap-2 p-3 rounded-xl bg-[#FF6B35]/8 border border-[#FF6B35]/20">
-                        <MapPin size={13} className="text-[#FF6B35] shrink-0 mt-0.5" />
-                        <p className="text-white/70 text-xs leading-relaxed">{fullAddress || '—'}</p>
+                        <MapPin size={13} className="text-[#E55A2B] shrink-0 mt-0.5" />
+                        <p className="text-[var(--text-body)] text-xs leading-relaxed">{fullAddress || '—'}</p>
                       </div>
                     )}
 
                     {/* Notes */}
                     <div>
-                      <label className="text-white/40 text-xs font-medium block mb-1.5">Notas del pedido (opcional)</label>
+                      <label className="text-[var(--text-muted)] text-xs font-medium block mb-1.5">Notas del pedido (opcional)</label>
                       <textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2}
                         placeholder="Sin cebolla, bien cocido, etc."
-                        className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors" />
+                        className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 resize-none transition-colors" />
                     </div>
 
                     {formError && (
                       <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-                        <p className="text-red-300 text-sm">{formError}</p>
+                        <p className="text-red-700 text-sm">{formError}</p>
                       </div>
                     )}
                   </div>
@@ -494,20 +494,20 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
               {step === 'success' && (
                 <div className="p-6 flex flex-col items-center justify-center text-center space-y-4 min-h-64 pt-16">
                   <div className="w-20 h-20 rounded-full bg-green-500/15 border-2 border-green-500/30 flex items-center justify-center animate-pulse">
-                    <CheckCircle2 size={36} className="text-green-400" />
+                    <CheckCircle2 size={36} className="text-green-700" />
                   </div>
                   <div className="space-y-2">
-                    <h3 className="text-white font-bold text-xl">¡Pedido enviado!</h3>
-                    <p className="text-white/50 text-sm leading-relaxed">
-                      Tu pedido fue recibido por <span className="text-white font-medium">{restaurantName}</span>.
+                    <h3 className="text-[var(--text-strong)] font-bold text-xl">¡Pedido enviado!</h3>
+                    <p className="text-[var(--text-muted)] text-sm leading-relaxed">
+                      Tu pedido fue recibido por <span className="text-[var(--text-strong)] font-medium">{restaurantName}</span>.
                       Un repartidor será asignado pronto.
                     </p>
-                    {orderId && <p className="text-white/25 text-xs font-mono mt-3">#{orderId.slice(-8).toUpperCase()}</p>}
+                    {orderId && <p className="text-[var(--text-muted)] text-xs font-mono mt-3">#{orderId.slice(-8).toUpperCase()}</p>}
                   </div>
                   <div className="w-full pt-4">
                     <div className="flex items-center gap-3 p-3 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20">
-                      <Bike size={18} className="text-[#FF6B35] shrink-0" />
-                      <p className="text-white/70 text-sm text-left">Estamos buscando un repartidor disponible para tu pedido.</p>
+                      <Bike size={18} className="text-[#E55A2B] shrink-0" />
+                      <p className="text-[var(--text-body)] text-sm text-left">Estamos buscando un repartidor disponible para tu pedido.</p>
                     </div>
                   </div>
                 </div>
@@ -515,7 +515,7 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
             </div>
 
             {/* Footer Actions */}
-            <div className="p-5 border-t border-white/8 shrink-0 space-y-2">
+            <div className="p-5 border-t border-[var(--border-subtle)] shrink-0 space-y-2">
               {step === 'cart' && items.length > 0 && (
                 <button id="checkout-btn" onClick={() => setStep('checkout')}
                   className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl bg-[#FF6B35] text-white font-bold text-base hover:bg-[#e85d2a] transition-all hover:scale-[1.02] active:scale-95">
@@ -530,14 +530,14 @@ export default function CartPanel({ restaurantId, restaurantName }: CartProps) {
                       ? <><Loader2 size={18} className="animate-spin" /> Enviando…</>
                       : <><Bike size={18} /> Confirmar pedido</>}
                   </button>
-                  <button onClick={() => setStep('cart')} className="w-full py-2 text-white/40 text-sm hover:text-white/70 transition-colors">
+                  <button onClick={() => setStep('cart')} className="w-full py-2 text-[var(--text-muted)] text-sm hover:text-[var(--text-body)] transition-colors">
                     ← Volver al carrito
                   </button>
                 </>
               )}
               {step === 'success' && (
                 <button id="new-order-btn" onClick={resetCart}
-                  className="w-full py-4 rounded-2xl border border-white/15 text-white/70 font-semibold text-sm hover:border-white/30 hover:text-white transition-colors">
+                  className="w-full py-4 rounded-2xl border border-[var(--border-subtle)] text-[var(--text-body)] font-semibold text-sm hover:border-[var(--border-subtle)] hover:text-[var(--text-strong)] transition-colors">
                   Hacer otro pedido
                 </button>
               )}

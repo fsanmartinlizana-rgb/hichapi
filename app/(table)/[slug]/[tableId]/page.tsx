@@ -173,8 +173,8 @@ function MenuPreview({
   }
 
   return (
-    <div className="mt-2 bg-[#0F0F1A] border border-white/8 rounded-xl overflow-hidden">
-      <div className="max-h-[55vh] overflow-y-auto divide-y divide-white/5">
+    <div className="mt-2 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl overflow-hidden">
+      <div className="max-h-[55vh] overflow-y-auto divide-y divide-[var(--border-subtle)]">
         {groupOrder.map(cat => {
           const list = groups[cat]
           const isOpen = openSection === cat
@@ -187,13 +187,13 @@ function MenuPreview({
                 type="button"
                 onClick={() => setOpenSection(isOpen ? null : cat)}
                 aria-expanded={isOpen}
-                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-white/3 transition-colors text-left"
+                className="w-full flex items-center gap-2 px-3 py-2.5 hover:bg-[var(--surface-sunken)] transition-colors text-left"
               >
                 <span className="text-base">{categoryEmoji(cat)}</span>
-                <span className="text-white text-[12px] font-semibold flex-1 truncate uppercase tracking-wide">
+                <span className="text-[var(--text-strong)] text-[12px] font-semibold flex-1 truncate uppercase tracking-wide">
                   {cat}
                 </span>
-                <span className="text-white/30 text-[10px] tabular-nums shrink-0">
+                <span className="text-[var(--text-muted)] text-[10px] tabular-nums shrink-0">
                   {list.length}
                 </span>
                 {inSection > 0 && (
@@ -212,7 +212,7 @@ function MenuPreview({
                       <div
                         key={it.id}
                         className={`flex items-start gap-2 p-2 rounded-lg transition-colors ${
-                          qty > 0 ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/25' : 'bg-white/3 border border-white/5'
+                          qty > 0 ? 'bg-[#FF6B35]/10 border border-[#FF6B35]/25' : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)]'
                         }`}
                       >
                         {it.photo_url ? (
@@ -223,34 +223,34 @@ function MenuPreview({
                             className="w-12 h-12 rounded-lg object-cover shrink-0"
                           />
                         ) : (
-                          <div className="w-12 h-12 rounded-lg bg-white/5 flex items-center justify-center text-lg shrink-0">
+                          <div className="w-12 h-12 rounded-lg bg-[var(--surface-sunken)] flex items-center justify-center text-lg shrink-0">
                             {categoryEmoji(cat)}
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-white text-[12px] font-semibold leading-tight">
+                          <p className="text-[var(--text-strong)] text-[12px] font-semibold leading-tight">
                             {it.name}
                           </p>
                           {it.description && (
-                            <p className="text-white/40 text-[10px] leading-snug mt-0.5 line-clamp-2">
+                            <p className="text-[var(--text-muted)] text-[10px] leading-snug mt-0.5 line-clamp-2">
                               {it.description}
                             </p>
                           )}
-                          <p className="text-[#FF6B35] text-[12px] font-bold font-mono mt-1">
+                          <p className="text-[#E55A2B] text-[12px] font-bold font-mono mt-1">
                             {clp(it.price)}
                           </p>
                         </div>
                         <div className="shrink-0 flex flex-col items-end gap-1">
                           {qty > 0 ? (
-                            <div className="flex items-center gap-1 bg-white/8 rounded-full p-0.5">
+                            <div className="flex items-center gap-1 bg-[var(--surface-sunken)] rounded-full p-0.5">
                               <button
                                 onClick={() => onRemove(it.id)}
-                                className="w-6 h-6 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors flex items-center justify-center"
+                                className="w-6 h-6 rounded-full bg-[var(--surface-sunken)] text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors flex items-center justify-center"
                                 aria-label={`Quitar uno de ${it.name}`}
                               >
                                 <span className="text-sm leading-none">−</span>
                               </button>
-                              <span className="text-white font-bold text-xs w-5 text-center tabular-nums">
+                              <span className="text-[var(--text-strong)] font-bold text-xs w-5 text-center tabular-nums">
                                 {qty}
                               </span>
                               <button
@@ -283,12 +283,12 @@ function MenuPreview({
 
       {/* Footer sticky con total + botón Pedir */}
       {cartCount > 0 ? (
-        <div className="bg-[#161622] border-t border-[#FF6B35]/30 p-3 flex items-center gap-3">
+        <div className="bg-[var(--surface-card)] border-t border-[#FF6B35]/30 p-3 flex items-center gap-3">
           <div className="flex-1 min-w-0">
-            <p className="text-white/50 text-[10px] uppercase tracking-wide">
+            <p className="text-[var(--text-muted)] text-[10px] uppercase tracking-wide">
               Tu pedido ({cartCount} {cartCount === 1 ? 'item' : 'items'})
             </p>
-            <p className="text-white font-bold text-base font-mono">
+            <p className="text-[var(--text-strong)] font-bold text-base font-mono">
               {clp(cartTotal)}
             </p>
           </div>
@@ -305,8 +305,8 @@ function MenuPreview({
           </button>
         </div>
       ) : (
-        <div className="bg-[#161622]/50 border-t border-white/8 px-3 py-2.5">
-          <p className="text-white/35 text-[11px] text-center">
+        <div className="bg-[var(--surface-card)]/50 border-t border-[var(--border-subtle)] px-3 py-2.5">
+          <p className="text-[var(--text-muted)] text-[11px] text-center">
             Toca <span className="inline-flex items-center justify-center w-4 h-4 rounded-full bg-[#FF6B35] text-white text-[9px] font-bold align-middle">+</span> para agregar al pedido
           </p>
         </div>
@@ -320,7 +320,7 @@ function ChevronDownIcon({ open }: { open: boolean }) {
     <svg
       width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor"
       strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-      className={`text-white/40 shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+      className={`text-[var(--text-muted)] shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
     >
       <polyline points="6 9 12 15 18 9" />
     </svg>
@@ -385,26 +385,26 @@ function CartDrawer({
   return (
     <div className="absolute inset-0 z-30 flex flex-col justify-end">
       <div className="absolute inset-0 bg-black/60" onClick={onClose} />
-      <div className="relative bg-[#161622] border-t border-white/10 rounded-t-2xl max-h-[85vh] flex flex-col">
+      <div className="relative bg-[var(--surface-card)] border-t border-[var(--border-subtle)] rounded-t-2xl max-h-[85vh] flex flex-col">
 
         {/* Handle */}
         <div className="flex justify-center pt-3 pb-1 shrink-0">
-          <div className="w-8 h-1 rounded-full bg-white/15" />
+          <div className="w-8 h-1 rounded-full bg-[var(--surface-sunken)]" />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 py-3 border-b border-white/6 shrink-0">
-          <h3 className="text-white font-bold">Tu pedido</h3>
+        <div className="flex items-center justify-between px-5 py-3 border-b border-[var(--border-subtle)] shrink-0">
+          <h3 className="text-[var(--text-strong)] font-bold">Tu pedido</h3>
           <div className="flex items-center gap-2">
             {cart.length > 0 && orderStatus === 'idle' && (
               <button
                 onClick={onClearCart}
-                className="flex items-center gap-1 text-white/25 text-xs hover:text-red-400 transition-colors px-2 py-1"
+                className="flex items-center gap-1 text-[var(--text-muted)] text-xs hover:text-red-700 transition-colors px-2 py-1"
               >
                 <Trash2 size={11} /> Vaciar
               </button>
             )}
-            <button onClick={onClose} className="text-white/30 hover:text-white">
+            <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]">
               <X size={18} />
             </button>
           </div>
@@ -414,17 +414,17 @@ function CartDrawer({
         <div className="flex-1 overflow-y-auto px-5 py-3 space-y-3">
           {cart.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-24 gap-2">
-              <Utensils size={20} className="text-white/15" />
-              <p className="text-white/25 text-sm">Aún no agregaste nada</p>
+              <Utensils size={20} className="text-[var(--text-muted)]" />
+              <p className="text-[var(--text-muted)] text-sm">Aún no agregaste nada</p>
             </div>
           ) : orderStatus === 'splitting' && splitMode === 'byItem' ? (
             /* ── By-item split ── */
             <>
               <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-300">Cuenta A</span>
-                <span className="text-white/20 text-xs">vs</span>
-                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300">Cuenta B</span>
-                <span className="text-white/30 text-[10px] ml-auto">Toca para asignar</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-blue-500/20 text-blue-700">Cuenta A</span>
+                <span className="text-[var(--text-muted)] text-xs">vs</span>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-700">Cuenta B</span>
+                <span className="text-[var(--text-muted)] text-[10px] ml-auto">Toca para asignar</span>
               </div>
               {cart.map(item => {
                 const side = assignments[item.menu_item_id] ?? 'A'
@@ -444,8 +444,8 @@ function CartDrawer({
                       ${side === 'A' ? 'bg-blue-500/30 text-blue-200' : 'bg-violet-500/30 text-violet-200'}`}>
                       {side}
                     </span>
-                    <span className="flex-1 text-white text-xs font-medium truncate">{item.name}</span>
-                    <span className="text-white/50 text-xs font-mono shrink-0">
+                    <span className="flex-1 text-[var(--text-strong)] text-xs font-medium truncate">{item.name}</span>
+                    <span className="text-[var(--text-muted)] text-xs font-mono shrink-0">
                       {item.quantity > 1 && `${item.quantity}× `}{clp(item.unit_price * item.quantity)}
                     </span>
                   </button>
@@ -453,11 +453,11 @@ function CartDrawer({
               })}
               <div className="flex gap-2 pt-1">
                 <div className="flex-1 bg-blue-500/10 border border-blue-500/20 rounded-xl px-3 py-2 text-center">
-                  <p className="text-[9px] text-blue-300/70 uppercase tracking-wide">Cuenta A</p>
+                  <p className="text-[9px] text-blue-700/70 uppercase tracking-wide">Cuenta A</p>
                   <p className="text-blue-200 font-bold text-sm font-mono">{clp(totalA)}</p>
                 </div>
                 <div className="flex-1 bg-violet-500/10 border border-violet-500/20 rounded-xl px-3 py-2 text-center">
-                  <p className="text-[9px] text-violet-300/70 uppercase tracking-wide">Cuenta B</p>
+                  <p className="text-[9px] text-violet-700/70 uppercase tracking-wide">Cuenta B</p>
                   <p className="text-violet-200 font-bold text-sm font-mono">{clp(totalB)}</p>
                 </div>
               </div>
@@ -467,28 +467,28 @@ function CartDrawer({
             cart.map(item => (
               <div key={item.menu_item_id} className="flex items-center gap-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-white text-sm font-medium truncate">{item.name}</p>
-                  {item.note && <p className="text-white/30 text-xs italic">{item.note}</p>}
-                  <p className="text-[#FF6B35]/80 text-xs font-mono mt-0.5">
+                  <p className="text-[var(--text-strong)] text-sm font-medium truncate">{item.name}</p>
+                  {item.note && <p className="text-[var(--text-muted)] text-xs italic">{item.note}</p>}
+                  <p className="text-[#E55A2B] text-xs font-mono mt-0.5">
                     {clp(item.unit_price)} × {item.quantity}
                   </p>
                 </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => onChangeQty(item.menu_item_id, -1)}
-                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:border-white/20 hover:text-white transition-colors"
+                    className="w-7 h-7 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-strong)] transition-colors"
                   >
                     <Minus size={11} />
                   </button>
-                  <span className="text-white text-sm font-medium w-4 text-center">{item.quantity}</span>
+                  <span className="text-[var(--text-strong)] text-sm font-medium w-4 text-center">{item.quantity}</span>
                   <button
                     onClick={() => onChangeQty(item.menu_item_id, +1)}
-                    className="w-7 h-7 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-white/50 hover:border-white/20 hover:text-white transition-colors"
+                    className="w-7 h-7 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-strong)] transition-colors"
                   >
                     <Plus size={11} />
                   </button>
                 </div>
-                <p className="text-white font-semibold text-sm w-16 text-right shrink-0" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                <p className="text-[var(--text-strong)] font-semibold text-sm w-16 text-right shrink-0" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                   {clp(item.unit_price * item.quantity)}
                 </p>
               </div>
@@ -498,12 +498,12 @@ function CartDrawer({
 
         {/* Total + actions */}
         {cart.length > 0 && (
-          <div className="px-5 py-4 border-t border-white/6 space-y-3 shrink-0">
+          <div className="px-5 py-4 border-t border-[var(--border-subtle)] space-y-3 shrink-0">
             {/* Total */}
             {orderStatus !== 'splitting' || splitMode !== 'byItem' ? (
               <div className="flex items-center justify-between">
-                <span className="text-white/50 text-sm">Total</span>
-                <span className="text-white font-bold text-lg" style={{ fontFamily: 'var(--font-dm-mono)' }}>
+                <span className="text-[var(--text-muted)] text-sm">Total</span>
+                <span className="text-[var(--text-strong)] font-bold text-lg" style={{ fontFamily: 'var(--font-dm-mono)' }}>
                   {clp(total)}
                 </span>
               </div>
@@ -512,18 +512,18 @@ function CartDrawer({
             {orderStatus === 'splitting' ? (
               <div className="space-y-3">
                 {/* Mode toggle */}
-                <div className="flex gap-1 bg-white/5 p-1 rounded-xl">
+                <div className="flex gap-1 bg-[var(--surface-sunken)] p-1 rounded-xl">
                   <button
                     onClick={() => setSplitMode('equal')}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all
-                      ${splitMode === 'equal' ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white/60'}`}
+                      ${splitMode === 'equal' ? 'bg-[#FF6B35] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`}
                   >
                     Por igual
                   </button>
                   <button
                     onClick={() => setSplitMode('byItem')}
                     className={`flex-1 py-1.5 rounded-lg text-xs font-semibold transition-all
-                      ${splitMode === 'byItem' ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white/60'}`}
+                      ${splitMode === 'byItem' ? 'bg-[#FF6B35] text-white' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'}`}
                   >
                     Por plato
                   </button>
@@ -531,25 +531,25 @@ function CartDrawer({
 
                 {splitMode === 'equal' ? (
                   <>
-                    <p className="text-white/50 text-xs">¿En cuántas partes?</p>
+                    <p className="text-[var(--text-muted)] text-xs">¿En cuántas partes?</p>
                     <div className="flex items-center gap-2">
                       {[2, 3, 4, 5].map(n => (
                         <button
                           key={n}
                           onClick={() => setSplitN(n)}
                           className={`flex-1 py-2 rounded-xl text-sm font-semibold transition-all
-                            ${splitN === n ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}
+                            ${splitN === n ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}
                         >
                           {n}
                         </button>
                       ))}
                     </div>
-                    <p className="text-white/30 text-xs text-center">
+                    <p className="text-[var(--text-muted)] text-xs text-center">
                       {clp(Math.round(total / splitN))} por persona
                     </p>
                   </>
                 ) : (
-                  <p className="text-white/40 text-xs text-center">
+                  <p className="text-[var(--text-muted)] text-xs text-center">
                     Toca cada plato para asignarlo a Cuenta A o B
                   </p>
                 )}
@@ -567,7 +567,7 @@ function CartDrawer({
                   </button>
                   <button
                     onClick={() => onSplit('equal', 0)}
-                    className="px-4 py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 transition-colors"
+                    className="px-4 py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] transition-colors"
                   >
                     Cancelar
                   </button>
@@ -575,14 +575,14 @@ function CartDrawer({
               </div>
             ) : orderStatus === 'sent' ? (
               <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
-                <CheckCircle2 size={16} className="text-emerald-400" />
-                <span className="text-emerald-400 font-semibold text-sm">Pedido enviado a cocina</span>
+                <CheckCircle2 size={16} className="text-emerald-700" />
+                <span className="text-emerald-700 font-semibold text-sm">Pedido enviado a cocina</span>
               </div>
             ) : (
               <div className="flex gap-2">
                 <button
                   onClick={() => onSplit('equal', 0)}
-                  className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-white/10 text-white/40 text-sm hover:border-white/20 hover:text-white/60 transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-4 py-3 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-sm hover:border-[var(--border-subtle)] hover:text-[var(--text-muted)] transition-colors"
                 >
                   <SplitSquareHorizontal size={14} />
                   Dividir
@@ -702,37 +702,37 @@ function BillModal({
   return (
     <div className="absolute inset-0 z-40 flex items-center justify-center p-6">
       <div className="absolute inset-0 bg-black/70" onClick={onClose} />
-      <div className="relative bg-[#161622] border border-white/10 rounded-2xl p-6 w-full max-w-sm space-y-4 max-h-[85vh] overflow-y-auto">
+      <div className="relative bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6 w-full max-w-sm space-y-4 max-h-[85vh] overflow-y-auto">
         <div className="flex items-center justify-between">
-          <h3 className="text-white font-bold flex items-center gap-2">
-            <Receipt size={16} className="text-[#FF6B35]" /> Tu cuenta
+          <h3 className="text-[var(--text-strong)] font-bold flex items-center gap-2">
+            <Receipt size={16} className="text-[#E55A2B]" /> Tu cuenta
           </h3>
-          <button onClick={onClose} className="text-white/30 hover:text-white"><X size={16} /></button>
+          <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-strong)]"><X size={16} /></button>
         </div>
 
         {loadingOrders ? (
-          <div className="flex items-center justify-center py-8 text-white/40 text-sm">
+          <div className="flex items-center justify-center py-8 text-[var(--text-muted)] text-sm">
             Cargando tu cuenta…
           </div>
         ) : items.length === 0 ? (
           <div className="py-6 text-center space-y-2">
-            <p className="text-white/60 text-sm">Todavía no hay pedidos registrados en esta mesa.</p>
-            <p className="text-white/30 text-xs">Cuando el garzón confirme tu comanda, aparecerá el detalle acá.</p>
+            <p className="text-[var(--text-muted)] text-sm">Todavía no hay pedidos registrados en esta mesa.</p>
+            <p className="text-[var(--text-muted)] text-xs">Cuando el garzón confirme tu comanda, aparecerá el detalle acá.</p>
           </div>
         ) : (
           <div className="space-y-2">
             {items.map(item => (
               <div key={item.id} className="flex justify-between text-sm">
-                <span className="text-white/60">{item.quantity}× {item.name}</span>
-                <span className="text-white font-mono">{clp(item.unit_price * item.quantity)}</span>
+                <span className="text-[var(--text-muted)]">{item.quantity}× {item.name}</span>
+                <span className="text-[var(--text-strong)] font-mono">{clp(item.unit_price * item.quantity)}</span>
               </div>
             ))}
-            <div className="border-t border-white/10 pt-2 flex justify-between">
-              <span className="text-white font-semibold">Total</span>
-              <span className="text-white font-bold text-lg font-mono">{clp(total)}</span>
+            <div className="border-t border-[var(--border-subtle)] pt-2 flex justify-between">
+              <span className="text-[var(--text-strong)] font-semibold">Total</span>
+              <span className="text-[var(--text-strong)] font-bold text-lg font-mono">{clp(total)}</span>
             </div>
             {serverOrders.length > 1 && (
-              <p className="text-white/30 text-[11px] text-center">
+              <p className="text-[var(--text-muted)] text-[11px] text-center">
                 Incluye {serverOrders.length} comandas activas en la mesa
               </p>
             )}
@@ -741,8 +741,8 @@ function BillModal({
 
         {requested ? (
           <div className="flex items-center justify-center gap-2 py-3 rounded-xl bg-emerald-500/15 border border-emerald-500/25">
-            <Bell size={14} className="text-emerald-400" />
-            <span className="text-emerald-400 text-sm font-semibold">El garzón ya viene</span>
+            <Bell size={14} className="text-emerald-700" />
+            <span className="text-emerald-700 text-sm font-semibold">El garzón ya viene</span>
           </div>
         ) : (
           <button
@@ -753,7 +753,7 @@ function BillModal({
             Pedir la cuenta al garzón
           </button>
         )}
-        <p className="text-white/20 text-xs text-center">
+        <p className="text-[var(--text-muted)] text-xs text-center">
           También puedes pagar directo con Chapi (próximamente)
         </p>
       </div>
@@ -1419,14 +1419,14 @@ export default function TablePage() {
     <div className="relative flex flex-col h-full">
 
       {/* ── Header ─────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-3 border-b border-white/5 bg-[#0A0A14]">
+      <div className="shrink-0 flex items-center justify-between px-4 pt-4 pb-3 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         <div className="flex items-center gap-2.5 min-w-0">
           {restaurantPhoto ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
               src={restaurantPhoto}
               alt={restaurantName}
-              className="w-10 h-10 rounded-xl object-cover shrink-0 border border-white/10"
+              className="w-10 h-10 rounded-xl object-cover shrink-0 border border-[var(--border-subtle)]"
             />
           ) : (
             <div className="w-10 h-10 rounded-xl bg-[#FF6B35] flex items-center justify-center text-white font-bold text-base shrink-0">
@@ -1434,8 +1434,8 @@ export default function TablePage() {
             </div>
           )}
           <div className="min-w-0">
-            <p className="text-white text-sm font-bold leading-tight truncate">{restaurantName}</p>
-            <p className="text-white/35 text-[10px]">Chapi · tu asistente</p>
+            <p className="text-[var(--text-strong)] text-sm font-bold leading-tight truncate">{restaurantName}</p>
+            <p className="text-[var(--text-muted)] text-[10px]">Chapi · tu asistente</p>
           </div>
         </div>
 
@@ -1443,7 +1443,7 @@ export default function TablePage() {
           {/* Ver carta button — always available */}
           <button
             onClick={showMenu}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 border border-white/10 text-white/70 text-xs font-semibold hover:bg-white/8 hover:border-[#FF6B35]/30 hover:text-[#FF6B35] transition-colors"
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] text-xs font-semibold hover:bg-[var(--surface-sunken)] hover:border-[#FF6B35]/30 hover:text-[#E55A2B] transition-colors"
             aria-label="Ver carta"
           >
             <BookOpen size={13} />
@@ -1455,8 +1455,8 @@ export default function TablePage() {
             onClick={() => setCartOpen(true)}
             className={`relative flex items-center gap-2 px-3 py-2 rounded-xl transition-all
               ${cartCount > 0
-                ? 'bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#FF6B35]'
-                : 'bg-white/5 border border-white/8 text-white/30'}`}
+                ? 'bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#E55A2B]'
+                : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)]'}`}
           >
             <ShoppingCart size={15} />
             {cartCount > 0 && (
@@ -1484,7 +1484,7 @@ export default function TablePage() {
               <div className={`max-w-[78%] px-4 py-2.5 rounded-2xl text-sm leading-relaxed
                 ${msg.role === 'user'
                   ? 'bg-[#FF6B35] text-white rounded-br-sm'
-                  : 'bg-[#1C1C2E] text-white/85 border border-white/5 rounded-bl-sm'}`}>
+                  : 'bg-[var(--surface-card)] text-[var(--text-body)] border border-[var(--border-subtle)] rounded-bl-sm'}`}>
                 {msg.text}
               </div>
             </div>
@@ -1508,7 +1508,7 @@ export default function TablePage() {
         {waiting && (
           <div className="flex justify-start">
             <div className="w-6 h-6 rounded-full bg-[#FF6B35] flex items-center justify-center text-white text-[9px] font-bold shrink-0 mt-0.5 mr-2">C</div>
-            <div className="bg-[#1C1C2E] border border-white/5 px-4 py-3 rounded-2xl rounded-bl-sm">
+            <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] px-4 py-3 rounded-2xl rounded-bl-sm">
               <TypingDots />
             </div>
           </div>
@@ -1524,7 +1524,7 @@ export default function TablePage() {
             <button
               key={chip}
               onClick={() => sendMessage(chip)}
-              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-white/5 border border-white/8 text-white/50 hover:border-[#FF6B35]/40 hover:text-[#FF6B35] transition-colors whitespace-nowrap"
+              className="shrink-0 text-xs px-3 py-1.5 rounded-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[#FF6B35]/40 hover:text-[#E55A2B] transition-colors whitespace-nowrap"
             >
               {chip}
             </button>
@@ -1533,8 +1533,8 @@ export default function TablePage() {
       )}
 
       {/* ── Input ──────────────────────────────────────────────────────────── */}
-      <div className="shrink-0 px-4 pb-5 pt-2 bg-[#0A0A14] border-t border-white/5">
-        <div className="flex items-center gap-2 bg-[#161622] border border-white/8 rounded-2xl px-4 py-2.5 focus-within:border-[#FF6B35]/40 transition-colors">
+      <div className="shrink-0 px-4 pb-5 pt-2 bg-[var(--bg-canvas)] border-t border-[var(--border-subtle)]">
+        <div className="flex items-center gap-2 bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl px-4 py-2.5 focus-within:border-[#FF6B35]/40 transition-colors">
           <input
             ref={inputRef}
             value={input}
@@ -1542,7 +1542,7 @@ export default function TablePage() {
             onKeyDown={e => e.key === 'Enter' && !e.shiftKey && sendMessage(input)}
             placeholder="Dile a Chapi qué quieres pedir..."
             disabled={loading}
-            className="flex-1 bg-transparent text-white text-sm placeholder:text-white/20 focus:outline-none disabled:opacity-50"
+            className="flex-1 bg-transparent text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none disabled:opacity-50"
           />
           <button
             onClick={() => sendMessage(input)}
@@ -1550,8 +1550,8 @@ export default function TablePage() {
             className="w-8 h-8 rounded-xl bg-[#FF6B35] flex items-center justify-center disabled:opacity-30 hover:bg-[#e85d2a] transition-colors shrink-0"
           >
             {loading
-              ? <Loader2 size={14} className="text-white animate-spin" />
-              : <Send size={14} className="text-white" />
+              ? <Loader2 size={14} className="text-[var(--text-strong)] animate-spin" />
+              : <Send size={14} className="text-[var(--text-strong)]" />
             }
           </button>
         </div>

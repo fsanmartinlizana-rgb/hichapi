@@ -28,7 +28,7 @@ export function ResultsGrid({ results, searchEventId }: ResultsGridProps) {
 
   return (
     <div className="w-full max-w-4xl mx-auto px-4 pb-12">
-      <p className="text-sm text-neutral-400 mb-4 text-center">
+      <p className="text-sm text-[var(--text-muted)] mb-4 text-center">
         <span className="text-[#1A1A2E] font-medium">
           {visibleResults.length}{remaining > 0 ? ` de ${results.length}` : ''} opciones
         </span>
@@ -60,7 +60,7 @@ export function ResultsGrid({ results, searchEventId }: ResultsGridProps) {
             onClick={() => setVisible(v => v + PAGE_SIZE)}
             className="flex items-center gap-2 px-5 py-2.5 rounded-full
                        bg-white border border-neutral-200 text-[#1A1A2E]
-                       hover:border-[#FF6B35] hover:text-[#FF6B35]
+                       hover:border-[#FF6B35] hover:text-[#E55A2B]
                        transition-colors duration-150 shadow-sm text-sm font-medium"
           >
             Ver {Math.min(PAGE_SIZE, remaining)} más

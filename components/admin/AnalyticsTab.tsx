@@ -60,11 +60,11 @@ export default function AnalyticsTab({ adminSecret, period }: Props) {
   useEffect(() => { void load() }, [load])
 
   if (loading && !data) {
-    return <div className="flex items-center justify-center py-12 text-white/40">
+    return <div className="flex items-center justify-center py-12 text-[var(--text-muted)]">
       <RefreshCw size={20} className="animate-spin" />
     </div>
   }
-  if (err) return <div className="text-red-400 text-sm">{err}</div>
+  if (err) return <div className="text-red-700 text-sm">{err}</div>
   if (!data) return null
 
   return (
@@ -164,11 +164,11 @@ function Card({ icon: Icon, label, value, accent }: {
   icon: typeof Search; label: string; value: string; accent?: boolean
 }) {
   return (
-    <div className={`rounded-xl border p-4 ${accent ? 'bg-red-500/10 border-red-500/30' : 'bg-white/5 border-white/10'}`}>
-      <div className="flex items-center gap-2 text-white/40 text-xs mb-2">
+    <div className={`rounded-xl border p-4 ${accent ? 'bg-red-500/10 border-red-500/30' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'}`}>
+      <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs mb-2">
         <Icon size={12} /> {label}
       </div>
-      <div className="text-lg font-bold text-white tabular-nums">{value}</div>
+      <div className="text-lg font-bold text-[var(--text-strong)] tabular-nums">{value}</div>
     </div>
   )
 }
@@ -177,9 +177,9 @@ function Section({ title, icon: Icon, children }: {
   title: string; icon: typeof Search; children: React.ReactNode
 }) {
   return (
-    <div className="bg-white/5 border border-white/10 rounded-xl p-4">
-      <h3 className="text-sm font-semibold text-white mb-3 flex items-center gap-2">
-        <Icon size={14} className="text-[#FF6B35]" /> {title}
+    <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-4">
+      <h3 className="text-sm font-semibold text-[var(--text-strong)] mb-3 flex items-center gap-2">
+        <Icon size={14} className="text-[#E55A2B]" /> {title}
       </h3>
       {children}
     </div>
@@ -187,7 +187,7 @@ function Section({ title, icon: Icon, children }: {
 }
 
 function TrendChart({ series }: { series: Array<{ date: string; count: number }> }) {
-  if (series.length === 0) return <div className="text-white/30 text-xs">Sin datos</div>
+  if (series.length === 0) return <div className="text-[var(--text-muted)] text-xs">Sin datos</div>
   const max = Math.max(...series.map(s => s.count), 1)
   const W = 600, H = 120, pad = 10
   const stepX = (W - pad * 2) / (series.length - 1 || 1)
@@ -208,7 +208,7 @@ function TrendChart({ series }: { series: Array<{ date: string; count: number }>
           return <circle key={s.date} cx={x} cy={y} r="2" fill="#FF6B35" />
         })}
       </svg>
-      <div className="flex justify-between text-[10px] text-white/30 mt-1">
+      <div className="flex justify-between text-[10px] text-[var(--text-muted)] mt-1">
         <span>{firstDate}</span><span>máx: {max}</span><span>{lastDate}</span>
       </div>
     </div>
@@ -222,21 +222,21 @@ function CostsCard({ costs }: { costs: AnalyticsPayload['costs'] }) {
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <div className="text-2xl font-bold text-white tabular-nums">${costs.month_spend_usd}</div>
-          <div className="text-xs text-white/40">de ${costs.month_budget_usd} budget mensual</div>
+          <div className="text-2xl font-bold text-[var(--text-strong)] tabular-nums">${costs.month_spend_usd}</div>
+          <div className="text-xs text-[var(--text-muted)]">de ${costs.month_budget_usd} budget mensual</div>
         </div>
         <div className="text-right">
-          <div className="text-sm text-white/60">Proyección fin de mes</div>
-          <div className="text-lg font-semibold text-white tabular-nums">${costs.projected_eom_usd}</div>
+          <div className="text-sm text-[var(--text-muted)]">Proyección fin de mes</div>
+          <div className="text-lg font-semibold text-[var(--text-strong)] tabular-nums">${costs.projected_eom_usd}</div>
         </div>
       </div>
-      <div className="h-2 bg-white/10 rounded-full overflow-hidden">
+      <div className="h-2 bg-[var(--surface-sunken)] rounded-full overflow-hidden">
         <div className={`h-full ${alertColor} transition-all`} style={{ width: `${Math.min(100, pct)}%` }} />
       </div>
-      <div className="flex justify-between text-xs text-white/40">
+      <div className="flex justify-between text-xs text-[var(--text-muted)]">
         <span>{costs.text_search_count} text searches</span>
         <span>{costs.photo_count} photos</span>
-        <span className={pct > 80 ? 'text-red-400 font-semibold' : ''}>{pct.toFixed(1)}% consumido</span>
+        <span className={pct > 80 ? 'text-red-700 font-semibold' : ''}>{pct.toFixed(1)}% consumido</span>
       </div>
     </div>
   )
@@ -261,19 +261,19 @@ function OpportunitiesTable({ zones, adminSecret, onEnriched }: {
       setPending(null)
     }
   }
-  if (zones.length === 0) return <div className="text-white/30 text-xs">Sin oportunidades — todas las zonas tienen cobertura</div>
+  if (zones.length === 0) return <div className="text-[var(--text-muted)] text-xs">Sin oportunidades — todas las zonas tienen cobertura</div>
   return (
     <div className="space-y-1.5">
       {zones.map(z => (
-        <div key={z.zone} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/5">
+        <div key={z.zone} className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-[var(--surface-sunken)]">
           <div className="flex items-center gap-3">
-            <span className="text-sm text-white">{z.zone}</span>
-            <span className="text-xs text-white/40">{z.count} búsquedas</span>
+            <span className="text-sm text-[var(--text-strong)]">{z.zone}</span>
+            <span className="text-xs text-[var(--text-muted)]">{z.count} búsquedas</span>
           </div>
           <button
             onClick={() => enrich(z.zone)}
             disabled={pending === z.zone}
-            className="text-xs px-2.5 py-1 rounded bg-[#FF6B35]/20 text-[#FF6B35] hover:bg-[#FF6B35]/30 disabled:opacity-50"
+            className="text-xs px-2.5 py-1 rounded bg-[#FF6B35]/20 text-[#E55A2B] hover:bg-[#FF6B35]/30 disabled:opacity-50"
           >
             {pending === z.zone ? 'Enriqueciendo...' : 'Enriquecer zona'}
           </button>
@@ -287,31 +287,31 @@ function OpportunitiesTable({ zones, adminSecret, onEnriched }: {
 
 // Mapa amigable de cada failure_reason → label + acción sugerida.
 const FAILURE_LABELS: Record<string, { label: string; action: string; color: string }> = {
-  no_zone_coverage:   { label: 'Sin cobertura en zona',     action: 'Disparar enriquecimiento de Google',         color: 'text-amber-300' },
-  no_cuisine_match:   { label: 'Cuisine pedida no existe', action: 'OK — flujo opt-in muestra alternativas',     color: 'text-emerald-300' },
-  no_dietary_match:   { label: 'Sin opciones dietéticas',   action: 'Pedirle a owners que taguen menús',          color: 'text-orange-300' },
-  no_budget_match:    { label: 'Sobre presupuesto',         action: 'Revisar pricing en zonas premium',           color: 'text-blue-300' },
-  enrichment_skipped: { label: 'Enriquecimiento bloqueado', action: 'Revisar budget Google o dedup 30d',          color: 'text-red-300' },
+  no_zone_coverage:   { label: 'Sin cobertura en zona',     action: 'Disparar enriquecimiento de Google',         color: 'text-amber-700' },
+  no_cuisine_match:   { label: 'Cuisine pedida no existe', action: 'OK — flujo opt-in muestra alternativas',     color: 'text-emerald-700' },
+  no_dietary_match:   { label: 'Sin opciones dietéticas',   action: 'Pedirle a owners que taguen menús',          color: 'text-orange-600' },
+  no_budget_match:    { label: 'Sobre presupuesto',         action: 'Revisar pricing en zonas premium',           color: 'text-blue-700' },
+  enrichment_skipped: { label: 'Enriquecimiento bloqueado', action: 'Revisar budget Google o dedup 30d',          color: 'text-red-700' },
 }
 
 function FailureBreakdown({ rows }: { rows: Array<{ reason: string; count: number }> }) {
   const total = rows.reduce((s, r) => s + r.count, 0)
-  if (total === 0) return <div className="text-white/30 text-xs">Sin fails en el período — todas las búsquedas devolvieron resultados</div>
+  if (total === 0) return <div className="text-[var(--text-muted)] text-xs">Sin fails en el período — todas las búsquedas devolvieron resultados</div>
   return (
     <div className="space-y-2">
       {rows.sort((a, b) => b.count - a.count).map(r => {
-        const meta = FAILURE_LABELS[r.reason] ?? { label: r.reason, action: '', color: 'text-white/60' }
+        const meta = FAILURE_LABELS[r.reason] ?? { label: r.reason, action: '', color: 'text-[var(--text-muted)]' }
         const pct = total > 0 ? (r.count / total) * 100 : 0
         return (
           <div key={r.reason} className="space-y-1">
             <div className="flex items-center justify-between text-xs">
               <span className={meta.color + ' font-semibold'}>{meta.label}</span>
-              <span className="text-white/40 tabular-nums">{r.count} ({pct.toFixed(0)}%)</span>
+              <span className="text-[var(--text-muted)] tabular-nums">{r.count} ({pct.toFixed(0)}%)</span>
             </div>
-            <div className="h-1.5 bg-white/10 rounded-full overflow-hidden">
+            <div className="h-1.5 bg-[var(--surface-sunken)] rounded-full overflow-hidden">
               <div className="h-full bg-[#FF6B35]" style={{ width: `${pct}%` }} />
             </div>
-            <div className="text-[10px] text-white/40 italic">→ {meta.action}</div>
+            <div className="text-[10px] text-[var(--text-muted)] italic">→ {meta.action}</div>
           </div>
         )
       })}
@@ -320,17 +320,17 @@ function FailureBreakdown({ rows }: { rows: Array<{ reason: string; count: numbe
 }
 
 function SimpleList({ rows }: { rows: Array<{ label: string; value: number; sub?: string; href?: string }> }) {
-  if (rows.length === 0) return <div className="text-white/30 text-xs">Sin datos</div>
+  if (rows.length === 0) return <div className="text-[var(--text-muted)] text-xs">Sin datos</div>
   return (
     <div className="space-y-1 max-h-72 overflow-y-auto">
       {rows.map((r, i) => {
         const body = (
-          <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-white/5">
+          <div className="flex items-center justify-between py-1.5 px-2 rounded hover:bg-[var(--surface-sunken)]">
             <div className="min-w-0 flex-1">
-              <div className="text-sm text-white truncate">{r.label}</div>
-              {r.sub && <div className="text-[11px] text-white/40">{r.sub}</div>}
+              <div className="text-sm text-[var(--text-strong)] truncate">{r.label}</div>
+              {r.sub && <div className="text-[11px] text-[var(--text-muted)]">{r.sub}</div>}
             </div>
-            <div className="text-sm font-semibold text-[#FF6B35] tabular-nums ml-3">{r.value}</div>
+            <div className="text-sm font-semibold text-[#E55A2B] tabular-nums ml-3">{r.value}</div>
           </div>
         )
         return r.href ? (

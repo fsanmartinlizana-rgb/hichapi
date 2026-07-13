@@ -42,18 +42,18 @@ interface ApiResponse {
 }
 
 const FLAG_META: Record<FlagKey, { label: string; short: string; color: string; icon: React.ElementType }> = {
-  no_orders_3d:    { label: 'Sin pedidos 3d', short: '3d',  color: 'bg-red-500/15 text-red-300 border-red-500/30',       icon: ShoppingBag },
-  no_orders_7d:    { label: 'Sin pedidos 7d', short: '7d',  color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: ShoppingBag },
-  incomplete_menu: { label: 'Carta incompleta', short: 'menu', color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: Utensils },
-  no_qr:           { label: 'Sin QR',         short: 'qr',  color: 'bg-amber-500/15 text-amber-300 border-amber-500/30', icon: QrCode },
-  inactive:        { label: 'Desactivado',    short: 'off', color: 'bg-white/8 text-white/50 border-white/15',           icon: PowerOff },
+  no_orders_3d:    { label: 'Sin pedidos 3d', short: '3d',  color: 'bg-red-500/15 text-red-700 border-red-500/30',       icon: ShoppingBag },
+  no_orders_7d:    { label: 'Sin pedidos 7d', short: '7d',  color: 'bg-amber-500/15 text-amber-700 border-amber-500/30', icon: ShoppingBag },
+  incomplete_menu: { label: 'Carta incompleta', short: 'menu', color: 'bg-amber-500/15 text-amber-700 border-amber-500/30', icon: Utensils },
+  no_qr:           { label: 'Sin QR',         short: 'qr',  color: 'bg-amber-500/15 text-amber-700 border-amber-500/30', icon: QrCode },
+  inactive:        { label: 'Desactivado',    short: 'off', color: 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]',           icon: PowerOff },
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  free:       'bg-white/8 text-white/60 border border-white/10',
-  starter:    'bg-blue-500/15 text-blue-400 border border-blue-500/30',
-  pro:        'bg-amber-500/15 text-amber-400 border border-amber-500/30',
-  enterprise: 'bg-violet-500/15 text-violet-400 border border-violet-500/30',
+  free:       'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)]',
+  starter:    'bg-blue-500/15 text-blue-700 border border-blue-500/30',
+  pro:        'bg-amber-500/15 text-amber-700 border border-amber-500/30',
+  enterprise: 'bg-violet-500/15 text-violet-700 border border-violet-500/30',
 }
 
 interface Props {
@@ -110,8 +110,8 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
 
   if (!data && loading) {
     return (
-      <section className="rounded-2xl border border-white/8 bg-white/3 p-6">
-        <div className="flex items-center gap-2 text-white/40 text-sm">
+      <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-6">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
           <RefreshCw size={14} className="animate-spin" /> Cargando restaurantes en riesgo…
         </div>
       </section>
@@ -120,20 +120,20 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
   if (err) {
     return (
       <section className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-        <p className="text-red-300 text-sm">Riesgos: {err}</p>
+        <p className="text-red-700 text-sm">Riesgos: {err}</p>
       </section>
     )
   }
   if (!data) return null
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-white/3 p-5">
+    <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-5">
       <header className="flex items-center justify-between mb-4 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <AlertOctagon size={18} className="text-red-400" />
+          <AlertOctagon size={18} className="text-red-700" />
           <div>
-            <h2 className="text-white font-bold text-lg">Restaurantes en riesgo</h2>
-            <p className="text-white/40 text-xs">
+            <h2 className="text-[var(--text-strong)] font-bold text-lg">Restaurantes en riesgo</h2>
+            <p className="text-[var(--text-muted)] text-xs">
               {data.total} de {data.total_evaluated} restaurantes con flag activo
             </p>
           </div>
@@ -141,7 +141,7 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white px-2.5 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-strong)] px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-colors"
           aria-label="Refrescar riesgos"
         >
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Refrescar
@@ -174,34 +174,34 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
 
       {/* Tabla */}
       {filtered.length === 0 ? (
-        <p className="text-white/30 text-sm py-8 text-center">
+        <p className="text-[var(--text-muted)] text-sm py-8 text-center">
           {data.total === 0
             ? '🎉 Ningún restaurante en riesgo. Todo en verde.'
             : 'Sin resultados para este filtro.'}
         </p>
       ) : (
-        <div className="overflow-hidden rounded-xl border border-white/8">
+        <div className="overflow-hidden rounded-xl border border-[var(--border-subtle)]">
           <table className="w-full text-sm">
-            <thead className="bg-white/3 border-b border-white/8">
+            <thead className="bg-[var(--surface-sunken)] border-b border-[var(--border-subtle)]">
               <tr>
-                <th className="px-3 py-2 text-left  text-white/40 text-[10px] font-medium uppercase tracking-wider">Urg.</th>
-                <th className="px-3 py-2 text-left  text-white/40 text-[10px] font-medium uppercase tracking-wider">Restaurante</th>
-                <th className="px-3 py-2 text-left  text-white/40 text-[10px] font-medium uppercase tracking-wider">Plan</th>
-                <th className="px-3 py-2 text-left  text-white/40 text-[10px] font-medium uppercase tracking-wider">Flags</th>
-                <th className="px-3 py-2 text-right text-white/40 text-[10px] font-medium uppercase tracking-wider">Último pedido</th>
-                <th className="px-3 py-2 text-right text-white/40 text-[10px] font-medium uppercase tracking-wider">Signup</th>
+                <th className="px-3 py-2 text-left  text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider">Urg.</th>
+                <th className="px-3 py-2 text-left  text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider">Restaurante</th>
+                <th className="px-3 py-2 text-left  text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider">Plan</th>
+                <th className="px-3 py-2 text-left  text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider">Flags</th>
+                <th className="px-3 py-2 text-right text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider">Último pedido</th>
+                <th className="px-3 py-2 text-right text-[var(--text-muted)] text-[10px] font-medium uppercase tracking-wider">Signup</th>
                 <th className="px-3 py-2"></th>
               </tr>
             </thead>
             <tbody>
               {filtered.map(r => (
-                <tr key={r.id} className="border-b border-white/5 hover:bg-white/3 transition-colors">
+                <tr key={r.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-colors">
                   <td className="px-3 py-3">
                     <UrgencyBadge value={r.urgency} />
                   </td>
                   <td className="px-3 py-3">
-                    <p className="font-semibold text-white text-sm">{r.name}</p>
-                    <p className="text-white/30 text-[11px]">{r.neighborhood ?? '—'}</p>
+                    <p className="font-semibold text-[var(--text-strong)] text-sm">{r.name}</p>
+                    <p className="text-[var(--text-muted)] text-[11px]">{r.neighborhood ?? '—'}</p>
                   </td>
                   <td className="px-3 py-3">
                     <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${PLAN_STYLE[r.plan] ?? PLAN_STYLE.free}`}>
@@ -227,15 +227,15 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
                   </td>
                   <td className="px-3 py-3 text-right">
                     {r.days_since_last_order != null ? (
-                      <span className={`font-mono text-xs ${r.days_since_last_order > 7 ? 'text-red-300' : 'text-white/70'}`}>
+                      <span className={`font-mono text-xs ${r.days_since_last_order > 7 ? 'text-red-700' : 'text-[var(--text-body)]'}`}>
                         hace {r.days_since_last_order}d
                       </span>
                     ) : (
-                      <span className="text-white/30 text-xs italic">nunca</span>
+                      <span className="text-[var(--text-muted)] text-xs italic">nunca</span>
                     )}
                   </td>
                   <td className="px-3 py-3 text-right">
-                    <span className="font-mono text-xs text-white/50 inline-flex items-center gap-1">
+                    <span className="font-mono text-xs text-[var(--text-muted)] inline-flex items-center gap-1">
                       <Calendar size={10} /> {r.days_since_signup}d
                     </span>
                   </td>
@@ -243,7 +243,7 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
                     <div className="flex items-center justify-end gap-1">
                       <button
                         onClick={() => navigator.clipboard?.writeText(r.name).catch(() => {})}
-                        className="p-1.5 rounded-lg text-white/40 hover:text-emerald-400 hover:bg-emerald-500/10 transition-colors"
+                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-emerald-700 hover:bg-emerald-500/10 transition-colors"
                         title="Marcar como contactado (copia nombre)"
                       >
                         <Phone size={12} />
@@ -252,7 +252,7 @@ export default function RestaurantsAtRisk({ adminSecret }: Props) {
                         href={`/r/${r.slug}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="p-1.5 rounded-lg text-white/40 hover:text-[#FF6B35] hover:bg-[#FF6B35]/10 transition-colors"
+                        className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[#E55A2B] hover:bg-[#FF6B35]/10 transition-colors"
                         title="Ver perfil público"
                       >
                         <ExternalLink size={12} />
@@ -282,7 +282,7 @@ function FilterPill({ active, onClick, label, count, color }: {
       className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border transition-colors ${
         active
           ? 'bg-[#FF6B35] border-[#FF6B35] text-white'
-          : color ?? 'border-white/10 text-white/60 hover:bg-white/5'
+          : color ?? 'border-[var(--border-subtle)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'
       }`}
     >
       {label} <span className="opacity-70 ml-1">{count}</span>
@@ -291,10 +291,10 @@ function FilterPill({ active, onClick, label, count, color }: {
 }
 
 function UrgencyBadge({ value }: { value: number }) {
-  const tone = value >= 90 ? 'bg-red-500/20 text-red-300 border-red-500/40'
-             : value >= 70 ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
-             : value >= 50 ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
-             :               'bg-white/8 text-white/50 border-white/15'
+  const tone = value >= 90 ? 'bg-red-500/20 text-red-700 border-red-500/40'
+             : value >= 70 ? 'bg-amber-500/20 text-amber-700 border-amber-500/40'
+             : value >= 50 ? 'bg-amber-500/10 text-amber-700 border-amber-500/20'
+             :               'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'
   return (
     <span className={`inline-block min-w-[34px] text-center px-1.5 py-0.5 rounded border font-mono font-bold text-[11px] ${tone}`}>
       {value}

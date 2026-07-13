@@ -74,11 +74,11 @@ function ReviewInner() {
   if (!orderId) {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center">
-        <div className="w-14 h-14 rounded-full bg-white/5 flex items-center justify-center mb-3">
-          <MessageCircle size={22} className="text-white/30" />
+        <div className="w-14 h-14 rounded-full bg-[var(--surface-sunken)] flex items-center justify-center mb-3">
+          <MessageCircle size={22} className="text-[var(--text-muted)]" />
         </div>
-        <h1 className="text-white text-lg font-bold">Nada que reseñar aún</h1>
-        <p className="text-white/45 text-sm mt-1 max-w-xs">
+        <h1 className="text-[var(--text-strong)] text-lg font-bold">Nada que reseñar aún</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1 max-w-xs">
           Necesitamos el identificador de tu pedido para cargar la reseña.
         </p>
       </div>
@@ -89,7 +89,7 @@ function ReviewInner() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-full">
-        <Loader2 size={22} className="text-[#FF6B35] animate-spin" />
+        <Loader2 size={22} className="text-[#E55A2B] animate-spin" />
       </div>
     )
   }
@@ -99,15 +99,15 @@ function ReviewInner() {
     return (
       <div className="flex flex-col items-center justify-center h-full p-6 text-center">
         <div className="w-16 h-16 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-4">
-          <Check size={28} className="text-emerald-400" strokeWidth={3} />
+          <Check size={28} className="text-emerald-700" strokeWidth={3} />
         </div>
-        <h1 className="text-white text-xl font-bold">¡Gracias por tu reseña!</h1>
-        <p className="text-white/55 text-sm mt-2 max-w-xs leading-relaxed">
+        <h1 className="text-[var(--text-strong)] text-xl font-bold">¡Gracias por tu reseña!</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-2 max-w-xs leading-relaxed">
           Nos ayudas a mejorar y a que más personas descubran lugares como{' '}
-          <span className="text-white font-semibold">{restaurantName}</span>.
+          <span className="text-[var(--text-strong)] font-semibold">{restaurantName}</span>.
         </p>
-        <div className="flex items-center gap-1.5 mt-4 text-white/30 text-xs">
-          <Heart size={11} className="text-[#FF6B35]" fill="#FF6B35" />
+        <div className="flex items-center gap-1.5 mt-4 text-[var(--text-muted)] text-xs">
+          <Heart size={11} className="text-[#E55A2B]" fill="#FF6B35" />
           Chapi
         </div>
       </div>
@@ -126,17 +126,17 @@ function ReviewInner() {
             <img
               src={photoUrl}
               alt={restaurantName}
-              className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-white/10"
+              className="w-20 h-20 rounded-full object-cover mx-auto border-2 border-[var(--border-subtle)]"
             />
           ) : (
             <div className="w-20 h-20 rounded-full bg-[#FF6B35]/20 border-2 border-[#FF6B35]/30 flex items-center justify-center mx-auto">
-              <span className="text-[#FF6B35] text-2xl font-bold">
+              <span className="text-[#E55A2B] text-2xl font-bold">
                 {restaurantName ? restaurantName.charAt(0) : 'R'}
               </span>
             </div>
           )}
-          <h1 className="text-white text-xl font-bold mt-4">{restaurantName}</h1>
-          <p className="text-white/45 text-sm mt-1">¿Cómo estuvo tu experiencia?</p>
+          <h1 className="text-[var(--text-strong)] text-xl font-bold mt-4">{restaurantName}</h1>
+          <p className="text-[var(--text-muted)] text-sm mt-1">¿Cómo estuvo tu experiencia?</p>
         </div>
 
         {/* Rating stars */}
@@ -154,7 +154,7 @@ function ReviewInner() {
               >
                 <Star
                   size={36}
-                  className={filled ? 'text-amber-400' : 'text-white/15'}
+                  className={filled ? 'text-amber-700' : 'text-[var(--text-muted)]'}
                   fill={filled ? '#FBBF24' : 'transparent'}
                   strokeWidth={1.5}
                 />
@@ -178,7 +178,7 @@ function ReviewInner() {
 
         {/* Comment */}
         <div className="space-y-2">
-          <label className="text-white/40 text-xs font-medium">
+          <label className="text-[var(--text-muted)] text-xs font-medium">
             Cuéntanos más (opcional)
           </label>
           <textarea
@@ -187,14 +187,14 @@ function ReviewInner() {
             placeholder="¿Qué tal la comida, el servicio, el ambiente…?"
             rows={4}
             maxLength={1000}
-            className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white text-sm placeholder:text-white/25 focus:outline-none focus:border-[#FF6B35]/50 transition-colors resize-none"
+            className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-4 py-3 text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors resize-none"
           />
-          <p className="text-right text-white/25 text-[10px]">{comment.length}/1000</p>
+          <p className="text-right text-[var(--text-muted)] text-[10px]">{comment.length}/1000</p>
         </div>
 
         {/* Error */}
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-300 text-xs">
+          <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3 text-red-700 text-xs">
             {error}
           </div>
         )}
@@ -212,7 +212,7 @@ function ReviewInner() {
           )}
         </button>
 
-        <p className="text-center text-white/25 text-[10px] leading-relaxed">
+        <p className="text-center text-[var(--text-muted)] text-[10px] leading-relaxed">
           Tu reseña ayuda a otros a descubrir este lugar.
         </p>
       </div>

@@ -128,12 +128,12 @@ function ReservationForm({
     <form onSubmit={handleSubmit} className="space-y-5">
       {/* ── Party size ── */}
       <div>
-        <label className="text-white/50 text-xs mb-2 block flex items-center gap-1.5">
+        <label className="text-[var(--text-muted)] text-xs mb-2 block flex items-center gap-1.5">
           <Users size={12} /> ¿Cuántos son?
         </label>
         <div className="flex items-center gap-2 flex-wrap">
           {Array.from({ length: Math.min(restaurant.reservation_max_party || 10, 10) }, (_, i) => i + 1).map(n => (
-            <button key={n} type="button" onClick={() => setPartySize(n)} className={`w-10 h-10 rounded-xl text-sm font-semibold transition-all ${partySize === n ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+            <button key={n} type="button" onClick={() => setPartySize(n)} className={`w-10 h-10 rounded-xl text-sm font-semibold transition-all ${partySize === n ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
               {n}
             </button>
           ))}
@@ -142,12 +142,12 @@ function ReservationForm({
 
       {/* ── Date picker ── */}
       <div>
-        <label className="text-white/50 text-xs mb-2 block flex items-center gap-1.5">
+        <label className="text-[var(--text-muted)] text-xs mb-2 block flex items-center gap-1.5">
           <CalendarDays size={12} /> ¿Qué día?
         </label>
         <div className="flex gap-2 overflow-x-auto pb-2 -mx-1 px-1 scrollbar-none">
           {dates.map(d => (
-            <button key={d} type="button" onClick={() => { setDate(d); if (step === 'date') setStep('time') }} className={`shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-all ${date === d ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+            <button key={d} type="button" onClick={() => { setDate(d); if (step === 'date') setStep('time') }} className={`shrink-0 px-3 py-2 rounded-xl text-xs font-medium transition-all ${date === d ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
               {formatDateLabel(d)}
             </button>
           ))}
@@ -157,20 +157,20 @@ function ReservationForm({
       {/* ── Time slots ── */}
       {date && (
         <div>
-          <label className="text-white/50 text-xs mb-2 block flex items-center gap-1.5">
+          <label className="text-[var(--text-muted)] text-xs mb-2 block flex items-center gap-1.5">
             <Clock size={12} /> ¿A qué hora?
           </label>
           {loadingSlots ? (
             <div className="flex items-center gap-2 py-4 justify-center">
-              <Loader2 size={16} className="text-[#FF6B35] animate-spin" />
-              <span className="text-white/30 text-xs">Cargando horarios...</span>
+              <Loader2 size={16} className="text-[#E55A2B] animate-spin" />
+              <span className="text-[var(--text-muted)] text-xs">Cargando horarios...</span>
             </div>
           ) : slots.length === 0 ? (
-            <p className="text-white/30 text-xs text-center py-4">No hay horarios disponibles para este día</p>
+            <p className="text-[var(--text-muted)] text-xs text-center py-4">No hay horarios disponibles para este día</p>
           ) : (
             <div className="grid grid-cols-4 gap-2 max-h-48 overflow-y-auto pr-1">
               {slots.filter(s => s.available).map(s => (
-                <button key={s.time} type="button" onClick={() => { setTime(s.time); setStep('info') }} className={`px-2 py-2 rounded-xl text-xs font-medium transition-all ${time === s.time ? 'bg-[#FF6B35] text-white' : 'bg-white/5 text-white/40 hover:bg-white/10'}`}>
+                <button key={s.time} type="button" onClick={() => { setTime(s.time); setStep('info') }} className={`px-2 py-2 rounded-xl text-xs font-medium transition-all ${time === s.time ? 'bg-[#FF6B35] text-white' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
                   {s.time}
                 </button>
               ))}
@@ -182,45 +182,45 @@ function ReservationForm({
       {/* ── Contact info ── */}
       {time && (
         <>
-          <div className="border-t border-white/8 pt-4 space-y-3">
+          <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Tu nombre</label>
-              <input value={name} onChange={e => setName(e.target.value)} required placeholder="Ej: Carlos" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Tu nombre</label>
+              <input value={name} onChange={e => setName(e.target.value)} required placeholder="Ej: Carlos" className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Teléfono</label>
-              <input value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+56 9 1234 5678" type="tel" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Teléfono</label>
+              <input value={phone} onChange={e => setPhone(e.target.value)} required placeholder="+56 9 1234 5678" type="tel" className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Email <span className="text-white/20">(opcional)</span></label>
-              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" type="email" className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Email <span className="text-[var(--text-muted)]">(opcional)</span></label>
+              <input value={email} onChange={e => setEmail(e.target.value)} placeholder="tu@email.com" type="email" className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
             <div>
-              <label className="text-white/50 text-xs mb-1.5 block">Notas <span className="text-white/20">(opcional)</span></label>
-              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ej: cumpleaños, silla para bebé..." className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder:text-white/20 text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
+              <label className="text-[var(--text-muted)] text-xs mb-1.5 block">Notas <span className="text-[var(--text-muted)]">(opcional)</span></label>
+              <input value={notes} onChange={e => setNotes(e.target.value)} placeholder="Ej: cumpleaños, silla para bebé..." className="w-full px-4 py-3 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] placeholder:text-[var(--text-muted)] text-sm focus:outline-none focus:border-[#FF6B35]/50 transition-colors" />
             </div>
           </div>
 
           {/* Summary */}
-          <div className="bg-white/3 border border-white/8 rounded-xl p-3 space-y-1">
+          <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-3 space-y-1">
             <div className="flex justify-between text-xs">
-              <span className="text-white/40">Fecha</span>
-              <span className="text-white">{formatDateLabel(date)}</span>
+              <span className="text-[var(--text-muted)]">Fecha</span>
+              <span className="text-[var(--text-strong)]">{formatDateLabel(date)}</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-white/40">Hora</span>
-              <span className="text-white">{time} hrs</span>
+              <span className="text-[var(--text-muted)]">Hora</span>
+              <span className="text-[var(--text-strong)]">{time} hrs</span>
             </div>
             <div className="flex justify-between text-xs">
-              <span className="text-white/40">Personas</span>
-              <span className="text-white">{partySize}</span>
+              <span className="text-[var(--text-muted)]">Personas</span>
+              <span className="text-[var(--text-strong)]">{partySize}</span>
             </div>
           </div>
         </>
       )}
 
       {error && (
-        <p className="text-red-400 text-xs text-center bg-red-500/10 rounded-xl py-2 px-3">{error}</p>
+        <p className="text-red-700 text-xs text-center bg-red-500/10 rounded-xl py-2 px-3">{error}</p>
       )}
 
       {time && (
@@ -244,41 +244,41 @@ function ConfirmationView({ result, restaurant }: { result: ReservationResult; r
   return (
     <div className="space-y-5 text-center">
       <div className="w-16 h-16 rounded-2xl bg-emerald-500/15 border border-emerald-400/30 flex items-center justify-center mx-auto">
-        <CheckCircle2 size={28} className="text-emerald-400" />
+        <CheckCircle2 size={28} className="text-emerald-700" />
       </div>
 
       <div>
-        <p className="text-emerald-400 font-bold text-lg">Reserva confirmada</p>
-        <p className="text-white/40 text-sm mt-1">Te esperamos en {result.restaurant_name}</p>
+        <p className="text-emerald-700 font-bold text-lg">Reserva confirmada</p>
+        <p className="text-[var(--text-muted)] text-sm mt-1">Te esperamos en {result.restaurant_name}</p>
       </div>
 
-      <div className="bg-white/3 border border-white/8 rounded-2xl p-4 space-y-3 text-left">
+      <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-2xl p-4 space-y-3 text-left">
         <div className="flex justify-between text-sm">
-          <span className="text-white/40">Fecha</span>
-          <span className="text-white font-medium">{dayNames[dateObj.getDay()]} {dateObj.getDate()} de {monthNames[dateObj.getMonth()]}</span>
+          <span className="text-[var(--text-muted)]">Fecha</span>
+          <span className="text-[var(--text-strong)] font-medium">{dayNames[dateObj.getDay()]} {dateObj.getDate()} de {monthNames[dateObj.getMonth()]}</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-white/40">Hora</span>
-          <span className="text-white font-medium">{res.reservation_time.slice(0, 5)} hrs</span>
+          <span className="text-[var(--text-muted)]">Hora</span>
+          <span className="text-[var(--text-strong)] font-medium">{res.reservation_time.slice(0, 5)} hrs</span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-white/40">Estado</span>
-          <span className="text-emerald-400 font-medium flex items-center gap-1"><CheckCircle2 size={12} /> Confirmada</span>
+          <span className="text-[var(--text-muted)]">Estado</span>
+          <span className="text-emerald-700 font-medium flex items-center gap-1"><CheckCircle2 size={12} /> Confirmada</span>
         </div>
       </div>
 
       {restaurant.address && (
-        <div className="flex items-center gap-2 text-white/30 text-xs justify-center">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs justify-center">
           <MapPin size={12} /> {restaurant.address}
         </div>
       )}
       {restaurant.phone && (
-        <div className="flex items-center gap-2 text-white/30 text-xs justify-center">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] text-xs justify-center">
           <PhoneIcon size={12} /> {restaurant.phone}
         </div>
       )}
 
-      <p className="text-white/15 text-[10px]">
+      <p className="text-[var(--text-muted)] text-[10px]">
         Si no llegas dentro de los primeros minutos de tu reserva, tu mesa podría ser liberada.
       </p>
     </div>
@@ -326,36 +326,36 @@ export default function ReservarPage() {
   }, [token])
 
   return (
-    <div className="min-h-screen bg-[#0A0A14] flex flex-col items-center justify-start px-4 pt-10 pb-16" style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+    <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-start px-4 pt-10 pb-16" style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
 
       {/* Header */}
       <div className="w-full max-w-sm mb-6 text-center">
         <div className="inline-flex items-center gap-2 mb-4">
-          <HiChapiLogo size={24} accentColor="#FFFFFF" />
-          <span className="text-white/80 text-sm font-bold"><span className="text-[#FF6B35]">Hi</span>Chapi</span>
+          <HiChapiLogo size={24} />
+          <span className="text-[var(--text-body)] text-sm font-bold"><span className="text-[#E55A2B]">Hi</span>Chapi</span>
         </div>
-        <h1 className="text-white font-bold text-lg">{restaurant?.name || 'Cargando...'}</h1>
-        <p className="text-white/30 text-sm mt-0.5">Reservar mesa</p>
+        <h1 className="text-[var(--text-strong)] font-bold text-lg">{restaurant?.name || 'Cargando...'}</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-0.5">Reservar mesa</p>
       </div>
 
       {/* Card */}
-      <div className="w-full max-w-sm bg-[#161622] border border-white/8 rounded-2xl p-6">
+      <div className="w-full max-w-sm bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6">
         {loading ? (
           <div className="flex flex-col items-center gap-3 py-8">
-            <Loader2 size={24} className="text-[#FF6B35] animate-spin" />
-            <p className="text-white/40 text-sm">Cargando...</p>
+            <Loader2 size={24} className="text-[#E55A2B] animate-spin" />
+            <p className="text-[var(--text-muted)] text-sm">Cargando...</p>
           </div>
         ) : notFound ? (
           <div className="text-center py-6 space-y-3">
-            <X size={28} className="text-white/20 mx-auto" />
-            <p className="text-white/50 text-sm">Restaurante no encontrado</p>
+            <X size={28} className="text-[var(--text-muted)] mx-auto" />
+            <p className="text-[var(--text-muted)] text-sm">Restaurante no encontrado</p>
           </div>
         ) : restaurant && !restaurant.reservations_enabled ? (
           <div className="text-center py-6 space-y-3">
-            <CalendarDays size={28} className="text-white/20 mx-auto" />
-            <p className="text-white/50 text-sm">Este restaurante aún no acepta reservas online</p>
+            <CalendarDays size={28} className="text-[var(--text-muted)] mx-auto" />
+            <p className="text-[var(--text-muted)] text-sm">Este restaurante aún no acepta reservas online</p>
             {restaurant.phone && (
-              <a href={`tel:${restaurant.phone}`} className="text-[#FF6B35] text-sm hover:underline flex items-center gap-1 justify-center">
+              <a href={`tel:${restaurant.phone}`} className="text-[#E55A2B] text-sm hover:underline flex items-center gap-1 justify-center">
                 <PhoneIcon size={12} /> Llamar para reservar
               </a>
             )}
@@ -368,7 +368,7 @@ export default function ReservarPage() {
       </div>
 
       {/* Footer */}
-      <p className="text-white/15 text-[10px] mt-6 text-center">Powered by HiChapi</p>
+      <p className="text-[var(--text-muted)] text-[10px] mt-6 text-center">Powered by HiChapi</p>
     </div>
   )
 }

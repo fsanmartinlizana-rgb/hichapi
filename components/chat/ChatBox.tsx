@@ -477,16 +477,16 @@ export function ChatBox({
       <div className="mb-3 text-center min-h-[36px] flex items-center justify-center">
         {waitingFirstToken ? (
           <span
-            className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 inline-flex items-center gap-1 border border-neutral-100"
+            className="text-sm text-neutral-500 bg-[var(--surface-sunken)] backdrop-blur-sm rounded-xl px-4 py-2 inline-flex items-center gap-1 border border-neutral-100"
           >
-            <span className="font-medium text-[#FF6B35]">Chapi:</span>
+            <span className="font-medium text-[#E55A2B]">Chapi:</span>
             <TypingDots />
           </span>
         ) : chapiMessage ? (
           <p
-            className="text-sm text-neutral-500 bg-white/60 backdrop-blur-sm rounded-xl px-4 py-2 inline-block border border-neutral-100"
+            className="text-sm text-neutral-500 bg-[var(--surface-sunken)] backdrop-blur-sm rounded-xl px-4 py-2 inline-block border border-neutral-100"
           >
-            <span className="font-medium text-[#FF6B35]">Chapi:</span>{' '}
+            <span className="font-medium text-[#E55A2B]">Chapi:</span>{' '}
             {chapiMessage}
           </p>
         ) : null}
@@ -498,14 +498,14 @@ export function ChatBox({
           qué agregaría valor al pedirlo. */}
       {chapiMessage && someIntentCaptured && (
         <div className="mb-3 flex flex-wrap items-center justify-center gap-1.5">
-          <span className="text-[10px] text-neutral-400">Chapi entendió:</span>
+          <span className="text-[10px] text-[var(--text-muted)]">Chapi entendió:</span>
           {intentPills.map((p, i) => (
             <span
               key={i}
               className={`text-[11px] px-2 py-0.5 rounded-full border transition-colors ${
                 p.captured
                   ? 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  : 'bg-neutral-50 border-neutral-200 text-neutral-400'
+                  : 'bg-neutral-50 border-neutral-200 text-[var(--text-muted)]'
               }`}
               title={p.captured ? `${p.text} ✓` : `Falta: ${p.text}`}
             >
@@ -526,7 +526,7 @@ export function ChatBox({
           onKeyDown={handleKeyDown}
           placeholder="¿Qué quieres comer hoy? Cuéntale a Chapi..."
           rows={1}
-          className="w-full resize-none bg-transparent px-5 pt-4 pb-3 pr-16 text-[#1A1A2E] placeholder:text-neutral-300 focus:outline-none text-base leading-relaxed"
+          className="w-full resize-none bg-transparent px-5 pt-4 pb-3 pr-16 text-[#1A1A2E] placeholder:text-[var(--text-muted)] focus:outline-none text-base leading-relaxed"
           style={{ minHeight: '56px', maxHeight: '120px' }}
           onInput={e => {
             const t = e.target as HTMLTextAreaElement
@@ -543,22 +543,22 @@ export function ChatBox({
           aria-label="Enviar"
         >
           {loading
-            ? <Loader2 size={18} className="text-white animate-spin" />
-            : <Send size={18} className="text-white" />}
+            ? <Loader2 size={18} className="text-[var(--text-strong)] animate-spin" />
+            : <Send size={18} className="text-[var(--text-strong)]" />}
         </button>
       </div>
 
       {/* Chips */}
       {askingForZone ? (
         <div className="mt-3">
-          <p className="text-[11px] text-neutral-400 text-center mb-2">¿En qué barrio?</p>
+          <p className="text-[11px] text-[var(--text-muted)] text-center mb-2">¿En qué barrio?</p>
           <div className="flex flex-wrap gap-2 justify-center">
             {(!defaultZone ? ZONE_CHIPS : ['Cerca de mí', `Centro de ${defaultZone}`]).map(zone => (
               <button
                 key={zone}
                 onClick={() => sendMessage(zone)}
                 disabled={loading}
-                className="text-xs px-3 py-1.5 rounded-full bg-white border border-[#FF6B35]/30 text-[#FF6B35] font-medium hover:bg-[#FF6B35] hover:text-white disabled:opacity-50 transition-colors duration-150"
+                className="text-xs px-3 py-1.5 rounded-full bg-white border border-[#FF6B35]/30 text-[#E55A2B] font-medium hover:bg-[#FF6B35] hover:text-white disabled:opacity-50 transition-colors duration-150"
               >
                 {zone}
               </button>
@@ -572,7 +572,7 @@ export function ChatBox({
               key={chip}
               onClick={() => sendMessage(chip)}
               disabled={loading}
-              className="text-xs px-3 py-1.5 rounded-full bg-white border border-neutral-200 text-neutral-500 hover:border-[#FF6B35] hover:text-[#FF6B35] disabled:opacity-50 transition-colors duration-150"
+              className="text-xs px-3 py-1.5 rounded-full bg-white border border-neutral-200 text-neutral-500 hover:border-[#FF6B35] hover:text-[#E55A2B] disabled:opacity-50 transition-colors duration-150"
             >
               {chip}
             </button>
@@ -584,7 +584,7 @@ export function ChatBox({
       {needsLocation && (
         <button
           onClick={() => sendMessage('usa mi ubicación actual')}
-          className="mt-3 flex items-center gap-2 text-xs text-[#FF6B35] hover:underline mx-auto"
+          className="mt-3 flex items-center gap-2 text-xs text-[#E55A2B] hover:underline mx-auto"
         >
           <MapPin size={12} />
           Usar mi ubicación actual

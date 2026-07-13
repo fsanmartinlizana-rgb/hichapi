@@ -62,7 +62,7 @@ function InputField({
     <div className="flex flex-col gap-1.5">
       <label className="text-sm font-medium text-[#1A1A2E]">
         {label}
-        {required && <span className="text-[#FF6B35] ml-0.5">*</span>}
+        {required && <span className="text-[#E55A2B] ml-0.5">*</span>}
       </label>
       {children}
     </div>
@@ -71,7 +71,7 @@ function InputField({
 
 const inputClass =
   'w-full rounded-xl border border-neutral-200 px-4 py-3 text-[#1A1A2E] text-sm ' +
-  'bg-white placeholder:text-neutral-300 focus:outline-none focus:border-[#FF6B35] ' +
+  'bg-white placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35] ' +
   'transition-colors duration-150'
 
 export function SubmissionForm() {
@@ -147,7 +147,7 @@ export function SubmissionForm() {
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-neutral-100 p-10 text-center max-w-lg mx-auto">
         <div className="flex justify-center mb-4">
-          <CheckCircle size={52} className="text-[#FF6B35]" strokeWidth={1.5} />
+          <CheckCircle size={52} className="text-[#E55A2B]" strokeWidth={1.5} />
         </div>
         <h2
           className="text-2xl font-bold mb-2"
@@ -155,7 +155,7 @@ export function SubmissionForm() {
         >
           ¡Listo, recibimos tu solicitud!
         </h2>
-        <p className="text-neutral-400 text-sm leading-relaxed mb-6">
+        <p className="text-[var(--text-muted)] text-sm leading-relaxed mb-6">
           Nuestro equipo revisará la información de{' '}
           <span className="font-semibold text-[#1A1A2E]">{form.name}</span> y te
           contactará a{' '}
@@ -198,9 +198,9 @@ export function SubmissionForm() {
               className={inputClass}
             />
             {form.slug && (
-              <p className="text-[11px] text-neutral-400 mt-1">
-                hichapi.com/<span className="font-medium text-[#FF6B35]">{form.slug}</span>
-                {slugStatus === 'checking' && <span className="ml-2 text-neutral-300">verificando...</span>}
+              <p className="text-[11px] text-[var(--text-muted)] mt-1">
+                hichapi.com/<span className="font-medium text-[#E55A2B]">{form.slug}</span>
+                {slugStatus === 'checking' && <span className="ml-2 text-[var(--text-muted)]">verificando...</span>}
                 {slugStatus === 'available' && <span className="ml-2 text-emerald-500">disponible</span>}
               </p>
             )}
@@ -219,7 +219,7 @@ export function SubmissionForm() {
               </select>
               <ChevronDown
                 size={15}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
             </div>
           </InputField>
@@ -239,7 +239,7 @@ export function SubmissionForm() {
               </select>
               <ChevronDown
                 size={15}
-                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400"
+                className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
               />
             </div>
           </InputField>
@@ -269,7 +269,7 @@ export function SubmissionForm() {
           {/* Price range — pill selector */}
           <div className="md:col-span-2 flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#1A1A2E]">
-              Rango de precio <span className="text-[#FF6B35]">*</span>
+              Rango de precio <span className="text-[#E55A2B]">*</span>
             </label>
             <div className="grid grid-cols-3 gap-2">
               {PRICE_OPTIONS.map(opt => (
@@ -288,7 +288,7 @@ export function SubmissionForm() {
                   <span className="font-semibold text-xs">{opt.label}</span>
                   <span
                     className={`text-[10px] mt-0.5 ${
-                      form.price_range === opt.value ? 'text-white/80' : 'text-neutral-400'
+                      form.price_range === opt.value ? 'text-[var(--text-body)]' : 'text-[var(--text-muted)]'
                     }`}
                   >
                     {opt.hint}
@@ -302,7 +302,7 @@ export function SubmissionForm() {
           <div className="md:col-span-2 flex flex-col gap-1.5">
             <label className="text-sm font-medium text-[#1A1A2E]">
               Descripción breve{' '}
-              <span className="text-neutral-400 font-normal">(opcional)</span>
+              <span className="text-[var(--text-muted)] font-normal">(opcional)</span>
             </label>
             <textarea
               placeholder="Cuéntanos qué hace especial a tu restaurante..."
@@ -312,7 +312,7 @@ export function SubmissionForm() {
               maxLength={500}
               className={inputClass + ' resize-none'}
             />
-            <p className="text-[11px] text-neutral-300 text-right">
+            <p className="text-[11px] text-[var(--text-muted)] text-right">
               {(form.description ?? '').length}/500
             </p>
           </div>
@@ -398,7 +398,7 @@ export function SubmissionForm() {
         )}
       </button>
 
-      <p className="mt-3 text-center text-xs text-neutral-300">
+      <p className="mt-3 text-center text-xs text-[var(--text-muted)]">
         Revisamos cada solicitud manualmente. Te contactamos en 2–3 días hábiles.
       </p>
     </form>

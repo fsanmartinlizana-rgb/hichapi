@@ -62,8 +62,8 @@ export default function RegistrationsByDay({ adminSecret, days = 30 }: Props) {
 
   if (!data && loading) {
     return (
-      <section className="rounded-2xl border border-white/8 bg-white/3 p-6">
-        <div className="flex items-center gap-2 text-white/40 text-sm">
+      <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-6">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
           <RefreshCw size={14} className="animate-spin" /> Cargando registraciones…
         </div>
       </section>
@@ -72,7 +72,7 @@ export default function RegistrationsByDay({ adminSecret, days = 30 }: Props) {
   if (err) {
     return (
       <section className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-        <p className="text-red-300 text-sm">Registraciones: {err}</p>
+        <p className="text-red-700 text-sm">Registraciones: {err}</p>
       </section>
     )
   }
@@ -107,13 +107,13 @@ export default function RegistrationsByDay({ adminSecret, days = 30 }: Props) {
     : ''
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-white/3 p-5">
+    <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-5">
       <header className="flex items-center justify-between mb-3 flex-wrap gap-3">
         <div className="flex items-center gap-2">
-          <TrendingUp size={18} className="text-[#FF6B35]" />
+          <TrendingUp size={18} className="text-[#E55A2B]" />
           <div>
-            <h2 className="text-white font-bold text-lg">Nuevos restaurantes</h2>
-            <p className="text-white/40 text-xs">Últimos {period_days} días</p>
+            <h2 className="text-[var(--text-strong)] font-bold text-lg">Nuevos restaurantes</h2>
+            <p className="text-[var(--text-muted)] text-xs">Últimos {period_days} días</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -123,7 +123,7 @@ export default function RegistrationsByDay({ adminSecret, days = 30 }: Props) {
           <button
             onClick={load}
             disabled={loading}
-            className="p-1.5 rounded-lg border border-white/10 text-white/40 hover:text-white hover:bg-white/5 transition-colors"
+            className="p-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"
             aria-label="Refrescar"
           >
             <RefreshCw size={11} className={loading ? 'animate-spin' : ''} />
@@ -132,7 +132,7 @@ export default function RegistrationsByDay({ adminSecret, days = 30 }: Props) {
       </header>
 
       {total === 0 ? (
-        <div className="flex items-center justify-center gap-2 text-white/30 text-sm py-8">
+        <div className="flex items-center justify-center gap-2 text-[var(--text-muted)] text-sm py-8">
           <Calendar size={14} /> Sin registraciones en este período.
         </div>
       ) : (
@@ -175,8 +175,8 @@ export default function RegistrationsByDay({ adminSecret, days = 30 }: Props) {
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div className="text-right">
-      <div className="text-[9px] text-white/40 uppercase tracking-wider leading-none">{label}</div>
-      <div className="text-white font-bold font-mono text-sm leading-none mt-0.5">{value}</div>
+      <div className="text-[9px] text-[var(--text-muted)] uppercase tracking-wider leading-none">{label}</div>
+      <div className="text-[var(--text-strong)] font-bold font-mono text-sm leading-none mt-0.5">{value}</div>
     </div>
   )
 }

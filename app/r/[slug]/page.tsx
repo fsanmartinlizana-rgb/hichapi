@@ -129,10 +129,10 @@ function RatingStars({ rating }: { rating: number }) {
   return (
     <span className="flex items-center gap-0.5">
       {Array.from({ length: full }).map((_, i) => (
-        <Star key={`f${i}`} size={13} className="text-[#FF6B35] fill-[#FF6B35]" />
+        <Star key={`f${i}`} size={13} className="text-[#E55A2B] fill-[#FF6B35]" />
       ))}
       {Array.from({ length: empty }).map((_, i) => (
-        <Star key={`e${i}`} size={13} className="text-neutral-300 fill-neutral-200" />
+        <Star key={`e${i}`} size={13} className="text-[var(--text-muted)] fill-neutral-200" />
       ))}
     </span>
   )
@@ -153,11 +153,11 @@ function QuickInfoBar({ restaurant }: { restaurant: RestaurantData }) {
     : null
 
   const items = [
-    { icon: <MapPin size={15} className="text-[#FF6B35]" />, label: restaurant.address || 'Dirección por confirmar' },
-    { icon: <DollarSign size={15} className="text-[#FF6B35]" />, label: `Precio: ${priceLabel}` },
+    { icon: <MapPin size={15} className="text-[#E55A2B]" />, label: restaurant.address || 'Dirección por confirmar' },
+    { icon: <DollarSign size={15} className="text-[#E55A2B]" />, label: `Precio: ${priceLabel}` },
   ]
-  if (todayLabel) items.push({ icon: <Clock size={15} className="text-[#FF6B35]" />, label: todayLabel })
-  if (restaurant.capacity) items.push({ icon: <Users size={15} className="text-[#FF6B35]" />, label: `${restaurant.capacity} mesas` })
+  if (todayLabel) items.push({ icon: <Clock size={15} className="text-[#E55A2B]" />, label: todayLabel })
+  if (restaurant.capacity) items.push({ icon: <Users size={15} className="text-[#E55A2B]" />, label: `${restaurant.capacity} mesas` })
 
   return (
     <div className="flex flex-wrap gap-x-5 gap-y-2 bg-white rounded-2xl border border-neutral-100 shadow-sm px-5 py-4">
@@ -186,7 +186,7 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5 space-y-4">
       {restaurant.description && (
         <div>
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2">Sobre el lugar</h3>
+          <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-2">Sobre el lugar</h3>
           <p className="text-sm text-neutral-600 leading-relaxed">{restaurant.description}</p>
         </div>
       )}
@@ -194,7 +194,7 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
       {restaurant.tags && restaurant.tags.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
           {restaurant.tags.map(t => (
-            <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-medium capitalize">
+            <span key={t} className="text-[11px] px-2.5 py-1 rounded-full bg-[#FF6B35]/10 text-[#E55A2B] font-medium capitalize">
               {t}
             </span>
           ))}
@@ -203,8 +203,8 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
 
       {hasHours && (
         <div>
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
-            <Clock size={12} className="text-[#FF6B35]" /> Horarios
+          <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-2 flex items-center gap-1.5">
+            <Clock size={12} className="text-[#E55A2B]" /> Horarios
           </h3>
           <div className="space-y-1">
             {DAY_KEYS.map(day => {
@@ -223,21 +223,21 @@ function AboutSection({ restaurant }: { restaurant: RestaurantData }) {
 
       {hasContact && (
         <div className="pt-1 border-t border-neutral-100">
-          <h3 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-2 mt-3">Contacto</h3>
+          <h3 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-2 mt-3">Contacto</h3>
           <div className="space-y-1.5 text-sm">
             {restaurant.phone && (
-              <a href={`tel:${restaurant.phone}`} className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
-                <Phone size={13} className="text-[#FF6B35]" />{restaurant.phone}
+              <a href={`tel:${restaurant.phone}`} className="flex items-center gap-2 text-neutral-600 hover:text-[#E55A2B] transition-colors">
+                <Phone size={13} className="text-[#E55A2B]" />{restaurant.phone}
               </a>
             )}
             {restaurant.website && (
-              <a href={restaurant.website.startsWith('http') ? restaurant.website : `https://${restaurant.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
-                <Globe size={13} className="text-[#FF6B35]" />{restaurant.website.replace(/^https?:\/\//, '')}
+              <a href={restaurant.website.startsWith('http') ? restaurant.website : `https://${restaurant.website}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-600 hover:text-[#E55A2B] transition-colors">
+                <Globe size={13} className="text-[#E55A2B]" />{restaurant.website.replace(/^https?:\/\//, '')}
               </a>
             )}
             {restaurant.instagram && (
-              <a href={`https://instagram.com/${restaurant.instagram.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-600 hover:text-[#FF6B35] transition-colors">
-                <AtSign size={13} className="text-[#FF6B35]" />{restaurant.instagram}
+              <a href={`https://instagram.com/${restaurant.instagram.replace(/^@/, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-neutral-600 hover:text-[#E55A2B] transition-colors">
+                <AtSign size={13} className="text-[#E55A2B]" />{restaurant.instagram}
               </a>
             )}
           </div>
@@ -274,7 +274,7 @@ function ActionCard({ restaurant }: { restaurant: RestaurantData }) {
       </Link>
       <div className="bg-[#FAFAF8] rounded-xl p-4 space-y-2">
         <p className="text-xs font-semibold text-[#1A1A2E]">Ya estás en el local?</p>
-        <p className="text-xs text-neutral-400 leading-relaxed">
+        <p className="text-xs text-[var(--text-muted)] leading-relaxed">
           Escanea el QR de tu mesa para pedir con Chapi sin esperar al mozo.
         </p>
       </div>
@@ -327,13 +327,13 @@ export default async function RestaurantPage({
       <nav className="sticky top-0 z-30 bg-[#FAFAF8]/90 backdrop-blur-md border-b border-neutral-100">
         <div className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
           <Link href="/" className="font-bold text-xl tracking-tight text-[#1A1A2E]">
-            hi<span className="text-[#FF6B35]">chapi</span>
+            hi<span className="text-[#E55A2B]">chapi</span>
           </Link>
           <div className="flex items-center gap-3">
             {hasMenu && (
               <a
                 href="#carta"
-                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 text-[#FF6B35] text-sm font-semibold hover:bg-[#FF6B35]/20 transition-colors"
+                className="flex items-center gap-2 px-4 py-2 rounded-xl bg-[#FF6B35]/10 border border-[#FF6B35]/20 text-[#E55A2B] text-sm font-semibold hover:bg-[#FF6B35]/20 transition-colors"
               >
                 <ShoppingBag size={15} />
                 Pedir ahora
@@ -365,20 +365,20 @@ export default async function RestaurantPage({
             {isOpen !== null && (
               <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold mb-3 border ${
                 isOpen
-                  ? 'bg-green-500/20 border-green-400/40 text-green-300'
-                  : 'bg-red-500/20 border-red-400/40 text-red-300'
+                  ? 'bg-green-500/20 border-green-400/40 text-green-700'
+                  : 'bg-red-500/20 border-red-400/40 text-red-700'
               }`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-green-400 animate-pulse' : 'bg-red-400'}`} />
                 {isOpen ? `Abierto · ${today!.open} – ${today!.close}` : 'Cerrado ahora'}
               </span>
             )}
-            <h1 className="text-3xl font-bold text-white leading-tight mb-2">{restaurant.name}</h1>
+            <h1 className="text-3xl font-bold text-[var(--text-strong)] leading-tight mb-2">{restaurant.name}</h1>
             <div className="flex flex-wrap items-center gap-3">
               {displayRating != null && (
                 <div className="flex items-center gap-1.5">
                   <RatingStars rating={displayRating} />
-                  <span className="text-white font-semibold text-sm">{displayRating.toFixed(1)}</span>
-                  <span className="text-white/60 text-xs">
+                  <span className="text-[var(--text-strong)] font-semibold text-sm">{displayRating.toFixed(1)}</span>
+                  <span className="text-[var(--text-muted)] text-xs">
                     {restaurant.review_count > 0
                       ? `(${restaurant.review_count})`
                       : restaurant.google_rating_count != null
@@ -387,8 +387,8 @@ export default async function RestaurantPage({
                   </span>
                 </div>
               )}
-              {restaurant.neighborhood && <span className="text-white/70 text-sm">{restaurant.neighborhood}</span>}
-              {restaurant.cuisine_type && <span className="text-white/70 text-sm">· {restaurant.cuisine_type}</span>}
+              {restaurant.neighborhood && <span className="text-[var(--text-body)] text-sm">{restaurant.neighborhood}</span>}
+              {restaurant.cuisine_type && <span className="text-[var(--text-body)] text-sm">· {restaurant.cuisine_type}</span>}
             </div>
           </div>
         </section>
@@ -399,7 +399,7 @@ export default async function RestaurantPage({
         {/* ── Gallery ── */}
         {restaurant.gallery_urls.length > 0 && (
           <section>
-            <h2 className="text-xs font-semibold text-neutral-400 uppercase tracking-widest mb-3">Galería</h2>
+            <h2 className="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest mb-3">Galería</h2>
             <div className="flex gap-3 overflow-x-auto pb-2 -mx-4 px-4 snap-x snap-mandatory">
               {restaurant.gallery_urls.map((url, idx) => (
                 <div key={url + idx} className="relative w-56 sm:w-64 aspect-[4/3] shrink-0 snap-start rounded-xl overflow-hidden bg-neutral-200 shadow-sm">
@@ -422,11 +422,11 @@ export default async function RestaurantPage({
           <section id="carta" className="lg:col-span-2">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-[#1A1A2E] flex items-center gap-2">
-                <ShoppingBag size={17} className="text-[#FF6B35]" />
+                <ShoppingBag size={17} className="text-[#E55A2B]" />
                 Carta
               </h2>
               {hasMenu && (
-                <span className="text-neutral-400 text-xs">{restaurant.menu_items.length} platos</span>
+                <span className="text-[var(--text-muted)] text-xs">{restaurant.menu_items.length} platos</span>
               )}
             </div>
 
@@ -434,7 +434,7 @@ export default async function RestaurantPage({
               <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-10 text-center">
                 <span className="text-5xl block mb-4">📋</span>
                 <h3 className="text-lg font-bold text-[#1A1A2E] mb-2">Carta no disponible</h3>
-                <p className="text-sm text-neutral-400">Este restaurante aún no ha publicado su carta.</p>
+                <p className="text-sm text-[var(--text-muted)]">Este restaurante aún no ha publicado su carta.</p>
               </div>
             ) : (
               <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
@@ -465,14 +465,14 @@ export default async function RestaurantPage({
       </div>
 
       {/* ── Footer ── */}
-      <footer className="text-center py-10 text-xs text-neutral-300 space-y-1.5 border-t border-neutral-100 mt-8">
-        <p className="font-medium text-neutral-400">HiChapi · Chile</p>
+      <footer className="text-center py-10 text-xs text-[var(--text-muted)] space-y-1.5 border-t border-neutral-100 mt-8">
+        <p className="font-medium text-[var(--text-muted)]">HiChapi · Chile</p>
         <p>
-          <Link href="/register" className="text-neutral-400 hover:text-[#FF6B35] transition-colors underline underline-offset-2">
+          <Link href="/register" className="text-[var(--text-muted)] hover:text-[#E55A2B] transition-colors underline underline-offset-2">
             ¿Eres dueño de un restaurante? Súmate a Chapi
           </Link>
         </p>
-        <p className="text-neutral-300">&copy; {new Date().getFullYear()} HiChapi. Todos los derechos reservados.</p>
+        <p className="text-[var(--text-muted)]">&copy; {new Date().getFullYear()} HiChapi. Todos los derechos reservados.</p>
       </footer>
 
       {/* ── Cart Panel ── */}

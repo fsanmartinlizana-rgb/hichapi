@@ -116,12 +116,12 @@ export default function FounderDashboardPage() {
 
   if (!authed) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#0A0A14] text-white">
-        <div className="bg-[#13132A] rounded-2xl border border-white/10 p-8 w-full max-w-sm">
+      <main className="min-h-screen flex items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-strong)]">
+        <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-8 w-full max-w-sm">
           <h1 className="text-xl font-bold mb-1">
-            hi<span className="text-[#FF6B35]">chapi</span> · founder
+            hi<span className="text-[#E55A2B]">chapi</span> · founder
           </h1>
-          <p className="text-sm text-white/40 mb-6">Centro de mando</p>
+          <p className="text-sm text-[var(--text-muted)] mb-6">Centro de mando</p>
           <div className="flex flex-col gap-3">
             <input
               type="password"
@@ -129,10 +129,10 @@ export default function FounderDashboardPage() {
               value={secret}
               onChange={e => setSecret(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleLogin()}
-              className="w-full rounded-xl bg-white/5 border border-white/10 px-4 py-3 text-sm
-                         text-white focus:outline-none focus:border-[#FF6B35] transition-colors"
+              className="w-full rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] px-4 py-3 text-sm
+                         text-[var(--text-strong)] focus:outline-none focus:border-[#FF6B35] transition-colors"
             />
-            {authError && <p className="text-xs text-red-400">Clave incorrecta</p>}
+            {authError && <p className="text-xs text-red-700">Clave incorrecta</p>}
             <button
               onClick={handleLogin}
               className="flex items-center justify-center gap-2 w-full py-3 rounded-xl
@@ -148,7 +148,7 @@ export default function FounderDashboardPage() {
 
   if (!data) {
     return (
-      <main className="min-h-screen flex items-center justify-center bg-[#0A0A14] text-white/40">
+      <main className="min-h-screen flex items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-muted)]">
         <RefreshCw size={20} className="animate-spin" />
       </main>
     )
@@ -157,23 +157,23 @@ export default function FounderDashboardPage() {
   const k = data.kpis
 
   return (
-    <main className="min-h-screen bg-[#0A0A14] text-white">
+    <main className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-strong)]">
       {/* Header */}
-      <header className="bg-[#13132A] border-b border-white/10 px-6 py-4 flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-[var(--surface-card)] border-b border-[var(--border-subtle)] px-6 py-4 flex items-center justify-between sticky top-0 z-10">
         <div>
           <h1 className="font-bold">
-            hi<span className="text-[#FF6B35]">chapi</span>
-            <span className="text-white/40 font-normal ml-2 text-sm">· Centro de mando</span>
+            hi<span className="text-[#E55A2B]">chapi</span>
+            <span className="text-[var(--text-muted)] font-normal ml-2 text-sm">· Centro de mando</span>
           </h1>
         </div>
         <div className="flex items-center gap-2">
-          <div className="flex bg-white/5 rounded-lg border border-white/10 p-1">
+          <div className="flex bg-[var(--surface-sunken)] rounded-lg border border-[var(--border-subtle)] p-1">
             {PERIODS.map(p => (
               <button
                 key={p.value}
                 onClick={() => setPeriod(p.value)}
                 className={`px-3 py-1 text-xs rounded transition-colors ${
-                  period === p.value ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white'
+                  period === p.value ? 'bg-[#FF6B35] text-white' : 'text-[var(--text-muted)] hover:text-white'
                 }`}
               >
                 {p.label}
@@ -182,11 +182,11 @@ export default function FounderDashboardPage() {
           </div>
           <button
             onClick={() => load()}
-            className="p-2 rounded-lg border border-white/10 text-white/40 hover:text-white transition-colors"
+            className="p-2 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
           >
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
-          <a href="/admin" className="flex items-center gap-1 text-xs text-white/40 hover:text-[#FF6B35] transition-colors">
+          <a href="/admin" className="flex items-center gap-1 text-xs text-[var(--text-muted)] hover:text-[#E55A2B] transition-colors">
             Submissions <ExternalLink size={11} />
           </a>
         </div>
@@ -215,23 +215,23 @@ export default function FounderDashboardPage() {
                 onClick={() => setTab('tickets')}
                 className="w-full flex items-center gap-3 p-4 rounded-xl bg-red-500/10 border border-red-500/30 hover:bg-red-500/15 transition-colors text-left"
               >
-                <AlertTriangle size={18} className="text-red-400 shrink-0" />
+                <AlertTriangle size={18} className="text-red-700 shrink-0" />
                 <div className="flex-1">
                   <p className="text-sm text-red-200 font-semibold">
                     {stale.length} ticket{stale.length > 1 ? 's' : ''} crítico{stale.length > 1 ? 's' : ''} sin respuesta hace &gt;24h
                   </p>
-                  <p className="text-xs text-red-300/70 mt-0.5 truncate">
+                  <p className="text-xs text-red-700/70 mt-0.5 truncate">
                     {stale[0].subject}
                   </p>
                 </div>
-                <span className="text-xs text-red-300/60">Ver →</span>
+                <span className="text-xs text-red-700/60">Ver →</span>
               </button>
             )
           }
           if (k.tickets_critical > 0) {
             return (
               <div className="flex items-center gap-3 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30">
-                <AlertTriangle size={18} className="text-amber-400 shrink-0" />
+                <AlertTriangle size={18} className="text-amber-700 shrink-0" />
                 <p className="text-sm text-amber-200">
                   {k.tickets_critical} ticket{k.tickets_critical > 1 ? 's' : ''} crítico{k.tickets_critical > 1 ? 's' : ''} abierto{k.tickets_critical > 1 ? 's' : ''}.
                 </p>
@@ -260,7 +260,7 @@ export default function FounderDashboardPage() {
         <RestaurantsAtRisk adminSecret={secret} />
 
         {/* Tabs */}
-        <div className="flex gap-1 bg-white/3 border border-white/8 rounded-xl p-1 w-fit flex-wrap">
+        <div className="flex gap-1 bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl p-1 w-fit flex-wrap">
           {([
             { id: 'restaurants', label: `Top restaurantes (${data.top_restaurants.length})` },
             { id: 'reviews',     label: `Feedback (${k.reviews_count})` },
@@ -272,7 +272,7 @@ export default function FounderDashboardPage() {
               key={t.id}
               onClick={() => setTab(t.id)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                tab === t.id ? 'bg-[#FF6B35] text-white' : 'text-white/40 hover:text-white'
+                tab === t.id ? 'bg-[#FF6B35] text-white' : 'text-[var(--text-muted)] hover:text-white'
               }`}
             >
               {t.label}
@@ -282,32 +282,32 @@ export default function FounderDashboardPage() {
 
         {/* Tab content */}
         {tab === 'restaurants' && (
-          <div className="rounded-2xl border border-white/8 bg-white/3 overflow-hidden">
+          <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] overflow-hidden">
             <table className="w-full text-sm">
-              <thead className="bg-white/3 border-b border-white/8">
+              <thead className="bg-[var(--surface-sunken)] border-b border-[var(--border-subtle)]">
                 <tr>
-                  <th className="px-4 py-3 text-left  text-white/40 text-xs font-medium">Restaurante</th>
-                  <th className="px-4 py-3 text-left  text-white/40 text-xs font-medium">Plan</th>
-                  <th className="px-4 py-3 text-right text-white/40 text-xs font-medium">Pedidos</th>
-                  <th className="px-4 py-3 text-right text-white/40 text-xs font-medium">Revenue</th>
-                  <th className="px-4 py-3 text-right text-white/40 text-xs font-medium">Comisión</th>
+                  <th className="px-4 py-3 text-left  text-[var(--text-muted)] text-xs font-medium">Restaurante</th>
+                  <th className="px-4 py-3 text-left  text-[var(--text-muted)] text-xs font-medium">Plan</th>
+                  <th className="px-4 py-3 text-right text-[var(--text-muted)] text-xs font-medium">Pedidos</th>
+                  <th className="px-4 py-3 text-right text-[var(--text-muted)] text-xs font-medium">Revenue</th>
+                  <th className="px-4 py-3 text-right text-[var(--text-muted)] text-xs font-medium">Comisión</th>
                 </tr>
               </thead>
               <tbody>
                 {data.top_restaurants.map(r => (
-                  <tr key={r.id} className="border-b border-white/5 hover:bg-white/3">
+                  <tr key={r.id} className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)]">
                     <td className="px-4 py-3">
                       <p className="font-medium">{r.name}</p>
-                      <p className="text-white/30 text-xs">{r.neighborhood ?? '—'}</p>
+                      <p className="text-[var(--text-muted)] text-xs">{r.neighborhood ?? '—'}</p>
                     </td>
-                    <td className="px-4 py-3 text-white/50 text-xs capitalize">{r.plan ?? 'free'}</td>
+                    <td className="px-4 py-3 text-[var(--text-muted)] text-xs capitalize">{r.plan ?? 'free'}</td>
                     <td className="px-4 py-3 text-right font-mono">{r.orders}</td>
-                    <td className="px-4 py-3 text-right font-mono text-white/70">{CLP(r.revenue)}</td>
-                    <td className="px-4 py-3 text-right font-mono text-[#FF6B35]">{CLP(r.commission)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-[var(--text-body)]">{CLP(r.revenue)}</td>
+                    <td className="px-4 py-3 text-right font-mono text-[#E55A2B]">{CLP(r.commission)}</td>
                   </tr>
                 ))}
                 {data.top_restaurants.length === 0 && (
-                  <tr><td colSpan={5} className="px-4 py-8 text-center text-white/30">Sin restaurantes en el período</td></tr>
+                  <tr><td colSpan={5} className="px-4 py-8 text-center text-[var(--text-muted)]">Sin restaurantes en el período</td></tr>
                 )}
               </tbody>
             </table>
@@ -317,26 +317,26 @@ export default function FounderDashboardPage() {
         {tab === 'reviews' && (
           <div className="space-y-2">
             {data.recent_reviews.map(r => (
-              <div key={r.id} className="p-4 rounded-xl border border-white/8 bg-white/3">
+              <div key={r.id} className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)]">
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <span className="text-[#FF6B35] font-mono text-sm">{'★'.repeat(r.rating)}<span className="text-white/15">{'★'.repeat(5 - r.rating)}</span></span>
+                    <span className="text-[#E55A2B] font-mono text-sm">{'★'.repeat(r.rating)}<span className="text-[var(--text-muted)]">{'★'.repeat(5 - r.rating)}</span></span>
                     {r.sentiment && (
                       <span className={`text-[10px] px-1.5 py-0.5 rounded-full border ${
-                        r.sentiment === 'positive' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' :
-                        r.sentiment === 'negative' ? 'bg-red-500/10 border-red-500/30 text-red-300' :
-                        'bg-white/5 border-white/10 text-white/50'
+                        r.sentiment === 'positive' ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700' :
+                        r.sentiment === 'negative' ? 'bg-red-500/10 border-red-500/30 text-red-700' :
+                        'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'
                       }`}>{r.sentiment}</span>
                     )}
                   </div>
-                  <span className="text-white/25 text-xs">{new Date(r.created_at).toLocaleDateString('es-CL')}</span>
+                  <span className="text-[var(--text-muted)] text-xs">{new Date(r.created_at).toLocaleDateString('es-CL')}</span>
                 </div>
-                {r.comment && <p className="text-sm text-white/80">{r.comment}</p>}
-                {r.ai_summary && <p className="text-xs text-white/40 mt-1 italic">{r.ai_summary}</p>}
+                {r.comment && <p className="text-sm text-[var(--text-body)]">{r.comment}</p>}
+                {r.ai_summary && <p className="text-xs text-[var(--text-muted)] mt-1 italic">{r.ai_summary}</p>}
               </div>
             ))}
             {data.recent_reviews.length === 0 && (
-              <div className="text-center py-10 text-white/30">Sin reseñas en el período</div>
+              <div className="text-center py-10 text-[var(--text-muted)]">Sin reseñas en el período</div>
             )}
           </div>
         )}
@@ -368,11 +368,11 @@ function KpiCard({ icon: Icon, label, value, accent }: {
   accent?: boolean
 }) {
   return (
-    <div className={`p-4 rounded-xl border ${accent ? 'bg-[#FF6B35]/10 border-[#FF6B35]/30' : 'bg-white/3 border-white/8'}`}>
-      <div className="flex items-center gap-1.5 text-white/40 text-xs mb-1">
+    <div className={`p-4 rounded-xl border ${accent ? 'bg-[#FF6B35]/10 border-[#FF6B35]/30' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'}`}>
+      <div className="flex items-center gap-1.5 text-[var(--text-muted)] text-xs mb-1">
         <Icon size={12} /> {label}
       </div>
-      <p className={`text-xl font-bold ${accent ? 'text-[#FF6B35]' : 'text-white'}`}>{value}</p>
+      <p className={`text-xl font-bold ${accent ? 'text-[#E55A2B]' : 'text-[var(--text-strong)]'}`}>{value}</p>
     </div>
   )
 }

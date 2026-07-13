@@ -34,11 +34,11 @@ export function CuentaShell({ children }: { children: React.ReactNode }) {
 
   const navContent = (
     <>
-      <div className="px-4 py-5 border-b border-white/8">
-        <Link href="/buscar" className="text-white font-bold text-lg tracking-tight">
-          Hi<span className="text-[#FF6B35]">Chapi</span>
+      <div className="px-4 py-5 border-b border-[var(--border-subtle)]">
+        <Link href="/buscar" className="text-[var(--text-strong)] font-bold text-lg tracking-tight">
+          Hi<span className="text-[#E55A2B]">Chapi</span>
         </Link>
-        <p className="text-white/40 text-xs mt-1">Mi cuenta</p>
+        <p className="text-[var(--text-muted)] text-xs mt-1">Mi cuenta</p>
       </div>
       <nav className="flex-1 p-3 space-y-1">
         {NAV.map(({ href, label, icon: Icon }) => {
@@ -50,8 +50,8 @@ export function CuentaShell({ children }: { children: React.ReactNode }) {
               onClick={() => setMobileOpen(false)}
               className={`flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors ${
                 active
-                  ? 'bg-[#FF6B35]/15 text-[#FF6B35] border border-[#FF6B35]/25'
-                  : 'text-white/55 hover:text-white hover:bg-white/5'
+                  ? 'bg-[#FF6B35]/15 text-[#E55A2B] border border-[#FF6B35]/25'
+                  : 'text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)]'
               }`}
             >
               <Icon size={16} />
@@ -60,11 +60,11 @@ export function CuentaShell({ children }: { children: React.ReactNode }) {
           )
         })}
       </nav>
-      <div className="p-3 border-t border-white/8">
+      <div className="p-3 border-t border-[var(--border-subtle)]">
         <button
           type="button"
           onClick={signOut}
-          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-white/50 hover:text-white hover:bg-white/5 transition-colors"
+          className="flex items-center gap-2 w-full px-3 py-2.5 rounded-xl text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"
         >
           <LogOut size={16} />
           Cerrar sesión
@@ -75,20 +75,20 @@ export function CuentaShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div
-      className="min-h-screen bg-[#0A0A14] text-white flex"
+      className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-strong)] flex"
       style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}
     >
-      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-white/8 bg-[#0D0D1A]">
+      <aside className="hidden md:flex w-56 shrink-0 flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
         {navContent}
       </aside>
 
       {mobileOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-black/60" onClick={() => setMobileOpen(false)} />
-          <aside className="absolute left-0 top-0 bottom-0 w-64 flex flex-col bg-[#0D0D1A] border-r border-white/8">
+          <aside className="absolute left-0 top-0 bottom-0 w-64 flex flex-col bg-[var(--bg-canvas)] border-r border-[var(--border-subtle)]">
             <button
               type="button"
-              className="absolute top-3 right-3 p-2 text-white/50"
+              className="absolute top-3 right-3 p-2 text-[var(--text-muted)]"
               onClick={() => setMobileOpen(false)}
             >
               <X size={18} />
@@ -99,11 +99,11 @@ export function CuentaShell({ children }: { children: React.ReactNode }) {
       )}
 
       <div className="flex-1 flex flex-col min-w-0">
-        <header className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-white/8 bg-[#0D0D1A]">
+        <header className="md:hidden flex items-center gap-3 px-4 py-3 border-b border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
           <button
             type="button"
             onClick={() => setMobileOpen(true)}
-            className="p-2 rounded-lg bg-white/5 text-white/70"
+            className="p-2 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-body)]"
           >
             <Menu size={20} />
           </button>

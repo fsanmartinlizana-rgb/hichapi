@@ -56,7 +56,7 @@ function LightMenuItemCard({ item }: { item: OrderableItem }) {
       <div className="flex-1 min-w-0">
         <div className="flex flex-wrap items-center gap-1.5 mb-0.5">
           {isPromoted && (
-            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#FF6B35] font-semibold">
+            <span className="text-[10px] px-2 py-0.5 rounded-full bg-[#FF6B35]/10 text-[#E55A2B] font-semibold">
               ⭐ Chapi sugiere
             </span>
           )}
@@ -70,7 +70,7 @@ function LightMenuItemCard({ item }: { item: OrderableItem }) {
           {item.name}
         </p>
         {item.description && (
-          <p className="text-xs text-neutral-400 mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
+          <p className="text-xs text-[var(--text-muted)] mt-0.5 leading-relaxed line-clamp-2">{item.description}</p>
         )}
         {item.tags && item.tags.filter(t => t !== 'promovido').length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1.5">
@@ -97,7 +97,7 @@ function LightMenuItemCard({ item }: { item: OrderableItem }) {
           >
             {adding
               ? <CheckCircle2 size={14} className="text-green-500" />
-              : <Plus size={14} className="text-[#FF6B35] group-hover:text-white transition-colors" />}
+              : <Plus size={14} className="text-[#E55A2B] group-hover:text-[var(--text-strong)] transition-colors" />}
           </button>
         )}
       </div>
@@ -149,43 +149,43 @@ export default function PublicMenu({ initialItems, categories, lightMode = false
 
   // ── Styles based on theme ──
   const searchInputCls = lightMode
-    ? 'w-full pl-11 pr-10 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-[#1A1A2E] text-sm placeholder:text-neutral-400 focus:outline-none focus:border-[#FF6B35]/50 transition-colors'
-    : 'w-full pl-11 pr-10 py-3.5 rounded-2xl bg-[#0F0F1C] border border-white/8 text-white text-sm placeholder:text-white/20 focus:outline-none focus:border-[#FF6B35]/50 transition-colors'
+    ? 'w-full pl-11 pr-10 py-3 rounded-xl bg-neutral-50 border border-neutral-200 text-[#1A1A2E] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors'
+    : 'w-full pl-11 pr-10 py-3.5 rounded-2xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/50 transition-colors'
 
-  const searchIconCls = lightMode ? 'text-neutral-400' : 'text-white/30'
-  const clearBtnCls   = lightMode ? 'text-neutral-400 hover:text-neutral-600' : 'text-white/30 hover:text-white/60'
+  const searchIconCls = lightMode ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]'
+  const clearBtnCls   = lightMode ? 'text-[var(--text-muted)] hover:text-neutral-600' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)]'
 
   const emptyStateCls = lightMode
     ? 'bg-neutral-50 rounded-2xl border border-neutral-100 p-12 text-center space-y-3'
-    : 'bg-[#0F0F1C] rounded-2xl border border-white/8 p-12 text-center space-y-3'
+    : 'bg-[var(--bg-canvas)] rounded-2xl border border-[var(--border-subtle)] p-12 text-center space-y-3'
 
-  const emptyIconCls  = lightMode ? 'text-neutral-300 mx-auto' : 'text-white/10 mx-auto'
-  const emptyTitleCls = lightMode ? 'text-[#1A1A2E] font-semibold text-base' : 'text-white font-semibold text-base'
-  const emptySubCls   = lightMode ? 'text-neutral-400 text-xs' : 'text-white/30 text-xs'
+  const emptyIconCls  = lightMode ? 'text-[var(--text-muted)] mx-auto' : 'text-[var(--text-muted)] mx-auto'
+  const emptyTitleCls = lightMode ? 'text-[#1A1A2E] font-semibold text-base' : 'text-[var(--text-strong)] font-semibold text-base'
+  const emptySubCls   = lightMode ? 'text-[var(--text-muted)] text-xs' : 'text-[var(--text-muted)] text-xs'
 
   const accordionWrapCls = lightMode
     ? 'bg-neutral-50 border border-neutral-100 rounded-2xl overflow-hidden transition-all duration-200'
-    : 'bg-[#0F0F1C]/40 border border-white/6 rounded-2xl overflow-hidden transition-all duration-200'
+    : 'bg-[var(--bg-canvas)]/40 border border-[var(--border-subtle)] rounded-2xl overflow-hidden transition-all duration-200'
 
   const accordionHeaderCls = lightMode
     ? 'w-full flex items-center justify-between px-5 py-4 hover:bg-neutral-100 transition-colors text-left'
-    : 'w-full flex items-center justify-between px-5 py-4 hover:bg-white/3 transition-colors text-left'
+    : 'w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--surface-sunken)] transition-colors text-left'
 
   const catLabelCls = lightMode
     ? 'text-sm font-bold text-[#1A1A2E] uppercase tracking-wider'
-    : 'text-sm font-bold text-white uppercase tracking-wider'
+    : 'text-sm font-bold text-[var(--text-strong)] uppercase tracking-wider'
 
   const catBadgeCls = lightMode
     ? 'text-[10px] px-2 py-0.5 rounded-full bg-neutral-200 text-neutral-500 border border-neutral-200 font-medium'
-    : 'text-[10px] px-2 py-0.5 rounded-full bg-white/5 text-white/40 border border-white/6 font-medium'
+    : 'text-[10px] px-2 py-0.5 rounded-full bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)] font-medium'
 
   const chevronWrapCls = lightMode
     ? 'w-8 h-8 rounded-lg bg-neutral-200 border border-neutral-200 flex items-center justify-center text-neutral-500 transition-colors'
-    : 'w-8 h-8 rounded-lg bg-white/5 border border-white/6 flex items-center justify-center text-white/50 transition-colors'
+    : 'w-8 h-8 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] transition-colors'
 
   const accordionBodyCls = lightMode
     ? 'px-5 pb-2 pt-0 border-t border-neutral-100'
-    : 'px-5 pb-5 pt-1 border-t border-white/5 bg-[#0A0A14]/40 space-y-2.5'
+    : 'px-5 pb-5 pt-1 border-t border-[var(--border-subtle)] bg-[var(--bg-canvas)]/40 space-y-2.5'
 
   return (
     <div className="space-y-4">

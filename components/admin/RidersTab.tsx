@@ -26,9 +26,9 @@ interface RiderProfile {
 }
 
 const STATUS_STYLES: Record<DocStatus, string> = {
-  documents_submitted: 'bg-amber-500/10 text-amber-400 border-amber-500/30',
-  approved:            'bg-emerald-500/10 text-emerald-400 border-emerald-500/30',
-  rejected:            'bg-red-500/10 text-red-400 border-red-500/30',
+  documents_submitted: 'bg-amber-500/10 text-amber-700 border-amber-500/30',
+  approved:            'bg-emerald-500/10 text-emerald-700 border-emerald-500/30',
+  rejected:            'bg-red-500/10 text-red-700 border-red-500/30',
 }
 
 const STATUS_LABELS: Record<DocStatus, string> = {
@@ -123,7 +123,7 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
             className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
               tab === s
                 ? 'bg-[#FF6B35] border-[#FF6B35] text-white'
-                : 'bg-white/3 border-white/8 text-white/50 hover:text-white'
+                : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-[var(--text-strong)]'
             }`}
           >
             {STATUS_LABELS[s]}
@@ -135,11 +135,11 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
       {loading ? (
         <div className="space-y-3">
           {[0, 1, 2].map(i => (
-            <div key={i} className="bg-white/3 border border-white/8 rounded-2xl h-20 animate-pulse" />
+            <div key={i} className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-2xl h-20 animate-pulse" />
           ))}
         </div>
       ) : riders.length === 0 ? (
-        <div className="text-center py-20 border border-white/8 bg-white/3 rounded-2xl text-white/30">
+        <div className="text-center py-20 border border-[var(--border-subtle)] bg-[var(--surface-sunken)] rounded-2xl text-[var(--text-muted)]">
           <Clock size={40} className="mx-auto mb-3" strokeWidth={1} />
           <p className="text-sm">No hay repartidores con documentos en estado {STATUS_LABELS[tab].toLowerCase()}</p>
         </div>
@@ -150,24 +150,24 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
             const isActing = actionLoading?.startsWith(rider.id)
 
             return (
-              <div key={rider.id} className="bg-white/3 border border-white/8 rounded-2xl overflow-hidden">
+              <div key={rider.id} className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
                 {/* Header Row */}
                 <button
-                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-white/5 transition-colors text-left"
+                  className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--surface-sunken)] transition-colors text-left"
                   onClick={() => setExpanded(isOpen ? null : rider.id)}
                 >
                   <div className="flex items-center gap-3 min-w-0">
-                    <div className="w-10 h-10 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[#FF6B35] font-bold text-sm shrink-0">
+                    <div className="w-10 h-10 rounded-full bg-[#FF6B35]/20 border border-[#FF6B35]/30 flex items-center justify-center text-[#E55A2B] font-bold text-sm shrink-0">
                       {rider.full_name.charAt(0).toUpperCase()}
                     </div>
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
-                        <p className="font-semibold text-white text-sm truncate">{rider.full_name}</p>
+                        <p className="font-semibold text-[var(--text-strong)] text-sm truncate">{rider.full_name}</p>
                         <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${STATUS_STYLES[rider.document_status]}`}>
                           {STATUS_LABELS[rider.document_status]}
                         </span>
                       </div>
-                      <p className="text-xs text-white/40 truncate">
+                      <p className="text-xs text-[var(--text-muted)] truncate">
                         Vehículo: {VEHICLE_LABELS[rider.vehicle_type] ?? rider.vehicle_type}
                         {rider.vehicle_model ? ` (${rider.vehicle_model})` : ''}
                         {rider.license_plate ? ` · Patente: ${rider.license_plate}` : ''}
@@ -176,16 +176,16 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
                   </div>
 
                   <div className="flex items-center gap-2 shrink-0">
-                    <p className="text-xs text-white/35 hidden sm:block">
+                    <p className="text-xs text-[var(--text-muted)] hidden sm:block">
                       Actualizado: {new Date(rider.updated_at).toLocaleDateString('es-CL')}
                     </p>
-                    {isOpen ? <ChevronUp size={14} className="text-white/40" /> : <ChevronDown size={14} className="text-white/40" />}
+                    {isOpen ? <ChevronUp size={14} className="text-[var(--text-muted)]" /> : <ChevronDown size={14} className="text-[var(--text-muted)]" />}
                   </div>
                 </button>
 
                 {/* Detail Panel */}
                 {isOpen && (
-                  <div className="px-5 pb-5 border-t border-white/8 bg-black/20">
+                  <div className="px-5 pb-5 border-t border-[var(--border-subtle)] bg-black/20">
                     <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-4 mb-5">
                       <Detail label="RUT" value={rider.national_id} />
                       <Detail label="Teléfono" value={rider.phone} />
@@ -193,7 +193,7 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
                     </div>
 
                     {/* Documents Grid */}
-                    <p className="text-xs text-white/40 uppercase tracking-wide font-bold mb-3">Documentos Cargados</p>
+                    <p className="text-xs text-[var(--text-muted)] uppercase tracking-wide font-bold mb-3">Documentos Cargados</p>
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
                       <DocumentCard label="RUT (Cédula de Identidad)" url={rider.doc_national_id_url} />
                       <DocumentCard label="Licencia de Conducir" url={rider.doc_license_url} />
@@ -210,8 +210,8 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
                           onClick={() => handleAction(rider.id, 'approve')}
                           disabled={!!isActing}
                           className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
-                                     bg-green-600 hover:bg-green-500 disabled:bg-white/10 disabled:text-white/30
-                                     text-white transition-colors shadow-sm"
+                                     bg-green-600 hover:bg-green-500 disabled:bg-[var(--surface-sunken)] disabled:text-[var(--text-muted)]
+                                     text-[var(--text-strong)] transition-colors shadow-sm"
                         >
                           <CheckCircle size={14} />
                           {actionLoading === rider.id + 'approve' ? 'Aprobando…' : 'Aprobar Repartidor'}
@@ -220,7 +220,7 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
                           onClick={() => handleAction(rider.id, 'reject')}
                           disabled={!!isActing}
                           className="flex items-center gap-1.5 px-5 py-2.5 rounded-xl text-sm font-semibold
-                                     border border-red-500/30 text-red-400 hover:bg-red-500/10
+                                     border border-red-500/30 text-red-700 hover:bg-red-500/10
                                      disabled:opacity-50 transition-colors bg-transparent shadow-sm"
                         >
                           <XCircle size={14} />
@@ -253,18 +253,18 @@ export default function RidersTab({ adminSecret }: RidersTabProps) {
 function Detail({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <p className="text-[10px] text-white/40 uppercase tracking-wide font-medium mb-0.5">{label}</p>
-      <p className="text-sm text-white font-medium">{value}</p>
+      <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide font-medium mb-0.5">{label}</p>
+      <p className="text-sm text-[var(--text-strong)] font-medium">{value}</p>
     </div>
   )
 }
 
 function DocumentCard({ label, url }: { label: string; url?: string }) {
   return (
-    <div className="bg-white/3 rounded-xl p-3 border border-white/8 shadow-sm flex flex-col h-64">
-      <p className="text-xs text-white/40 font-semibold mb-2">{label}</p>
+    <div className="bg-[var(--surface-sunken)] rounded-xl p-3 border border-[var(--border-subtle)] shadow-sm flex flex-col h-64">
+      <p className="text-xs text-[var(--text-muted)] font-semibold mb-2">{label}</p>
       {url ? (
-        <div className="relative flex-1 rounded-lg overflow-hidden border border-white/5 bg-black/10 flex items-center justify-center group">
+        <div className="relative flex-1 rounded-lg overflow-hidden border border-[var(--border-subtle)] bg-black/10 flex items-center justify-center group">
           <img
             src={url}
             alt={label}
@@ -274,15 +274,15 @@ function DocumentCard({ label, url }: { label: string; url?: string }) {
             href={url}
             target="_blank"
             rel="noopener noreferrer"
-            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white text-xs font-semibold transition-opacity"
+            className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-[var(--text-strong)] text-xs font-semibold transition-opacity"
           >
             Abrir original <ExternalLink size={12} className="ml-1" />
           </a>
         </div>
       ) : (
-        <div className="flex-1 rounded-lg border border-dashed border-white/10 flex flex-col items-center justify-center bg-black/5">
-          <ImageIcon className="text-white/20 mb-1" size={24} />
-          <p className="text-[11px] text-white/30">No cargado</p>
+        <div className="flex-1 rounded-lg border border-dashed border-[var(--border-subtle)] flex flex-col items-center justify-center bg-black/5">
+          <ImageIcon className="text-[var(--text-muted)] mb-1" size={24} />
+          <p className="text-[11px] text-[var(--text-muted)]">No cargado</p>
         </div>
       )}
     </div>

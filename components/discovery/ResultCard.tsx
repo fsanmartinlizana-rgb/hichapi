@@ -25,19 +25,19 @@ function DishRow({ dish, highlight = false }: { dish: MenuItem; highlight?: bool
           {dish.name}
         </p>
         {dish.description && (
-          <p className="text-xs text-neutral-400 line-clamp-1">{dish.description}</p>
+          <p className="text-xs text-[var(--text-muted)] line-clamp-1">{dish.description}</p>
         )}
         {dish.tags && dish.tags.length > 0 && (
           <div className="flex flex-wrap gap-1 mt-1">
             {dish.tags.slice(0, 2).map(tag => (
-              <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-neutral-400 rounded-full capitalize">
+              <span key={tag} className="text-[10px] px-1.5 py-0.5 bg-neutral-100 text-[var(--text-muted)] rounded-full capitalize">
                 {tag}
               </span>
             ))}
           </div>
         )}
       </div>
-      <p className={`font-mono font-semibold shrink-0 ${highlight ? 'text-[#FF6B35] text-sm' : 'text-neutral-500 text-xs'}`}>
+      <p className={`font-mono font-semibold shrink-0 ${highlight ? 'text-[#E55A2B] text-sm' : 'text-neutral-500 text-xs'}`}>
         {formatPrice(dish.price)}
       </p>
     </div>
@@ -97,7 +97,7 @@ export function ResultCard({
         {/* Atribución Google Photos — solo cuando la foto vino del agente
             (Google Places). Si owner_upload o placeholder, sin atribución. */}
         {restaurant.photo_url && restaurant.photo_source === 'google_places' && (
-          <span className="absolute bottom-2 right-2 text-[10px] font-semibold text-white/95 bg-black/45 px-1.5 py-0.5 rounded backdrop-blur-sm">
+          <span className="absolute bottom-2 right-2 text-[10px] font-semibold text-[var(--text-body)] bg-black/45 px-1.5 py-0.5 rounded backdrop-blur-sm">
             Foto: Google Maps
           </span>
         )}
@@ -111,7 +111,7 @@ export function ResultCard({
         )}
 
         {distance_m && (
-          <div className="absolute top-3 right-3 bg-white/90 backdrop-blur-sm text-[#1A1A2E] text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
+          <div className="absolute top-3 right-3 bg-[var(--surface-sunken)] backdrop-blur-sm text-[#1A1A2E] text-xs font-medium px-2 py-1 rounded-full flex items-center gap-1">
             <MapPin size={10} />
             {formatDistance(distance_m)}
           </div>
@@ -142,7 +142,7 @@ export function ResultCard({
       <div className="p-4">
         {/* Header */}
         <div className="flex items-start justify-between mb-1">
-          <h3 className="font-semibold text-[#1A1A2E] text-base leading-tight group-hover:text-[#FF6B35] transition-colors">
+          <h3 className="font-semibold text-[#1A1A2E] text-base leading-tight group-hover:text-[#E55A2B] transition-colors">
             {restaurant.name}
           </h3>
           {(() => {
@@ -155,25 +155,25 @@ export function ResultCard({
             const value = hasGoogle ? restaurant.google_rating! : restaurant.rating
             return (
               <div className="flex items-center gap-1 ml-2 shrink-0">
-                <Star size={12} className="text-[#FF6B35] fill-[#FF6B35]" />
+                <Star size={12} className="text-[#E55A2B] fill-[#FF6B35]" />
                 <span className="text-xs font-medium text-neutral-600">
                   {value.toFixed(1)}
                 </span>
                 {hasGoogle && (
-                  <span className="text-[10px] text-neutral-400">· Google</span>
+                  <span className="text-[10px] text-[var(--text-muted)]">· Google</span>
                 )}
               </div>
             )
           })()}
         </div>
-        <p className="text-xs text-neutral-400 mb-3">{restaurant.neighborhood} · {restaurant.cuisine_type}</p>
+        <p className="text-xs text-[var(--text-muted)] mb-3">{restaurant.neighborhood} · {restaurant.cuisine_type}</p>
 
         {/* Carta — plato destacado + opcionales. Si no hay platos en DB
             (restaurant agent_enriched sin website o pendiente de scrape),
             mostramos placeholder honesto en lugar de inventar un plato. */}
         {suggested_dish ? (
           <div className="bg-[#FAFAF8] rounded-xl px-3 pt-2 pb-1">
-            <p className="text-[10px] text-neutral-400 uppercase tracking-wide font-medium mb-1">
+            <p className="text-[10px] text-[var(--text-muted)] uppercase tracking-wide font-medium mb-1">
               Chapi sugiere
             </p>
 
@@ -190,7 +190,7 @@ export function ResultCard({
             {hasExtras && (
               <button
                 onClick={e => { e.preventDefault(); setExpanded(v => !v) }}
-                className="w-full flex items-center justify-center gap-1 pt-1 pb-2 text-[11px] text-neutral-400 hover:text-[#FF6B35] transition-colors"
+                className="w-full flex items-center justify-center gap-1 pt-1 pb-2 text-[11px] text-[var(--text-muted)] hover:text-[#E55A2B] transition-colors"
               >
                 {expanded
                   ? <><ChevronUp size={12} /> Ver menos</>
@@ -201,7 +201,7 @@ export function ResultCard({
           </div>
         ) : (
           <div className="bg-[#FAFAF8] rounded-xl px-3 py-2.5 text-center">
-            <p className="text-[11px] text-neutral-400 leading-relaxed">
+            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
               Carta aún no disponible
               {!(restaurant.claimed && restaurant.owner_id) && ' — el dueño todavía no se sumó'}
             </p>
@@ -211,7 +211,7 @@ export function ResultCard({
 
       {/* Footer — ver menú */}
       <div className="border-t border-neutral-50 px-4 py-2.5">
-        <span className="text-xs text-neutral-400 group-hover:text-[#FF6B35] transition-colors font-medium">
+        <span className="text-xs text-[var(--text-muted)] group-hover:text-[#E55A2B] transition-colors font-medium">
           Ver menú →
         </span>
       </div>

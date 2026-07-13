@@ -32,7 +32,7 @@ export function DeliveryTrackingMap({ lat, lng, label }: Props) {
           zoom: 14,
           attributionControl: false,
         })
-        markerRef.current = new mapboxgl.Marker({ color: '#FF6B35' })
+        markerRef.current = new mapboxgl.Marker({ color: '#E55A2B' })
           .setLngLat([lng, lat])
           .addTo(mapRef.current)
       } else {
@@ -56,7 +56,7 @@ export function DeliveryTrackingMap({ lat, lng, label }: Props) {
 
   if (!token) {
     return (
-      <div className="h-48 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white/40 text-sm">
+      <div className="h-48 rounded-xl bg-[var(--surface-sunken)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--text-muted)] text-sm">
         Mapa no disponible (falta token Mapbox)
       </div>
     )
@@ -64,8 +64,8 @@ export function DeliveryTrackingMap({ lat, lng, label }: Props) {
 
   return (
     <div className="space-y-2">
-      <div ref={containerRef} className="h-52 w-full rounded-xl overflow-hidden border border-white/10" />
-      {label && <p className="text-white/40 text-xs text-center">{label}</p>}
+      <div ref={containerRef} className="h-52 w-full rounded-xl overflow-hidden border border-[var(--border-subtle)]" />
+      {label && <p className="text-[var(--text-muted)] text-xs text-center">{label}</p>}
     </div>
   )
 }

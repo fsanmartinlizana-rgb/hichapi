@@ -65,7 +65,7 @@ export function CustomerRatingForm({
 
   if (done) {
     return (
-      <p className="text-emerald-400 text-sm bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-4 py-3">
+      <p className="text-emerald-700 text-sm bg-emerald-500/10 border border-emerald-500/25 rounded-xl px-4 py-3">
         ¡Gracias por tu calificación!
       </p>
     )
@@ -73,7 +73,7 @@ export function CustomerRatingForm({
 
   return (
     <div className="bg-violet-500/10 border border-violet-500/25 rounded-2xl p-5 space-y-4">
-      <p className="text-white font-semibold text-sm">¿Cómo fue tu experiencia?</p>
+      <p className="text-[var(--text-strong)] font-semibold text-sm">¿Cómo fue tu experiencia?</p>
 
       {orderType === 'delivery' && riderId && (
         <div className="flex gap-2">
@@ -82,8 +82,8 @@ export function CustomerRatingForm({
             onClick={() => setEntityType('restaurant')}
             className={`flex-1 py-2 rounded-lg text-xs font-medium border ${
               entityType === 'restaurant'
-                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35]'
-                : 'border-white/10 text-white/50'
+                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#E55A2B]'
+                : 'border-[var(--border-subtle)] text-[var(--text-muted)]'
             }`}
           >
             {restaurantName}
@@ -93,8 +93,8 @@ export function CustomerRatingForm({
             onClick={() => setEntityType('rider')}
             className={`flex-1 py-2 rounded-lg text-xs font-medium border ${
               entityType === 'rider'
-                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#FF6B35]'
-                : 'border-white/10 text-white/50'
+                ? 'bg-[#FF6B35]/15 border-[#FF6B35]/40 text-[#E55A2B]'
+                : 'border-[var(--border-subtle)] text-[var(--text-muted)]'
             }`}
           >
             Repartidor
@@ -115,8 +115,8 @@ export function CustomerRatingForm({
               size={28}
               className={
                 s <= (hover || stars)
-                  ? 'text-yellow-400 fill-yellow-400'
-                  : 'text-white/20'
+                  ? 'text-yellow-700 fill-yellow-400'
+                  : 'text-[var(--text-muted)]'
               }
             />
           </button>
@@ -128,10 +128,10 @@ export function CustomerRatingForm({
         onChange={(e) => setComment(e.target.value)}
         placeholder="Comentario opcional…"
         rows={2}
-        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white text-sm resize-none focus:outline-none focus:border-[#FF6B35]/40"
+        className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] text-sm resize-none focus:outline-none focus:border-[#FF6B35]/40"
       />
 
-      {error && <p className="text-red-400 text-xs">{error}</p>}
+      {error && <p className="text-red-700 text-xs">{error}</p>}
 
       <button
         type="button"

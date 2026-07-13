@@ -36,7 +36,7 @@ export function BackButton() {
       href="/buscar"
       onClick={handleClick}
       className="flex items-center gap-1.5 text-sm text-neutral-500 font-medium
-                 hover:text-[#FF6B35] transition-colors"
+                 hover:text-[#E55A2B] transition-colors"
     >
       <ArrowLeft size={15} />
       Volver

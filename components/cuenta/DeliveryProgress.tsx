@@ -31,7 +31,7 @@ export function DeliveryProgress({ status }: { status: DeliveryStatus }) {
 
   if (terminal) {
     return (
-      <p className="text-sm text-red-400/90 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
+      <p className="text-sm text-red-700/90 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3">
         Pedido {status === 'cancelled' ? 'cancelado' : 'no entregado'}
       </p>
     )
@@ -48,14 +48,14 @@ export function DeliveryProgress({ status }: { status: DeliveryStatus }) {
               className={`w-7 h-7 rounded-full flex items-center justify-center border-2 shrink-0 ${
                 done
                   ? 'bg-[#FF6B35] border-[#FF6B35] text-white'
-                  : 'border-white/15 bg-white/5 text-white/25'
+                  : 'border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-muted)]'
               } ${active ? 'ring-2 ring-[#FF6B35]/40' : ''}`}
             >
               {done ? <Check size={12} strokeWidth={3} /> : <span className="text-[10px]">{i + 1}</span>}
             </div>
             <span
               className={`text-[9px] text-center leading-tight ${
-                active ? 'text-[#FF6B35] font-semibold' : done ? 'text-white/50' : 'text-white/25'
+                active ? 'text-[#E55A2B] font-semibold' : done ? 'text-[var(--text-muted)]' : 'text-[var(--text-muted)]'
               }`}
             >
               {step.label}

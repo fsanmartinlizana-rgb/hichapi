@@ -76,8 +76,8 @@ export default function ActivationFunnel({ adminSecret, days = 30 }: Props) {
 
   if (!data && loading) {
     return (
-      <div className="rounded-2xl border border-white/8 bg-white/3 p-6">
-        <div className="flex items-center gap-2 text-white/40 text-sm">
+      <div className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-6">
+        <div className="flex items-center gap-2 text-[var(--text-muted)] text-sm">
           <RefreshCw size={14} className="animate-spin" /> Cargando funnel…
         </div>
       </div>
@@ -86,7 +86,7 @@ export default function ActivationFunnel({ adminSecret, days = 30 }: Props) {
   if (err) {
     return (
       <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-4">
-        <p className="text-red-300 text-sm">Funnel: {err}</p>
+        <p className="text-red-700 text-sm">Funnel: {err}</p>
       </div>
     )
   }
@@ -131,18 +131,18 @@ export default function ActivationFunnel({ adminSecret, days = 30 }: Props) {
   ]
 
   return (
-    <section className="rounded-2xl border border-white/8 bg-white/3 p-5">
+    <section className="rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-sunken)] p-5">
       <header className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-white font-bold text-lg">Funnel de activación</h2>
-          <p className="text-white/40 text-xs">
+          <h2 className="text-[var(--text-strong)] font-bold text-lg">Funnel de activación</h2>
+          <p className="text-[var(--text-muted)] text-xs">
             Restaurantes registrados últimos {data.period_days} días
           </p>
         </div>
         <button
           onClick={load}
           disabled={loading}
-          className="flex items-center gap-1.5 text-xs text-white/50 hover:text-white px-2.5 py-1.5 rounded-lg border border-white/10 hover:bg-white/5 transition-colors"
+          className="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text-strong)] px-2.5 py-1.5 rounded-lg border border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-colors"
           aria-label="Refrescar funnel"
         >
           <RefreshCw size={11} className={loading ? 'animate-spin' : ''} /> Refrescar
@@ -150,7 +150,7 @@ export default function ActivationFunnel({ adminSecret, days = 30 }: Props) {
       </header>
 
       {stages.registered === 0 ? (
-        <p className="text-white/30 text-sm py-6 text-center">
+        <p className="text-[var(--text-muted)] text-sm py-6 text-center">
           Sin restaurantes registrados en este período.
         </p>
       ) : (
@@ -163,11 +163,11 @@ export default function ActivationFunnel({ adminSecret, days = 30 }: Props) {
               <div key={row.key} className="flex items-center gap-3">
                 {/* Label */}
                 <div className="flex items-center gap-2 w-44 shrink-0">
-                  <Icon size={14} className="text-[#FF6B35]" />
-                  <span className="text-white/85 text-xs font-semibold">{row.label}</span>
+                  <Icon size={14} className="text-[#E55A2B]" />
+                  <span className="text-[var(--text-body)] text-xs font-semibold">{row.label}</span>
                 </div>
                 {/* Bar */}
-                <div className="flex-1 relative h-7 rounded-md bg-white/5 overflow-hidden">
+                <div className="flex-1 relative h-7 rounded-md bg-[var(--surface-sunken)] overflow-hidden">
                   <div
                     className="absolute inset-y-0 left-0 transition-all duration-500 rounded-md"
                     style={{
@@ -178,20 +178,20 @@ export default function ActivationFunnel({ adminSecret, days = 30 }: Props) {
                     }}
                   />
                   <div className="relative h-full flex items-center px-2.5">
-                    <span className="text-white text-xs font-bold font-mono">{row.value}</span>
+                    <span className="text-[var(--text-strong)] text-xs font-bold font-mono">{row.value}</span>
                     {i > 0 && (
-                      <span className="text-white/70 text-[10px] ml-1.5">({row.pct}%)</span>
+                      <span className="text-[var(--text-body)] text-[10px] ml-1.5">({row.pct}%)</span>
                     )}
                   </div>
                 </div>
                 {/* Drop-off */}
                 <div className="w-20 shrink-0 text-right">
                   {row.drop != null && row.drop > 0 ? (
-                    <span className="inline-flex items-center gap-1 text-[11px] text-red-300 font-semibold">
+                    <span className="inline-flex items-center gap-1 text-[11px] text-red-700 font-semibold">
                       <TrendingDown size={10} /> -{row.drop}
                     </span>
                   ) : (
-                    <span className="text-white/15 text-[11px]">—</span>
+                    <span className="text-[var(--text-muted)] text-[11px]">—</span>
                   )}
                 </div>
               </div>

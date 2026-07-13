@@ -143,7 +143,7 @@ export default function TrackingPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#0A0A14] flex flex-col items-center justify-center text-white/50 space-y-4">
+      <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center text-[var(--text-muted)] space-y-4">
         <Truck className="animate-bounce" size={48} />
         <p>Cargando información del pedido...</p>
       </div>
@@ -152,9 +152,9 @@ export default function TrackingPage() {
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#0A0A14] flex flex-col items-center justify-center p-6 text-center">
-        <p className="text-red-400 mb-2">{error}</p>
-        <p className="text-white/50 text-sm">Comprueba que el enlace sea correcto.</p>
+      <div className="min-h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center p-6 text-center">
+        <p className="text-red-700 mb-2">{error}</p>
+        <p className="text-[var(--text-muted)] text-sm">Comprueba que el enlace sea correcto.</p>
       </div>
     )
   }
@@ -163,17 +163,17 @@ export default function TrackingPage() {
   const isFinished = currentRank === 4 || currentRank === -1
 
   return (
-    <div className="min-h-screen bg-[#0A0A14] text-white flex flex-col items-center">
+    <div className="min-h-screen bg-[var(--bg-canvas)] text-[var(--text-strong)] flex flex-col items-center">
       <div className="w-full max-w-md p-6 space-y-8 mt-4">
         
         {/* Header */}
         <div className="text-center space-y-2">
           <h1 className="text-2xl font-bold">{data.restaurant.name}</h1>
-          <p className="text-white/50 text-sm">Sigue el estado de tu pedido</p>
+          <p className="text-[var(--text-muted)] text-sm">Sigue el estado de tu pedido</p>
         </div>
 
         {/* Status Card */}
-        <div className="bg-[#1A1A2E] rounded-3xl p-6 shadow-2xl border border-white/5 relative overflow-hidden">
+        <div className="bg-[var(--surface-card)] rounded-3xl p-6 shadow-2xl border border-[var(--border-subtle)] relative overflow-hidden">
           {/* Animated gradient bg */}
           {!isFinished && (
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-[#FF6B35] to-transparent animate-pulse" />
@@ -186,17 +186,17 @@ export default function TrackingPage() {
             <div>
               <h2 className="text-xl font-bold">{STATUS_LABELS[data.status]}</h2>
               {data.status === 'in_transit' && (
-                <p className="text-[#FF6B35] text-sm font-medium mt-1 animate-pulse">¡Prepárate! Tu pedido está cerca.</p>
+                <p className="text-[#E55A2B] text-sm font-medium mt-1 animate-pulse">¡Prepárate! Tu pedido está cerca.</p>
               )}
             </div>
           </div>
 
           {/* Timeline */}
           {currentRank >= 0 && (
-            <div className="mt-8 pt-6 border-t border-white/10">
+            <div className="mt-8 pt-6 border-t border-[var(--border-subtle)]">
               <div className="flex justify-between items-center relative">
                 {/* Connecting line */}
-                <div className="absolute top-4 left-[10%] right-[10%] h-0.5 bg-white/10 -z-10" />
+                <div className="absolute top-4 left-[10%] right-[10%] h-0.5 bg-[var(--surface-sunken)] -z-10" />
                 
                 {TIMELINE.map((step) => {
                   const stepRank = STATUS_RANK[step.status as TrackData['status']]
@@ -209,11 +209,11 @@ export default function TrackingPage() {
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
                         isActive ? 'bg-[#FF6B35] border-[#FF6B35] text-white scale-110 shadow-[0_0_15px_rgba(255,107,53,0.5)]' :
                         isDone ? 'bg-green-500/20 border-green-500 text-green-500' :
-                        'bg-[#0A0A14] border-white/10 text-white/30'
+                        'bg-[var(--bg-canvas)] border-[var(--border-subtle)] text-[var(--text-muted)]'
                       }`}>
                         <Icon size={14} />
                       </div>
-                      <span className={`text-[10px] font-medium ${isDone ? 'text-white' : 'text-white/30'}`}>
+                      <span className={`text-[10px] font-medium ${isDone ? 'text-[var(--text-strong)]' : 'text-[var(--text-muted)]'}`}>
                         {step.label}
                       </span>
                     </div>
@@ -226,20 +226,20 @@ export default function TrackingPage() {
 
         {/* Rider Info (if assigned) */}
         {data.rider && currentRank >= 1 && currentRank < 4 && (
-          <div className="bg-[#1A1A2E] rounded-3xl p-5 border border-white/5 space-y-4 animate-in slide-in-from-bottom-4">
-            <h3 className="text-white/50 text-xs font-semibold uppercase tracking-wider">Tu Repartidor</h3>
+          <div className="bg-[var(--surface-card)] rounded-3xl p-5 border border-[var(--border-subtle)] space-y-4 animate-in slide-in-from-bottom-4">
+            <h3 className="text-[var(--text-muted)] text-xs font-semibold uppercase tracking-wider">Tu Repartidor</h3>
             <div className="flex items-center gap-4">
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center flex-shrink-0">
-                <User className="text-white/50" />
+              <div className="w-12 h-12 rounded-full bg-[var(--surface-sunken)] flex items-center justify-center flex-shrink-0">
+                <User className="text-[var(--text-muted)]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-white truncate">{data.rider.full_name}</p>
+                <p className="font-semibold text-[var(--text-strong)] truncate">{data.rider.full_name}</p>
                 <div className="flex items-center gap-2 mt-1">
-                  <span className="text-xs bg-white/10 px-2 py-0.5 rounded text-white/70">
+                  <span className="text-xs bg-[var(--surface-sunken)] px-2 py-0.5 rounded text-[var(--text-body)]">
                     {data.rider.vehicle_type === 'moto' ? '🏍 Moto' : data.rider.vehicle_type === 'auto' ? '🚗 Auto' : '🚲 Bici'}
                   </span>
                   {data.rider.vehicle_plate && (
-                    <span className="text-xs text-white/50 uppercase">{data.rider.vehicle_plate}</span>
+                    <span className="text-xs text-[var(--text-muted)] uppercase">{data.rider.vehicle_plate}</span>
                   )}
                 </div>
               </div>
@@ -255,14 +255,14 @@ export default function TrackingPage() {
 
         {/* Map / Location Indicator (Mock visualization since we don't have a map component yet) */}
         {data.rider?.last_lat && data.status === 'in_transit' && (
-          <div className="bg-[#1A1A2E] rounded-3xl p-5 border border-white/5 flex items-center justify-between">
+          <div className="bg-[var(--surface-card)] rounded-3xl p-5 border border-[var(--border-subtle)] flex items-center justify-between">
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-full bg-blue-500/20 text-blue-500 flex items-center justify-center animate-pulse">
                 <MapPin size={20} />
               </div>
               <div>
                 <p className="text-sm font-semibold">Ubicación en vivo</p>
-                <p className="text-xs text-white/50">El repartidor está compartiendo su ubicación</p>
+                <p className="text-xs text-[var(--text-muted)]">El repartidor está compartiendo su ubicación</p>
               </div>
             </div>
           </div>

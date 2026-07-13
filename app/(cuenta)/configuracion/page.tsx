@@ -85,23 +85,23 @@ export default function CuentaConfiguracionPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-white">Configuración</h1>
-        <p className="text-white/45 text-sm mt-1">Privacidad y cuenta</p>
+        <h1 className="text-2xl font-bold text-[var(--text-strong)]">Configuración</h1>
+        <p className="text-[var(--text-muted)] text-sm mt-1">Privacidad y cuenta</p>
       </div>
 
       {message && (
-        <p className="text-sm text-white/70 bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+        <p className="text-sm text-[var(--text-body)] bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-xl px-4 py-3">
           {message}
         </p>
       )}
 
-      <section className="bg-white/[0.03] border border-white/8 rounded-2xl divide-y divide-white/8">
+      <section className="bg-white/[0.03] border border-[var(--border-subtle)] rounded-2xl divide-y divide-[var(--border-subtle)]">
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <Bell size={18} className="text-[#FF6B35]" />
+            <Bell size={18} className="text-[#E55A2B]" />
             <div>
-              <p className="text-white text-sm font-medium">Notificaciones push</p>
-              <p className="text-white/40 text-xs">Ofertas y estado de pedidos</p>
+              <p className="text-[var(--text-strong)] text-sm font-medium">Notificaciones push</p>
+              <p className="text-[var(--text-muted)] text-xs">Ofertas y estado de pedidos</p>
             </div>
           </div>
           <button
@@ -110,8 +110,8 @@ export default function CuentaConfiguracionPage() {
             onClick={togglePush}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
               pushEnabled
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                : 'bg-white/5 text-white/40 border-white/10'
+                ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'
             }`}
           >
             {pushEnabled ? 'Activadas' : 'Desactivadas'}
@@ -120,10 +120,10 @@ export default function CuentaConfiguracionPage() {
 
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center gap-3">
-            <MapPin size={18} className="text-[#FF6B35]" />
+            <MapPin size={18} className="text-[#E55A2B]" />
             <div>
-              <p className="text-white text-sm font-medium">Geolocalización</p>
-              <p className="text-white/40 text-xs">Alertas cuando estés cerca de un restaurante</p>
+              <p className="text-[var(--text-strong)] text-sm font-medium">Geolocalización</p>
+              <p className="text-[var(--text-muted)] text-xs">Alertas cuando estés cerca de un restaurante</p>
             </div>
           </div>
           <button
@@ -131,8 +131,8 @@ export default function CuentaConfiguracionPage() {
             onClick={toggleGeoOptOut}
             className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
               !geoOptOut
-                ? 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30'
-                : 'bg-white/5 text-white/40 border-white/10'
+                ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'
             }`}
           >
             {!geoOptOut ? 'Permitida' : 'Revocada'}
@@ -142,9 +142,9 @@ export default function CuentaConfiguracionPage() {
 
       <section className="bg-red-500/5 border border-red-500/20 rounded-2xl p-5 space-y-4">
         <div className="flex items-start gap-2">
-          <AlertTriangle size={18} className="text-red-400 shrink-0 mt-0.5" />
+          <AlertTriangle size={18} className="text-red-700 shrink-0 mt-0.5" />
           <div>
-            <h2 className="text-red-300 font-semibold text-sm">Eliminar cuenta</h2>
+            <h2 className="text-red-700 font-semibold text-sm">Eliminar cuenta</h2>
             <p className="text-red-200/60 text-xs mt-1 leading-relaxed">
               Se anonimizarán tus pedidos y calificaciones. Esta acción no se puede deshacer.
             </p>
@@ -156,14 +156,14 @@ export default function CuentaConfiguracionPage() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="Tu contraseña"
-            className="w-full px-3 py-2 rounded-lg bg-white/5 border border-red-500/30 text-white text-sm"
+            className="w-full px-3 py-2 rounded-lg bg-[var(--surface-sunken)] border border-red-500/30 text-[var(--text-strong)] text-sm"
           />
         )}
         <button
           type="button"
           disabled={busy}
           onClick={deleteAccount}
-          className="w-full py-2.5 rounded-xl border border-red-500/40 text-red-300 text-sm font-semibold hover:bg-red-500/10 flex items-center justify-center gap-2"
+          className="w-full py-2.5 rounded-xl border border-red-500/40 text-red-700 text-sm font-semibold hover:bg-red-500/10 flex items-center justify-center gap-2"
         >
           {busy && <Loader2 size={14} className="animate-spin" />}
           {confirmDelete ? 'Confirmar eliminación' : 'Eliminar mi cuenta'}
@@ -172,7 +172,7 @@ export default function CuentaConfiguracionPage() {
           <button
             type="button"
             onClick={() => { setConfirmDelete(false); setPassword('') }}
-            className="w-full text-white/40 text-xs"
+            className="w-full text-[var(--text-muted)] text-xs"
           >
             Cancelar
           </button>

@@ -15,15 +15,15 @@ export default function TableError({
   }, [error])
 
   return (
-    <div className="h-screen bg-[#0A0A14] flex flex-col items-center justify-center gap-6 px-6 text-center">
+    <div className="h-screen bg-[var(--bg-canvas)] flex flex-col items-center justify-center gap-6 px-6 text-center">
       <div className="w-16 h-16 rounded-full bg-orange-500/10 flex items-center justify-center">
-        <Utensils className="w-8 h-8 text-orange-400" />
+        <Utensils className="w-8 h-8 text-orange-600" />
       </div>
       <div>
-        <h1 className="text-white text-xl font-semibold mb-2">
+        <h1 className="text-[var(--text-strong)] text-xl font-semibold mb-2">
           Algo salió mal
         </h1>
-        <p className="text-gray-400 text-sm max-w-xs">
+        <p className="text-[var(--text-muted)] text-sm max-w-xs">
           No pudimos cargar la carta. Por favor recarga la página o pide ayuda al personal.
         </p>
       </div>
