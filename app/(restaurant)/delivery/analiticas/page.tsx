@@ -39,10 +39,10 @@ export default function DeliveryAnaliticasPage() {
   }, [from, to, restaurant?.id])
 
   const kpis = analytics ? [
-    { label: 'Entregas completadas', value: analytics.total_completed,                                    icon: Truck,       color: 'text-green-700' },
-    { label: 'Tiempo promedio',      value: analytics.avg_delivery_minutes ? `${analytics.avg_delivery_minutes} min` : '—', icon: Clock, color: 'text-blue-700' },
-    { label: 'Rating promedio',      value: analytics.avg_rider_rating ? `${analytics.avg_rider_rating}★` : '—',            icon: Star,  color: 'text-yellow-700' },
-    { label: 'Total pagado riders',  value: `$${analytics.total_fees_paid_clp.toLocaleString('es-CL')}`,  icon: DollarSign,  color: 'text-purple-700' },
+    { label: 'Entregas completadas', value: analytics.total_completed,                                    icon: Truck,       color: 'text-[var(--success-text)]' },
+    { label: 'Tiempo promedio',      value: analytics.avg_delivery_minutes ? `${analytics.avg_delivery_minutes} min` : '—', icon: Clock, color: 'text-[var(--info-text)]' },
+    { label: 'Rating promedio',      value: analytics.avg_rider_rating ? `${analytics.avg_rider_rating}★` : '—',            icon: Star,  color: 'text-[var(--warning-text)]' },
+    { label: 'Total pagado riders',  value: `$${analytics.total_fees_paid_clp.toLocaleString('es-CL')}`,  icon: DollarSign,  color: 'text-[var(--accent-violet-text)]' },
     { label: 'Tasa de éxito',        value: `${Math.round(analytics.success_rate * 100)}%`,               icon: TrendingUp,  color: 'text-[#E55A2B]' },
   ] : []
 
@@ -76,7 +76,7 @@ export default function DeliveryAnaliticasPage() {
       </div>
 
       {error && (
-        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-red-700 text-sm">
+        <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/20 rounded-xl p-4 text-[var(--danger-text)] text-sm">
           <AlertCircle size={16} />
           {error}
         </div>

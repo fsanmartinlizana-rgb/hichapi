@@ -22,7 +22,7 @@ export function StationStatusBadge({ statuses }: StationStatusBadgeProps) {
       {statuses.map((s, i) => (
         <span key={s.destination} className="flex items-center gap-1 text-xs">
           <span className="text-[var(--text-muted)]">{s.label}:</span>
-          <span className={s.ready ? 'text-emerald-700 font-medium' : 'text-amber-700 font-medium'}>
+          <span className={s.ready ? 'text-[var(--success-text)] font-medium' : 'text-[var(--warning-text)] font-medium'}>
             {s.ready ? 'listo' : 'preparando'}
           </span>
           {i < statuses.length - 1 && (

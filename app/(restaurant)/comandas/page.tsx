@@ -312,10 +312,10 @@ function Toast({ msg }: { msg: ToastMsg }) {
                         : 'bg-[var(--surface-card)] border-red-500/30'
                     }`}>
       {isStock
-        ? <Package size={12} className="text-amber-700 shrink-0" />
+        ? <Package size={12} className="text-[var(--warning-text)] shrink-0" />
         : isInfo
-          ? <CheckCircle2 size={12} className="text-emerald-700 shrink-0" />
-          : <AlertTriangle size={12} className="text-red-700 shrink-0" />
+          ? <CheckCircle2 size={12} className="text-[var(--success-text)] shrink-0" />
+          : <AlertTriangle size={12} className="text-[var(--danger-text)] shrink-0" />
       }
       {msg.text}
     </div>
@@ -357,10 +357,10 @@ function StockAlertBanner({
         <div className="flex items-center gap-2.5 min-w-0">
           <AlertTriangle
             size={14}
-            className={hasOut ? 'text-red-700 shrink-0' : 'text-amber-700 shrink-0'}
+            className={hasOut ? 'text-[var(--danger-text)] shrink-0' : 'text-[var(--warning-text)] shrink-0'}
           />
           {!collapsed ? (
-            <span className={`text-xs font-medium ${hasOut ? 'text-red-700' : 'text-amber-700'}`}>
+            <span className={`text-xs font-medium ${hasOut ? 'text-[var(--danger-text)]' : 'text-[var(--warning-text)]'}`}>
               <span className="font-bold">{totalCrit} platos con stock crítico:</span>{' '}
               {lowItems.map(([name, e], idx) => (
                 <span key={name}>
@@ -376,12 +376,12 @@ function StockAlertBanner({
                 <span key={name}>
                   {idx > 0 && ', '}
                   <span className="font-semibold text-[var(--text-body)]">{name}</span>
-                  <span className="text-red-700/80"> (sin stock)</span>
+                  <span className="text-[var(--danger-text)]/80"> (sin stock)</span>
                 </span>
               ))}
             </span>
           ) : (
-            <span className={`text-xs font-medium ${hasOut ? 'text-red-700' : 'text-amber-700'}`}>
+            <span className={`text-xs font-medium ${hasOut ? 'text-[var(--danger-text)]' : 'text-[var(--warning-text)]'}`}>
               {totalCrit} platos con stock crítico
             </span>
           )}
@@ -393,8 +393,8 @@ function StockAlertBanner({
             onClick={onGestionar}
             className={`text-[11px] font-semibold px-3 py-1 rounded-lg transition-colors
                         ${hasOut
-                          ? 'bg-red-500/20 text-red-700 hover:bg-red-500/30'
-                          : 'bg-amber-500/20 text-amber-700 hover:bg-amber-500/30'
+                          ? 'bg-red-500/20 text-[var(--danger-text)] hover:bg-red-500/30'
+                          : 'bg-amber-500/20 text-[var(--warning-text)] hover:bg-amber-500/30'
                         }`}
           >
             Gestionar
@@ -462,7 +462,7 @@ function StockQtyPopover({
       <div className="flex gap-1.5">
         <button
           onClick={() => onConfirm(value)}
-          className="flex-1 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/20 text-amber-700 hover:bg-amber-500/30 transition-colors"
+          className="flex-1 py-1 rounded-lg text-[11px] font-semibold bg-amber-500/20 text-[var(--warning-text)] hover:bg-amber-500/30 transition-colors"
         >
           Confirmar
         </button>
@@ -611,7 +611,7 @@ function OrderCard({
             <p className="text-violet-200 text-[11px] font-bold leading-tight">
               Pedido de {order.crossFrom}
             </p>
-            <p className="text-violet-700/70 text-[10px] leading-tight">
+            <p className="text-[var(--accent-violet-text)]/70 text-[10px] leading-tight">
               Preparar acá · Entregar allá · {order.tableLabel}
             </p>
           </div>
@@ -621,7 +621,7 @@ function OrderCard({
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border shrink-0 ${order.crossFrom ? 'bg-violet-500/15 border-violet-500/40 text-violet-700' : ''}`}
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-[10px] font-bold border shrink-0 ${order.crossFrom ? 'bg-violet-500/15 border-violet-500/40 text-[var(--accent-violet-text)]' : ''}`}
                style={order.crossFrom ? undefined : { backgroundColor: col.color + '15', borderColor: col.color + '30', color: col.color }}>
             {order.crossFrom ? '↗' : order.tableId}
           </div>
@@ -631,7 +631,7 @@ function OrderCard({
             </p>
             <div className="flex items-center gap-1 mt-0.5">
               {/* SLA Timer */}
-              <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${order.status === 'entregada' ? 'bg-emerald-500/10 text-emerald-700' : order.mins > 20 ? 'bg-red-500/15 text-red-700 animate-pulse' : order.mins > 10 ? 'bg-yellow-500/10 text-yellow-700' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'}`}>
+              <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-mono font-bold ${order.status === 'entregada' ? 'bg-emerald-500/10 text-[var(--success-text)]' : order.mins > 20 ? 'bg-red-500/15 text-[var(--danger-text)] animate-pulse' : order.mins > 10 ? 'bg-yellow-500/10 text-[var(--warning-text)]' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'}`}>
                 <Clock size={9} />
                 {order.mins < 60 ? `${order.mins}m` : `${Math.floor(order.mins / 60)}h${String(order.mins % 60).padStart(2, '0')}m`}
                 {order.status === 'entregada' && <CheckCircle2 size={8} />}
@@ -640,7 +640,7 @@ function OrderCard({
                 <span className="text-[9px] text-[#E55A2B] px-1.5 py-0.5 rounded bg-[#FF6B35]/10 ml-1">vía Chapi</span>
               )}
               {order.tableLabel === 'Delivery' && !order.crossFrom && (
-                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700 border border-blue-500/25 ml-1 flex items-center gap-0.5">
+                <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-blue-500/15 text-[var(--info-text)] border border-blue-500/25 ml-1 flex items-center gap-0.5">
                   🌐 Online
                 </span>
               )}
@@ -649,7 +649,7 @@ function OrderCard({
         </div>
 
         {order.billRequested && (
-          <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/30 flex items-center gap-1 animate-pulse">
+          <span className="text-[9px] font-bold px-2 py-1 rounded-full bg-amber-500/15 text-[var(--warning-text)] border border-amber-500/30 flex items-center gap-1 animate-pulse">
             <Bell size={9} />
             Pidieron la cuenta
           </span>
@@ -688,7 +688,7 @@ function OrderCard({
                         : display === 'out'
                           ? 'line-through text-[var(--text-muted)]'
                           : itemReady
-                            ? 'line-through text-emerald-700/70'
+                            ? 'line-through text-[var(--success-text)]/70'
                             : 'text-[var(--text-body)]'
                   }`}>
                     {item.name}
@@ -718,19 +718,19 @@ function OrderCard({
 
                   {/* Per-station ready check */}
                   {itemReady && (
-                    <CheckCircle2 size={9} className="text-emerald-700 shrink-0" />
+                    <CheckCircle2 size={9} className="text-[var(--success-text)] shrink-0" />
                   )}
 
                   {/* 86 badge */}
                   {display === '86' && (
-                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-500/20 text-red-700 border border-red-500/30 shrink-0">
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-500/20 text-[var(--danger-text)] border border-red-500/30 shrink-0">
                       86
                     </span>
                   )}
 
                   {/* out badge */}
                   {display === 'out' && (
-                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-600/20 text-red-700 border border-red-600/30 shrink-0 flex items-center gap-0.5">
+                    <span className="text-[8px] font-bold px-1 py-0.5 rounded bg-red-600/20 text-[var(--danger-text)] border border-red-600/30 shrink-0 flex items-center gap-0.5">
                       <AlertTriangle size={7} />
                       sin stock
                     </span>
@@ -738,13 +738,13 @@ function OrderCard({
 
                   {/* low badge */}
                   {display === 'low' && (
-                    <span className="text-[8px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-amber-700 border border-amber-500/25 shrink-0">
+                    <span className="text-[8px] font-semibold px-1 py-0.5 rounded bg-amber-500/15 text-[var(--warning-text)] border border-amber-500/25 shrink-0">
                       ⚠ {stock.qty} unds.
                     </span>
                   )}
                 </div>
                 {item.note && (
-                  <p className="text-[#B45309] text-[9px] italic">· {item.note}</p>
+                  <p className="text-[var(--warning-text)] text-[9px] italic">· {item.note}</p>
                 )}
               </div>
 
@@ -757,7 +757,7 @@ function OrderCard({
                   {!broken && (
                     <button
                       onClick={() => onBreak(order.id, i, item.name)}
-                      className="w-4 h-4 rounded flex items-center justify-center text-red-700/60 hover:text-red-700 hover:bg-red-500/15 transition-all"
+                      className="w-4 h-4 rounded flex items-center justify-center text-[var(--danger-text)]/60 hover:text-[var(--danger-text)] hover:bg-red-500/15 transition-all"
                       title="Marcar quiebre"
                     >
                       <X size={9} />
@@ -769,7 +769,7 @@ function OrderCard({
                     <div className="relative">
                       <button
                         onClick={() => setPopoverItem(popoverItem === i ? null : i)}
-                        className="w-4 h-4 rounded flex items-center justify-center text-amber-700/60 hover:text-amber-700 hover:bg-amber-500/15 transition-all text-[9px] font-bold"
+                        className="w-4 h-4 rounded flex items-center justify-center text-[var(--warning-text)]/60 hover:text-[var(--warning-text)] hover:bg-amber-500/15 transition-all text-[9px] font-bold"
                         title="Marcar pocas unidades"
                       >
                         !
@@ -907,7 +907,7 @@ function OrderCard({
                 <button
                   onClick={() => onCancel(order.id, order.tableLabel)}
                   title="Cancelar pedido"
-                  className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-red-500/10 border border-red-500/25 text-red-700/80 hover:bg-red-500/15 transition-colors"
+                  className="px-2 py-1.5 rounded-lg text-[11px] font-medium bg-red-500/10 border border-red-500/25 text-[var(--danger-text)]/80 hover:bg-red-500/15 transition-colors"
                 >
                   <X size={12} />
                 </button>
@@ -922,7 +922,7 @@ function OrderCard({
         <button
           onClick={() => onSendToDelivery(order.id, order.tableLabel, order.amount)}
           className="w-full py-1.5 rounded-lg text-[11px] font-semibold transition-colors flex items-center justify-center gap-1.5
-                     bg-blue-500/12 text-blue-700 border border-blue-500/25 hover:bg-blue-500/20 mt-1"
+                     bg-blue-500/12 text-[var(--info-text)] border border-blue-500/25 hover:bg-blue-500/20 mt-1"
         >
           <Truck size={12} />
           Enviar a delivery
@@ -1130,7 +1130,7 @@ function NuevaComandaModal({
                     {lines.length > 1 && (
                       <button
                         onClick={() => removeLine(i)}
-                        className="w-9 h-9 rounded-xl bg-[var(--surface-sunken)] hover:bg-red-500/15 border border-[var(--border-subtle)] hover:border-red-500/30 text-[var(--text-muted)] hover:text-red-700 transition-colors flex items-center justify-center"
+                        className="w-9 h-9 rounded-xl bg-[var(--surface-sunken)] hover:bg-red-500/15 border border-[var(--border-subtle)] hover:border-red-500/30 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors flex items-center justify-center"
                       >
                         <X size={13} />
                       </button>
@@ -1148,7 +1148,7 @@ function NuevaComandaModal({
                     <button
                       type="button"
                       onClick={() => updateLine(i, { dest: 'barra' })}
-                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors ${line.dest === 'barra' ? 'bg-purple-500/20 text-purple-700 border border-purple-500/30' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-muted)]'}`}
+                      className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-semibold transition-colors ${line.dest === 'barra' ? 'bg-purple-500/20 text-[var(--accent-violet-text)] border border-purple-500/30' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)] hover:text-[var(--text-muted)]'}`}
                     >
                       <Wine size={10} /> Barra
                     </button>
@@ -1957,7 +1957,7 @@ function ComandasPageInner() {
                                 </div>
                               </div>
                               {hasBillReq && (
-                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 border border-amber-500/40 animate-pulse shrink-0">
+                                <span className="text-[9px] font-bold px-2 py-0.5 rounded-full bg-amber-500/20 text-[var(--warning-text)] border border-amber-500/40 animate-pulse shrink-0">
                                   PIDIÓ CUENTA
                                 </span>
                               )}
@@ -1968,7 +1968,7 @@ function ComandasPageInner() {
                               <div className="flex gap-1.5 px-1">
                                 {cocinaItems.length > 0 && (
                                   <div className="flex-1 px-2 py-1 rounded-md bg-amber-500/10 border border-amber-500/25 flex items-center justify-between text-[10px]">
-                                    <span className="text-amber-700 font-semibold flex items-center gap-1">
+                                    <span className="text-[var(--warning-text)] font-semibold flex items-center gap-1">
                                       <ChefHat size={9} /> Cocina
                                     </span>
                                     <span className="text-amber-200/80 tabular-nums">{cocinaReady}/{cocinaItems.length}</span>
@@ -1976,7 +1976,7 @@ function ComandasPageInner() {
                                 )}
                                 {barraItems.length > 0 && (
                                   <div className="flex-1 px-2 py-1 rounded-md bg-purple-500/10 border border-purple-500/25 flex items-center justify-between text-[10px]">
-                                    <span className="text-purple-700 font-semibold flex items-center gap-1">
+                                    <span className="text-[var(--accent-violet-text)] font-semibold flex items-center gap-1">
                                       <Wine size={9} /> Barra
                                     </span>
                                     <span className="text-purple-200/80 tabular-nums">{barraReady}/{barraItems.length}</span>
@@ -2207,7 +2207,7 @@ function ChargeOrderModal({
           </div>
         )}
 
-        {error && <p className="text-red-700 text-xs mb-3">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs mb-3">{error}</p>}
 
         <div className="flex gap-2">
           <button onClick={onClose} disabled={saving}
@@ -2298,7 +2298,7 @@ function SendToDeliveryModal({
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-[var(--text-strong)] font-bold text-lg flex items-center gap-2">
-              <Truck size={18} className="text-blue-700" />
+              <Truck size={18} className="text-[var(--info-text)]" />
               Enviar a delivery
             </h2>
             <p className="text-[var(--text-muted)] text-sm mt-0.5">
@@ -2344,7 +2344,7 @@ function SendToDeliveryModal({
             />
           </div>
 
-          {error && <p className="text-red-700 text-xs">{error}</p>}
+          {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
 
           <div className="flex gap-3 pt-1">
             <button

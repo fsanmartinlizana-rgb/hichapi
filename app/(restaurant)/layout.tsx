@@ -370,10 +370,12 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
         )
       })()}
 
-      {/* Nav — grupos colapsables en acordeón */}
+      {/* Nav — acordeón en desktop (1 grupo abierto). En el drawer móvil se
+          muestran TODOS los grupos expandidos: es full-height con scroll, así
+          el usuario ve todos los módulos sin ir grupo por grupo. */}
       <nav className="flex-1 overflow-y-auto px-2.5 pb-2 sidebar-scroll">
         {nav.map(({ key, label, icon: SectionIcon, items }) => {
-          const open = openGroup === key
+          const open = mode === 'drawer' ? true : openGroup === key
           const sectionHasActive = items.some(item => pathname === item.href || pathname.startsWith(item.href + '/'))
           return (
             <div key={key} className="mb-1.5">
@@ -390,10 +392,12 @@ function SidebarContent({ mode = 'desktop' }: { mode?: 'desktop' | 'drawer' }) {
               >
                 <SectionIcon size={16} strokeWidth={2} className="shrink-0 opacity-80" />
                 <span className="flex-1 text-left uppercase">{label}</span>
-                <ChevronDown
-                  size={14}
-                  className={`shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
-                />
+                {mode !== 'drawer' && (
+                  <ChevronDown
+                    size={14}
+                    className={`shrink-0 transition-transform duration-200 ${open ? '' : '-rotate-90'}`}
+                  />
+                )}
               </button>
 
               <div

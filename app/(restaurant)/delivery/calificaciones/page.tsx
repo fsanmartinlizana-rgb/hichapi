@@ -98,7 +98,7 @@ export default function DeliveryCalificacionesPage() {
         >
           Calificaciones de comensales
           {customerRatings.length > 0 && (
-            <span className="ml-1.5 text-[10px] bg-violet-500/20 text-violet-700 px-1.5 py-0.5 rounded-full">
+            <span className="ml-1.5 text-[10px] bg-violet-500/20 text-[var(--accent-violet-text)] px-1.5 py-0.5 rounded-full">
               {customerRatings.length}
             </span>
           )}
@@ -138,7 +138,7 @@ export default function DeliveryCalificacionesPage() {
                         <Star
                           key={s}
                           size={14}
-                          className={s <= rating.stars ? 'text-yellow-700 fill-yellow-400' : 'text-[var(--text-muted)]'}
+                          className={s <= rating.stars ? 'text-[var(--warning-text)] fill-yellow-400' : 'text-[var(--text-muted)]'}
                         />
                       ))}
                     </div>
@@ -175,7 +175,7 @@ export default function DeliveryCalificacionesPage() {
               <div key={rating.id} className="bg-[var(--surface-sunken)] border border-violet-500/20 rounded-xl p-4">
                 <div className="flex items-center justify-between gap-2">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <span className="text-[10px] font-semibold uppercase tracking-wide text-violet-700 bg-violet-500/15 px-2 py-0.5 rounded-full">
+                    <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--accent-violet-text)] bg-violet-500/15 px-2 py-0.5 rounded-full">
                       Calificación de comensal
                     </span>
                     <span className="text-[var(--text-muted)] text-[10px]">
@@ -187,7 +187,7 @@ export default function DeliveryCalificacionesPage() {
                       <Star
                         key={s}
                         size={14}
-                        className={s <= rating.stars ? 'text-yellow-700 fill-yellow-400' : 'text-[var(--text-muted)]'}
+                        className={s <= rating.stars ? 'text-[var(--warning-text)] fill-yellow-400' : 'text-[var(--text-muted)]'}
                       />
                     ))}
                   </div>
@@ -245,7 +245,7 @@ function RatingForm({
           >
             <Star
               size={22}
-              className={s <= (hovered || stars) ? 'text-yellow-700 fill-yellow-400' : 'text-[var(--text-muted)]'}
+              className={s <= (hovered || stars) ? 'text-[var(--warning-text)] fill-yellow-400' : 'text-[var(--text-muted)]'}
             />
           </button>
         ))}

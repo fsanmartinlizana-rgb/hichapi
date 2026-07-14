@@ -27,13 +27,13 @@ const STATUS_LABELS: Record<DeliveryStatus, string> = {
 }
 
 const STATUS_COLORS: Record<DeliveryStatus, string> = {
-  pending_assignment: 'bg-amber-500/20 text-amber-700',
-  assigned:           'bg-blue-500/20 text-blue-700',
-  picked_up:          'bg-purple-500/20 text-purple-700',
-  in_transit:         'bg-indigo-500/20 text-indigo-700',
-  delivered:          'bg-green-500/20 text-green-700',
+  pending_assignment: 'bg-amber-500/20 text-[var(--warning-text)]',
+  assigned:           'bg-blue-500/20 text-[var(--info-text)]',
+  picked_up:          'bg-purple-500/20 text-[var(--accent-violet-text)]',
+  in_transit:         'bg-indigo-500/20 text-[var(--accent-violet-text)]',
+  delivered:          'bg-green-500/20 text-[var(--success-text)]',
   cancelled:          'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
-  failed:             'bg-red-500/20 text-red-700',
+  failed:             'bg-red-500/20 text-[var(--danger-text)]',
 }
 
 const ACTIVE_STATUSES: DeliveryStatus[] = ['pending_assignment', 'assigned', 'picked_up', 'in_transit']
@@ -101,7 +101,7 @@ function RatingToast({
       </div>
 
       {done ? (
-        <div className="flex items-center gap-2 text-green-700 text-sm py-2">
+        <div className="flex items-center gap-2 text-[var(--success-text)] text-sm py-2">
           <CheckCircle size={16} />
           <span>¡Gracias por calificar!</span>
         </div>
@@ -119,7 +119,7 @@ function RatingToast({
                 <Star
                   size={24}
                   className={s <= (hovered || stars)
-                    ? 'text-yellow-700 fill-yellow-400'
+                    ? 'text-[var(--warning-text)] fill-yellow-400'
                     : 'text-[var(--text-muted)]'}
                 />
               </button>
@@ -156,7 +156,7 @@ function OrderTimeline({ order }: { order: DeliveryOrder }) {
           {STATUS_LABELS[order.status]}
         </span>
         {order.status === 'failed' && (
-          <span className="text-red-700/60 text-xs">{order.failure_reason?.replace(/_/g, ' ')}</span>
+          <span className="text-[var(--danger-text)]/60 text-xs">{order.failure_reason?.replace(/_/g, ' ')}</span>
         )}
       </div>
     )
@@ -176,14 +176,14 @@ function OrderTimeline({ order }: { order: DeliveryOrder }) {
           <div key={step.status} className="flex items-center">
             <div className="flex flex-col items-center gap-0.5">
               <div className={`w-6 h-6 rounded-full flex items-center justify-center transition-colors ${
-                completed ? 'bg-green-500/30 text-green-700' :
+                completed ? 'bg-green-500/30 text-[var(--success-text)]' :
                 active    ? 'bg-[#FF6B35]/20 text-[#E55A2B] ring-1 ring-[#FF6B35]/50' :
                             'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
               }`}>
                 <Icon size={12} />
               </div>
               <span className={`text-[9px] font-medium ${
-                completed ? 'text-green-700/70' :
+                completed ? 'text-[var(--success-text)]/70' :
                 active    ? 'text-[#E55A2B]' :
                             'text-[var(--text-muted)]'
               }`}>
@@ -339,7 +339,7 @@ export default function DeliveryPedidosPage() {
                     {order.order_id ? (
                       <a
                         href={`/comandas?focus=${order.order_id}`}
-                        className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-violet-700 hover:bg-violet-500/25 transition-colors"
+                        className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/15 text-[var(--accent-violet-text)] hover:bg-violet-500/25 transition-colors"
                       >
                         📋 Ver comanda
                       </a>
@@ -373,7 +373,7 @@ export default function DeliveryPedidosPage() {
                     </p>
                   )}
                   {order.status === 'delivered' && order.delivered_at && (
-                    <p className="text-green-700/60 text-xs mt-1">
+                    <p className="text-[var(--success-text)]/60 text-xs mt-1">
                       {new Date(order.delivered_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                     </p>
                   )}
@@ -491,7 +491,7 @@ function CreateOrderModal({
               />
             </div>
           ))}
-          {error && <p className="text-red-700 text-xs">{error}</p>}
+          {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
           <div className="flex gap-3 pt-2">
             <button
               type="button"

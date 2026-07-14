@@ -28,9 +28,9 @@ interface RestRow {
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  enterprise: 'bg-violet-500/15 text-violet-700',
+  enterprise: 'bg-violet-500/15 text-[var(--accent-violet-text)]',
   pro:        'bg-[#FF6B35]/15 text-[#E55A2B]',
-  starter:    'bg-blue-500/15 text-blue-700',
+  starter:    'bg-blue-500/15 text-[var(--info-text)]',
   free:       'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
 }
 
@@ -83,7 +83,7 @@ export default function RestaurantesAdminPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3">
-          <Shield size={32} className="text-red-700 mx-auto" />
+          <Shield size={32} className="text-[var(--danger-text)] mx-auto" />
           <p className="text-[var(--text-strong)] font-semibold">Acceso restringido</p>
           <p className="text-[var(--text-muted)] text-sm">Solo super admins.</p>
         </div>
@@ -168,9 +168,9 @@ export default function RestaurantesAdminPage() {
                     {r.plan ?? 'free'}
                   </span>
                   {r.claimed ? (
-                    <Check size={10} className="text-emerald-700 shrink-0" />
+                    <Check size={10} className="text-[var(--success-text)] shrink-0" />
                   ) : (
-                    <Clock size={10} className="text-yellow-700 shrink-0" />
+                    <Clock size={10} className="text-[var(--warning-text)] shrink-0" />
                   )}
                   {!r.active && (
                     <span className="text-[9px] px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--text-muted)]">inactivo</span>

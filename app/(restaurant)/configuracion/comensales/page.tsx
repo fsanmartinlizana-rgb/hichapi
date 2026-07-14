@@ -92,7 +92,7 @@ export default function ComensalesConfigPage() {
   return (
     <div className="p-6 max-w-2xl space-y-6">
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-4 py-2 rounded-xl text-sm">
+        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-[var(--success-text)] px-4 py-2 rounded-xl text-sm">
           {toast}
         </div>
       )}
@@ -149,7 +149,7 @@ export default function ComensalesConfigPage() {
             }
             className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold border ${
               config.geofence_enabled
-                ? 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30'
+                ? 'bg-emerald-500/15 text-[var(--success-text)] border-emerald-500/30'
                 : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'
             }`}
           >
@@ -162,7 +162,7 @@ export default function ComensalesConfigPage() {
         </div>
 
         {!hasCoords && (
-          <p className="text-amber-700/90 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
+          <p className="text-[var(--warning-text)]/90 text-xs bg-amber-500/10 border border-amber-500/20 rounded-lg px-3 py-2">
             Configurá la ubicación del local en Mi restaurante para activar el geofence.
           </p>
         )}

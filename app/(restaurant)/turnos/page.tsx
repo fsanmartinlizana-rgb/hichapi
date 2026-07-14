@@ -32,10 +32,10 @@ interface Shift {
 }
 
 const STATUS_CONFIG = {
-  scheduled: { label: 'Programado',  color: 'bg-blue-500/15 text-blue-700 border-blue-500/30' },
-  open:      { label: 'Activo',      color: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
+  scheduled: { label: 'Programado',  color: 'bg-blue-500/15 text-[var(--info-text)] border-blue-500/30' },
+  open:      { label: 'Activo',      color: 'bg-emerald-500/15 text-[var(--success-text)] border-emerald-500/30' },
   closed:    { label: 'Cerrado',     color: 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]' },
-  no_show:   { label: 'Ausente',     color: 'bg-red-500/15 text-red-700 border-red-500/30' },
+  no_show:   { label: 'Ausente',     color: 'bg-red-500/15 text-[var(--danger-text)] border-red-500/30' },
 }
 
 type ViewMode = 'day' | 'week' | 'month'
@@ -369,8 +369,8 @@ export default function TurnosPage() {
 
       {/* Chilean labor law compliance banner */}
       <div className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-500/10 border border-blue-500/20">
-        <Info size={14} className="text-blue-700 shrink-0" />
-        <p className="text-blue-700 text-xs">
+        <Info size={14} className="text-[var(--info-text)] shrink-0" />
+        <p className="text-[var(--info-text)] text-xs">
           <span className="font-semibold">Normativa laboral Chile:</span>{' '}
           Maximo legal: 45 hrs/semana &middot; 10 hrs/dia &middot; Descanso dominical obligatorio
         </p>
@@ -441,7 +441,7 @@ export default function TurnosPage() {
                       onClick={() => quickAssign(m.id)}
                       className={`group flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border transition-all
                         ${alreadyAssigned
-                          ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700/80 cursor-not-allowed'
+                          ? 'bg-emerald-500/10 border-emerald-500/30 text-[var(--success-text)]/80 cursor-not-allowed'
                           : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-body)] hover:border-[#FF6B35]/60 hover:bg-[#FF6B35]/10 hover:text-[#E55A2B] cursor-pointer active:scale-95'}`}
                       title={alreadyAssigned ? 'Ya tiene un turno este día' : `Asignar ${quickPreset.name} a ${memberName(m)}`}
                     >
@@ -580,7 +580,7 @@ export default function TurnosPage() {
                       <div className="hidden group-hover:flex gap-0.5 bg-[var(--surface-card)] rounded-lg border border-[var(--border-subtle)] p-0.5">
                         {shift.status === 'scheduled' && (
                           <button onClick={() => updateStatus(shift.id, 'open')} title="Abrir turno"
-                            className="p-1 rounded hover:bg-emerald-500/20 text-emerald-700 transition-colors"><Check size={12} /></button>
+                            className="p-1 rounded hover:bg-emerald-500/20 text-[var(--success-text)] transition-colors"><Check size={12} /></button>
                         )}
                         {shift.status === 'open' && (
                           <button onClick={() => updateStatus(shift.id, 'closed')} title="Cerrar turno"
@@ -588,10 +588,10 @@ export default function TurnosPage() {
                         )}
                         {shift.status === 'scheduled' && (
                           <button onClick={() => updateStatus(shift.id, 'no_show')} title="Marcar ausencia"
-                            className="p-1 rounded hover:bg-red-500/20 text-red-700 transition-colors"><AlertCircle size={12} /></button>
+                            className="p-1 rounded hover:bg-red-500/20 text-[var(--danger-text)] transition-colors"><AlertCircle size={12} /></button>
                         )}
                         <button onClick={() => deleteShift(shift.id)} title="Eliminar"
-                          className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-700 transition-colors"><X size={12} /></button>
+                          className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors"><X size={12} /></button>
                       </div>
                     </div>
                   </div>
@@ -704,7 +704,7 @@ export default function TurnosPage() {
                             {shift.status === 'scheduled' && (
                               <button onClick={() => updateStatus(shift.id, 'open')}
                                 title="Abrir turno"
-                                className="p-1 rounded hover:bg-emerald-500/20 text-emerald-700 transition-colors">
+                                className="p-1 rounded hover:bg-emerald-500/20 text-[var(--success-text)] transition-colors">
                                 <Check size={10} />
                               </button>
                             )}
@@ -718,13 +718,13 @@ export default function TurnosPage() {
                             {shift.status === 'scheduled' && (
                               <button onClick={() => updateStatus(shift.id, 'no_show')}
                                 title="Marcar ausencia"
-                                className="p-1 rounded hover:bg-red-500/20 text-red-700 transition-colors">
+                                className="p-1 rounded hover:bg-red-500/20 text-[var(--danger-text)] transition-colors">
                                 <AlertCircle size={10} />
                               </button>
                             )}
                             <button onClick={() => deleteShift(shift.id)}
                               title="Eliminar"
-                              className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-700 transition-colors">
+                              className="p-1 rounded hover:bg-red-500/20 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors">
                               <X size={10} />
                             </button>
                           </div>
@@ -859,7 +859,7 @@ export default function TurnosPage() {
                           </div>
                           <span className={`text-[9px] font-semibold px-1.5 py-0.5 rounded-full border ${cfg.color}`}>{cfg.label}</span>
                           <button onClick={() => deleteShift(s.id)} title="Quitar turno"
-                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors">
+                            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 transition-colors">
                             <X size={13} />
                           </button>
                         </div>
@@ -883,7 +883,7 @@ export default function TurnosPage() {
                             {memberInitials(m)}
                           </div>
                           <span className="text-[var(--text-strong)] text-sm font-medium truncate">{memberName(m)}</span>
-                          {assignedIds.has(m.id) && <Check size={12} className="text-emerald-700 ml-auto" />}
+                          {assignedIds.has(m.id) && <Check size={12} className="text-[var(--success-text)] ml-auto" />}
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {PRESET_SHIFTS.map(preset => (

@@ -226,9 +226,9 @@ function CircularKPI({
 
 const MESA_STYLES: Record<string, { bg: string; border: string; text: string }> = {
   ocupada:   { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#E55A2B]' },
-  cuenta:    { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-700' },
+  cuenta:    { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-[var(--warning-text)]' },
   libre:     { bg: 'bg-[var(--surface-sunken)]',       border: 'border-[var(--border-subtle)]',       text: 'text-[var(--text-muted)]'  },
-  reservada: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-violet-700' },
+  reservada: { bg: 'bg-violet-500/10', border: 'border-violet-500/30', text: 'text-[var(--accent-violet-text)]' },
   bloqueada: { bg: 'bg-[var(--surface-sunken)]',       border: 'border-[var(--border-subtle)]',      text: 'text-[var(--text-muted)]'  },
 }
 
@@ -359,7 +359,7 @@ export default function DashboardPage() {
           <h1 className="text-[var(--text-strong)] text-xl font-bold">Resumen del dia</h1>
           <div className="flex items-center gap-2 mt-0.5">
             <p className="text-[var(--text-muted)] text-sm capitalize">{dateStr}</p>
-            <span className="flex items-center gap-1 text-emerald-700 text-xs font-medium">
+            <span className="flex items-center gap-1 text-[var(--success-text)] text-xs font-medium">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
               En vivo
             </span>
@@ -473,7 +473,7 @@ export default function DashboardPage() {
           {/* NPS Card */}
           <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5 space-y-4">
             <div className="flex items-center gap-2">
-              <Star size={14} className="text-[#B45309]" />
+              <Star size={14} className="text-[var(--warning-text)]" />
               <p className="text-[var(--text-strong)] text-sm font-semibold">NPS del restaurante</p>
             </div>
             <div className="text-center py-3">
@@ -482,7 +482,7 @@ export default function DashboardPage() {
               </p>
               <div className="flex items-center justify-center gap-0.5 mt-2">
                 {[1, 2, 3, 4, 5].map(s => (
-                  <Star key={s} size={14} className={s <= Math.round(data.avgRating) ? 'text-[#B45309] fill-[#FBBF24]' : 'text-[var(--text-muted)]'} />
+                  <Star key={s} size={14} className={s <= Math.round(data.avgRating) ? 'text-[var(--warning-text)] fill-[#FBBF24]' : 'text-[var(--text-muted)]'} />
                 ))}
               </div>
               <p className="text-[var(--text-muted)] text-xs mt-1">{data.reviewCount} opiniones</p>
@@ -500,7 +500,7 @@ export default function DashboardPage() {
                   <div key={r.id} className="bg-[var(--surface-sunken)] rounded-xl p-3 space-y-1">
                     <div className="flex items-center gap-1">
                       {[1, 2, 3, 4, 5].map(s => (
-                        <Star key={s} size={10} className={s <= r.rating ? 'text-[#B45309] fill-[#FBBF24]' : 'text-[var(--text-muted)]'} />
+                        <Star key={s} size={10} className={s <= r.rating ? 'text-[var(--warning-text)] fill-[#FBBF24]' : 'text-[var(--text-muted)]'} />
                       ))}
                       <span className="text-[var(--text-muted)] text-[9px] ml-auto">
                         {new Date(r.created_at).toLocaleDateString('es-CL')}

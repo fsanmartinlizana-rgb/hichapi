@@ -39,7 +39,7 @@ function TabButton({ active, icon: Icon, children, onClick, badge }: {
       <Icon size={14} />
       {children}
       {badge != null && badge > 0 && (
-        <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500/20 text-red-700 text-[10px] font-bold flex items-center justify-center">{badge}</span>
+        <span className="min-w-[18px] h-[18px] px-1 rounded-full bg-red-500/20 text-[var(--danger-text)] text-[10px] font-bold flex items-center justify-center">{badge}</span>
       )}
     </button>
   )
@@ -188,8 +188,8 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
       <div className="space-y-4 max-w-lg">
         <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 space-y-4">
           <div className="flex items-center gap-2">
-            <Check size={18} className="text-green-700" />
-            <h3 className="text-green-700 font-semibold text-sm">Importación completada</h3>
+            <Check size={18} className="text-[var(--success-text)]" />
+            <h3 className="text-[var(--success-text)] font-semibold text-sm">Importación completada</h3>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div className="bg-[var(--surface-sunken)] rounded-xl p-3">
@@ -206,7 +206,7 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
             </div>
             <div className="bg-[var(--surface-sunken)] rounded-xl p-3">
               <p className="text-[var(--text-muted)] text-xs mb-1">Filas con error</p>
-              <p className={`text-xl font-bold ${summary.errores > 0 ? 'text-amber-700' : 'text-[var(--text-strong)]'}`}>{summary.errores}</p>
+              <p className={`text-xl font-bold ${summary.errores > 0 ? 'text-[var(--warning-text)]' : 'text-[var(--text-strong)]'}`}>{summary.errores}</p>
             </div>
           </div>
         </div>
@@ -244,8 +244,8 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
             <input id="import-file-input" type="file" accept=".xlsx,.csv" className="hidden" onChange={onInputChange} />
           </div>
 
-          {fileError && <p className="text-red-700 text-xs">{fileError}</p>}
-          {uploadError && <p className="text-red-700 text-xs">{uploadError}</p>}
+          {fileError && <p className="text-[var(--danger-text)] text-xs">{fileError}</p>}
+          {uploadError && <p className="text-[var(--danger-text)] text-xs">{uploadError}</p>}
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -338,15 +338,15 @@ function ImportarTab({ restaurantId }: { restaurantId: string }) {
               <div className="bg-amber-500/5 border border-amber-500/20 rounded-2xl p-3 space-y-1.5">
                 {preview.errores.map((e, i) => (
                   <div key={i} className="flex items-start gap-2 text-xs">
-                    <span className="text-amber-700/60 font-mono shrink-0">Fila {e.fila}</span>
-                    <span className="text-amber-700/70">{e.razon}</span>
+                    <span className="text-[var(--warning-text)]/60 font-mono shrink-0">Fila {e.fila}</span>
+                    <span className="text-[var(--warning-text)]/70">{e.razon}</span>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {confirmError && <p className="text-red-700 text-xs">{confirmError}</p>}
+          {confirmError && <p className="text-[var(--danger-text)] text-xs">{confirmError}</p>}
 
           <div className="flex items-center gap-3 flex-wrap">
             <button
@@ -515,8 +515,8 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
       <div className="space-y-4 max-w-lg">
         <div className="bg-green-500/10 border border-green-500/30 rounded-2xl p-6 space-y-3">
           <div className="flex items-center gap-2">
-            <Check size={18} className="text-green-700" />
-            <h3 className="text-green-700 font-semibold text-sm">Importación completada</h3>
+            <Check size={18} className="text-[var(--success-text)]" />
+            <h3 className="text-[var(--success-text)] font-semibold text-sm">Importación completada</h3>
           </div>
           <ul className="text-[var(--text-body)] text-sm space-y-1">
             {done.imported > 0 && (
@@ -526,7 +526,7 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
               <li>↻ <strong>{done.updated}</strong> {done.updated === 1 ? 'producto existente actualizado' : 'productos existentes actualizados'} (sumamos al stock y mantuvimos la fecha de vencimiento más cercana)</li>
             )}
             {total === 0 && (
-              <li className="text-amber-700">No se procesó ningún producto.</li>
+              <li className="text-[var(--warning-text)]">No se procesó ningún producto.</li>
             )}
           </ul>
         </div>
@@ -610,7 +610,7 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
               />
               <button
                 onClick={() => removeItem(i)}
-                className="text-[var(--text-muted)] hover:text-red-700 flex items-center justify-center"
+                className="text-[var(--text-muted)] hover:text-[var(--danger-text)] flex items-center justify-center"
                 style={{ minHeight: 36, minWidth: 36 }}
                 aria-label="Quitar"
               >
@@ -623,7 +623,7 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
         {/* Aviso de costos faltantes */}
         {items.some(it => it.cost_per_unit == null || it.cost_per_unit === 0) && (
           <div className="rounded-xl border border-amber-500/30 bg-amber-500/8 p-3 flex items-start gap-2">
-            <AlertTriangle size={14} className="text-amber-700 mt-0.5 shrink-0" />
+            <AlertTriangle size={14} className="text-[var(--warning-text)] mt-0.5 shrink-0" />
             <div className="text-xs text-amber-200/85">
               <strong className="font-bold">Algunos productos no tienen costo cargado.</strong>{' '}
               Sin costo no podemos calcular el margen de los platos que usen estos ingredientes.
@@ -632,7 +632,7 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
           </div>
         )}
 
-        {error && <p className="text-red-700 text-sm">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-sm">{error}</p>}
 
         <div className="flex items-center gap-2">
           <button
@@ -708,8 +708,8 @@ function FotoTab({ restaurantId }: { restaurantId: string }) {
           </span>
         </label>
 
-        {fileError && <p className="text-red-700 text-xs">{fileError}</p>}
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {fileError && <p className="text-[var(--danger-text)] text-xs">{fileError}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
       </div>
 
       {file && (
@@ -746,7 +746,7 @@ function StatusBadge({ item }: { item: StockItem }) {
     if (days < 0) {
       return (
         <span
-          className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/25 text-red-700"
+          className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/25 text-[var(--danger-text)]"
           title={`Vencido el ${item.expiry_date}`}
         >
           Vencido hace {Math.abs(days)}d
@@ -765,14 +765,14 @@ function StatusBadge({ item }: { item: StockItem }) {
     }
   }
 
-  if (item.current_qty < 0) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/20 text-red-700">Negativo</span>
-  if (item.current_qty <= item.min_qty) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-amber-700">Bajo mínimo</span>
+  if (item.current_qty < 0) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/20 text-[var(--danger-text)]">Negativo</span>
+  if (item.current_qty <= item.min_qty) return <span className="inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold bg-amber-500/20 text-[var(--warning-text)]">Bajo mínimo</span>
 
   // Si tiene fecha de vencimiento pero no está cerca, mostrar info verde discreta
   if (days !== null && days > alertDays) {
     return (
       <span
-        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-emerald-700"
+        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-medium bg-emerald-500/15 text-[var(--success-text)]"
         title={`Vence el ${item.expiry_date}`}
       >
         Vence en {days}d
@@ -888,7 +888,7 @@ function ProductModal({ restaurantId, item, onClose, onSaved }: { restaurantId: 
           </div>
         </div>
 
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
           <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35] disabled:opacity-50 transition-colors">{saving ? 'Guardando…' : isEdit ? 'Guardar cambios' : 'Crear producto'}</button>
@@ -922,7 +922,7 @@ function AdjustModal({ item, onClose, onSaved }: { item: StockItem; onClose: () 
         <p className="text-[var(--text-muted)] text-xs">Cantidad actual: <span className="text-[var(--text-strong)] font-medium">{item.current_qty} {item.unit}</span></p>
         <Field label="Delta (positivo = entrada, negativo = salida) *"><input className={inputCls} type="number" step="0.001" value={delta} onChange={e => setDelta(e.target.value)} placeholder="Ej: 5 o -2" required /></Field>
         <Field label="Razón (opcional)"><input className={inputCls} value={reason} onChange={e => setReason(e.target.value)} placeholder="Ej: Conteo físico" /></Field>
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
           <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35] disabled:opacity-50 transition-colors">{saving ? 'Ajustando…' : 'Aplicar ajuste'}</button>
@@ -956,7 +956,7 @@ function MermaModal({ item, onClose, onSaved }: { item: StockItem; onClose: () =
         <p className="text-[var(--text-muted)] text-xs">Cantidad actual: <span className="text-[var(--text-strong)] font-medium">{item.current_qty} {item.unit}</span></p>
         <Field label="Cantidad perdida *"><input className={inputCls} type="number" step="0.001" min="0.001" value={qty} onChange={e => setQty(e.target.value)} placeholder="Ej: 1.5" required /></Field>
         <Field label="Razón *"><select className={inputCls} value={reason} onChange={e => setReason(e.target.value)}>{WASTE_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}</select></Field>
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
           <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-amber-500 text-white rounded-lg hover:bg-amber-500/80 disabled:opacity-50 transition-colors">{saving ? 'Registrando…' : 'Registrar merma'}</button>
@@ -983,7 +983,7 @@ function DeleteModal({ item, onClose, onDeleted }: { item: StockItem; onClose: (
     <Modal title="Eliminar producto" onClose={onClose}>
       <div className="space-y-4">
         <p className="text-[var(--text-body)] text-sm">¿Eliminar <span className="text-[var(--text-strong)] font-medium">{item.name}</span>? Si tiene movimientos recientes será marcado como inactivo.</p>
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
         <div className="flex justify-end gap-2">
           <button onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
           <button onClick={handleDelete} disabled={deleting} className="px-4 py-2 text-sm bg-red-500 text-white rounded-lg hover:bg-red-500/80 disabled:opacity-50 transition-colors">{deleting ? 'Eliminando…' : 'Eliminar'}</button>
@@ -1021,7 +1021,7 @@ function InventarioTab({ restaurantId }: { restaurantId: string }) {
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
-        <button onClick={() => setFilterBelowMin(f => !f)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filterBelowMin ? 'bg-amber-500/20 border-amber-500/40 text-amber-700' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white'}`}>
+        <button onClick={() => setFilterBelowMin(f => !f)} className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors ${filterBelowMin ? 'bg-amber-500/20 border-amber-500/40 text-[var(--warning-text)]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:text-white'}`}>
           <Filter size={12} />Solo bajo mínimo{filterBelowMin && <Check size={12} />}
         </button>
         <button onClick={() => setModal({ type: 'create' })} className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium bg-[#FF6B35] text-white hover:bg-[#FF6B35] transition-colors">
@@ -1061,7 +1061,7 @@ function InventarioTab({ restaurantId }: { restaurantId: string }) {
                       <tr key={item.id} className={`${idx < catItems.length - 1 ? 'border-b border-[var(--border-subtle)]' : ''} hover:bg-[var(--surface-sunken)] transition-colors`}>
                         <td className="px-4 py-3 text-[var(--text-strong)] font-medium">{item.name}</td>
                         <td className="px-3 py-3 text-[var(--text-muted)]">{item.unit}</td>
-                        <td className={`px-3 py-3 text-right font-mono font-medium ${item.current_qty < 0 ? 'text-red-700' : 'text-[var(--text-strong)]'}`}>{item.current_qty}</td>
+                        <td className={`px-3 py-3 text-right font-mono font-medium ${item.current_qty < 0 ? 'text-[var(--danger-text)]' : 'text-[var(--text-strong)]'}`}>{item.current_qty}</td>
                         <td className="px-3 py-3 text-right font-mono text-[var(--text-muted)]">{item.min_qty}</td>
                         <td className="px-3 py-3 text-right text-[var(--text-body)]">{formatCurrency(item.cost_per_unit)}</td>
                         <td className="px-3 py-3 text-right text-[var(--text-body)]">{formatCurrency(item.current_qty * item.cost_per_unit)}</td>
@@ -1070,8 +1070,8 @@ function InventarioTab({ restaurantId }: { restaurantId: string }) {
                           <div className="flex items-center justify-end gap-1">
                             <button onClick={() => setModal({ type: 'edit', item })} title="Editar" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"><Pencil size={13} /></button>
                             <button onClick={() => setModal({ type: 'adjust', item })} title="Ajustar" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-strong)] hover:bg-[var(--surface-sunken)] transition-colors"><SlidersHorizontal size={13} /></button>
-                            <button onClick={() => setModal({ type: 'merma', item })} title="Registrar merma" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-amber-700 hover:bg-amber-500/10 transition-colors"><FlaskConical size={13} /></button>
-                            <button onClick={() => setModal({ type: 'delete', item })} title="Eliminar" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors"><Trash2 size={13} /></button>
+                            <button onClick={() => setModal({ type: 'merma', item })} title="Registrar merma" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--warning-text)] hover:bg-amber-500/10 transition-colors"><FlaskConical size={13} /></button>
+                            <button onClick={() => setModal({ type: 'delete', item })} title="Eliminar" className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 transition-colors"><Trash2 size={13} /></button>
                           </div>
                         </td>
                       </tr>
@@ -1092,7 +1092,7 @@ function InventarioTab({ restaurantId }: { restaurantId: string }) {
 
       {deleteToast && (
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[var(--surface-sunken)] backdrop-blur border border-[var(--border-subtle)] rounded-xl px-4 py-2.5 text-[var(--text-strong)] text-sm shadow-xl z-50 flex items-center gap-2">
-          <Check size={14} className="text-green-700" />{deleteToast}
+          <Check size={14} className="text-[var(--success-text)]" />{deleteToast}
         </div>
       )}
     </div>
@@ -1238,15 +1238,15 @@ function MovimientosTab({ restaurantId }: { restaurantId: string }) {
                     <td className="px-3 py-3 text-[var(--text-strong)] font-medium">{itemName}</td>
                     <td className="px-3 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
-                        m.reason === 'compra' ? 'bg-green-500/20 text-green-700' :
-                        m.reason === 'orden' ? 'bg-blue-500/20 text-blue-700' :
-                        m.reason === 'merma' ? 'bg-amber-500/20 text-amber-700' :
+                        m.reason === 'compra' ? 'bg-green-500/20 text-[var(--success-text)]' :
+                        m.reason === 'orden' ? 'bg-blue-500/20 text-[var(--info-text)]' :
+                        m.reason === 'merma' ? 'bg-amber-500/20 text-[var(--warning-text)]' :
                         'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
                       }`}>
                         {m.reason}
                       </span>
                     </td>
-                    <td className={`px-3 py-3 text-right font-mono font-medium ${m.delta >= 0 ? 'text-green-700' : 'text-red-700'}`}>
+                    <td className={`px-3 py-3 text-right font-mono font-medium ${m.delta >= 0 ? 'text-[var(--success-text)]' : 'text-[var(--danger-text)]'}`}>
                       {formatDelta(m.delta, unit)}
                     </td>
                     <td className="px-3 py-3 text-right text-[var(--text-body)]">{formatCurrency(m.valor_monetario)}</td>
@@ -1307,9 +1307,9 @@ const ORDER_STATUS_LABELS: Record<PurchaseOrderStatus, string> = {
 
 const ORDER_STATUS_COLORS: Record<PurchaseOrderStatus, string> = {
   borrador: 'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
-  enviada: 'bg-blue-500/20 text-blue-700',
-  recibida: 'bg-green-500/20 text-green-700',
-  cancelada: 'bg-red-500/20 text-red-700',
+  enviada: 'bg-blue-500/20 text-[var(--info-text)]',
+  recibida: 'bg-green-500/20 text-[var(--success-text)]',
+  cancelada: 'bg-red-500/20 text-[var(--danger-text)]',
 }
 
 function OrderStatusBadge({ status }: { status: PurchaseOrderStatus }) {
@@ -1450,7 +1450,7 @@ function NuevaOrdenModal({
                     type="button"
                     onClick={() => removeItem(idx)}
                     disabled={items.length === 1}
-                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors disabled:opacity-20"
+                    className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 transition-colors disabled:opacity-20"
                   >
                     <X size={13} />
                   </button>
@@ -1459,7 +1459,7 @@ function NuevaOrdenModal({
             </div>
           </div>
 
-          {error && <p className="text-red-700 text-xs">{error}</p>}
+          {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
             <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35] disabled:opacity-50 transition-colors">
@@ -1528,7 +1528,7 @@ function GenerarFacturaModal({
         <Field label="Notas (opcional)">
           <input className={inputCls} value={notes} onChange={e => setNotes(e.target.value)} placeholder="Observaciones…" />
         </Field>
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
         <div className="flex justify-end gap-2 pt-2">
           <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors">Cancelar</button>
           <button type="submit" disabled={saving} className="px-4 py-2 text-sm bg-[#FF6B35] text-white rounded-lg hover:bg-[#FF6B35] disabled:opacity-50 transition-colors">
@@ -1693,7 +1693,7 @@ function OrdenesTab({ restaurantId }: { restaurantId: string }) {
                             onClick={() => transitionStatus(order, 'enviada')}
                             disabled={transitioningId === order.id}
                             title="Marcar como enviada"
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-blue-500/20 text-blue-700 hover:bg-blue-500/30 transition-colors disabled:opacity-40"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-blue-500/20 text-[var(--info-text)] hover:bg-blue-500/30 transition-colors disabled:opacity-40"
                           >
                             <Send size={10} />Enviar
                           </button>
@@ -1701,7 +1701,7 @@ function OrdenesTab({ restaurantId }: { restaurantId: string }) {
                             onClick={() => transitionStatus(order, 'cancelada')}
                             disabled={transitioningId === order.id}
                             title="Cancelar orden"
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-red-500/20 text-red-700 hover:bg-red-500/30 transition-colors disabled:opacity-40"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-red-500/20 text-[var(--danger-text)] hover:bg-red-500/30 transition-colors disabled:opacity-40"
                           >
                             <X size={10} />Cancelar
                           </button>
@@ -1713,7 +1713,7 @@ function OrdenesTab({ restaurantId }: { restaurantId: string }) {
                             onClick={() => transitionStatus(order, 'recibida')}
                             disabled={transitioningId === order.id}
                             title="Marcar como recibida"
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-green-500/20 text-green-700 hover:bg-green-500/30 transition-colors disabled:opacity-40"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-green-500/20 text-[var(--success-text)] hover:bg-green-500/30 transition-colors disabled:opacity-40"
                           >
                             <Check size={10} />Recibida
                           </button>
@@ -1721,7 +1721,7 @@ function OrdenesTab({ restaurantId }: { restaurantId: string }) {
                             onClick={() => transitionStatus(order, 'cancelada')}
                             disabled={transitioningId === order.id}
                             title="Cancelar orden"
-                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-red-500/20 text-red-700 hover:bg-red-500/30 transition-colors disabled:opacity-40"
+                            className="flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-medium bg-red-500/20 text-[var(--danger-text)] hover:bg-red-500/30 transition-colors disabled:opacity-40"
                           >
                             <X size={10} />Cancelar
                           </button>
@@ -1756,7 +1756,7 @@ function OrdenesTab({ restaurantId }: { restaurantId: string }) {
           </h3>
           <div className="bg-amber-500/10 border border-amber-500/20 rounded-xl px-3 py-1.5 flex items-center gap-2">
             <span className="text-[var(--text-muted)] text-xs">Total pendiente:</span>
-            <span className="text-amber-700 font-semibold text-sm">{formatCurrency(totalPendiente)}</span>
+            <span className="text-[var(--warning-text)] font-semibold text-sm">{formatCurrency(totalPendiente)}</span>
           </div>
         </div>
 
@@ -1790,8 +1790,8 @@ function OrdenesTab({ restaurantId }: { restaurantId: string }) {
                     <td className="px-4 py-3">
                       <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold ${
                         inv.payment_status === 'pagada'
-                          ? 'bg-green-500/20 text-green-700'
-                          : 'bg-amber-500/20 text-amber-700'
+                          ? 'bg-green-500/20 text-[var(--success-text)]'
+                          : 'bg-amber-500/20 text-[var(--warning-text)]'
                       }`}>
                         {inv.payment_status === 'pagada' ? 'Pagada' : 'Pendiente'}
                       </span>
@@ -1845,16 +1845,16 @@ export default function StockPage() {
         </div>
         <div className={`rounded-2xl p-4 border ${alertCount > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'}`}>
           <p className="text-[var(--text-muted)] text-xs mb-1">Alertas activas</p>
-          <p className={`text-2xl font-bold ${alertCount > 0 ? 'text-red-700' : 'text-[var(--text-strong)]'}`}>{loading ? '—' : alertCount}</p>
+          <p className={`text-2xl font-bold ${alertCount > 0 ? 'text-[var(--danger-text)]' : 'text-[var(--text-strong)]'}`}>{loading ? '—' : alertCount}</p>
         </div>
       </div>
 
       {!loading && alertCount > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-700 shrink-0 mt-0.5" />
+          <AlertTriangle size={18} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
           <div>
-            <p className="text-red-700 text-sm font-semibold mb-0.5">{alertCount} producto{alertCount > 1 ? 's' : ''} requieren atención</p>
-            <p className="text-red-700/70 text-xs">{alertedItems.map(i => i.name).join(', ')}</p>
+            <p className="text-[var(--danger-text)] text-sm font-semibold mb-0.5">{alertCount} producto{alertCount > 1 ? 's' : ''} requieren atención</p>
+            <p className="text-[var(--danger-text)]/70 text-xs">{alertedItems.map(i => i.name).join(', ')}</p>
           </div>
         </div>
       )}

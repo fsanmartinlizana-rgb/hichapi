@@ -300,7 +300,7 @@ export default function CertificationPage() {
       {/* Error messages */}
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
@@ -310,7 +310,7 @@ export default function CertificationPage() {
         <div className="space-y-2">
           {validationErrors.map((err, idx) => (
             <div key={idx} className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
+              <AlertCircle size={14} className="text-[var(--warning-text)] shrink-0 mt-0.5" />
               <p className="text-amber-200 text-xs">{err.message}</p>
             </div>
           ))}
@@ -499,7 +499,7 @@ export default function CertificationPage() {
                     <button
                       onClick={() => handleDelete(set.id)}
                       disabled={deleting === set.id}
-                      className="ml-auto px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 text-xs font-semibold hover:bg-red-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
+                      className="ml-auto px-3 py-1.5 rounded-lg bg-red-500/20 text-[var(--danger-text)] text-xs font-semibold hover:bg-red-500/30 transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-1.5"
                     >
                       {deleting === set.id ? (
                         <>

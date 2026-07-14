@@ -186,7 +186,7 @@ export default function CategoriasPage() {
       )}
 
       {stations.length === 0 && (
-        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-sm text-yellow-700/90 flex gap-2">
+        <div className="rounded-xl border border-yellow-500/20 bg-yellow-500/5 p-4 text-sm text-[var(--warning-text)]/90 flex gap-2">
           <ChefHat size={16} className="shrink-0 mt-0.5" />
           <div>
             No hay estaciones creadas aún. Anda a <span className="font-semibold">Configuración → Estaciones</span> para crear al menos una (Cocina, Barra, Horno, etc.) y después volver acá a rutear las categorías.
@@ -326,7 +326,7 @@ function CategoryCard({ category, stations, routes, onSaveRouting, onDelete }: {
           <div className="flex items-center gap-2 flex-wrap">
             <p className="text-[var(--text-strong)] font-semibold text-sm">{category.name}</p>
             {category.brand_id && (
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-blue-700/90 font-semibold">Compartida</span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/15 text-[var(--info-text)]/90 font-semibold">Compartida</span>
             )}
             {!category.active && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-[var(--surface-sunken)] text-[var(--text-muted)]">Inactiva</span>
@@ -334,7 +334,7 @@ function CategoryCard({ category, stations, routes, onSaveRouting, onDelete }: {
           </div>
           <p className="text-[var(--text-muted)] text-xs flex items-center gap-1.5 flex-wrap mt-0.5">
             {routes.length === 0 ? (
-              <span className="text-yellow-700/70">Sin ruteo — no se envía a ninguna estación</span>
+              <span className="text-[var(--warning-text)]/70">Sin ruteo — no se envía a ninguna estación</span>
             ) : (
               routes.map(r => (
                 <span key={r.id} className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded ${r.is_primary ? 'bg-[#FF6B35]/15 text-[#E55A2B]' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'}`}>
@@ -411,7 +411,7 @@ function CategoryCard({ category, stations, routes, onSaveRouting, onDelete }: {
           <div className="flex gap-2 justify-end pt-1">
             <button
               onClick={onDelete}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-[var(--danger-text)] text-xs hover:bg-red-500/20 transition-colors"
             >
               <Trash2 size={12} /> Eliminar categoría
             </button>

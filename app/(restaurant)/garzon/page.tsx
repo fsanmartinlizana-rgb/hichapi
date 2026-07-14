@@ -76,7 +76,7 @@ type GarzonUIMode =
 const TABLE_STATUS_STYLES: Record<TableStatus, { bg: string; border: string; text: string; dot: string }> = {
   libre:     { bg: 'bg-[var(--surface-sunken)]',         border: 'border-[var(--border-subtle)]',        text: 'text-[var(--text-muted)]',  dot: 'bg-[var(--surface-sunken)]'    },
   ocupada:   { bg: 'bg-[#FF6B35]/10',    border: 'border-[#FF6B35]/30',   text: 'text-[#E55A2B]', dot: 'bg-[#FF6B35]'  },
-  reservada: { bg: 'bg-violet-500/10',   border: 'border-violet-500/30',  text: 'text-violet-700', dot: 'bg-violet-400' },
+  reservada: { bg: 'bg-violet-500/10',   border: 'border-violet-500/30',  text: 'text-[var(--accent-violet-text)]', dot: 'bg-violet-400' },
   bloqueada: { bg: 'bg-[var(--surface-sunken)]',         border: 'border-[var(--border-subtle)]',       text: 'text-[var(--text-muted)]',  dot: 'bg-[var(--surface-sunken)]'    },
 }
 
@@ -727,9 +727,9 @@ export default function GarzonPage() {
       {/* Bill requested alert */}
       {payingCount > 0 && (
         <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-500/10 border-amber-500/40 animate-pulse-amber">
-          <Banknote size={18} className="text-[#B45309] shrink-0" />
+          <Banknote size={18} className="text-[var(--warning-text)] shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-[#B45309] font-bold text-sm">
+            <p className="text-[var(--warning-text)] font-bold text-sm">
               {payingCount === 1 ? '¡1 mesa pide la cuenta!' : `¡${payingCount} mesas piden la cuenta!`}
             </p>
             <p className="text-[var(--text-muted)] text-xs truncate">
@@ -739,7 +739,7 @@ export default function GarzonPage() {
                 .join(' · ')}
             </p>
           </div>
-          <span className="text-xs text-amber-700/60 shrink-0">Cobrar →</span>
+          <span className="text-xs text-[var(--warning-text)]/60 shrink-0">Cobrar →</span>
         </div>
       )}
 

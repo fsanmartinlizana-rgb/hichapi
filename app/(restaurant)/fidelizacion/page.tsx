@@ -170,14 +170,14 @@ export default function FidelizacionPage() {
           </p>
         </div>
         {program?.active && (
-          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/15 text-emerald-700 border border-emerald-500/30">
+          <span className="shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-1 rounded-full bg-emerald-500/15 text-[var(--success-text)] border border-emerald-500/30">
             <CheckCircle2 size={10} /> Activo
           </span>
         )}
       </div>
 
       {err && (
-        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-sm">
+        <div className="px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30 text-[var(--danger-text)] text-sm">
           {err}
         </div>
       )}
@@ -410,7 +410,7 @@ function RewardRow({ reward, onChanged, restId }: { reward: Reward; onChanged: (
       <button onClick={toggle} disabled={busy} className="text-[11px] font-semibold text-[var(--text-muted)] hover:text-[var(--text-strong)] px-2 py-1 rounded-lg hover:bg-[var(--surface-sunken)]">
         {reward.active ? 'Pausar' : 'Activar'}
       </button>
-      <button onClick={del} disabled={busy} className="text-red-700/70 hover:text-red-700 p-1.5 rounded-lg hover:bg-red-500/10">
+      <button onClick={del} disabled={busy} className="text-[var(--danger-text)]/70 hover:text-[var(--danger-text)] p-1.5 rounded-lg hover:bg-red-500/10">
         <Trash2 size={13} />
       </button>
     </div>
@@ -511,7 +511,7 @@ function RewardCreate({ disabled, restId, onCreated }: { disabled: boolean; rest
         </Field>
       </div>
 
-      {err && <p className="text-red-700 text-xs">{err}</p>}
+      {err && <p className="text-[var(--danger-text)] text-xs">{err}</p>}
 
       <div className="flex gap-2">
         <button
@@ -651,7 +651,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
             <span className="font-mono font-bold select-all">{result.code}</span>
             <button
               onClick={() => { if (result.code) navigator.clipboard?.writeText(result.code) }}
-              className="ml-auto text-emerald-700/70 hover:text-emerald-700 text-[10px] underline underline-offset-2"
+              className="ml-auto text-[var(--success-text)]/70 hover:text-[var(--success-text)] text-[10px] underline underline-offset-2"
             >
               copiar
             </button>
@@ -676,7 +676,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
               📋 Copiar mensaje completo
             </button>
           </div>
-          <div className="text-emerald-700/80 text-[11px]">
+          <div className="text-[var(--success-text)]/80 text-[11px]">
             {result.emailCarrier === 'resend' && (
               result.existingUser
                 ? '✉ Email branded enviado (Resend). Ya está en el wallet del cliente.'
@@ -699,7 +699,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
             )}
           </div>
           {result.createdNewUser && (
-            <div className="text-emerald-700/50 text-[10px] pt-1 border-t border-emerald-500/15">
+            <div className="text-[var(--success-text)]/50 text-[10px] pt-1 border-t border-emerald-500/15">
               🆕 Se creó una cuenta nueva para este cliente.
             </div>
           )}
@@ -707,7 +707,7 @@ function ManualIssue({ restId, rewards }: { restId: string; rewards: Reward[] })
         )
       })()}
       {result?.error && (
-        <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs">
+        <div className="px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-[var(--danger-text)] text-xs">
           {result.error}
         </div>
       )}

@@ -95,7 +95,7 @@ function UpgradeModal({
         {success ? (
           <div className="text-center py-8 space-y-3">
             <div className="w-16 h-16 rounded-2xl bg-emerald-500/20 flex items-center justify-center mx-auto">
-              <Check size={28} className="text-emerald-700" />
+              <Check size={28} className="text-[var(--success-text)]" />
             </div>
             <p className="text-[var(--text-strong)] font-bold text-lg">¡Piloto activado!</p>
             <p className="text-[var(--text-muted)] text-sm">Disfruta 30 días gratis del plan {plan.name}.</p>
@@ -129,7 +129,7 @@ function UpgradeModal({
               <p className="text-[var(--text-muted)] text-xs font-medium">Incluye durante el piloto:</p>
               {plan.features.map(f => (
                 <div key={f} className="flex items-center gap-2">
-                  <Check size={12} className="text-emerald-700 shrink-0" />
+                  <Check size={12} className="text-[var(--success-text)] shrink-0" />
                   <span className="text-[var(--text-muted)] text-sm">{f}</span>
                 </div>
               ))}
@@ -214,8 +214,8 @@ export default function ModulosPage() {
               <AlertTriangle size={24} />
             </div>
             <div>
-              <h3 className="text-red-700 font-bold text-lg">Tienes una factura pendiente</h3>
-              <p className="text-red-700/80 text-sm">
+              <h3 className="text-[var(--danger-text)] font-bold text-lg">Tienes una factura pendiente</h3>
+              <p className="text-[var(--danger-text)]/80 text-sm">
                 Membresía: ${pendingInvoice.plan_base_price.toLocaleString('es-CL')} + 
                 1% Ventas: ${pendingInvoice.sales_commission.toLocaleString('es-CL')} 
                 (Total Ventas calculadas: ${(Number(pendingInvoice.sales_total) || 0).toLocaleString('es-CL')})
@@ -332,7 +332,7 @@ export default function ModulosPage() {
                     <Icon size={18} />
                   </div>
                   {hasAccess ? (
-                    <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-700 bg-emerald-500/10 px-2 py-1 rounded-lg">
+                    <span className="flex items-center gap-1 text-[10px] font-semibold text-[var(--success-text)] bg-emerald-500/10 px-2 py-1 rounded-lg">
                       <Check size={10} /> Activo
                     </span>
                   ) : (
@@ -406,7 +406,7 @@ export default function ModulosPage() {
                 <div className="space-y-2">
                   {plan.features.map(f => (
                     <div key={f} className="flex items-start gap-2">
-                      <Check size={12} className="text-emerald-700 shrink-0 mt-0.5" />
+                      <Check size={12} className="text-[var(--success-text)] shrink-0 mt-0.5" />
                       <span className="text-[var(--text-muted)] text-xs">{f}</span>
                     </div>
                   ))}
@@ -414,7 +414,7 @@ export default function ModulosPage() {
 
                 <div className="pt-2">
                   {isCurrent ? (
-                    <div className="w-full py-2.5 rounded-xl border border-emerald-500/30 text-emerald-700 text-sm font-semibold text-center">
+                    <div className="w-full py-2.5 rounded-xl border border-emerald-500/30 text-[var(--success-text)] text-sm font-semibold text-center">
                       Plan actual
                     </div>
                   ) : isUpgrade ? (

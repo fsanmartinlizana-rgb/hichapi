@@ -39,11 +39,11 @@ interface TeamMember {
 // ── Role config ───────────────────────────────────────────────────────────────
 
 const BASE_ROLES: UnifiedRole[] = [
-  { value: 'admin',      label: 'Admin',      desc: 'Acceso completo al panel',                        icon: Crown,         colorClass: 'bg-purple-500/15 text-purple-700 border-purple-500/30',   isCustom: false },
-  { value: 'supervisor', label: 'Supervisor', desc: 'Panel completo excepto configuración',            icon: ShieldCheck,   colorClass: 'bg-blue-500/15 text-blue-700 border-blue-500/30',         isCustom: false },
-  { value: 'garzon',     label: 'Garzón',     desc: 'Pedidos, mesas y comandas',                       icon: UserCheck,     colorClass: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30', isCustom: false },
-  { value: 'cocina',     label: 'Cocina',     desc: 'Solo panel de comandas (kitchen display)',        icon: ChefHat,       colorClass: 'bg-amber-500/15 text-amber-700 border-amber-500/30',      isCustom: false },
-  { value: 'anfitrion',  label: 'Anfitrión',  desc: 'Mesas, pedidos y tiempos de espera',              icon: UtensilsCrossed, colorClass: 'bg-sky-500/15 text-sky-700 border-sky-500/30',          isCustom: false },
+  { value: 'admin',      label: 'Admin',      desc: 'Acceso completo al panel',                        icon: Crown,         colorClass: 'bg-purple-500/15 text-[var(--accent-violet-text)] border-purple-500/30',   isCustom: false },
+  { value: 'supervisor', label: 'Supervisor', desc: 'Panel completo excepto configuración',            icon: ShieldCheck,   colorClass: 'bg-blue-500/15 text-[var(--info-text)] border-blue-500/30',         isCustom: false },
+  { value: 'garzon',     label: 'Garzón',     desc: 'Pedidos, mesas y comandas',                       icon: UserCheck,     colorClass: 'bg-emerald-500/15 text-[var(--success-text)] border-emerald-500/30', isCustom: false },
+  { value: 'cocina',     label: 'Cocina',     desc: 'Solo panel de comandas (kitchen display)',        icon: ChefHat,       colorClass: 'bg-amber-500/15 text-[var(--warning-text)] border-amber-500/30',      isCustom: false },
+  { value: 'anfitrion',  label: 'Anfitrión',  desc: 'Mesas, pedidos y tiempos de espera',              icon: UtensilsCrossed, colorClass: 'bg-sky-500/15 text-[var(--info-text)] border-sky-500/30',          isCustom: false },
 ]
 
 // Build a UnifiedRole from a CustomRole fetched from /api/restaurants/custom-roles
@@ -67,12 +67,12 @@ const ROLE_LABEL: Record<string, string> = {
 
 const ROLE_COLOR: Record<string, string> = {
   owner:      'bg-[#FF6B35]/15 text-[#E55A2B] border-[#FF6B35]/30',
-  admin:      'bg-purple-500/15 text-purple-700 border-purple-500/30',
-  supervisor: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
-  garzon:     'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
-  waiter:     'bg-emerald-500/15 text-emerald-700 border-emerald-500/30',
-  cocina:     'bg-amber-500/15 text-amber-700 border-amber-500/30',
-  anfitrion:  'bg-sky-500/15 text-sky-700 border-sky-500/30',
+  admin:      'bg-purple-500/15 text-[var(--accent-violet-text)] border-purple-500/30',
+  supervisor: 'bg-blue-500/15 text-[var(--info-text)] border-blue-500/30',
+  garzon:     'bg-emerald-500/15 text-[var(--success-text)] border-emerald-500/30',
+  waiter:     'bg-emerald-500/15 text-[var(--success-text)] border-emerald-500/30',
+  cocina:     'bg-amber-500/15 text-[var(--warning-text)] border-amber-500/30',
+  anfitrion:  'bg-sky-500/15 text-[var(--info-text)] border-sky-500/30',
 }
 
 function initials(text: string | null | undefined) {
@@ -299,8 +299,8 @@ export default function EquipoPage() {
       {feedback && (
         <div className={`flex items-start gap-3 p-4 rounded-2xl border text-sm ${
           feedback.type === 'ok'
-            ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-700'
-            : 'bg-red-500/10 border-red-500/30 text-red-700'
+            ? 'bg-emerald-500/10 border-emerald-500/30 text-[var(--success-text)]'
+            : 'bg-red-500/10 border-red-500/30 text-[var(--danger-text)]'
         }`}>
           {feedback.type === 'ok' ? <Check size={16} className="shrink-0 mt-0.5" /> : <X size={16} className="shrink-0 mt-0.5" />}
           <p>{feedback.msg}</p>
@@ -312,7 +312,7 @@ export default function EquipoPage() {
       {manualLink && (
         <div className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-5 space-y-3">
           <div className="flex items-start gap-2">
-            <AlertCircle size={16} className="text-amber-700 shrink-0 mt-0.5" />
+            <AlertCircle size={16} className="text-[var(--warning-text)] shrink-0 mt-0.5" />
             <div className="flex-1">
               <p className="text-amber-200 text-sm font-semibold">
                 Servicio de email no configurado
@@ -410,7 +410,7 @@ export default function EquipoPage() {
                   {/* Status dot */}
                   <div className="absolute top-3 right-3 flex items-center gap-1.5">
                     <span className={`w-2 h-2 rounded-full ${isActive ? 'bg-emerald-400 shadow-[0_0_6px_rgba(52,211,153,0.6)]' : 'bg-[var(--surface-sunken)]'}`} />
-                    <span className={`text-[9px] font-semibold uppercase tracking-wide ${isActive ? 'text-emerald-700/80' : 'text-[var(--text-muted)]'}`}>
+                    <span className={`text-[9px] font-semibold uppercase tracking-wide ${isActive ? 'text-[var(--success-text)]/80' : 'text-[var(--text-muted)]'}`}>
                       {isActive ? 'Activo' : 'Inactivo'}
                     </span>
                   </div>
@@ -512,7 +512,7 @@ export default function EquipoPage() {
                     <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex justify-end">
                       <button
                         onClick={() => handleRevoke(m.id)}
-                        className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-red-500/40 hover:text-red-700 hover:bg-red-500/10 transition-colors"
+                        className="flex items-center gap-1.5 text-[10px] px-2.5 py-1 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-red-500/40 hover:text-[var(--danger-text)] hover:bg-red-500/10 transition-colors"
                       >
                         <Trash2 size={10} /> Eliminar del equipo
                       </button>
@@ -529,9 +529,9 @@ export default function EquipoPage() {
       {pending.length > 0 && (
         <div className="bg-[var(--surface-sunken)] rounded-2xl border border-amber-500/20 overflow-hidden">
           <div className="px-4 py-3 border-b border-[var(--border-subtle)] flex items-center gap-2">
-            <Mail size={14} className="text-amber-700" />
+            <Mail size={14} className="text-[var(--warning-text)]" />
             <span className="text-[var(--text-strong)] text-sm font-medium">Invitaciones pendientes</span>
-            <span className="ml-auto text-amber-700 text-xs">{pending.length}</span>
+            <span className="ml-auto text-[var(--warning-text)] text-xs">{pending.length}</span>
           </div>
           <div className="divide-y divide-[var(--border-subtle)]">
             {pending.map(m => {
@@ -539,11 +539,11 @@ export default function EquipoPage() {
               return (
                 <div key={m.id} className="flex items-center gap-3 px-4 py-3">
                   <div className="w-8 h-8 rounded-full bg-amber-500/10 border border-amber-500/20 flex items-center justify-center shrink-0">
-                    <Mail size={13} className="text-amber-700" />
+                    <Mail size={13} className="text-[var(--warning-text)]" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="text-[var(--text-strong)] text-sm truncate">{m.invited_email}</p>
-                    <p className="text-amber-700/60 text-[11px]">Esperando que acepte la invitación</p>
+                    <p className="text-[var(--warning-text)]/60 text-[11px]">Esperando que acepte la invitación</p>
                   </div>
                   <div className="flex gap-1">
                     {memberRoles.map(r => {
@@ -569,7 +569,7 @@ export default function EquipoPage() {
                   <button
                     onClick={() => handleRevoke(m.id)}
                     title="Cancelar invitación"
-                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-[var(--text-muted)] hover:text-red-700 transition-colors"
+                    className="p-1.5 rounded-lg hover:bg-red-500/20 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors"
                   >
                     <X size={13} />
                   </button>

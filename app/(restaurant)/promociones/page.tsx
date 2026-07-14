@@ -141,7 +141,7 @@ export default function PromocionesPage() {
       </div>
 
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-4 py-2.5 rounded-xl text-sm">
+        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-[var(--success-text)] px-4 py-2.5 rounded-xl text-sm">
           {toast}
         </div>
       )}
@@ -242,7 +242,7 @@ function PromoCard({ promo, onEdit, onToggle, onDelete }: {
       </div>
       <button
         onClick={onToggle}
-        className={`p-2 rounded-lg border transition-colors ${isActive ? 'text-emerald-700 border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)]'}`}
+        className={`p-2 rounded-lg border transition-colors ${isActive ? 'text-[var(--success-text)] border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20' : 'text-[var(--text-muted)] border-[var(--border-subtle)] bg-[var(--surface-sunken)] hover:bg-[var(--surface-sunken)]'}`}
         title={isActive ? 'Pausar' : 'Activar'}
       >
         {isActive ? <ToggleRight size={14} /> : <ToggleLeft size={14} />}
@@ -255,7 +255,7 @@ function PromoCard({ promo, onEdit, onToggle, onDelete }: {
       </button>
       <button
         onClick={onDelete}
-        className="p-2 rounded-lg border border-red-500/20 text-red-700 bg-red-500/5 hover:bg-red-500/15 transition-colors"
+        className="p-2 rounded-lg border border-red-500/20 text-[var(--danger-text)] bg-red-500/5 hover:bg-red-500/15 transition-colors"
       >
         <Trash2 size={12} />
       </button>

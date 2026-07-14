@@ -179,9 +179,9 @@ export default function ImpresorasPage() {
 
       {/* Info banner */}
       <div className="flex items-start gap-3 px-4 py-3 rounded-xl bg-blue-500/8 border border-blue-500/20">
-        <Printer size={14} className="text-blue-700 shrink-0 mt-0.5" />
+        <Printer size={14} className="text-[var(--info-text)] shrink-0 mt-0.5" />
         <div>
-          <p className="text-blue-700 text-xs font-semibold">Cómo funciona</p>
+          <p className="text-[var(--info-text)] text-xs font-semibold">Cómo funciona</p>
           <p className="text-[var(--text-muted)] text-xs mt-0.5">
             Cada impresora tiene un nombre (ej: <span className="font-mono text-[var(--text-muted)]">COCINA1</span>) que se envía al notifier{' '}
             <span className="font-mono text-[var(--text-muted)]">api.notifier.realdev.cl</span>.
@@ -193,7 +193,7 @@ export default function ImpresorasPage() {
 
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
@@ -204,7 +204,7 @@ export default function ImpresorasPage() {
           <p className="text-[var(--text-strong)] font-semibold text-sm">Nueva impresora</p>
 
           {addError && (
-            <p className="text-red-700 text-xs">{addError}</p>
+            <p className="text-[var(--danger-text)] text-xs">{addError}</p>
           )}
 
           <div className="grid grid-cols-2 gap-4">
@@ -342,7 +342,7 @@ export default function ImpresorasPage() {
                             <button
                               onClick={saveEdit}
                               disabled={saving}
-                              className="p-1.5 rounded-lg bg-emerald-500/20 text-emerald-700 hover:bg-emerald-500/30 transition-colors"
+                              className="p-1.5 rounded-lg bg-emerald-500/20 text-[var(--success-text)] hover:bg-emerald-500/30 transition-colors"
                             >
                               {saving ? <Loader2 size={13} className="animate-spin" /> : <Check size={13} />}
                             </button>
@@ -396,7 +396,7 @@ export default function ImpresorasPage() {
 
                               <button
                                 onClick={() => deletePrinter(p.id)}
-                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors"
+                                className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 transition-colors"
                               >
                                 <Trash2 size={13} />
                               </button>

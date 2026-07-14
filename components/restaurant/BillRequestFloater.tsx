@@ -103,7 +103,7 @@ export function BillRequestFloater() {
                 <Receipt size={16} className="text-[#0A0A14]" />
               </div>
               <div className="flex-1 min-w-0">
-                <p className="text-amber-700 text-sm font-bold leading-tight">
+                <p className="text-[var(--warning-text)] text-sm font-bold leading-tight">
                   {billNotifs.length === 1
                     ? '1 mesa pidió la cuenta'
                     : `${billNotifs.length} mesas pidieron la cuenta`}
@@ -135,7 +135,7 @@ export function BillRequestFloater() {
                         <p className="text-[var(--text-muted)] text-xs mt-0.5">{n.message}</p>
                       )}
                       {typeof total === 'number' && (
-                        <p className="text-amber-700 text-sm font-mono font-bold mt-1">
+                        <p className="text-[var(--warning-text)] text-sm font-mono font-bold mt-1">
                           ${total.toLocaleString('es-CL')}
                         </p>
                       )}
@@ -149,7 +149,7 @@ export function BillRequestFloater() {
                       </button>
                       <button
                         onClick={() => handleResolve(n.id)}
-                        className="px-3 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-700 text-xs font-medium hover:bg-emerald-500/10 transition-colors"
+                        className="px-3 py-1.5 rounded-lg border border-emerald-500/40 text-[var(--success-text)] text-xs font-medium hover:bg-emerald-500/10 transition-colors"
                         title="Marcar como resuelta"
                       >
                         ✓

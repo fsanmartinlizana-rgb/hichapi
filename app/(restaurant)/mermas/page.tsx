@@ -264,7 +264,7 @@ export default function MermasPage() {
         </div>
         <div className={`rounded-2xl p-4 border ${lowStockItems.length > 0 ? 'bg-red-500/10 border-red-500/30' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]'}`}>
           <p className="text-[var(--text-muted)] text-xs mb-1">Productos afectados</p>
-          <p className={`text-2xl font-bold ${(weeklySummary?.total_products_affected ?? 0) > 0 ? 'text-amber-700' : 'text-[var(--text-strong)]'}`}>
+          <p className={`text-2xl font-bold ${(weeklySummary?.total_products_affected ?? 0) > 0 ? 'text-[var(--warning-text)]' : 'text-[var(--text-strong)]'}`}>
             {weeklySummary?.total_products_affected ?? Object.keys(topItems).length}
           </p>
           <p className="text-[var(--text-muted)] text-xs mt-1">esta semana</p>
@@ -276,7 +276,7 @@ export default function MermasPage() {
               {(weeklySummary?.by_product ?? topItems.map(([name, cost_total]) => ({ name, cost_total, qty_total: 0, unit: '' }))).slice(0, 3).map((item) => (
                 <div key={item.name} className="flex justify-between text-xs">
                   <span className="text-[var(--text-body)] truncate mr-2">{item.name}</span>
-                  <span className="text-amber-700 font-medium shrink-0">{CLP(item.cost_total)}</span>
+                  <span className="text-[var(--warning-text)] font-medium shrink-0">{CLP(item.cost_total)}</span>
                 </div>
               ))}
             </div>
@@ -289,10 +289,10 @@ export default function MermasPage() {
       {/* Low stock alert */}
       {lowStockItems.length > 0 && (
         <div className="bg-red-500/10 border border-red-500/30 rounded-2xl p-4 flex items-start gap-3">
-          <AlertTriangle size={18} className="text-red-700 shrink-0 mt-0.5" />
+          <AlertTriangle size={18} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
           <div>
-            <p className="text-red-700 font-semibold text-sm">Stock bajo mínimo</p>
-            <p className="text-red-700/70 text-xs mt-0.5">
+            <p className="text-[var(--danger-text)] font-semibold text-sm">Stock bajo mínimo</p>
+            <p className="text-[var(--danger-text)]/70 text-xs mt-0.5">
               {lowStockItems.map(i => `${i.name} (${i.current_qty} ${i.unit})`).join(' · ')}
             </p>
           </div>
@@ -339,8 +339,8 @@ export default function MermasPage() {
                             <span className="text-[var(--text-strong)] font-medium">{name}</span>
                             <span className={`text-[9px] px-1.5 py-0.5 rounded-full border ${
                               isPlate
-                                ? 'bg-purple-500/15 text-purple-700 border-purple-500/30'
-                                : 'bg-blue-500/10 text-blue-700 border-blue-500/25'
+                                ? 'bg-purple-500/15 text-[var(--accent-violet-text)] border-purple-500/30'
+                                : 'bg-blue-500/10 text-[var(--info-text)] border-blue-500/25'
                             }`}>
                               {isPlate ? 'plato' : 'stock'}
                             </span>
@@ -353,11 +353,11 @@ export default function MermasPage() {
                         </td>
                         <td className="px-4 py-3 text-[var(--text-muted)]">{w.qty_lost} {unit}</td>
                         <td className="px-4 py-3">
-                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-700 border border-amber-500/20">
+                          <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-500/15 text-[var(--warning-text)] border border-amber-500/20">
                             {REASONS.find(r => r.value === w.reason)?.label ?? w.reason}
                           </span>
                         </td>
-                        <td className="px-4 py-3 text-right text-red-700 font-medium">{CLP(w.cost_lost ?? 0)}</td>
+                        <td className="px-4 py-3 text-right text-[var(--danger-text)] font-medium">{CLP(w.cost_lost ?? 0)}</td>
                         <td className="px-4 py-3 text-right text-[var(--text-muted)] text-xs">
                           {new Date(w.logged_at).toLocaleDateString('es-CL', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}
                         </td>
@@ -478,12 +478,12 @@ export default function MermasPage() {
                   const item = stockItems.find(i => i.id === selectedItem)
                   if (!item) return null
                   const loss = Math.round(parseFloat(qty || '0') * item.cost_per_unit)
-                  return <p className="text-amber-700 text-xs mt-1">Pérdida estimada: {CLP(loss)}</p>
+                  return <p className="text-[var(--warning-text)] text-xs mt-1">Pérdida estimada: {CLP(loss)}</p>
                 } else {
                   const plate = menuItems.find(m => m.id === selectedItem)
                   if (!plate) return null
                   const loss = Math.round(parseFloat(qty || '0') * plate.price)
-                  return <p className="text-amber-700 text-xs mt-1">Pérdida (precio venta): {CLP(loss)}</p>
+                  return <p className="text-[var(--warning-text)] text-xs mt-1">Pérdida (precio venta): {CLP(loss)}</p>
                 }
               })()}
             </div>

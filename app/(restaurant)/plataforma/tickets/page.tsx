@@ -43,23 +43,23 @@ interface ConversationTurn {
 const PRIORITY_RANK: Record<string, number> = { urgent: 4, high: 3, normal: 2, low: 1 }
 
 const PRIORITY_STYLE: Record<string, string> = {
-  urgent: 'bg-red-500/15 text-red-700 border-red-500/30',
-  high:   'bg-amber-500/15 text-amber-700 border-amber-500/30',
-  normal: 'bg-blue-500/15 text-blue-700 border-blue-500/30',
+  urgent: 'bg-red-500/15 text-[var(--danger-text)] border-red-500/30',
+  high:   'bg-amber-500/15 text-[var(--warning-text)] border-amber-500/30',
+  normal: 'bg-blue-500/15 text-[var(--info-text)] border-blue-500/30',
   low:    'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]',
 }
 
 const STATUS_STYLE: Record<string, string> = {
-  open:          'bg-red-500/10 text-red-700',
-  investigating: 'bg-amber-500/10 text-amber-700',
-  resolved:      'bg-emerald-500/10 text-emerald-700',
+  open:          'bg-red-500/10 text-[var(--danger-text)]',
+  investigating: 'bg-amber-500/10 text-[var(--warning-text)]',
+  resolved:      'bg-emerald-500/10 text-[var(--success-text)]',
   wont_fix:      'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
 }
 
 const PLAN_STYLE: Record<string, string> = {
-  enterprise: 'bg-violet-500/15 text-violet-700',
+  enterprise: 'bg-violet-500/15 text-[var(--accent-violet-text)]',
   pro:        'bg-[#FF6B35]/15 text-[#E55A2B]',
-  starter:    'bg-blue-500/15 text-blue-700',
+  starter:    'bg-blue-500/15 text-[var(--info-text)]',
   free:       'bg-[var(--surface-sunken)] text-[var(--text-muted)]',
 }
 
@@ -95,7 +95,7 @@ export default function SupportTicketsPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3 max-w-sm px-6">
-          <Shield size={32} className="text-amber-700 mx-auto" />
+          <Shield size={32} className="text-[var(--warning-text)] mx-auto" />
           <p className="text-[var(--text-strong)] font-semibold">Esta vista se movió</p>
           <p className="text-[var(--text-muted)] text-sm leading-relaxed">
             La gestión de tickets del founder ahora vive en el panel de admin.
@@ -154,8 +154,8 @@ export default function SupportTicketsPage() {
           </div>
           {counts.urgent > 0 && (
             <div className="flex items-center gap-2 px-2 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20">
-              <AlertTriangle size={12} className="text-red-700" />
-              <p className="text-red-700 text-[11px] flex-1">{counts.urgent} urgentes requieren atención</p>
+              <AlertTriangle size={12} className="text-[var(--danger-text)]" />
+              <p className="text-[var(--danger-text)] text-[11px] flex-1">{counts.urgent} urgentes requieren atención</p>
             </div>
           )}
         </div>
@@ -351,7 +351,7 @@ function TicketDetail({ ticket, onUpdated }: {
           {ticket.status !== 'investigating' && (
             <button
               onClick={() => updateStatus('investigating')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-700 text-xs font-semibold hover:bg-amber-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30 text-[var(--warning-text)] text-xs font-semibold hover:bg-amber-500/20 transition-colors"
             >
               <Clock size={12} /> Investigar
             </button>
@@ -359,7 +359,7 @@ function TicketDetail({ ticket, onUpdated }: {
           {ticket.status !== 'resolved' && (
             <button
               onClick={() => updateStatus('resolved')}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs font-semibold hover:bg-emerald-500/25 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[var(--success-text)] text-xs font-semibold hover:bg-emerald-500/25 transition-colors"
             >
               <CheckCircle2 size={12} /> Resolver
             </button>
@@ -390,7 +390,7 @@ function TicketDetail({ ticket, onUpdated }: {
       <div className="bg-gradient-to-br from-emerald-500/5 to-transparent border border-emerald-500/20 rounded-2xl p-5 space-y-3">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <MessageSquare size={14} className="text-emerald-700" />
+            <MessageSquare size={14} className="text-[var(--success-text)]" />
             <p className="text-[var(--text-strong)] font-semibold text-sm">Chapi sugiere respuesta</p>
             <span className="text-[var(--text-muted)] text-[10px]">lista para enviar al cliente</span>
           </div>
@@ -398,7 +398,7 @@ function TicketDetail({ ticket, onUpdated }: {
             <button
               onClick={suggestReply}
               disabled={suggesting}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 text-xs font-semibold hover:bg-emerald-500/25 disabled:opacity-50 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/15 border border-emerald-500/30 text-[var(--success-text)] text-xs font-semibold hover:bg-emerald-500/25 disabled:opacity-50 transition-colors"
               style={{ minHeight: 36 }}
             >
               {suggesting ? <Loader2 size={12} className="animate-spin" /> : <Sparkles size={12} />}
@@ -412,17 +412,17 @@ function TicketDetail({ ticket, onUpdated }: {
             {/* Categoría + reasoning */}
             <div className="flex items-center gap-2 flex-wrap">
               {suggestion.category === 'resolvable_now' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-emerald-700">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 border border-emerald-500/30 text-[var(--success-text)]">
                   <CheckCircle2 size={10} /> Resolvible ahora
                 </span>
               )}
               {suggestion.category === 'needs_code_change' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-amber-700">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/15 border border-amber-500/30 text-[var(--warning-text)]">
                   <Code size={10} /> Requiere código
                 </span>
               )}
               {suggestion.category === 'needs_call' && (
-                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-red-700">
+                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 border border-red-500/30 text-[var(--danger-text)]">
                   <Phone size={10} /> Requiere llamada
                 </span>
               )}
@@ -442,7 +442,7 @@ function TicketDetail({ ticket, onUpdated }: {
                 onClick={copyToClipboard}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors ${
                   copied
-                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-700'
+                    ? 'bg-emerald-500/20 border border-emerald-500/40 text-[var(--success-text)]'
                     : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-strong)] hover:bg-[var(--surface-sunken)]'
                 }`}
                 style={{ minHeight: 36 }}
@@ -477,7 +477,7 @@ function TicketDetail({ ticket, onUpdated }: {
           <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
             {conversation.map((turn, i) => (
               <div key={i} className={turn.role === 'admin' ? 'pl-6' : 'pr-6'}>
-                <p className={`text-[10px] font-medium mb-1 ${turn.role === 'admin' ? 'text-blue-700' : 'text-[#E55A2B]'}`}>
+                <p className={`text-[10px] font-medium mb-1 ${turn.role === 'admin' ? 'text-[var(--info-text)]' : 'text-[#E55A2B]'}`}>
                   {turn.role === 'admin' ? 'Vos' : 'Agente IA'} · {new Date(turn.ts).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                 </p>
                 <div className={`text-sm whitespace-pre-wrap leading-relaxed px-3 py-2 rounded-lg ${

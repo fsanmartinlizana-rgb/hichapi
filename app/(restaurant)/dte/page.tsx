@@ -692,7 +692,7 @@ export default function DtePage() {
 
       {error && (
         <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
           <p className="text-red-200 text-xs">{error}</p>
         </div>
       )}
@@ -708,7 +708,7 @@ export default function DtePage() {
         {/* Stats */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <StatCard label="Emitidas"     value={totals.count.toString()}    icon={<FileText size={14} />} />
-          <StatCard label="Aceptadas SII" value={totals.accepted.toString()} icon={<CheckCircle2 size={14} className="text-emerald-700" />} />
+          <StatCard label="Aceptadas SII" value={totals.accepted.toString()} icon={<CheckCircle2 size={14} className="text-[var(--success-text)]" />} />
           <StatCard label="Facturado"    value={fmtCLP(totals.gross)}       icon={<ShieldCheck size={14} />} />
         </div>
 
@@ -734,7 +734,7 @@ export default function DtePage() {
         icon={<ShieldCheck size={14} className="text-[#E55A2B]" />}
         open={openSections.config}
         onToggle={() => toggleSection('config')}
-        badge={!credential ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold">Sin certificado</span> : undefined}
+        badge={!credential ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[var(--warning-text)] text-[10px] font-bold">Sin certificado</span> : undefined}
       >
         {/* Ambiente SII */}
         <div className="space-y-3">
@@ -773,7 +773,7 @@ export default function DtePage() {
           </div>
           {dteEnvironment === 'production' && (
             <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
+              <AlertCircle size={14} className="text-[var(--warning-text)] shrink-0 mt-0.5" />
               <p className="text-amber-200 text-xs"><strong>Producción:</strong> Los documentos emitidos tienen validez legal y se reportan al SII.</p>
             </div>
           )}
@@ -810,7 +810,7 @@ export default function DtePage() {
             <div className="border-t border-[var(--border-subtle)] pt-4 space-y-3">
               {error && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                  <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
+                  <AlertCircle size={13} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
                   <p className="text-red-200 text-xs">{error}</p>
                 </div>
               )}
@@ -840,7 +840,7 @@ export default function DtePage() {
           <p className="text-[var(--text-muted)] text-xs">Sube los archivos CAF (XML) emitidos por el SII para autorizar folios por tipo de documento.</p>
           {!credential ? (
             <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-amber-500/10 border border-amber-500/30">
-              <AlertCircle size={13} className="text-amber-700 shrink-0 mt-0.5" />
+              <AlertCircle size={13} className="text-[var(--warning-text)] shrink-0 mt-0.5" />
               <p className="text-amber-200 text-xs">Debes subir un certificado SII antes de cargar archivos CAF</p>
             </div>
           ) : (
@@ -852,7 +852,7 @@ export default function DtePage() {
               </div>
               {cafError && (
                 <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                  <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
+                  <AlertCircle size={13} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
                   <p className="text-red-200 text-xs">{cafError}</p>
                 </div>
               )}
@@ -949,7 +949,7 @@ export default function DtePage() {
                             </span>
                             {/* Indicador de documento anulado */}
                             {em.status === 'cancelled' && (
-                              <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-700 text-[9px] font-bold flex items-center gap-1">
+                              <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 text-[var(--danger-text)] text-[9px] font-bold flex items-center gap-1">
                                 <XCircle size={9} />
                                 ANULADA
                               </span>
@@ -989,7 +989,7 @@ export default function DtePage() {
                                 setSelectedEmission(em)
                                 setNotaCreditoModal(true)
                               }}
-                              className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-700 hover:text-red-700 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                              className="px-2 py-1 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-[var(--danger-text)] hover:text-[var(--danger-text)] text-[10px] font-semibold transition-colors flex items-center gap-1"
                               title="Anular este documento"
                             >
                               <XCircle size={10} />
@@ -1004,7 +1004,7 @@ export default function DtePage() {
                                 setDebitoEmission(em)
                                 setNotaDebitoModal(true)
                               }}
-                              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-amber-700 hover:text-amber-700 text-[10px] font-semibold transition-colors flex items-center gap-1"
+                              className="px-2 py-1 rounded-lg bg-amber-500/10 hover:bg-amber-500/20 text-[var(--warning-text)] hover:text-[var(--warning-text)] text-[10px] font-semibold transition-colors flex items-center gap-1"
                               title="Emitir nota de débito"
                             >
                               <TrendingUp size={10} />
@@ -1017,7 +1017,7 @@ export default function DtePage() {
                       {hasDetail && expanded && (
                         <div className="px-4 pb-3">
                           <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-                            <p className="text-red-700 text-[11px] font-semibold mb-1">Motivo del rechazo</p>
+                            <p className="text-[var(--danger-text)] text-[11px] font-semibold mb-1">Motivo del rechazo</p>
                             <p className="text-red-200/80 text-xs break-words">{em.error_detail ?? 'Sin detalle disponible.'}</p>
                           </div>
                         </div>
@@ -1025,7 +1025,7 @@ export default function DtePage() {
                       {em.document_type === 33 && relatedDocs.length > 0 && (
                         <div className="px-4 pb-3">
                           <div className="bg-blue-500/8 border border-blue-500/20 rounded-xl px-4 py-3">
-                            <p className="text-blue-700 text-[11px] font-semibold mb-2">Documentos relacionados ({relatedDocs.length})</p>
+                            <p className="text-[var(--info-text)] text-[11px] font-semibold mb-2">Documentos relacionados ({relatedDocs.length})</p>
                             <div className="space-y-1">
                               {relatedDocs.map(rd => (
                                 <div key={rd.id} className="flex items-center justify-between text-xs">
@@ -1047,7 +1047,7 @@ export default function DtePage() {
                           return notasCredito.length > 0 ? (
                             <div className="px-4 pb-3">
                               <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-                                <p className="text-red-700 text-[11px] font-semibold mb-2">
+                                <p className="text-[var(--danger-text)] text-[11px] font-semibold mb-2">
                                   Notas de crédito ({notasCredito.length})
                                 </p>
                                 <div className="space-y-1.5">
@@ -1130,7 +1130,7 @@ export default function DtePage() {
         onToggle={() => toggleSection('recibidas')}
         badge={
           incomingInvoices.filter(i => i.reception_status === 'pendiente').length > 0
-            ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-700 text-[10px] font-bold">
+            ? <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-[var(--warning-text)] text-[10px] font-bold">
                 {incomingInvoices.filter(i => i.reception_status === 'pendiente').length} pendientes
               </span>
             : undefined
@@ -1225,7 +1225,7 @@ export default function DtePage() {
             </div>
             {incomingFormError && (
               <div className="flex items-start gap-2 px-3 py-2.5 rounded-xl bg-red-500/10 border border-red-500/30">
-                <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
+                <AlertCircle size={13} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
                 <p className="text-red-200 text-xs">{incomingFormError}</p>
               </div>
             )}
@@ -1551,7 +1551,7 @@ function EmissionDetailModal({ emission, onClose }: { emission: Emission; onClos
           {/* Error detail — solo mostrar si el documento está rechazado */}
           {emission.status === 'rejected' && emission.error_detail && (
             <div className="bg-red-500/8 border border-red-500/20 rounded-xl px-4 py-3">
-              <p className="text-red-700 text-[11px] font-semibold mb-1">Error</p>
+              <p className="text-[var(--danger-text)] text-[11px] font-semibold mb-1">Error</p>
               <p className="text-red-200/80 text-xs break-words">{emission.error_detail}</p>
             </div>
           )}
@@ -1638,12 +1638,12 @@ function IncomingInvoiceRow({
             </span>
             <span className="text-[var(--text-muted)] text-xs truncate">· {invoice.razon_emisor}</span>
             {invoice.vencido && (
-              <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-red-700 text-[9px] font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-red-500/20 text-[var(--danger-text)] text-[9px] font-bold">
                 PLAZO VENCIDO
               </span>
             )}
             {isPending && !invoice.vencido && invoice.dias_restantes <= 3 && (
-              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-700 text-[9px] font-bold">
+              <span className="px-1.5 py-0.5 rounded bg-amber-500/20 text-[var(--warning-text)] text-[9px] font-bold">
                 {invoice.dias_restantes}d restantes
               </span>
             )}
@@ -1696,7 +1696,7 @@ function IncomingInvoiceRow({
               <DetailRow label="Motivo" value={invoice.reception_glosa} />
             )}
             {isPending && !invoice.vencido && (
-              <p className="text-amber-700/70 text-[10px] pt-1">
+              <p className="text-[var(--warning-text)]/70 text-[10px] pt-1">
                 ⏱ Plazo legal: {invoice.dias_restantes} día{invoice.dias_restantes !== 1 ? 's' : ''} restante{invoice.dias_restantes !== 1 ? 's' : ''} para aceptar o rechazar
               </p>
             )}
@@ -1724,7 +1724,7 @@ function IncomingInvoiceRow({
                     <button
                       onClick={() => onAction(invoice.id, 'rechazado', rejectGlosa)}
                       disabled={processing || !rejectGlosa.trim()}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-[var(--danger-text)] text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
                     >
                       {processing ? <Loader2 size={10} className="animate-spin" /> : <XCircle size={10} />}
                       Confirmar rechazo
@@ -1736,7 +1736,7 @@ function IncomingInvoiceRow({
                   <button
                     onClick={() => onAction(invoice.id, 'aceptado')}
                     disabled={processing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-700 text-xs font-semibold hover:bg-emerald-500/30 disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-500/20 text-[var(--success-text)] text-xs font-semibold hover:bg-emerald-500/30 disabled:opacity-40 transition-colors"
                   >
                     {processing ? <Loader2 size={10} className="animate-spin" /> : <CheckCircle2 size={10} />}
                     Aceptar
@@ -1745,7 +1745,7 @@ function IncomingInvoiceRow({
                     <button
                       onClick={() => setShowReject(true)}
                       disabled={processing}
-                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-red-700 text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
+                      className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/20 text-[var(--danger-text)] text-xs font-semibold hover:bg-red-500/30 disabled:opacity-40 transition-colors"
                     >
                       <XCircle size={10} />
                       Rechazar
@@ -1754,7 +1754,7 @@ function IncomingInvoiceRow({
                   <button
                     onClick={() => onAction(invoice.id, 'reclamado', 'Reclamo comercial')}
                     disabled={processing}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-amber-700 text-xs font-semibold hover:bg-amber-500/30 disabled:opacity-40 transition-colors"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-amber-500/20 text-[var(--warning-text)] text-xs font-semibold hover:bg-amber-500/30 disabled:opacity-40 transition-colors"
                   >
                     <AlertCircle size={10} />
                     Reclamar

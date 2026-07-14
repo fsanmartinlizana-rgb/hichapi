@@ -21,10 +21,10 @@ import {
 } from '@/lib/turnos/grouping'
 
 const STATUS_CONFIG: Record<WorkerShift['status'], { label: string; color: string }> = {
-  scheduled: { label: 'Programado', color: 'bg-blue-500/15 text-blue-700 border-blue-500/30' },
-  open:      { label: 'En curso',   color: 'bg-emerald-500/15 text-emerald-700 border-emerald-500/30' },
+  scheduled: { label: 'Programado', color: 'bg-blue-500/15 text-[var(--info-text)] border-blue-500/30' },
+  open:      { label: 'En curso',   color: 'bg-emerald-500/15 text-[var(--success-text)] border-emerald-500/30' },
   closed:    { label: 'Cerrado',    color: 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]' },
-  no_show:   { label: 'Ausente',    color: 'bg-red-500/15 text-red-700 border-red-500/30' },
+  no_show:   { label: 'Ausente',    color: 'bg-red-500/15 text-[var(--danger-text)] border-red-500/30' },
 }
 
 const DAYS_FULL = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado']

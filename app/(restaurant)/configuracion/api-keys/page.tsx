@@ -125,8 +125,8 @@ export default function ApiKeysPage() {
       {freshSecret && (
         <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/5 p-5 space-y-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck size={16} className="text-emerald-700" />
-            <p className="text-emerald-700 font-semibold text-sm">Key creada — guardala ahora</p>
+            <ShieldCheck size={16} className="text-[var(--success-text)]" />
+            <p className="text-[var(--success-text)] font-semibold text-sm">Key creada — guardala ahora</p>
           </div>
           <p className="text-[var(--text-body)] text-xs">
             Este es el único momento en que vas a ver el secret completo. Copiala y guardala en tu gestor de secretos. Después solo verás el prefix.
@@ -137,7 +137,7 @@ export default function ApiKeysPage() {
               onClick={copySecret}
               className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[var(--surface-sunken)] text-[var(--text-strong)] text-xs hover:bg-[var(--surface-sunken)] transition-colors"
             >
-              {copied ? <Check size={11} className="text-emerald-700" /> : <Copy size={11} />}
+              {copied ? <Check size={11} className="text-[var(--success-text)]" /> : <Copy size={11} />}
               {copied ? 'Copiado' : 'Copiar'}
             </button>
           </div>
@@ -171,9 +171,9 @@ export default function ApiKeysPage() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 mb-1 flex-wrap">
                     <p className="text-[var(--text-strong)] text-sm font-semibold">{k.name}</p>
-                    {isRevoked && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-red-700 font-semibold">Revocada</span>}
+                    {isRevoked && <span className="text-[10px] px-1.5 py-0.5 rounded bg-red-500/15 text-[var(--danger-text)] font-semibold">Revocada</span>}
                     {k.expires_at && new Date(k.expires_at) < new Date() && !isRevoked && (
-                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">Expirada</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/15 text-[var(--warning-text)]">Expirada</span>
                     )}
                   </div>
                   <p className="text-[var(--text-muted)] text-[11px] font-mono mb-1">{k.prefix}…</p>
@@ -191,7 +191,7 @@ export default function ApiKeysPage() {
                 {!isRevoked && (
                   <button
                     onClick={() => revoke(k.id)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors shrink-0"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[var(--danger-text)] text-xs hover:bg-red-500/20 transition-colors shrink-0"
                   >
                     <Trash2 size={11} /> Revocar
                   </button>
@@ -204,9 +204,9 @@ export default function ApiKeysPage() {
 
       {/* Security tip */}
       <div className="flex items-start gap-2 rounded-xl border border-amber-500/20 bg-amber-500/5 px-4 py-3">
-        <AlertTriangle size={14} className="text-amber-700 mt-0.5 shrink-0" />
+        <AlertTriangle size={14} className="text-[var(--warning-text)] mt-0.5 shrink-0" />
         <div className="space-y-1">
-          <p className="text-amber-700 text-xs font-medium">Seguridad</p>
+          <p className="text-[var(--warning-text)] text-xs font-medium">Seguridad</p>
           <p className="text-amber-200/80 text-[11px] leading-relaxed">
             Nunca pegues una API key en código público (GitHub, apps mobile, etc.). Usala solo en servidores backend. Si creés que una key se filtró, revocala de inmediato y creá una nueva.
           </p>

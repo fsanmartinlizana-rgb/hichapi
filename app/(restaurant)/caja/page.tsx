@@ -260,7 +260,7 @@ export default function CajaPage() {
         <div className="bg-[var(--surface-card)] rounded-xl p-4 border border-green-500/20 flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
           <div>
-            <p className="text-green-700 text-sm font-medium">Caja abierta</p>
+            <p className="text-[var(--success-text)] text-sm font-medium">Caja abierta</p>
             <p className="text-[var(--text-muted)] text-xs">
               Desde {new Date(session.opened_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })} · Saldo inicial: {clp(session.opening_amount)}
             </p>
@@ -279,9 +279,9 @@ export default function CajaPage() {
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
           {[
             { icon: DollarSign, label: 'Total del día', value: clp(summary.total_revenue + (summary.total_tips || 0)), color: 'text-[var(--text-strong)]' },
-            { icon: Banknote,   label: 'Efectivo',       value: clp(summary.total_cash),    color: 'text-green-700' },
-            { icon: CreditCard, label: 'Digital',         value: clp(summary.total_digital), color: 'text-blue-700' },
-            { icon: TrendingUp, label: 'Propinas',        value: clp(summary.total_tips || 0), color: 'text-emerald-700' },
+            { icon: Banknote,   label: 'Efectivo',       value: clp(summary.total_cash),    color: 'text-[var(--success-text)]' },
+            { icon: CreditCard, label: 'Digital',         value: clp(summary.total_digital), color: 'text-[var(--info-text)]' },
+            { icon: TrendingUp, label: 'Propinas',        value: clp(summary.total_tips || 0), color: 'text-[var(--success-text)]' },
             { icon: TrendingUp, label: 'Comisión HiChapi',value: clp(summary.hichapi_commission), color: 'text-orange-600' },
           ].map(({ icon: Icon, label, value, color }) => (
             <div key={label} className="bg-[var(--surface-card)] rounded-xl p-4 border border-[var(--border-subtle)]">
@@ -307,13 +307,13 @@ export default function CajaPage() {
         <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border-subtle)]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
             <div className="flex items-center gap-2">
-              <Receipt size={14} className="text-green-700" />
+              <Receipt size={14} className="text-[var(--success-text)]" />
               <h3 className="text-[var(--text-strong)] text-sm font-semibold">Pedidos del turno</h3>
-              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/15 text-green-700">
+              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-green-500/15 text-[var(--success-text)]">
                 {sessionOrders.length}
               </span>
             </div>
-            <span className="text-green-700 text-sm font-bold">
+            <span className="text-[var(--success-text)] text-sm font-bold">
               {clp(sessionOrders.reduce((s, o) => s + o.total, 0))}
             </span>
           </div>
@@ -328,9 +328,9 @@ export default function CajaPage() {
                   : o.payment_method === 'digital' ? 'Digital'
                   : o.payment_method === 'mixed' ? 'Mixto'
                   : '—'
-                const methodColor = o.payment_method === 'cash' ? 'text-green-700'
-                  : o.payment_method === 'digital' ? 'text-blue-700'
-                  : o.payment_method === 'mixed' ? 'text-purple-700'
+                const methodColor = o.payment_method === 'cash' ? 'text-[var(--success-text)]'
+                  : o.payment_method === 'digital' ? 'text-[var(--info-text)]'
+                  : o.payment_method === 'mixed' ? 'text-[var(--accent-violet-text)]'
                   : 'text-[var(--text-muted)]'
                 const itemsText = (o.items ?? [])
                   .map(it => `${it.quantity}× ${it.name}`)
@@ -373,13 +373,13 @@ export default function CajaPage() {
           <div className="bg-[var(--surface-card)] rounded-xl border border-[var(--border-subtle)]">
             <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--border-subtle)]">
               <div className="flex items-center gap-2">
-                <Receipt size={14} className="text-red-700" />
+                <Receipt size={14} className="text-[var(--danger-text)]" />
                 <h3 className="text-[var(--text-strong)] text-sm font-semibold">Gastos de la caja</h3>
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-red-700">
+                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500/15 text-[var(--danger-text)]">
                   {expenses.length}
                 </span>
               </div>
-              <span className="text-red-700 text-sm font-bold">−{clp(totalExpenses)}</span>
+              <span className="text-[var(--danger-text)] text-sm font-bold">−{clp(totalExpenses)}</span>
             </div>
             <div className="max-h-64 overflow-y-auto divide-y divide-[var(--border-subtle)]">
               {expenses.length === 0 ? (
@@ -404,10 +404,10 @@ export default function CajaPage() {
                           {meta.label} · {new Date(e.created_at).toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' })}
                         </p>
                       </div>
-                      <span className="text-red-700 text-xs font-semibold shrink-0">−{clp(e.amount)}</span>
+                      <span className="text-[var(--danger-text)] text-xs font-semibold shrink-0">−{clp(e.amount)}</span>
                       <button
                         onClick={() => handleDeleteExpense(e.id)}
-                        className="w-6 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 opacity-0 group-hover/row:opacity-100 transition-all shrink-0"
+                        className="w-6 h-6 rounded flex items-center justify-center text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 opacity-0 group-hover/row:opacity-100 transition-all shrink-0"
                         title="Eliminar"
                       >
                         <Trash2 size={11} />
@@ -435,26 +435,26 @@ export default function CajaPage() {
               </div>
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span className="flex items-center gap-2">
-                  <ArrowUpCircle size={12} className="text-green-700" />
+                  <ArrowUpCircle size={12} className="text-[var(--success-text)]" />
                   Efectivo recibido
                 </span>
-                <span className="text-green-700">{summary ? clp(summary.total_cash) : '—'}</span>
+                <span className="text-[var(--success-text)]">{summary ? clp(summary.total_cash) : '—'}</span>
               </div>
               {summary && (summary.total_tips || 0) > 0 && (
                 <div className="flex justify-between text-[var(--text-muted)]">
                   <span className="flex items-center gap-2">
-                    <ArrowUpCircle size={12} className="text-emerald-700" />
+                    <ArrowUpCircle size={12} className="text-[var(--success-text)]" />
                     Propinas
                   </span>
-                  <span className="text-emerald-700">{clp(summary.total_tips || 0)}</span>
+                  <span className="text-[var(--success-text)]">{clp(summary.total_tips || 0)}</span>
                 </div>
               )}
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span className="flex items-center gap-2">
-                  <ArrowDownCircle size={12} className="text-red-700" />
+                  <ArrowDownCircle size={12} className="text-[var(--danger-text)]" />
                   Gastos
                 </span>
-                <span className="text-red-700">−{clp(totalExpenses)}</span>
+                <span className="text-[var(--danger-text)]">−{clp(totalExpenses)}</span>
               </div>
               <div className="flex justify-between font-medium border-t border-[var(--border-subtle)] pt-2 mt-1">
                 <span className="text-[var(--text-muted)]">Esperado en caja</span>
@@ -592,11 +592,11 @@ export default function CajaPage() {
               </div>
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span>+ Efectivo recibido</span>
-                <span className="text-green-700">{clp(summary.total_cash)}</span>
+                <span className="text-[var(--success-text)]">{clp(summary.total_cash)}</span>
               </div>
               <div className="flex justify-between text-[var(--text-muted)]">
                 <span>− Gastos ({expenses.length})</span>
-                <span className="text-red-700">{clp(totalExpenses)}</span>
+                <span className="text-[var(--danger-text)]">{clp(totalExpenses)}</span>
               </div>
               <div className="flex justify-between text-[var(--text-muted)] font-medium border-t border-[var(--border-subtle)] pt-1">
                 <span>Esperado en caja</span>
@@ -618,7 +618,7 @@ export default function CajaPage() {
 
             {actualCash !== '' && diffAbs > 0 && (
               <div className={`flex items-center gap-2 text-xs mb-3 ${
-                diffRaw > 0 ? 'text-blue-700' : 'text-yellow-700'
+                diffRaw > 0 ? 'text-[var(--info-text)]' : 'text-[var(--warning-text)]'
               }`}>
                 <AlertTriangle size={12} />
                 <span>
@@ -744,7 +744,7 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
             <button
               onClick={() => downloadCashReportCSV(data, periodLabels[period], date)}
               disabled={data.aggregate.orders_count === 0 && data.sessions.length === 0}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/40 text-emerald-700 text-xs font-medium hover:bg-emerald-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-emerald-500/40 text-[var(--success-text)] text-xs font-medium hover:bg-emerald-500/10 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
               title="Descargar reporte como CSV (Excel-compatible)"
             >
               <Download size={12} /> CSV
@@ -756,7 +756,7 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
           <div className="text-center py-12 text-[var(--text-muted)] text-sm">Cargando…</div>
         )}
         {err && (
-          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-red-700 text-sm">{err}</div>
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-3 text-[var(--danger-text)] text-sm">{err}</div>
         )}
 
         {data && !loading && (
@@ -799,8 +799,8 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
                         <tr key={d.date} className="border-b border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)]">
                           <td className="px-3 py-2 text-[var(--text-body)]">{new Date(d.date).toLocaleDateString('es-CL', { weekday: 'short', day: '2-digit', month: 'short' })}</td>
                           <td className="px-3 py-2 text-right text-[var(--text-muted)] tabular-nums">{d.orders}</td>
-                          <td className="px-3 py-2 text-right text-emerald-700 tabular-nums">{clp(d.cash)}</td>
-                          <td className="px-3 py-2 text-right text-blue-700 tabular-nums">{clp(d.digital)}</td>
+                          <td className="px-3 py-2 text-right text-[var(--success-text)] tabular-nums">{clp(d.cash)}</td>
+                          <td className="px-3 py-2 text-right text-[var(--info-text)] tabular-nums">{clp(d.digital)}</td>
                           <td className="px-3 py-2 text-right text-[var(--text-strong)] font-semibold tabular-nums">{clp(d.revenue)}</td>
                         </tr>
                       ))}
@@ -828,7 +828,7 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
                           </p>
                           <span className={`text-[10px] px-2 py-0.5 rounded-full font-semibold ${
                             s.status === 'open'
-                              ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30'
+                              ? 'bg-emerald-500/15 text-[var(--success-text)] border border-emerald-500/30'
                               : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)]'
                           }`}>
                             {s.status === 'open' ? 'ABIERTA' : 'CERRADA'}
@@ -842,7 +842,7 @@ function CashReportsModal({ restaurantId, onClose }: { restaurantId: string; onC
                         </div>
                         {s.status === 'closed' && (
                           <div className={`mt-2 pt-2 border-t border-[var(--border-subtle)] flex items-center justify-between text-[11px]
-                            ${dif === 0 ? 'text-emerald-700' : dif > 0 ? 'text-blue-700' : 'text-amber-700'}`}>
+                            ${dif === 0 ? 'text-[var(--success-text)]' : dif > 0 ? 'text-[var(--info-text)]' : 'text-[var(--warning-text)]'}`}>
                             <span>
                               Diferencia: <strong>{dif === 0 ? '$0 (cuadrada)' : `${dif > 0 ? '+' : ''}${clp(dif)}`}</strong>
                             </span>
@@ -876,9 +876,9 @@ function KpiCard({
 }) {
   const colors: Record<string, string> = {
     white:   'text-[var(--text-strong)]',
-    emerald: 'text-emerald-700',
-    blue:    'text-blue-700',
-    amber:   'text-amber-700',
+    emerald: 'text-[var(--success-text)]',
+    blue:    'text-[var(--info-text)]',
+    amber:   'text-[var(--warning-text)]',
   }
   return (
     <div className="bg-black/30 rounded-xl border border-[var(--border-subtle)] p-3">

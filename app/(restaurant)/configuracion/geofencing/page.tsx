@@ -139,7 +139,7 @@ export default function GeofencingPage() {
       </div>
 
       {toast && (
-        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-emerald-700 px-4 py-2.5 rounded-xl text-sm">
+        <div className="fixed top-6 right-6 z-50 bg-emerald-500/15 border border-emerald-500/30 text-[var(--success-text)] px-4 py-2.5 rounded-xl text-sm">
           {toast}
         </div>
       )}
@@ -154,7 +154,7 @@ export default function GeofencingPage() {
           <button
             onClick={() => setConfig(c => ({ ...c, geofence_enabled: !c.geofence_enabled }))}
             className={`flex items-center gap-2 px-3 py-1.5 rounded-xl text-sm font-semibold ${
-              config.geofence_enabled ? 'bg-emerald-500/15 text-emerald-700 border border-emerald-500/30' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)]'
+              config.geofence_enabled ? 'bg-emerald-500/15 text-[var(--success-text)] border border-emerald-500/30' : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border border-[var(--border-subtle)]'
             }`}
           >
             {config.geofence_enabled ? <><ToggleRight size={14} /> Activo</> : <><ToggleLeft size={14} /> Inactivo</>}
@@ -222,9 +222,9 @@ export default function GeofencingPage() {
 
       {/* Privacy notice */}
       <div className="flex items-start gap-2 rounded-xl border border-blue-500/20 bg-blue-500/5 px-4 py-3">
-        <AlertCircle size={14} className="text-blue-700 mt-0.5 shrink-0" />
+        <AlertCircle size={14} className="text-[var(--info-text)] mt-0.5 shrink-0" />
         <div className="space-y-1">
-          <p className="text-blue-700 text-xs font-medium">Privacidad</p>
+          <p className="text-[var(--info-text)] text-xs font-medium">Privacidad</p>
           <p className="text-blue-200/80 text-[11px] leading-relaxed">
             El cliente debe dar permiso de ubicación explícito en su navegador. Solo enviamos la coord cuando abre tu página pública o escanea un QR, nunca en background. Los eventos quedan asociados al restaurant, no al usuario personal.
           </p>
@@ -245,7 +245,7 @@ export default function GeofencingPage() {
             {events.map(e => (
               <div key={e.id} className="flex items-center gap-3 px-3 py-2 rounded-lg bg-white/[0.02] border border-[var(--border-subtle)]">
                 {e.within_radius
-                  ? <CheckCircle2 size={13} className="text-emerald-700 shrink-0" />
+                  ? <CheckCircle2 size={13} className="text-[var(--success-text)] shrink-0" />
                   : <XCircle size={13} className="text-[var(--text-muted)] shrink-0" />
                 }
                 <div className="flex-1 min-w-0">

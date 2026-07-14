@@ -93,15 +93,15 @@ export default function AgregarSucursalPage() {
         <div className="bg-emerald-500/8 border border-emerald-500/30 rounded-2xl p-6 space-y-4">
           <div className="flex items-start gap-3">
             <div className="w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shrink-0">
-              <Check size={20} className="text-emerald-700" />
+              <Check size={20} className="text-[var(--success-text)]" />
             </div>
             <div>
               <h2 className="text-[var(--text-strong)] font-bold text-base">¡Sucursal creada!</h2>
-              <p className="text-emerald-700/80 text-sm mt-1">
+              <p className="text-[var(--success-text)]/80 text-sm mt-1">
                 <strong className="text-[var(--text-strong)]">{done.name}</strong> ya está activa en tu cuenta.
               </p>
               {done.copiedItems > 0 && (
-                <p className="text-emerald-700/60 text-xs mt-2">
+                <p className="text-[var(--success-text)]/60 text-xs mt-2">
                   Se copiaron <strong>{done.copiedItems}</strong> platos del menú origen.
                 </p>
               )}
@@ -223,8 +223,8 @@ export default function AgregarSucursalPage() {
 
           {error && (
             <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-xl px-3 py-2.5">
-              <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
-              <p className="text-red-700 text-xs">{error}</p>
+              <AlertCircle size={13} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
+              <p className="text-[var(--danger-text)] text-xs">{error}</p>
             </div>
           )}
 

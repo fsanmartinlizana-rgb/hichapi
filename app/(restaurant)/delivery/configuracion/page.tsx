@@ -204,7 +204,7 @@ export default function DeliveryConfiguracionPage() {
             <Save size={14} />
             {saved ? 'Guardado ✓' : saving ? 'Guardando…' : 'Guardar'}
           </button>
-          {saveError && <p className="text-red-700 text-xs">{saveError}</p>}
+          {saveError && <p className="text-[var(--danger-text)] text-xs">{saveError}</p>}
         </div>
       </div>
 
@@ -379,7 +379,7 @@ export default function DeliveryConfiguracionPage() {
               {tiers.length > 1 && (
                 <button
                   onClick={() => removeTier(i)}
-                  className="flex items-center gap-1 text-xs text-red-700 hover:text-red-700 transition-colors"
+                  className="flex items-center gap-1 text-xs text-[var(--danger-text)] hover:text-[var(--danger-text)] transition-colors"
                 >
                   <Trash2 size={12} /> Eliminar tramo
                 </button>

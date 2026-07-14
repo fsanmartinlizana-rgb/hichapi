@@ -54,10 +54,10 @@ export default async function DeliveryPage() {
   }
 
   const kpis = [
-    { label: 'Pedidos activos',    value: activeOrders,                    icon: Truck,      color: 'text-blue-700',   href: '/delivery/pedidos' },
-    { label: 'Sin asignar',        value: pendingOrders,                   icon: Clock,      color: 'text-amber-700',  href: '/delivery/pedidos' },
-    { label: 'Entregados hoy',     value: todayCompleted,                  icon: TrendingUp, color: 'text-green-700',  href: '/delivery/analiticas' },
-    { label: 'Rating promedio hoy', value: avgRating !== null ? `${avgRating}★` : '—', icon: Star, color: 'text-yellow-700', href: '/delivery/calificaciones' },
+    { label: 'Pedidos activos',    value: activeOrders,                    icon: Truck,      color: 'text-[var(--info-text)]',   href: '/delivery/pedidos' },
+    { label: 'Sin asignar',        value: pendingOrders,                   icon: Clock,      color: 'text-[var(--warning-text)]',  href: '/delivery/pedidos' },
+    { label: 'Entregados hoy',     value: todayCompleted,                  icon: TrendingUp, color: 'text-[var(--success-text)]',  href: '/delivery/analiticas' },
+    { label: 'Rating promedio hoy', value: avgRating !== null ? `${avgRating}★` : '—', icon: Star, color: 'text-[var(--warning-text)]', href: '/delivery/calificaciones' },
   ]
 
   const quickLinks = [

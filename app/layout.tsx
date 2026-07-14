@@ -39,6 +39,16 @@ export default function RootLayout({
   return (
     <html lang="es" data-scroll-behavior="smooth" className={`${dmSans.variable} ${dmMono.variable}`}>
       <body style={{ fontFamily: 'var(--font-dm-sans), sans-serif' }}>
+        {/* Tema claro/oscuro ANTES del primer paint (no-flash). Sin esto el
+            tema se aplica en un useEffect post-paint → flash + capas con
+            backdrop-blur (bottom nav) no repintan el color al cambiar el token.
+            Aplicarlo acá lo resuelve. Ver lib/theme.ts. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var t=localStorage.getItem('hichapi-theme');if(t==='dark'){document.documentElement.setAttribute('data-theme','dark');}}catch(e){}})();",
+          }}
+        />
         {/* Tracking de page views (Ley 19.628: sin IP cruda, retention 12m).
             Wrapped en Suspense porque useSearchParams requiere boundary. */}
         <Suspense fallback={null}>

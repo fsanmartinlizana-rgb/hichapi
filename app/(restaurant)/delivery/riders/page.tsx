@@ -113,7 +113,7 @@ export default function DeliveryRidersPage() {
               {/* Stats */}
               <div className="text-right shrink-0 space-y-0.5">
                 <div className="flex items-center gap-1 justify-end">
-                  <Star size={12} className="text-yellow-700" />
+                  <Star size={12} className="text-[var(--warning-text)]" />
                   <span className="text-[var(--text-strong)] text-sm font-medium">
                     {rider.avg_rating !== null ? rider.avg_rating.toFixed(1) : '—'}
                   </span>
@@ -127,7 +127,7 @@ export default function DeliveryRidersPage() {
                 onClick={() => blockRider(rider.id)}
                 disabled={blocking === rider.id}
                 title="Bloquear rider"
-                className="p-2 rounded-lg hover:bg-red-500/15 text-[var(--text-muted)] hover:text-red-700 transition-colors shrink-0 disabled:opacity-50"
+                className="p-2 rounded-lg hover:bg-red-500/15 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors shrink-0 disabled:opacity-50"
               >
                 <Ban size={14} />
               </button>

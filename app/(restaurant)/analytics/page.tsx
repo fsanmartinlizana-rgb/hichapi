@@ -190,8 +190,8 @@ export default function AnalyticsPage() {
                   >
                     <p className="text-[var(--text-strong)] text-sm font-semibold">{w.label}</p>
                     <p className="text-[var(--text-muted)] text-xs mt-0.5">{w.description}</p>
-                    {blocked && <p className="text-amber-700/80 text-[10px] mt-2">Requiere plan {w.planRequired}+</p>}
-                    {already && <p className="text-emerald-700/80 text-[10px] mt-2">Ya en el dashboard</p>}
+                    {blocked && <p className="text-[var(--warning-text)]/80 text-[10px] mt-2">Requiere plan {w.planRequired}+</p>}
+                    {already && <p className="text-[var(--success-text)]/80 text-[10px] mt-2">Ya en el dashboard</p>}
                   </button>
                 )
               })}
@@ -221,7 +221,7 @@ function TabButton({ active, icon: Icon, children, onClick, locked }: {
     >
       <Icon size={14} />
       {children}
-      {locked && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-700">Pro</span>}
+      {locked && <span className="text-[9px] px-1.5 py-0.5 rounded bg-amber-500/15 text-[var(--warning-text)]">Pro</span>}
     </button>
   )
 }

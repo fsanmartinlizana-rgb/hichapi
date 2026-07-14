@@ -226,17 +226,17 @@ export default function IntegracionesPage() {
       {/* Error */}
       {error && (
         <div className="mb-4 p-3 rounded-xl bg-red-500/10 border border-red-500/25 flex items-start gap-2">
-          <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
-          <p className="text-red-700 text-sm">{error}</p>
+          <AlertCircle size={14} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
+          <p className="text-[var(--danger-text)] text-sm">{error}</p>
         </div>
       )}
 
       {/* Migration pending banner */}
       {migrationPending && (
         <div className="mb-4 p-3 rounded-xl bg-amber-500/10 border border-amber-500/25 flex items-start gap-2">
-          <AlertCircle size={14} className="text-amber-700 shrink-0 mt-0.5" />
+          <AlertCircle size={14} className="text-[var(--warning-text)] shrink-0 mt-0.5" />
           <div className="flex-1">
-            <p className="text-amber-700 text-sm font-medium">Módulo pendiente de activar</p>
+            <p className="text-[var(--warning-text)] text-sm font-medium">Módulo pendiente de activar</p>
             <p className="text-amber-200/70 text-xs mt-0.5">
               Para guardar integraciones, aplica la migración <code className="font-mono text-[11px]">20260411_033_delivery_integrations.sql</code> en tu base de datos. Mientras tanto puedes explorar las plataformas disponibles.
             </p>
@@ -381,7 +381,7 @@ function PlatformCard({
             </button>
             <button
               onClick={onDisconnect}
-              className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-700 hover:text-red-200 text-xs font-medium transition-all flex items-center gap-1.5"
+              className="px-3 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-[var(--danger-text)] hover:text-red-200 text-xs font-medium transition-all flex items-center gap-1.5"
             >
               <Trash2 size={12} />
               Desconectar
@@ -542,8 +542,8 @@ function ConnectModal({
 
           {error && (
             <div className="p-2.5 rounded-lg bg-red-500/10 border border-red-500/20 flex items-start gap-2">
-              <AlertCircle size={13} className="text-red-700 shrink-0 mt-0.5" />
-              <p className="text-red-700 text-xs">{error}</p>
+              <AlertCircle size={13} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
+              <p className="text-[var(--danger-text)] text-xs">{error}</p>
             </div>
           )}
         </div>

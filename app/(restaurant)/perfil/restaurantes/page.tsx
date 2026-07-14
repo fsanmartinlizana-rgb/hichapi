@@ -143,7 +143,7 @@ export default function MisRestaurantesPage() {
       </div>
 
       {error && (
-        <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs mb-4">
+        <div className="flex items-start gap-2 px-3 py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-[var(--danger-text)] text-xs mb-4">
           <AlertCircle size={12} className="mt-0.5 shrink-0" />
           <p>{error}</p>
         </div>
@@ -195,7 +195,7 @@ export default function MisRestaurantesPage() {
                 <button
                   onClick={() => setConfirmLeave(m)}
                   disabled={leaving === m.restaurant_id}
-                  className="text-[var(--text-muted)] hover:text-red-700 text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
+                  className="text-[var(--text-muted)] hover:text-[var(--danger-text)] text-xs inline-flex items-center gap-1.5 transition-colors disabled:opacity-50"
                 >
                   {leaving === m.restaurant_id ? (
                     <Loader2 size={12} className="animate-spin" />
@@ -222,7 +222,7 @@ export default function MisRestaurantesPage() {
           <div className="absolute inset-0 bg-black/70" onClick={() => setConfirmLeave(null)} />
           <div className="relative bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-md p-5">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-700 shrink-0">
+              <div className="w-10 h-10 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-[var(--danger-text)] shrink-0">
                 <LogOut size={16} />
               </div>
               <div>

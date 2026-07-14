@@ -233,14 +233,14 @@ export default function LocationsConfigPage() {
               onChange={v => toggleBrand('share_menu', v)}
             />
             <ToggleCard
-              icon={<Package size={16} className="text-emerald-700" />}
+              icon={<Package size={16} className="text-[var(--success-text)]" />}
               label="Compartir stock"
               desc="Inventario único. Ideal si compran insumos juntos."
               value={brand.share_stock}
               onChange={v => toggleBrand('share_stock', v)}
             />
             <ToggleCard
-              icon={<BarChart2 size={16} className="text-blue-700" />}
+              icon={<BarChart2 size={16} className="text-[var(--info-text)]" />}
               label="Reporte consolidado"
               desc="Dashboard único con métricas combinadas de todos los locales."
               value={brand.share_reports}
@@ -334,7 +334,7 @@ function ToggleCard({ icon, label, desc, value, onChange }: {
 }
 
 function BookIcon() {
-  return <Store size={16} className="text-yellow-700" />
+  return <Store size={16} className="text-[var(--warning-text)]" />
 }
 
 function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchTo, onUpdate, onDelete }: {
@@ -422,7 +422,7 @@ function LocationCard({ location, hasMultiple, isCurrent, canSwitchTo, onSwitchT
           <div className="flex gap-2 justify-end pt-1">
             <button
               onClick={onDelete}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20 text-[var(--danger-text)] text-xs hover:bg-red-500/20 transition-colors"
             >
               <Trash2 size={12} /> Eliminar
             </button>
@@ -467,8 +467,8 @@ function Tri({ label, value, onChange }: {
 }) {
   const states: [boolean | null, string, string][] = [
     [null,  'Heredar', 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'],
-    [true,  'Sí',      'bg-emerald-500/15 text-emerald-700'],
-    [false, 'No',      'bg-red-500/15 text-red-700'],
+    [true,  'Sí',      'bg-emerald-500/15 text-[var(--success-text)]'],
+    [false, 'No',      'bg-red-500/15 text-[var(--danger-text)]'],
   ]
   return (
     <div>

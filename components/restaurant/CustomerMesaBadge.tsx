@@ -16,19 +16,19 @@ export function CustomerMesaBadge({ customer }: Props) {
       title={`${customer.display_name} · ${customer.visit_count} visitas · ${customer.loyalty_points} pts`}
     >
       <div className="flex items-center gap-1">
-        <UserCheck size={10} className="text-violet-700 shrink-0" />
+        <UserCheck size={10} className="text-[var(--accent-violet-text)] shrink-0" />
         <span className="text-[10px] font-semibold text-violet-200 truncate max-w-[120px]">
           {customer.display_name}
         </span>
       </div>
-      <div className="flex items-center gap-1.5 text-[8px] text-violet-700/80">
+      <div className="flex items-center gap-1.5 text-[8px] text-[var(--accent-violet-text)]/80">
         <span>{customer.visit_count} visitas</span>
         <span>·</span>
         <span>{customer.loyalty_points} pts</span>
         <span
           className={`ml-auto px-1 py-0.5 rounded-full font-bold ${
             frequent
-              ? 'bg-amber-500/20 text-amber-700'
+              ? 'bg-amber-500/20 text-[var(--warning-text)]'
               : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
           }`}
         >

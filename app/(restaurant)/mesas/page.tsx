@@ -103,10 +103,10 @@ const WAITLIST_INIT: WaitlistEntry[] = []
 
 const MESA_STYLES: Record<MesaStatus, { bg: string; border: string; text: string; label: string }> = {
   ocupada: { bg: 'bg-[#FF6B35]/10', border: 'border-[#FF6B35]/30', text: 'text-[#E55A2B]', label: 'ocupada'  },
-  cuenta:  { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-yellow-700', label: 'cuenta' },
+  cuenta:  { bg: 'bg-yellow-500/10', border: 'border-yellow-500/30', text: 'text-[var(--warning-text)]', label: 'cuenta' },
   libre:   { bg: 'bg-[var(--surface-sunken)]',       border: 'border-[var(--border-subtle)]',       text: 'text-[var(--text-muted)]',   label: 'libre'  },
   limpia:  { bg: 'bg-teal-500/15',   border: 'border-teal-400/40',   text: 'text-teal-700',   label: 'limpia' },
-  reserva: { bg: 'bg-violet-500/10', border: 'border-violet-400/30', text: 'text-violet-700', label: 'reserva'},
+  reserva: { bg: 'bg-violet-500/10', border: 'border-violet-400/30', text: 'text-[var(--accent-violet-text)]', label: 'reserva'},
 }
 
 const STATUS_ORDER: Record<WaitlistEntry['status'], number> = {
@@ -198,7 +198,7 @@ function QrModal({ mesa, slug, onClose }: { mesa: Mesa; slug: string; onClose: (
             onClick={copyLink}
             className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-xl border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:border-[var(--border-subtle)] hover:text-[var(--text-body)] transition-colors"
           >
-            {copied ? <Check size={12} className="text-emerald-700" /> : <Copy size={12} />}
+            {copied ? <Check size={12} className="text-[var(--success-text)]" /> : <Copy size={12} />}
             {copied ? 'Copiado' : 'Copiar link'}
           </button>
           <button
@@ -310,14 +310,14 @@ function MesaCard({
               {mesa.isBlocked && (
                 <button
                   onClick={e => { e.stopPropagation(); setMenuOpen(false); onMerge(mesa) }}
-                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-indigo-700 hover:bg-[var(--surface-sunken)] transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--accent-violet-text)] hover:bg-[var(--surface-sunken)] transition-colors"
                 >
                   <Merge size={11} /> Volver a unir
                 </button>
               )}
               <button
                 onClick={e => { e.stopPropagation(); setMenuOpen(false); onDelete(mesa) }}
-                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-red-700 hover:bg-red-500/10 transition-colors"
+                className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-[var(--danger-text)] hover:bg-red-500/10 transition-colors"
               >
                 <Trash2 size={11} /> Eliminar
               </button>
@@ -396,7 +396,7 @@ function MesaCard({
       <p className={`text-[9px] font-semibold uppercase tracking-wide ${s.text}`}>
         {s.label}
         {mesa.status === 'reserva' && mesa.reservedFor && (
-          <span className="ml-1 normal-case text-violet-700/60">· {mesa.reservedFor}</span>
+          <span className="ml-1 normal-case text-[var(--accent-violet-text)]/60">· {mesa.reservedFor}</span>
         )}
       </p>
 
@@ -405,7 +405,7 @@ function MesaCard({
       )}
 
       {elapsed !== null && (
-        <p className={`text-[9px] font-mono ${isLong ? 'text-red-700' : 'text-[var(--text-muted)]'}`}>
+        <p className={`text-[9px] font-mono ${isLong ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'}`}>
           {elapsed} min
         </p>
       )}
@@ -413,7 +413,7 @@ function MesaCard({
       {/* Countdown for reserva */}
       {mesa.status === 'reserva' && countdown !== null && (
         <p className={`text-[9px] font-mono font-semibold flex items-center gap-1
-          ${countdownIsUrgent ? 'text-red-700' : 'text-violet-700/80'}`}>
+          ${countdownIsUrgent ? 'text-[var(--danger-text)]' : 'text-[var(--accent-violet-text)]/80'}`}>
           ⏱ {countdown > 0 ? `${countdown}min` : 'vencida'}
         </p>
       )}
@@ -456,7 +456,7 @@ function WaitlistCard({
   const statusConfig = {
     waiting:   { color: 'text-[var(--text-muted)]',   bg: 'bg-[var(--surface-sunken)]',        label: `#${entry.position} en cola` },
     notified:  { color: 'text-[#E55A2B]',  bg: 'bg-[#FF6B35]/10',   label: 'Notificado' },
-    seated:    { color: 'text-emerald-700', bg: 'bg-emerald-500/10', label: 'Sentado' },
+    seated:    { color: 'text-[var(--success-text)]', bg: 'bg-emerald-500/10', label: 'Sentado' },
     cancelled: { color: 'text-[var(--text-muted)]',   bg: 'bg-[var(--surface-sunken)]',        label: 'Cancelado' },
   }[entry.status]
 
@@ -490,7 +490,7 @@ function WaitlistCard({
 
       {/* Notes */}
       {entry.notes && (
-        <p className="text-[10px] text-yellow-700/70 bg-yellow-500/8 rounded-lg px-2 py-1.5 italic">
+        <p className="text-[10px] text-[var(--warning-text)]/70 bg-yellow-500/8 rounded-lg px-2 py-1.5 italic">
           ⚠ {entry.notes}
         </p>
       )}
@@ -523,7 +523,7 @@ function WaitlistCard({
           </button>
           <button
             onClick={() => onCancel(entry.id)}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-[10px] hover:border-red-500/30 hover:text-red-700 transition-colors"
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-[10px] hover:border-red-500/30 hover:text-[var(--danger-text)] transition-colors"
           >
             <X size={10} />
           </button>
@@ -533,13 +533,13 @@ function WaitlistCard({
         <div className="flex gap-1.5 pt-0.5">
           <button
             onClick={() => onSeat(entry.id)}
-            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-emerald-500/15 text-emerald-700 text-[10px] font-semibold border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors"
+            className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-emerald-500/15 text-[var(--success-text)] text-[10px] font-semibold border border-emerald-500/20 hover:bg-emerald-500/25 transition-colors"
           >
             <UserCheck size={10} /> Confirmar asiento
           </button>
           <button
             onClick={() => onCancel(entry.id)}
-            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-[10px] hover:border-red-500/30 hover:text-red-700 transition-colors"
+            className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] text-[10px] hover:border-red-500/30 hover:text-[var(--danger-text)] transition-colors"
           >
             <Ban size={10} />
           </button>
@@ -647,7 +647,7 @@ function QuickAddForm({ onAdd }: { onAdd: (entry: WaitlistEntry) => void }) {
           className="w-full bg-[var(--surface-sunken)] border border-[var(--border-subtle)] rounded-lg px-3 py-2 text-[var(--text-strong)] text-xs placeholder:text-[var(--text-muted)] focus:outline-none focus:border-[#FF6B35]/40 focus:bg-[var(--surface-sunken)] transition-colors"
         />
         <p className="text-[9px] text-[var(--text-muted)] flex items-center gap-1 pt-0.5">
-          <MessageCircle size={9} className="text-green-700/60 shrink-0" />
+          <MessageCircle size={9} className="text-[var(--success-text)]/60 shrink-0" />
           Chapi enviará un mensaje a este número para que elija su plato mientras espera
         </p>
       </div>
@@ -735,7 +735,7 @@ function AssignModal({
                 <span className="flex items-center gap-1"><Phone size={11} /> {maskPhone(next.phone)}</span>
               </div>
               <p className="text-[var(--text-muted)] text-xs">Esperando {elapsedMin(next.joined_at)} min · Pos #{next.position}</p>
-              {next.notes && <p className="text-yellow-700/80 text-xs italic">⚠ {next.notes}</p>}
+              {next.notes && <p className="text-[var(--warning-text)]/80 text-xs italic">⚠ {next.notes}</p>}
             </div>
             <p className="text-[var(--text-muted)] text-xs text-center">
               Se marcará como "Notificado". El cliente verá su estado actualizado en tiempo real.
@@ -855,7 +855,7 @@ function SplitMesaModal({
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-2 mb-1">
-              <Split size={14} className="text-indigo-700" />
+              <Split size={14} className="text-[var(--accent-violet-text)]" />
               <h3 className="text-[var(--text-strong)] font-bold text-sm">Dividir Mesa {mesa.label}</h3>
             </div>
             <p className="text-[var(--text-muted)] text-[11px]">
@@ -874,7 +874,7 @@ function SplitMesaModal({
             <button
               key={n}
               onClick={() => applyPreset(n)}
-              className="text-[10px] px-2 py-1 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-indigo-400/40 hover:text-indigo-700 transition-colors"
+              className="text-[10px] px-2 py-1 rounded-lg border border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-indigo-400/40 hover:text-[var(--accent-violet-text)] transition-colors"
             >
               Dividir en {n}
             </button>
@@ -906,7 +906,7 @@ function SplitMesaModal({
               {children.length > 2 && (
                 <button
                   onClick={() => removeChild(i)}
-                  className="p-1 text-[var(--text-muted)] hover:text-red-700 transition-colors"
+                  className="p-1 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors"
                 >
                   <X size={12} />
                 </button>
@@ -926,7 +926,7 @@ function SplitMesaModal({
 
         {/* Totals */}
         <div className={`flex items-center justify-between px-3 py-2 rounded-lg text-[11px]
-          ${exceeds ? 'bg-red-500/10 border border-red-500/30 text-red-700'
+          ${exceeds ? 'bg-red-500/10 border border-red-500/30 text-[var(--danger-text)]'
                     : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)]'}`}>
           <span>Total sub-mesas</span>
           <span className="font-bold">
@@ -936,7 +936,7 @@ function SplitMesaModal({
 
         {error && (
           <div className="flex items-start gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/30">
-            <AlertCircle size={12} className="text-red-700 mt-0.5 shrink-0" />
+            <AlertCircle size={12} className="text-[var(--danger-text)] mt-0.5 shrink-0" />
             <p className="text-red-200 text-[11px]">{error}</p>
           </div>
         )}
@@ -1077,7 +1077,7 @@ function NuevaMesaModal({
           <span className={`w-4 h-4 rounded-full border-2 transition-colors ${smoking ? 'bg-[#FF6B35] border-[#FF6B35]' : 'border-[var(--border-subtle)]'}`} />
         </button>
 
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
 
         <div className="flex gap-2 pt-1">
           <button onClick={onClose}
@@ -1189,7 +1189,7 @@ function ZonasManagerModal({
                 style={{ backgroundColor: c }} />
             ))}
           </div>
-          {error && <p className="text-red-700 text-xs">{error}</p>}
+          {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
           <button onClick={createZone} disabled={saving || !newName.trim()}
             className="w-full py-2 rounded-lg bg-[#FF6B35]/15 border border-[#FF6B35]/30 text-[#E55A2B] text-xs font-semibold hover:bg-[#FF6B35]/25 disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-1.5">
             {saving ? <RefreshCw size={12} className="animate-spin" /> : <Plus size={12} />}
@@ -1218,7 +1218,7 @@ function ZonasManagerModal({
                   className="flex-1 bg-transparent text-[var(--text-strong)] text-sm focus:outline-none"
                 />
                 <button onClick={() => deleteZone(z.id)}
-                  className="w-8 h-8 rounded text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 transition-colors flex items-center justify-center shrink-0">
+                  className="w-8 h-8 rounded text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 transition-colors flex items-center justify-center shrink-0">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -1702,8 +1702,8 @@ export default function MesasPage() {
         {/* Alert strips */}
         {Object.values(orderAlerts).includes('bill') && (
           <div className="flex items-center gap-2 px-3 py-2.5 mb-2 rounded-xl border bg-amber-500/10 border-amber-500/40 shrink-0">
-            <Banknote size={15} className="text-[#B45309] shrink-0" />
-            <p className="text-[#B45309] text-sm font-semibold flex-1">
+            <Banknote size={15} className="text-[var(--warning-text)] shrink-0" />
+            <p className="text-[var(--warning-text)] text-sm font-semibold flex-1">
               {Object.entries(orderAlerts).filter(([,v]) => v === 'bill').length === 1
                 ? '1 mesa pide la cuenta'
                 : `${Object.entries(orderAlerts).filter(([,v]) => v === 'bill').length} mesas piden la cuenta`}
@@ -1712,8 +1712,8 @@ export default function MesasPage() {
         )}
         {Object.values(orderAlerts).includes('new_order') && (
           <div className="flex items-center gap-2 px-3 py-2.5 mb-2 rounded-xl border bg-blue-500/10 border-blue-500/30 shrink-0">
-            <Bell size={15} className="text-[#1D4ED8] shrink-0" />
-            <p className="text-[#1D4ED8] text-sm font-semibold flex-1">
+            <Bell size={15} className="text-[var(--info-text)] shrink-0" />
+            <p className="text-[var(--info-text)] text-sm font-semibold flex-1">
               {Object.entries(orderAlerts).filter(([,v]) => v === 'new_order').length === 1
                 ? '1 mesa tiene un nuevo pedido'
                 : `${Object.entries(orderAlerts).filter(([,v]) => v === 'new_order').length} mesas tienen pedidos nuevos`}
@@ -1996,7 +1996,7 @@ export default function MesasPage() {
                onClick={e => e.stopPropagation()}>
             <div className="flex items-start gap-3">
               <div className="w-9 h-9 rounded-xl bg-red-500/15 border border-red-500/30 flex items-center justify-center shrink-0">
-                <Trash2 size={15} className="text-red-700" />
+                <Trash2 size={15} className="text-[var(--danger-text)]" />
               </div>
               <div>
                 <h3 className="text-[var(--text-strong)] font-bold text-sm">¿Eliminar Mesa {deleteMesa.label}?</h3>
@@ -2013,7 +2013,7 @@ export default function MesasPage() {
                   : 'bg-red-500/10 border-red-500/30'
               }`}>
                 <div className="flex items-start gap-2">
-                  <AlertCircle size={13} className={`shrink-0 mt-0.5 ${deleteError.canForce ? 'text-amber-700' : 'text-red-700'}`} />
+                  <AlertCircle size={13} className={`shrink-0 mt-0.5 ${deleteError.canForce ? 'text-[var(--warning-text)]' : 'text-[var(--danger-text)]'}`} />
                   <p className={`leading-relaxed ${deleteError.canForce ? 'text-amber-200' : 'text-red-200'}`}>
                     {deleteError.msg}
                   </p>

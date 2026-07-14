@@ -130,8 +130,8 @@ export function CouponRedeemModal({
 
             {err && (
               <div className="flex items-start gap-2 bg-red-500/10 border border-red-500/30 rounded-xl p-3">
-                <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
-                <p className="text-red-700 text-xs">{err}</p>
+                <AlertCircle size={14} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
+                <p className="text-[var(--danger-text)] text-xs">{err}</p>
               </div>
             )}
 
@@ -143,10 +143,10 @@ export function CouponRedeemModal({
               } space-y-2`}>
                 <div className="flex items-center gap-2">
                   {preview.valid
-                    ? <Check size={15} className="text-emerald-700 shrink-0" />
-                    : <AlertCircle size={15} className="text-amber-700 shrink-0" />
+                    ? <Check size={15} className="text-[var(--success-text)] shrink-0" />
+                    : <AlertCircle size={15} className="text-[var(--warning-text)] shrink-0" />
                   }
-                  <p className={`text-sm font-semibold ${preview.valid ? 'text-emerald-700' : 'text-amber-700'}`}>
+                  <p className={`text-sm font-semibold ${preview.valid ? 'text-[var(--success-text)]' : 'text-[var(--warning-text)]'}`}>
                     {preview.valid
                       ? 'Cupón válido'
                       : preview.expired
@@ -198,7 +198,7 @@ export function CouponRedeemModal({
         {done && preview && (
           <div className="py-4 text-center space-y-3">
             <div className="w-14 h-14 mx-auto rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-              <Check size={26} className="text-emerald-700" />
+              <Check size={26} className="text-[var(--success-text)]" />
             </div>
             <div>
               <p className="text-[var(--text-strong)] font-semibold">¡Cupón canjeado!</p>

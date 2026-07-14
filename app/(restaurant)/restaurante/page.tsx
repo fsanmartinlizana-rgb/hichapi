@@ -374,7 +374,7 @@ export default function RestaurantePage() {
 
         {error && (
           <div className="flex items-start gap-2 px-4 py-3 rounded-xl bg-red-500/10 border border-red-500/30">
-            <AlertCircle size={14} className="text-red-700 shrink-0 mt-0.5" />
+            <AlertCircle size={14} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
             <p className="text-red-200 text-xs">{error}</p>
           </div>
         )}
@@ -693,7 +693,7 @@ export default function RestaurantePage() {
                         {isActive ? 'Activo' : 'Inactivo'}
                       </button>
                     ) : (
-                      <a href="/modulos" className="shrink-0 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-purple-700 text-xs font-semibold hover:bg-purple-500/20 transition-colors">
+                      <a href="/modulos" className="shrink-0 px-3 py-1.5 rounded-lg border border-purple-500/30 bg-purple-500/10 text-[var(--accent-violet-text)] text-xs font-semibold hover:bg-purple-500/20 transition-colors">
                         Upgrade
                       </a>
                     )}
@@ -937,7 +937,7 @@ function ProfileScoreCard({ score, slug }: { score: ProfileScore | null; slug: s
               key={f.key}
               className={`flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border transition-colors
                 ${f.complete
-                  ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-700/80'
+                  ? 'bg-emerald-500/10 border-emerald-500/20 text-[var(--success-text)]/80'
                   : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'}`}
             >
               {f.complete

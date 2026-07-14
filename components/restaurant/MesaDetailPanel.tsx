@@ -106,7 +106,7 @@ function EditableItem({
         <button
           onClick={() => item.quantity <= 1 ? onDelete() : onChangeQty(item.quantity - 1)}
           disabled={busy}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-700 disabled:opacity-30 transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-red-500/20 hover:border-red-500/40 hover:text-[var(--danger-text)] disabled:opacity-30 transition-colors"
         >
           <Minus size={12} />
         </button>
@@ -114,14 +114,14 @@ function EditableItem({
         <button
           onClick={() => onChangeQty(item.quantity + 1)}
           disabled={busy}
-          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-700 disabled:opacity-30 transition-colors"
+          className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-[var(--success-text)] disabled:opacity-30 transition-colors"
         >
           <Plus size={12} />
         </button>
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-[var(--text-body)] truncate">{item.name}</p>
-        {item.notes && <p className="text-xs text-amber-700/60 italic truncate mt-0.5">{item.notes}</p>}
+        {item.notes && <p className="text-xs text-[var(--warning-text)]/60 italic truncate mt-0.5">{item.notes}</p>}
       </div>
       <span className="text-sm font-semibold text-[var(--text-muted)] flex-shrink-0 tabular-nums">
         {formatCurrency(item.unit_price * item.quantity)}
@@ -129,7 +129,7 @@ function EditableItem({
       <button
         onClick={onDelete}
         disabled={busy}
-        className="flex-shrink-0 p-1 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 disabled:opacity-30 transition-colors"
+        className="flex-shrink-0 p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 disabled:opacity-30 transition-colors"
       >
         <Trash2 size={14} />
       </button>
@@ -253,13 +253,13 @@ function AddProductsModal({
               {pendingLines.map(l => (
                 <div key={l.menuItemId} className="flex items-center justify-between text-xs">
                   <span className="text-[var(--text-body)]">{l.qty}× {l.name}</span>
-                  <button onClick={() => onRemovePending(l.menuItemId)} className="text-[var(--text-muted)] hover:text-red-700 transition-colors ml-2">
+                  <button onClick={() => onRemovePending(l.menuItemId)} className="text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors ml-2">
                     <X size={12} />
                   </button>
                 </div>
               ))}
             </div>
-            {addError && <p className="text-xs text-red-700 mb-2">{addError}</p>}
+            {addError && <p className="text-xs text-[var(--danger-text)] mb-2">{addError}</p>}
             <button
               onClick={onConfirm}
               disabled={savingAdd}
@@ -448,11 +448,11 @@ export function MesaDetailPanel({
             className="flex items-center gap-3 px-4 py-2.5 border-b"
             style={{ borderColor: 'rgba(251,191,36,0.2)', background: 'rgba(251,191,36,0.08)' }}
           >
-            <Banknote size={15} className="text-[#B45309] shrink-0" />
+            <Banknote size={15} className="text-[var(--warning-text)] shrink-0" />
             <div className="flex-1 min-w-0">
-              <p className="text-[#B45309] text-xs font-semibold">Cuenta solicitada</p>
+              <p className="text-[var(--warning-text)] text-xs font-semibold">Cuenta solicitada</p>
               {printState?.precuentaRequested ? (
-                <p className="text-emerald-700/70 text-[10px] flex items-center gap-1 mt-0.5">
+                <p className="text-[var(--success-text)]/70 text-[10px] flex items-center gap-1 mt-0.5">
                   <Printer size={9} className="shrink-0" />
                   Precuenta impresa
                   {printState.precuentaTimestamp && (
@@ -462,7 +462,7 @@ export function MesaDetailPanel({
                   )}
                 </p>
               ) : (
-                <p className="text-amber-700/50 text-[10px] mt-0.5">Precuenta pendiente de imprimir</p>
+                <p className="text-[var(--warning-text)]/50 text-[10px] mt-0.5">Precuenta pendiente de imprimir</p>
               )}
             </div>
           </div>
@@ -476,14 +476,14 @@ export function MesaDetailPanel({
               <button
                 onClick={() => onUpdatePax(Math.max(1, pax - 1))}
                 disabled={pax <= 1}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-red-500/20 hover:border-red-500/40 hover:text-red-700 disabled:opacity-30 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-red-500/20 hover:border-red-500/40 hover:text-[var(--danger-text)] disabled:opacity-30 transition-colors"
               >
                 <Minus size={12} />
               </button>
               <span className="w-6 text-center text-sm font-semibold text-[var(--text-strong)] tabular-nums">{pax}</span>
               <button
                 onClick={() => onUpdatePax(pax + 1)}
-                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-emerald-700 disabled:opacity-30 transition-colors"
+                className="flex h-7 w-7 items-center justify-center rounded-full border border-[var(--border-subtle)] bg-[var(--surface-sunken)] text-[var(--text-body)] hover:bg-emerald-500/20 hover:border-emerald-500/40 hover:text-[var(--success-text)] disabled:opacity-30 transition-colors"
               >
                 <Plus size={12} />
               </button>
@@ -603,7 +603,7 @@ export function MesaDetailPanel({
             <button
               onClick={() => onCancel(order.id)}
               disabled={advancing}
-              className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-red-700 text-xs font-semibold hover:bg-red-500/15 transition-colors flex items-center justify-center gap-2"
+              className="w-full py-2 rounded-xl bg-red-500/10 border border-red-500/30 text-[var(--danger-text)] text-xs font-semibold hover:bg-red-500/15 transition-colors flex items-center justify-center gap-2"
             >
               <Trash2 size={12} /> Cancelar comanda
             </button>
@@ -631,7 +631,7 @@ export function MesaDetailPanel({
           <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
           <div className="relative bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl w-full max-w-sm shadow-2xl p-5">
             <div className="flex items-start gap-3 mb-4">
-              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-red-700 shrink-0">
+              <div className="w-9 h-9 rounded-xl bg-red-500/15 flex items-center justify-center text-[var(--danger-text)] shrink-0">
                 <Trash2 size={16} />
               </div>
               <div>

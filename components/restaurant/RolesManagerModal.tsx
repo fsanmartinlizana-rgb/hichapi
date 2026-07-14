@@ -118,7 +118,7 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
               </div>
             ) : errorMsg ? (
               <div className="rounded-xl border border-red-500/30 bg-red-500/5 p-4 space-y-2">
-                <p className="text-red-700 text-sm font-semibold">No se pudieron cargar los roles</p>
+                <p className="text-[var(--danger-text)] text-sm font-semibold">No se pudieron cargar los roles</p>
                 <p className="text-[var(--text-muted)] text-xs">{errorMsg}</p>
                 <p className="text-[var(--text-muted)] text-[11px]">
                   Si acabas de actualizar, aplica primero la migración <code className="text-[#E55A2B]">20260414_043_custom_roles.sql</code> en Supabase.
@@ -169,7 +169,7 @@ export function RolesManagerModal({ restaurantId, onClose }: Props) {
                       </div>
                       <button
                         onClick={e => { e.stopPropagation(); deleteRole(r.id) }}
-                        className="text-[var(--text-muted)] hover:text-red-700 hover:bg-red-500/10 w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0"
+                        className="text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-500/10 w-7 h-7 rounded-lg flex items-center justify-center transition-colors shrink-0"
                       >
                         <Trash2 size={13} />
                       </button>
@@ -414,7 +414,7 @@ function RoleEditor({
           })}
         </div>
 
-        {error && <p className="text-red-700 text-xs">{error}</p>}
+        {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
       </div>
 
       {/* Footer */}

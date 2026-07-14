@@ -51,7 +51,7 @@ export default function PlanGate({ children }: Props) {
     <div className="min-h-[60vh] flex items-center justify-center p-6">
       <div className="max-w-md w-full bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-7 text-center">
         <div className="w-14 h-14 rounded-2xl bg-amber-500/15 border border-amber-500/30 flex items-center justify-center mx-auto mb-4">
-          <Lock size={22} className="text-amber-700" />
+          <Lock size={22} className="text-[var(--warning-text)]" />
         </div>
         <h1 className="text-[var(--text-strong)] font-bold text-xl mb-2">
           Función disponible en {targetPlan.name}
@@ -68,7 +68,7 @@ export default function PlanGate({ children }: Props) {
           <ul className="space-y-1.5">
             {targetPlan.features.slice(0, 4).map(f => (
               <li key={f} className="text-[var(--text-body)] text-xs flex items-start gap-2">
-                <span className="text-emerald-700 mt-0.5">✓</span>
+                <span className="text-[var(--success-text)] mt-0.5">✓</span>
                 <span>{f}</span>
               </li>
             ))}

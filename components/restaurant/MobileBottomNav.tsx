@@ -16,7 +16,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { useState, type ReactNode } from 'react'
+import { useState, useEffect, type ReactNode } from 'react'
 import {
   LayoutDashboard, ClipboardList, Grid3X3, Banknote, Users, ChefHat, Menu, X,
 } from 'lucide-react'
@@ -89,6 +89,20 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
   const pathname = usePathname()
   const [drawerOpen, setDrawerOpen] = useState(false)
 
+  // Cerrar el drawer automáticamente al navegar (elegir un módulo) o al
+  // cambiar de ruta. Antes había que cerrarlo a mano.
+  useEffect(() => {
+    setDrawerOpen(false)
+  }, [pathname])
+
+  // Bloquear el scroll del body mientras el drawer está abierto.
+  useEffect(() => {
+    if (!drawerOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [drawerOpen])
+
   const items = NAV_BY_ROLE[role] ?? NAV_BY_ROLE.admin
 
   const isActive = (href: string) =>
@@ -96,10 +110,13 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
 
   return (
     <>
-      {/* Bottom nav (solo mobile) */}
+      {/* Bottom nav (solo mobile) — glass tematizado (claro/oscuro) */}
       <nav
         className="md:hidden fixed bottom-0 left-0 right-0 z-40 backdrop-blur-lg border-t border-[var(--border-subtle)]"
-        style={{ background: 'rgba(10,10,20,0.92)', paddingBottom: 'env(safe-area-inset-bottom)' }}
+        style={{
+          background: 'color-mix(in srgb, var(--surface-card) 88%, transparent)',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
         aria-label="Navegación rápida"
       >
         <div className="flex items-stretch justify-around">
@@ -110,8 +127,11 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
               <Link
                 key={it.href}
                 href={it.href}
-                className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors"
-                style={{ minHeight: 56, color: active ? '#FF6B35' : 'rgba(26, 26, 46, 0.7)' }}
+                className={[
+                  'flex-1 flex flex-col items-center justify-center gap-0.5 py-2 transition-colors',
+                  active ? 'text-orange-500' : 'text-[var(--text-muted)] active:text-[var(--text-strong)]',
+                ].join(' ')}
+                style={{ minHeight: 56 }}
               >
                 <Icon size={20} strokeWidth={active ? 2.4 : 2} />
                 <span className="text-[10px] font-semibold leading-none">{it.label}</span>
@@ -122,7 +142,7 @@ export default function MobileBottomNav({ role, drawerContent }: MobileBottomNav
           <button
             type="button"
             onClick={() => setDrawerOpen(true)}
-            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[var(--text-muted)] hover:text-[var(--text-strong)] transition-colors"
+            className="flex-1 flex flex-col items-center justify-center gap-0.5 py-2 text-[var(--text-muted)] active:text-[var(--text-strong)] transition-colors"
             style={{ minHeight: 56 }}
             aria-label="Abrir menú completo"
           >

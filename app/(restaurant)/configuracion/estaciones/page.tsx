@@ -313,7 +313,7 @@ function StationRow({ station, locations, printers, onUpdate, onDelete }: {
           <p className="text-[var(--text-muted)] text-xs flex items-center gap-2 flex-wrap">
             <span>{kindLabel(station.kind)}</span>
             {printer && <><span>·</span><span className="flex items-center gap-1"><Printer size={10} /> {printer.name}</span></>}
-            {!station.active && <><span>·</span><span className="text-red-700">Inactiva</span></>}
+            {!station.active && <><span>·</span><span className="text-[var(--danger-text)]">Inactiva</span></>}
           </p>
         </div>
         <button
@@ -346,7 +346,7 @@ function StationRow({ station, locations, printers, onUpdate, onDelete }: {
             </label>
             <button
               onClick={onDelete}
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs hover:bg-red-500/20 transition-colors"
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-red-500/10 border border-red-500/20 text-[var(--danger-text)] text-xs hover:bg-red-500/20 transition-colors"
             >
               <Trash2 size={12} /> Eliminar
             </button>

@@ -279,7 +279,7 @@ export default function TonoPage() {
         <div className="flex items-center justify-between">
           <div>
             <div className="flex items-center gap-2">
-              <Star size={14} className="text-[#B45309]" />
+              <Star size={14} className="text-[var(--warning-text)]" />
               <p className="text-[var(--text-strong)] font-semibold text-sm">Platos a destacar</p>
             </div>
             <p className="text-[var(--text-muted)] text-xs mt-0.5">
@@ -310,7 +310,7 @@ export default function TonoPage() {
                   const item = menuItems.find(m => m.id === id)
                   if (!item) return null
                   return (
-                    <span key={id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[#B45309]">
+                    <span key={id} className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-semibold bg-[#FBBF24]/20 border border-[#FBBF24]/40 text-[var(--warning-text)]">
                       ⭐ {item.name}
                       <button onClick={() => toggleFeatured(id)} className="hover:text-[var(--text-strong)] transition-colors ml-0.5">
                         <X size={10} />
@@ -343,7 +343,7 @@ export default function TonoPage() {
                         disabled={atLimit}
                         className={`px-3 py-1.5 rounded-xl border text-xs transition-all
                           ${isFeatured
-                            ? 'bg-[#FBBF24]/15 border-[#FBBF24]/40 text-[#B45309] font-semibold'
+                            ? 'bg-[#FBBF24]/15 border-[#FBBF24]/40 text-[var(--warning-text)] font-semibold'
                             : atLimit
                               ? 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] cursor-not-allowed'
                               : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)] hover:text-[var(--text-body)]'

@@ -56,7 +56,7 @@ export default function RestaurantError({
     <div className="flex items-center justify-center min-h-screen bg-[var(--bg-canvas)] p-4">
       <div className="text-center space-y-4 max-w-lg w-full px-2">
         <div className="w-16 h-16 rounded-2xl bg-red-500/10 border border-red-500/20 flex items-center justify-center mx-auto">
-          <AlertTriangle size={28} className="text-red-700" />
+          <AlertTriangle size={28} className="text-[var(--danger-text)]" />
         </div>
         <h2 className="text-[var(--text-strong)] text-xl font-bold">Algo salió mal</h2>
         <p className="text-[var(--text-muted)] text-sm leading-relaxed">
@@ -105,7 +105,7 @@ export default function RestaurantError({
               onClick={copyDetails}
               className={`mt-2 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold transition-colors ${
                 copied
-                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-emerald-700'
+                  ? 'bg-emerald-500/20 border border-emerald-500/40 text-[var(--success-text)]'
                   : 'bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-body)] hover:bg-[var(--surface-sunken)]'
               }`}
             >

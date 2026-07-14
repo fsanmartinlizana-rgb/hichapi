@@ -205,7 +205,7 @@ function IngredientRow({
       <button
         type="button"
         onClick={onRemove}
-        className="w-9 px-2 py-2 rounded-xl bg-[var(--surface-sunken)] hover:bg-red-500/15 text-[var(--text-muted)] hover:text-red-700 transition-colors"
+        className="w-9 px-2 py-2 rounded-xl bg-[var(--surface-sunken)] hover:bg-red-500/15 text-[var(--text-muted)] hover:text-[var(--danger-text)] transition-colors"
       >
         <X size={12} />
       </button>
@@ -431,8 +431,8 @@ function ItemForm({
 
       {uploadError && (
         <div className="flex items-center gap-2 rounded-xl border border-red-500/25 bg-red-500/5 px-3 py-2">
-          <AlertCircle size={12} className="text-red-700 shrink-0" />
-          <p className="text-red-700 text-xs flex-1">{uploadError}</p>
+          <AlertCircle size={12} className="text-[var(--danger-text)] shrink-0" />
+          <p className="text-[var(--danger-text)] text-xs flex-1">{uploadError}</p>
         </div>
       )}
 
@@ -458,19 +458,19 @@ function ItemForm({
               Costo {hasIngredients && computedCostInt > 0 ? '(auto desde receta)' : '(manual, opcional)'}
             </label>
             {margin !== null && (
-              <span className={`text-[10px] font-semibold ${margin > 60 ? 'text-emerald-700' : margin > 40 ? 'text-yellow-700' : 'text-red-700'}`}>
+              <span className={`text-[10px] font-semibold ${margin > 60 ? 'text-[var(--success-text)]' : margin > 40 ? 'text-[var(--warning-text)]' : 'text-[var(--danger-text)]'}`}>
                 {margin}% margen
               </span>
             )}
           </div>
           {hasIngredients && computedCostInt > 0 ? (
             <div
-              className="w-full px-4 py-2.5 rounded-xl bg-emerald-500/8 border border-emerald-500/30 text-emerald-700 text-sm font-mono flex items-center justify-between"
+              className="w-full px-4 py-2.5 rounded-xl bg-emerald-500/8 border border-emerald-500/30 text-[var(--success-text)] text-sm font-mono flex items-center justify-between"
               title="Calculado en vivo desde la receta. Cambia los ingredientes o sus costos en /stock para actualizarlo."
             >
               <span>${computedCostInt.toLocaleString('es-CL')}</span>
               {ingredientsMissingCost.length > 0 && (
-                <span className="text-amber-700 text-[10px] font-sans" title="Algunos ingredientes no tienen costo cargado">
+                <span className="text-[var(--warning-text)] text-[10px] font-sans" title="Algunos ingredientes no tienen costo cargado">
                   ⚠ {ingredientsMissingCost.length} sin costo
                 </span>
               )}
@@ -517,7 +517,7 @@ function ItemForm({
           <label className="text-[var(--text-muted)] text-xs">Disponible</label>
           <button onClick={() => setAvailable(v => !v)}
             className={`flex items-center gap-2 px-4 py-2.5 rounded-xl border text-sm transition-all w-full
-              ${available ? 'bg-emerald-500/15 border-emerald-500/30 text-emerald-700' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'}`}>
+              ${available ? 'bg-emerald-500/15 border-emerald-500/30 text-[var(--success-text)]' : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)]'}`}>
             {available ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
             {available ? 'Disponible' : 'No disponible'}
           </button>
@@ -530,7 +530,7 @@ function ItemForm({
           onClick={() => setTaxExempt(v => !v)}
           className={`flex items-center gap-3 px-4 py-3 rounded-xl border text-sm transition-all w-full text-left
             ${taxExempt
-              ? 'bg-amber-500/10 border-amber-500/30 text-amber-700'
+              ? 'bg-amber-500/10 border-amber-500/30 text-[var(--warning-text)]'
               : 'bg-[var(--surface-sunken)] border-[var(--border-subtle)] text-[var(--text-muted)] hover:border-[var(--border-subtle)]'}`}
         >
           {taxExempt ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
@@ -798,11 +798,11 @@ function RecipeModal({
           <button onClick={addIngredient} className="flex items-center gap-2 text-xs text-[#E55A2B] hover:text-[#ff8255] transition-colors mt-2">
             <Plus size={12} />Agregar ingrediente
           </button>
-          {error && <p className="text-red-700 text-xs">{error}</p>}
+          {error && <p className="text-[var(--danger-text)] text-xs">{error}</p>}
         </div>
         <div className="flex items-center justify-between px-5 py-4 border-t border-[var(--border-subtle)] shrink-0">
           {(item.ingredients?.length ?? 0) > 0 ? (
-            <button onClick={handleDelete} disabled={deleting} className="text-xs text-red-700/70 hover:text-red-700 transition-colors">
+            <button onClick={handleDelete} disabled={deleting} className="text-xs text-[var(--danger-text)]/70 hover:text-[var(--danger-text)] transition-colors">
               {deleting ? 'Eliminando…' : 'Eliminar receta'}
             </button>
           ) : <div />}
@@ -849,14 +849,14 @@ function ItemRow({ item, onEdit, onDelete, onToggle, onRecipe, restaurantId }: {
           {item.destination !== 'cocina' && (
             <span className={`text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1
               ${item.destination === 'barra'
-                ? 'bg-purple-500/15 text-purple-700/90 border-purple-500/25'
+                ? 'bg-purple-500/15 text-[var(--accent-violet-text)]/90 border-purple-500/25'
                 : 'bg-[var(--surface-sunken)] text-[var(--text-muted)] border-[var(--border-subtle)]'}`}>
               {item.destination === 'barra' ? <Wine size={9} /> : <Package size={9} />}
               {item.destination === 'barra' ? 'barra' : 'sin prep'}
             </span>
           )}
           {hasRecipe ? (
-            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-emerald-500/15 text-emerald-700/90 border-emerald-500/25">
+            <span className="text-[9px] px-1.5 py-0.5 rounded-full border shrink-0 inline-flex items-center gap-1 bg-emerald-500/15 text-[var(--success-text)]/90 border-emerald-500/25">
               <BookOpen size={9} />receta
             </span>
           ) : (
@@ -876,7 +876,7 @@ function ItemRow({ item, onEdit, onDelete, onToggle, onRecipe, restaurantId }: {
       <div className="text-right shrink-0">
         <p className="text-[var(--text-strong)] font-semibold text-sm font-mono">${(item.price / 1000).toFixed(1)}k</p>
         {margin !== null && (
-          <p className={`text-[10px] font-mono ${margin > 60 ? 'text-emerald-700/70' : margin > 40 ? 'text-yellow-700/70' : 'text-red-700/70'}`}>
+          <p className={`text-[10px] font-mono ${margin > 60 ? 'text-[var(--success-text)]/70' : margin > 40 ? 'text-[var(--warning-text)]/70' : 'text-[var(--danger-text)]/70'}`}>
             {margin}% margen
           </p>
         )}
@@ -884,16 +884,16 @@ function ItemRow({ item, onEdit, onDelete, onToggle, onRecipe, restaurantId }: {
       {/* Actions */}
       <div className="flex items-center gap-1 shrink-0">
         <button onClick={onToggle}
-          className={`p-1.5 rounded-lg transition-colors ${item.available ? 'text-emerald-700 hover:bg-emerald-400/10' : 'text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
+          className={`p-1.5 rounded-lg transition-colors ${item.available ? 'text-[var(--success-text)] hover:bg-emerald-400/10' : 'text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
           {item.available ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
         </button>
-        <button onClick={onRecipe} title="Configurar receta" className={`p-1.5 rounded-lg transition-colors ${hasRecipe ? 'text-emerald-700/70 hover:text-emerald-700 hover:bg-emerald-400/10' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
+        <button onClick={onRecipe} title="Configurar receta" className={`p-1.5 rounded-lg transition-colors ${hasRecipe ? 'text-[var(--success-text)]/70 hover:text-[var(--success-text)] hover:bg-emerald-400/10' : 'text-[var(--text-muted)] hover:text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]'}`}>
           <BookOpen size={13} />
         </button>
         <button onClick={onEdit} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-muted)] hover:bg-[var(--surface-sunken)] transition-colors">
           <Edit2 size={13} />
         </button>
-        <button onClick={onDelete} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-red-700 hover:bg-red-400/10 transition-colors">
+        <button onClick={onDelete} className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--danger-text)] hover:bg-red-400/10 transition-colors">
           <Trash2 size={13} />
         </button>
       </div>
@@ -1193,7 +1193,7 @@ export default function CartaPage() {
           <div className="flex items-center gap-3 mt-1 text-xs text-[var(--text-muted)]">
             <span>{stats.total} productos</span>
             <span>·</span>
-            <span className="text-emerald-700/80">{stats.available} disponibles</span>
+            <span className="text-[var(--success-text)]/80">{stats.available} disponibles</span>
             {stats.avgMargin !== null && <><span>·</span><span className="text-[#E55A2B]">{stats.avgMargin}% margen promedio</span></>}
           </div>
         </div>
@@ -1285,8 +1285,8 @@ export default function CartaPage() {
       {/* Sync notice */}
       {items.length > 0 && (
         <div className="bg-emerald-500/5 border border-emerald-500/15 rounded-xl px-4 py-3 flex items-center gap-2">
-          <Check size={14} className="text-emerald-700 shrink-0" />
-          <p className="text-emerald-700/70 text-xs">
+          <Check size={14} className="text-[var(--success-text)] shrink-0" />
+          <p className="text-[var(--success-text)]/70 text-xs">
             Los cambios se sincronizan automáticamente con tu perfil público en HiChapi Discovery.
           </p>
         </div>
@@ -1306,7 +1306,7 @@ export default function CartaPage() {
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
           <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-6 max-w-sm w-full space-y-4">
             <div className="flex items-start gap-3">
-              <AlertCircle size={20} className="text-red-700 shrink-0 mt-0.5" />
+              <AlertCircle size={20} className="text-[var(--danger-text)] shrink-0 mt-0.5" />
               <div>
                 <p className="text-[var(--text-strong)] font-semibold">¿Eliminar producto?</p>
                 <p className="text-[var(--text-muted)] text-sm mt-1">

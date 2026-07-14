@@ -60,7 +60,7 @@ export default function ClientesPage() {
               key={c.customer_id}
               className="flex items-center gap-4 bg-white/[0.03] border border-[var(--border-subtle)] rounded-xl px-4 py-3"
             >
-              <div className="w-9 h-9 rounded-full bg-violet-500/20 flex items-center justify-center text-violet-700 font-bold text-sm">
+              <div className="w-9 h-9 rounded-full bg-violet-500/20 flex items-center justify-center text-[var(--accent-violet-text)] font-bold text-sm">
                 {c.display_name.charAt(0).toUpperCase()}
               </div>
               <div className="flex-1 min-w-0">
@@ -80,7 +80,7 @@ export default function ClientesPage() {
                 <span
                   className={`text-[10px] font-semibold px-2 py-0.5 rounded-full mt-1 inline-block ${
                     c.visit_count > 5
-                      ? 'bg-amber-500/15 text-amber-700'
+                      ? 'bg-amber-500/15 text-[var(--warning-text)]'
                       : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
                   }`}
                 >

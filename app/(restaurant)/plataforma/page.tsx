@@ -107,7 +107,7 @@ export default function SuperAdminPage() {
     return (
       <div className="flex items-center justify-center h-screen">
         <div className="text-center space-y-3">
-          <Shield size={32} className="text-red-700 mx-auto" />
+          <Shield size={32} className="text-[var(--danger-text)] mx-auto" />
           <p className="text-[var(--text-strong)] font-semibold">Acceso restringido</p>
           <p className="text-[var(--text-muted)] text-sm">Solo Super Admins pueden ver esta página.</p>
         </div>
@@ -124,9 +124,9 @@ export default function SuperAdminPage() {
   }
 
   const severityColor: Record<string, string> = {
-    critical: 'text-red-700 bg-red-500/10',
-    medium: 'text-yellow-700 bg-yellow-500/10',
-    low: 'text-blue-700 bg-blue-500/10',
+    critical: 'text-[var(--danger-text)] bg-red-500/10',
+    medium: 'text-[var(--warning-text)] bg-yellow-500/10',
+    low: 'text-[var(--info-text)] bg-blue-500/10',
   }
 
   return (
@@ -198,12 +198,12 @@ export default function SuperAdminPage() {
           <div className="mt-5 pt-4 border-t border-[var(--border-subtle)] space-y-2">
             <p className="text-[var(--text-muted)] text-xs font-medium">Estado de perfiles</p>
             <div className="flex items-center gap-2">
-              <Check size={12} className="text-emerald-700" />
+              <Check size={12} className="text-[var(--success-text)]" />
               <span className="text-[var(--text-muted)] text-xs flex-1">Reclamados</span>
               <span className="text-[var(--text-muted)] text-xs">{stats.claimedRestaurants}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Eye size={12} className="text-yellow-700" />
+              <Eye size={12} className="text-[var(--warning-text)]" />
               <span className="text-[var(--text-muted)] text-xs flex-1">Sin reclamar</span>
               <span className="text-[var(--text-muted)] text-xs">{stats.unclaimedRestaurants}</span>
             </div>
@@ -227,16 +227,16 @@ export default function SuperAdminPage() {
                 </div>
                 <span className={`text-[10px] px-2 py-0.5 rounded-lg font-semibold ${
                   r.plan === 'pro' ? 'bg-[#FF6B35]/15 text-[#E55A2B]'
-                    : r.plan === 'starter' ? 'bg-blue-500/15 text-blue-700'
-                    : r.plan === 'enterprise' ? 'bg-violet-500/15 text-violet-700'
+                    : r.plan === 'starter' ? 'bg-blue-500/15 text-[var(--info-text)]'
+                    : r.plan === 'enterprise' ? 'bg-violet-500/15 text-[var(--accent-violet-text)]'
                     : 'bg-[var(--surface-sunken)] text-[var(--text-muted)]'
                 }`}>
                   {r.plan || 'free'}
                 </span>
                 {r.claimed ? (
-                  <Check size={12} className="text-emerald-700 shrink-0" />
+                  <Check size={12} className="text-[var(--success-text)] shrink-0" />
                 ) : (
-                  <Clock size={12} className="text-yellow-700 shrink-0" />
+                  <Clock size={12} className="text-[var(--warning-text)] shrink-0" />
                 )}
               </div>
             ))}
@@ -249,7 +249,7 @@ export default function SuperAdminPage() {
         <div className="bg-[var(--surface-card)] rounded-2xl border border-[var(--border-subtle)] p-5">
           <div className="flex items-center justify-between mb-3">
             <div className="flex items-center gap-2">
-              <AlertTriangle size={14} className="text-yellow-700" />
+              <AlertTriangle size={14} className="text-[var(--warning-text)]" />
               <p className="text-[var(--text-strong)] text-sm font-semibold">Tickets recientes</p>
             </div>
             <span className="text-[var(--text-muted)] text-xs">{stats.openTickets} abiertos</span>
@@ -261,7 +261,7 @@ export default function SuperAdminPage() {
                   {t.severity}
                 </span>
                 <p className="text-[var(--text-body)] text-sm flex-1 truncate">{t.subject}</p>
-                <span className={`text-[10px] font-medium ${t.status === 'open' ? 'text-yellow-700' : 'text-[var(--text-muted)]'}`}>
+                <span className={`text-[10px] font-medium ${t.status === 'open' ? 'text-[var(--warning-text)]' : 'text-[var(--text-muted)]'}`}>
                   {t.status}
                 </span>
                 <ChevronRight size={12} className="text-[var(--text-muted)]" />

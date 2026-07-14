@@ -292,7 +292,7 @@ export default function InsightsPage() {
           {/* Error */}
           {error && (
             <div className="flex justify-start">
-              <div className="bg-red-500/10 border border-red-500/30 text-red-700 text-xs px-4 py-3 rounded-xl max-w-[80%]">
+              <div className="bg-red-500/10 border border-red-500/30 text-[var(--danger-text)] text-xs px-4 py-3 rounded-xl max-w-[80%]">
                 {error}
               </div>
             </div>

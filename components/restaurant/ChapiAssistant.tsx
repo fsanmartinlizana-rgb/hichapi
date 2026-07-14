@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect, useCallback } from 'react'
+import { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { Sparkles, Send, Loader2, X, Wrench, Maximize2, Minimize2 } from 'lucide-react'
 import { useRestaurant } from '@/lib/restaurant-context'
 
@@ -82,6 +82,38 @@ function ChatText({ text }: { text: string }) {
   )
 }
 
+// Pasos de "pensando" contextuales según la consulta. Dan la sensación de que
+// Chapi está trabajando en línea mientras se procesa — el tiempo real varía
+// según la complejidad: una ayuda simple ~1-2s, una consulta con datos/DTE
+// (que cruza varias tablas) puede tardar más. Rotan para reforzar "en línea".
+function deriveThinkingSteps(lastUserMsg: string): string[] {
+  const q = (lastUserMsg || '').toLowerCase()
+  const base =
+    /stock|inventar|insumo|quiebr|merma|vencer|caduc/.test(q)              ? 'Revisando tu inventario'
+    : /vend|venta|ingres|revenue|ticket|caja|efectivo|facturaci/.test(q)  ? 'Revisando tus ventas'
+    : /rese|review|opini|calific|estrella|satisf/.test(q)                 ? 'Leyendo tus reseñas'
+    : /folio|dte|boleta|factura|sii|rechaz|caf/.test(q)                   ? 'Consultando tus documentos SII'
+    : /c[oó]mo|configur|instal|agreg|invit|conect|activ|d[oó]nde/.test(q) ? 'Buscando en la guía de HiChapi'
+    :                                                                       'Pensando tu respuesta'
+  return [`${base}…`, 'Cruzando los datos…', 'Un momento, casi listo…']
+}
+
+// Burbuja de "escribiendo" — 3 puntos naranja rebotando, como un chat real.
+function TypingDots() {
+  return (
+    <span className="inline-flex items-center gap-1" aria-hidden>
+      {[0, 1, 2].map(i => (
+        <span
+          key={i}
+          className="w-1.5 h-1.5 rounded-full bg-[#FF6B35]"
+          style={{ animation: 'chapi-typing 1.15s ease-in-out infinite', animationDelay: `${i * 0.18}s` }}
+        />
+      ))}
+      <style>{`@keyframes chapi-typing { 0%,60%,100% { opacity:.25; transform:translateY(0) } 30% { opacity:1; transform:translateY(-2px) } }`}</style>
+    </span>
+  )
+}
+
 export function ChapiAssistant() {
   const { restaurant } = useRestaurant()
   const [open, setOpen]         = useState(false)
@@ -90,8 +122,25 @@ export function ChapiAssistant() {
   const [input, setInput]       = useState('')
   const [loading, setLoading]   = useState(false)
   const [error, setError]       = useState<string | null>(null)
+  const [thinkingIdx, setThinkingIdx] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef    = useRef<HTMLTextAreaElement>(null)
+
+  // Última pregunta del usuario → pasos contextuales del indicador de tipeo.
+  const lastUserMsg = useMemo(
+    () => [...messages].reverse().find(m => m.role === 'user')?.content ?? '',
+    [messages],
+  )
+  const thinkingSteps = useMemo(() => deriveThinkingSteps(lastUserMsg), [lastUserMsg])
+
+  // Rotar el texto del indicador mientras se procesa (se detiene al terminar).
+  useEffect(() => {
+    if (!loading) { setThinkingIdx(0); return }
+    const id = setInterval(() => {
+      setThinkingIdx(i => Math.min(i + 1, thinkingSteps.length - 1))
+    }, 2400)
+    return () => clearInterval(id)
+  }, [loading, thinkingSteps.length])
 
   // Cargar historial al cambiar de restaurante
   useEffect(() => {
@@ -367,19 +416,24 @@ export function ChapiAssistant() {
         {loading && (
           <div className="flex justify-start mb-3">
             <div className="w-6 h-6 rounded-lg bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] flex items-center justify-center shrink-0 mr-2 mt-0.5">
-              <Sparkles size={10} className="text-[var(--text-strong)]" />
+              <Sparkles size={10} className="text-white" />
             </div>
-            <div className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] px-3 py-2 rounded-2xl rounded-bl-sm">
-              <div className="flex items-center gap-2 text-[var(--text-muted)] text-[11px]">
-                <Loader2 size={11} className="animate-spin" />
-                Pensando…
+            <div
+              className="bg-[var(--surface-sunken)] border border-[var(--border-subtle)] px-3 py-2.5 rounded-2xl rounded-bl-sm"
+              role="status"
+              aria-live="polite"
+              aria-label="Chapi está escribiendo"
+            >
+              <div className="flex items-center gap-2.5 text-[var(--text-muted)] text-[11px]">
+                <TypingDots />
+                <span className="italic">{thinkingSteps[thinkingIdx]}</span>
               </div>
             </div>
           </div>
         )}
 
         {error && (
-          <div className="bg-red-500/10 border border-red-500/30 text-red-700 text-[11px] px-3 py-2 rounded-xl">
+          <div className="bg-red-500/10 border border-red-500/30 text-[var(--danger-text)] text-[11px] px-3 py-2 rounded-xl">
             {error}
           </div>
         )}

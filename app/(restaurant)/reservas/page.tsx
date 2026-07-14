@@ -32,11 +32,11 @@ interface Reservation {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string }> = {
-  pending:   { label: 'Pendiente',  color: 'text-yellow-700', bg: 'bg-yellow-400/10 border-yellow-400/20' },
-  confirmed: { label: 'Confirmada', color: 'text-blue-700',   bg: 'bg-blue-400/10 border-blue-400/20' },
-  seated:    { label: 'Sentado',    color: 'text-emerald-700', bg: 'bg-emerald-400/10 border-emerald-400/20' },
+  pending:   { label: 'Pendiente',  color: 'text-[var(--warning-text)]', bg: 'bg-yellow-400/10 border-yellow-400/20' },
+  confirmed: { label: 'Confirmada', color: 'text-[var(--info-text)]',   bg: 'bg-blue-400/10 border-blue-400/20' },
+  seated:    { label: 'Sentado',    color: 'text-[var(--success-text)]', bg: 'bg-emerald-400/10 border-emerald-400/20' },
   completed: { label: 'Completada', color: 'text-[var(--text-muted)]',   bg: 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]' },
-  no_show:   { label: 'No llegó',   color: 'text-red-700',    bg: 'bg-red-400/10 border-red-400/20' },
+  no_show:   { label: 'No llegó',   color: 'text-[var(--danger-text)]',    bg: 'bg-red-400/10 border-red-400/20' },
   cancelled: { label: 'Cancelada',  color: 'text-[var(--text-muted)]',   bg: 'bg-[var(--surface-sunken)] border-[var(--border-subtle)]' },
 }
 
@@ -92,7 +92,7 @@ function ReservationCard({
 
       {/* Late warning */}
       {isLate && (
-        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${isDanger ? 'bg-red-500/10 text-red-700' : 'bg-yellow-500/10 text-yellow-700'}`}>
+        <div className={`flex items-center gap-2 rounded-lg px-3 py-2 text-xs ${isDanger ? 'bg-red-500/10 text-[var(--danger-text)]' : 'bg-yellow-500/10 text-[var(--warning-text)]'}`}>
           <Timer size={12} />
           <span>{late} min de atraso</span>
           {isDanger && <span className="font-bold ml-auto">Auto-liberar</span>}
@@ -101,7 +101,7 @@ function ReservationCard({
 
       {/* Notes */}
       {reservation.notes && (
-        <p className="text-yellow-700/60 text-xs italic bg-yellow-500/5 rounded-lg px-3 py-1.5">{reservation.notes}</p>
+        <p className="text-[var(--warning-text)]/60 text-xs italic bg-yellow-500/5 rounded-lg px-3 py-1.5">{reservation.notes}</p>
       )}
 
       {/* Phone + CTA llamar */}
@@ -125,7 +125,7 @@ function ReservationCard({
             href={`https://wa.me/${reservation.phone.replace(/[^\d]/g, '')}`}
             target="_blank"
             rel="noopener noreferrer"
-            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-emerald-700 text-[10px] font-semibold hover:bg-emerald-500/20 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/25 text-[var(--success-text)] text-[10px] font-semibold hover:bg-emerald-500/20 transition-colors"
             title="Enviar WhatsApp"
           >
             WhatsApp
@@ -137,14 +137,14 @@ function ReservationCard({
       {(reservation.status === 'pending' || reservation.status === 'confirmed') && (
         <div className="flex gap-2 pt-1">
           {reservation.status === 'pending' && (
-            <button onClick={() => onAction(reservation.id, 'confirm')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-blue-700 text-xs font-medium hover:bg-blue-500/20 transition-colors">
+            <button onClick={() => onAction(reservation.id, 'confirm')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-blue-500/10 border border-blue-500/20 text-[var(--info-text)] text-xs font-medium hover:bg-blue-500/20 transition-colors">
               <CheckCircle2 size={12} /> Confirmar
             </button>
           )}
-          <button onClick={() => onAction(reservation.id, 'seat')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-emerald-700 text-xs font-medium hover:bg-emerald-500/20 transition-colors">
+          <button onClick={() => onAction(reservation.id, 'seat')} className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/20 text-[var(--success-text)] text-xs font-medium hover:bg-emerald-500/20 transition-colors">
             <UserCheck size={12} /> Sentar
           </button>
-          <button onClick={() => onAction(reservation.id, 'no_show')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-700 text-xs font-medium hover:bg-red-500/20 transition-colors">
+          <button onClick={() => onAction(reservation.id, 'no_show')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-red-500/10 border border-red-500/20 text-[var(--danger-text)] text-xs font-medium hover:bg-red-500/20 transition-colors">
             <Ban size={12} /> No llegó
           </button>
           <button onClick={() => onAction(reservation.id, 'cancel')} className="flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg bg-[var(--surface-sunken)] border border-[var(--border-subtle)] text-[var(--text-muted)] text-xs hover:bg-[var(--surface-sunken)] transition-colors">
@@ -321,9 +321,9 @@ export default function ReservasPage() {
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
         {[
           { label: 'Total', value: stats.total, color: 'text-[var(--text-strong)]' },
-          { label: 'Por llegar', value: stats.active, color: 'text-blue-700' },
-          { label: 'Sentados', value: stats.seated, color: 'text-emerald-700' },
-          { label: 'No llegaron', value: stats.noShow, color: 'text-red-700' },
+          { label: 'Por llegar', value: stats.active, color: 'text-[var(--info-text)]' },
+          { label: 'Sentados', value: stats.seated, color: 'text-[var(--success-text)]' },
+          { label: 'No llegaron', value: stats.noShow, color: 'text-[var(--danger-text)]' },
           { label: 'Personas', value: stats.totalPax, color: 'text-[#E55A2B]' },
         ].map(s => (
           <div key={s.label} className="bg-white/[0.02] border border-[var(--border-subtle)] rounded-xl p-3 text-center">

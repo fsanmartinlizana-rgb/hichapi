@@ -103,7 +103,7 @@ export default function OnboardingChecklist({ restaurantId }: { restaurantId: st
             <div className={`w-5 h-5 rounded-full flex items-center justify-center shrink-0 ${
               step.done ? 'bg-emerald-500/20 border border-emerald-500/40' : 'border border-[var(--border-subtle)]'
             }`}>
-              {step.done && <Check size={11} className="text-emerald-700" />}
+              {step.done && <Check size={11} className="text-[var(--success-text)]" />}
             </div>
             <div className="flex-1 min-w-0">
               <p className={`text-sm font-medium ${step.done ? 'text-[var(--text-muted)] line-through' : 'text-[var(--text-strong)]'}`}>

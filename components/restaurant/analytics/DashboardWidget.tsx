@@ -71,13 +71,13 @@ function RevenueKpi({ summary }: { summary: AnalyticsSummary }) {
     <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col justify-between">
       <div className="flex items-center justify-between">
         <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Ingresos ({summary.period})</p>
-        <DollarSign size={14} className="text-emerald-700" />
+        <DollarSign size={14} className="text-[var(--success-text)]" />
       </div>
       <div className="space-y-1">
         <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
           {clp(summary.revenue.total_paid)}
         </p>
-        <p className={`text-[11px] flex items-center gap-1 ${positive ? 'text-emerald-700/80' : 'text-red-700/80'}`}>
+        <p className={`text-[11px] flex items-center gap-1 ${positive ? 'text-[var(--success-text)]/80' : 'text-[var(--danger-text)]/80'}`}>
           {positive ? <TrendingUp size={11} /> : <TrendingDown size={11} />}
           {positive ? '+' : ''}{delta}% vs período anterior
         </p>
@@ -92,7 +92,7 @@ function AvgTicket({ summary }: { summary: AnalyticsSummary }) {
     <div className="h-full rounded-2xl border border-[var(--border-subtle)] bg-[var(--surface-card)] p-5 flex flex-col justify-between">
       <div className="flex items-center justify-between">
         <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Ticket promedio</p>
-        <Receipt size={14} className="text-[#1D4ED8]" />
+        <Receipt size={14} className="text-[var(--info-text)]" />
       </div>
       <p className="text-[var(--text-strong)] text-2xl font-bold" style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {clp(summary.revenue.avg_ticket)}
@@ -124,9 +124,9 @@ function LowStock({ summary }: { summary: AnalyticsSummary }) {
     <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${alert ? 'border-amber-500/25 bg-amber-500/5' : 'border-[var(--border-subtle)] bg-[var(--surface-card)]'}`}>
       <div className="flex items-center justify-between">
         <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Stock bajo</p>
-        <AlertTriangle size={14} className={alert ? 'text-amber-700' : 'text-[var(--text-muted)]'} />
+        <AlertTriangle size={14} className={alert ? 'text-[var(--warning-text)]' : 'text-[var(--text-muted)]'} />
       </div>
-      <p className={`text-2xl font-bold ${alert ? 'text-amber-700' : 'text-[var(--text-strong)]'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className={`text-2xl font-bold ${alert ? 'text-[var(--warning-text)]' : 'text-[var(--text-strong)]'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {count}
       </p>
       <p className="text-[var(--text-muted)] text-[10px]">Insumos bajo el umbral mínimo</p>
@@ -297,7 +297,7 @@ function OccupancyHeatmap({ summary }: { summary: AnalyticsSummary }) {
         <div className="mt-3 pt-3 border-t border-[var(--border-subtle)] flex items-start gap-2">
           <div className="w-1.5 h-1.5 rounded-full bg-red-400 mt-1.5 shrink-0" />
           <p className="text-[var(--text-muted)] text-[11px] leading-relaxed">
-            Las celdas con borde rojo son <span className="text-red-700">horas valle</span> (5-35% del pico).
+            Las celdas con borde rojo son <span className="text-[var(--danger-text)]">horas valle</span> (5-35% del pico).
             Son oportunidades para activar promociones y balancear la demanda.
           </p>
         </div>
@@ -414,9 +414,9 @@ function WasteCost({ summary }: { summary: AnalyticsSummary }) {
     <div className={`h-full rounded-2xl border p-5 flex flex-col justify-between ${total > 0 ? 'border-red-500/20 bg-red-500/5' : 'border-[var(--border-subtle)] bg-[var(--surface-card)]'}`}>
       <div className="flex items-center justify-between">
         <p className="text-[var(--text-muted)] text-[11px] uppercase tracking-wider">Pérdidas ({summary.period})</p>
-        <Trash2 size={14} className={total > 0 ? 'text-red-700' : 'text-[var(--text-muted)]'} />
+        <Trash2 size={14} className={total > 0 ? 'text-[var(--danger-text)]' : 'text-[var(--text-muted)]'} />
       </div>
-      <p className={`text-2xl font-bold ${total > 0 ? 'text-red-700' : 'text-[var(--text-strong)]'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
+      <p className={`text-2xl font-bold ${total > 0 ? 'text-[var(--danger-text)]' : 'text-[var(--text-strong)]'}`} style={{ fontFamily: 'var(--font-dm-mono)' }}>
         {clp(total)}
       </p>
       <p className="text-[var(--text-muted)] text-[10px]">
@@ -534,7 +534,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'opportunity',
       icon:  <Target size={14} />,
-      color: 'text-emerald-700',
+      color: 'text-[var(--success-text)]',
       bg:    'bg-emerald-500/10 border-emerald-500/20',
       title: `${star.name} es tu plato estrella`,
       body: `Representa ${pct}% del revenue del período (${star.qty} unidades). Si tiene alto pedido y margen, podés probar una subida de $500-$1000 sin impactar ventas.`,
@@ -551,7 +551,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'insight',
       icon:  <Clock size={14} />,
-      color: 'text-blue-700',
+      color: 'text-[var(--info-text)]',
       bg:    'bg-blue-500/10 border-blue-500/20',
       title: `Tu hora pico es ${String(peakHour.hour).padStart(2, '0')}:00`,
       body: `Con ${peakHour.orders} pedidos en ese horario. Asegurate de tener suficiente personal en turno y los insumos críticos stockeados.`,
@@ -590,7 +590,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
         recs.push({
           type:  'warning',
           icon:  <AlertCircle size={14} />,
-          color: 'text-yellow-700',
+          color: 'text-[var(--warning-text)]',
           bg:    'bg-yellow-500/10 border-yellow-500/20',
           title: `Horario muerto: ${String(worstHour).padStart(2, '0')}:00`,
           body: `Tenés en promedio ${worstAvg.toFixed(1)} pedidos a esa hora — muy por debajo del pico. Activá una promoción happy-hour para llenar el salón.`,
@@ -605,7 +605,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  'warning',
       icon:  <AlertTriangle size={14} />,
-      color: 'text-amber-700',
+      color: 'text-[var(--warning-text)]',
       bg:    'bg-amber-500/10 border-amber-500/20',
       title: `${stock_alerts} insumo${stock_alerts === 1 ? '' : 's'} bajo el umbral mínimo`,
       body: 'Revisá stock antes del próximo servicio. Faltante de ingredientes = pedidos perdidos + clientes molestos.',
@@ -620,7 +620,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
       recs.push({
         type:  'warning',
         icon:  <Trash2 size={14} />,
-        color: 'text-red-700',
+        color: 'text-[var(--danger-text)]',
         bg:    'bg-red-500/10 border-red-500/20',
         title: `Mermas representan ${wastePct.toFixed(1)}% del revenue`,
         body: `${clp(waste.total_cost)} perdidos en el período. Revisá la razón principal y ajustá procesos.`,
@@ -635,7 +635,7 @@ function ChapiRecommendations({ summary }: { summary: AnalyticsSummary }) {
     recs.push({
       type:  up ? 'insight' : 'warning',
       icon:  up ? <TrendingUp size={14} /> : <TrendingDown size={14} />,
-      color: up ? 'text-emerald-700' : 'text-red-700',
+      color: up ? 'text-[var(--success-text)]' : 'text-[var(--danger-text)]',
       bg:    up ? 'bg-emerald-500/10 border-emerald-500/20' : 'bg-red-500/10 border-red-500/20',
       title: up
         ? `Vas +${comparison.delta_pct}% vs período anterior`
