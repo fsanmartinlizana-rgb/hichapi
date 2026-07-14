@@ -6,7 +6,7 @@ import { useIsMobile } from '@/lib/hooks/useIsMobile'
 import { createClient } from '@/lib/supabase/client'
 import {
   Clock, CheckCircle2, ChefHat, Banknote, Bell,
-  RefreshCw, Wifi, WifiOff, AlertCircle, Ticket, Plus,
+  RefreshCw, Wifi, WifiOff, AlertCircle, Ticket, Plus, ArrowRight,
 } from 'lucide-react'
 import { CancelOrderModal } from '@/components/CancelOrderModal'
 import { CouponRedeemModal } from '@/components/restaurant/CouponRedeemModal'
@@ -724,24 +724,47 @@ export default function GarzonPage() {
         ))}
       </div>
 
-      {/* Bill requested alert */}
-      {payingCount > 0 && (
-        <div className="flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-500/10 border-amber-500/40 animate-pulse-amber">
-          <Banknote size={18} className="text-[var(--warning-text)] shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="text-[var(--warning-text)] font-bold text-sm">
-              {payingCount === 1 ? '¡1 mesa pide la cuenta!' : `¡${payingCount} mesas piden la cuenta!`}
-            </p>
-            <p className="text-[var(--text-muted)] text-xs truncate">
-              {orders
-                .filter(o => o.status === 'paying')
-                .map(o => tables.find(t => t.id === o.table_id)?.label ?? 'Mesa')
-                .join(' · ')}
-            </p>
-          </div>
-          <span className="text-xs text-[var(--warning-text)]/60 shrink-0">Cobrar →</span>
-        </div>
-      )}
+      {/* Bill requested alert — clickeable: abre el cobro de la 1ra mesa que pide la cuenta */}
+      {payingCount > 0 && (() => {
+        const payingOrders = orders.filter(o => o.status === 'paying')
+        const openCobro = () => {
+          const firstTableId = payingOrders[0]?.table_id
+          if (!firstTableId) return
+          const tableOrders = orders.filter(o => o.table_id === firstTableId)
+          const total = tableOrders.reduce((s, o) => s + (o.total || 0), 0)
+          const maxPax = tableOrders.reduce((m, o) => Math.max(m, o.pax || 0), 0)
+          const table = tables.find(t => t.id === firstTableId)
+          setBillSplitTable({
+            tableId: firstTableId,
+            tableLabel: table?.label ?? 'Mesa',
+            orders: tableOrders,
+            totalAmount: total,
+            pax: maxPax || 2,
+          })
+        }
+        return (
+          <button
+            type="button"
+            onClick={openCobro}
+            className="w-full flex items-center gap-3 px-4 py-3 rounded-xl border bg-amber-500/10 border-amber-500/40 animate-pulse-amber text-left hover:bg-amber-500/20 active:scale-[0.99] transition-all"
+          >
+            <Banknote size={18} className="text-[var(--warning-text)] shrink-0" />
+            <div className="flex-1 min-w-0">
+              <p className="text-[var(--warning-text)] font-bold text-sm">
+                {payingCount === 1 ? '¡1 mesa pide la cuenta!' : `¡${payingCount} mesas piden la cuenta!`}
+              </p>
+              <p className="text-[var(--text-muted)] text-xs truncate">
+                {payingOrders
+                  .map(o => tables.find(t => t.id === o.table_id)?.label ?? 'Mesa')
+                  .join(' · ')}
+              </p>
+            </div>
+            <span className="text-xs font-bold text-[var(--warning-text)] shrink-0 flex items-center gap-0.5">
+              Cobrar <ArrowRight size={13} />
+            </span>
+          </button>
+        )
+      })()}
 
       {/* Table grid */}
       <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl p-4">

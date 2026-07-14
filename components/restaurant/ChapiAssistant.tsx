@@ -126,6 +126,58 @@ export function ChapiAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const textareaRef    = useRef<HTMLTextAreaElement>(null)
 
+  // Botón flotante arrastrable: el garzón lo puede correr para que no tape la
+  // barra de carrito / acciones al pedir. Posición (px desde bottom/right)
+  // persistida en localStorage. null = posición por defecto (clases CSS).
+  const fabRef = useRef<HTMLButtonElement>(null)
+  const [fabPos, setFabPos] = useState<{ right: number; bottom: number } | null>(null)
+  const dragRef  = useRef<{ sx: number; sy: number; sr: number; sb: number; moved: boolean } | null>(null)
+  const movedRef = useRef(false)
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('chapi_fab_pos')
+      if (raw) setFabPos(JSON.parse(raw))
+    } catch { /* */ }
+  }, [])
+
+  function fabPointerDown(e: React.PointerEvent) {
+    const el = fabRef.current
+    if (!el) return
+    const r = el.getBoundingClientRect()
+    dragRef.current = {
+      sx: e.clientX, sy: e.clientY,
+      sr: window.innerWidth - r.right,
+      sb: window.innerHeight - r.bottom,
+      moved: false,
+    }
+    el.setPointerCapture(e.pointerId)
+  }
+  function fabPointerMove(e: React.PointerEvent) {
+    const d = dragRef.current
+    if (!d) return
+    const dx = e.clientX - d.sx, dy = e.clientY - d.sy
+    if (!d.moved && Math.abs(dx) + Math.abs(dy) < 8) return
+    d.moved = true
+    const el = fabRef.current
+    const w = el?.offsetWidth ?? 110, h = el?.offsetHeight ?? 48
+    const right  = Math.max(6, Math.min(d.sr - dx, window.innerWidth  - w - 6))
+    const bottom = Math.max(6, Math.min(d.sb - dy, window.innerHeight - h - 6))
+    setFabPos({ right, bottom })
+  }
+  function fabPointerUp() {
+    const d = dragRef.current
+    dragRef.current = null
+    movedRef.current = !!d?.moved
+    if (d?.moved && fabRef.current) {
+      const r = fabRef.current.getBoundingClientRect()
+      const pos = { right: Math.round(window.innerWidth - r.right), bottom: Math.round(window.innerHeight - r.bottom) }
+      try { localStorage.setItem('chapi_fab_pos', JSON.stringify(pos)) } catch { /* */ }
+    }
+    // Reset el flag tras el click que sigue al pointerup (evita abrir al soltar un drag).
+    setTimeout(() => { movedRef.current = false }, 0)
+  }
+
   // Última pregunta del usuario → pasos contextuales del indicador de tipeo.
   const lastUserMsg = useMemo(
     () => [...messages].reverse().find(m => m.role === 'user')?.content ?? '',
@@ -247,10 +299,15 @@ export function ChapiAssistant() {
   if (!open) {
     return (
       <button
+        ref={fabRef}
         type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Abrir Chapi Assistant"
-        className="fixed bottom-20 md:bottom-5 right-5 z-50 group"
+        onClick={() => { if (movedRef.current) return; setOpen(true) }}
+        onPointerDown={fabPointerDown}
+        onPointerMove={fabPointerMove}
+        onPointerUp={fabPointerUp}
+        aria-label="Abrir Chapi Assistant (mantené presionado y arrastrá para moverlo)"
+        className={`fixed z-50 group touch-none select-none ${fabPos ? '' : 'bottom-20 md:bottom-5 right-5'}`}
+        style={fabPos ? { right: fabPos.right, bottom: fabPos.bottom } : undefined}
       >
         <span
           className="flex items-center gap-2 pl-3 pr-4 py-3 rounded-full bg-gradient-to-br from-[#FF6B35] to-[#FBBF24] shadow-[0_8px_28px_-6px_rgba(255,107,53,0.55)] hover:shadow-[0_10px_36px_-4px_rgba(255,107,53,0.7)] hover:-translate-y-0.5 transition-all duration-200"

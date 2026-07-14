@@ -16,9 +16,9 @@ function ConfirmOrderSummary({ selectedTable, pax, lines }: Pick<StepConfirmacio
   const total = calculateTotal(lines).toLocaleString('es-CL', { style: 'currency', currency: 'CLP' })
 
   return (
-    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'rgba(26, 26, 46, 0.12)', background: 'rgba(26, 26, 46, 0.04)' }}>
+    <div className="rounded-xl border overflow-hidden" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-sunken)' }}>
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(26, 26, 46, 0.05)' }}>
+      <div className="flex items-center justify-between px-5 py-4 border-b" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-sunken)' }}>
         <div>
           <p className="text-xs font-semibold uppercase tracking-widest text-[var(--text-muted)]">Mesa</p>
           <p className="mt-0.5 text-lg font-bold text-[var(--text-strong)]">{selectedTable.label}</p>
@@ -30,7 +30,7 @@ function ConfirmOrderSummary({ selectedTable, pax, lines }: Pick<StepConfirmacio
       </div>
 
       {/* Items */}
-      <div className="divide-y" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+      <div className="divide-y" style={{ borderColor: 'var(--border-subtle)' }}>
         {lines.map(line => (
           <div key={line.menuItemId} className="flex items-start gap-3 px-5 py-3">
             <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-full bg-indigo-500/20 text-xs font-bold text-indigo-700">
@@ -40,7 +40,7 @@ function ConfirmOrderSummary({ selectedTable, pax, lines }: Pick<StepConfirmacio
               <p className="text-sm font-medium text-[var(--text-body)] truncate">{line.name}</p>
               {line.note && <p className="mt-0.5 text-xs text-[var(--text-muted)] italic truncate">{line.note}</p>}
             </div>
-            <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium capitalize text-[var(--text-muted)]" style={{ borderColor: 'rgba(26, 26, 46, 0.14)' }}>
+            <span className="flex-shrink-0 rounded-full border px-2 py-0.5 text-xs font-medium capitalize text-[var(--text-muted)]" style={{ borderColor: 'var(--border-subtle)' }}>
               {line.destination}
             </span>
             <span className="flex-shrink-0 text-sm font-semibold text-[var(--text-body)]">
@@ -51,7 +51,7 @@ function ConfirmOrderSummary({ selectedTable, pax, lines }: Pick<StepConfirmacio
       </div>
 
       {/* Total */}
-      <div className="flex items-center justify-between px-5 py-4 border-t" style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(26, 26, 46, 0.05)' }}>
+      <div className="flex items-center justify-between px-5 py-4 border-t" style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-sunken)' }}>
         <span className="text-sm font-semibold text-[var(--text-muted)]">Total</span>
         <span className="text-lg font-bold text-[var(--text-strong)]">{total}</span>
       </div>
@@ -92,7 +92,7 @@ export default function StepConfirmacion({ selectedTable, pax, lines, saving, er
             onClick={onBack}
             disabled={saving}
             className="flex-1 rounded-xl border py-3 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-sunken)] disabled:cursor-not-allowed disabled:opacity-40"
-            style={{ borderColor: 'rgba(26, 26, 46, 0.14)' }}
+            style={{ borderColor: 'var(--border-subtle)' }}
           >
             Atrás
           </button>

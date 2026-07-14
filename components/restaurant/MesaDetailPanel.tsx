@@ -101,7 +101,7 @@ function EditableItem({
   busy: boolean
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+    <div className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'var(--border-subtle)' }}>
       <div className="flex items-center gap-1 flex-shrink-0">
         <button
           onClick={() => item.quantity <= 1 ? onDelete() : onChangeQty(item.quantity - 1)}
@@ -176,11 +176,11 @@ function AddProductsModal({
       {/* Modal */}
       <div
         className="relative w-full max-w-lg flex flex-col rounded-2xl border border-[var(--border-subtle)] shadow-2xl"
-        style={{ background: '#161622', maxHeight: '85vh' }}
+        style={{ background: 'var(--surface-card)', maxHeight: '85vh' }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: 'rgba(26, 26, 46, 0.10)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b flex-shrink-0" style={{ borderColor: 'var(--border-subtle)' }}>
           <p className="text-sm font-semibold text-[var(--text-strong)]">Agregar productos</p>
           <button onClick={onClose} className="text-[var(--text-muted)] hover:text-[var(--text-body)] transition-colors">
             <X size={18} />
@@ -200,7 +200,7 @@ function AddProductsModal({
               placeholder="Buscar producto…"
               autoFocus
               className="w-full rounded-xl border py-2.5 pl-9 pr-4 text-sm text-[var(--text-strong)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/40 transition-colors"
-              style={{ background: 'rgba(26, 26, 46, 0.07)', borderColor: 'rgba(26, 26, 46, 0.12)' }}
+              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
             />
             {query && (
               <button onClick={() => setQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] hover:text-[var(--text-body)]">×</button>
@@ -224,7 +224,7 @@ function AddProductsModal({
                         key={item.id}
                         onClick={() => onAdd(item)}
                         className="relative flex flex-col items-start rounded-xl border p-3 text-left transition-all hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/8 active:scale-95"
-                        style={{ background: 'rgba(26, 26, 46, 0.05)', borderColor: inCart ? 'rgba(255,107,53,0.4)' : 'rgba(26, 26, 46, 0.10)' }}
+                        style={{ background: 'var(--surface-sunken)', borderColor: inCart ? 'rgba(255,107,53,0.4)' : 'rgba(26, 26, 46, 0.10)' }}
                       >
                         {inCart && (
                           <span className="absolute -top-2 -right-2 flex h-5 w-5 items-center justify-center rounded-full bg-[#FF6B35] text-[10px] font-bold text-white shadow">
@@ -244,7 +244,7 @@ function AddProductsModal({
 
         {/* Footer — pending + confirm */}
         {pendingLines.length > 0 && (
-          <div className="border-t px-4 py-3 flex-shrink-0" style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(0,0,0,0.2)' }}>
+          <div className="border-t px-4 py-3 flex-shrink-0" style={{ borderColor: 'var(--border-subtle)', background: 'rgba(0,0,0,0.2)' }}>
             <div className="flex items-center justify-between mb-2">
               <p className="text-xs text-[var(--text-muted)]">{pendingCount} ítem{pendingCount !== 1 ? 's' : ''} por agregar</p>
               <p className="text-sm font-bold text-[var(--text-strong)] tabular-nums">{formatCurrency(pendingTotal)}</p>
@@ -415,7 +415,7 @@ export function MesaDetailPanel({
     <>
       <div className="bg-[var(--surface-card)] border border-[var(--border-subtle)] rounded-2xl overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 rounded-xl flex items-center justify-center" style={{ backgroundColor: cfg.color + '20', color: cfg.color }}>
               {cfg.icon}
@@ -470,7 +470,7 @@ export function MesaDetailPanel({
 
         {/* Pax inline edit */}
         {onUpdatePax && pax != null && (
-          <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+          <div className="flex items-center gap-2 px-4 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
             <span className="text-xs text-[var(--text-muted)] flex-1">Comensales</span>
             <div className="flex items-center gap-1.5">
               <button
@@ -493,7 +493,7 @@ export function MesaDetailPanel({
 
         {/* Station statuses */}
         {stationStatuses && stationStatuses.length > 0 && (
-          <div className="px-4 py-2 border-b" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+          <div className="px-4 py-2 border-b" style={{ borderColor: 'var(--border-subtle)' }}>
             <StationStatusBadge statuses={stationStatuses} />
           </div>
         )}
@@ -515,7 +515,7 @@ export function MesaDetailPanel({
                 busy={busyItemId === item.id}
               />
             ) : (
-              <div key={item.id} className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+              <div key={item.id} className="flex items-center gap-3 py-2.5 border-b last:border-0" style={{ borderColor: 'var(--border-subtle)' }}>
                 <span className="text-[#E55A2B] font-semibold text-sm w-6 text-center">{item.quantity}×</span>
                 <span className="flex-1 text-sm text-[var(--text-body)]">{item.name}</span>
                 <span className="text-sm text-[var(--text-muted)] tabular-nums">{formatCurrency(item.unit_price * item.quantity)}</span>
@@ -530,7 +530,7 @@ export function MesaDetailPanel({
             <button
               onClick={() => setShowAddProducts(true)}
               className="w-full flex items-center justify-center gap-2 py-2 rounded-xl border border-dashed text-sm font-medium text-[var(--text-muted)] hover:text-[var(--text-body)] hover:border-[var(--border-subtle)] hover:bg-[var(--surface-sunken)] transition-colors"
-              style={{ borderColor: 'rgba(26, 26, 46, 0.16)' }}
+              style={{ borderColor: 'var(--border-subtle)' }}
             >
               <Plus size={14} /> Agregar productos
             </button>
@@ -545,7 +545,7 @@ export function MesaDetailPanel({
         )}
 
         {/* Total */}
-        <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'rgba(26, 26, 46, 0.07)' }}>
+        <div className="flex items-center justify-between px-4 py-3 border-t" style={{ borderColor: 'var(--border-subtle)' }}>
           <span className="text-[var(--text-muted)] text-sm">Total</span>
           <span className="text-[var(--text-strong)] font-bold text-lg tabular-nums" style={{ fontFamily: 'var(--font-dm-mono)' }}>
             {formatCurrency(order.total)}

@@ -120,9 +120,9 @@ export default function NuevaComandaFlow({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: '#0D0D1A' }}>
+    <div className="fixed inset-0 z-50 flex flex-col" style={{ background: 'var(--bg-canvas)' }}>
       {/* Header */}
-      <header className="flex items-center justify-between border-b px-4 py-3 sm:px-6" style={{ borderColor: 'rgba(26, 26, 46, 0.10)' }}>
+      <header className="flex items-center justify-between border-b px-4 py-3 sm:px-6" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex-1">
           <FlowProgressBar currentStep={step} />
         </div>

@@ -17,7 +17,7 @@ function SearchBar({ value, onChange }: { value: string; onChange: (v: string) =
         onChange={e => onChange(e.target.value)}
         placeholder="Buscar producto…"
         className="w-full rounded-xl border py-2.5 pl-9 pr-8 text-sm text-[var(--text-strong)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-2 focus:ring-[#FF6B35]/40 transition-colors"
-        style={{ background: 'rgba(26, 26, 46, 0.07)', borderColor: 'rgba(26, 26, 46, 0.12)' }}
+        style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
       />
       {value && (
         <button
@@ -88,7 +88,7 @@ function ProductCard({
       onClick={onAdd}
       className="relative flex flex-col items-start rounded-xl border p-3 text-left transition-all hover:border-[#FF6B35]/40 hover:bg-[#FF6B35]/8 active:scale-95"
       style={{
-        background: 'rgba(26, 26, 46, 0.05)',
+        background: 'var(--surface-sunken)',
         borderColor: qty > 0 ? 'rgba(255,107,53,0.4)' : 'rgba(26, 26, 46, 0.10)',
       }}
     >
@@ -130,7 +130,7 @@ function CategorySection({
       <button
         onClick={onToggle}
         className="flex w-full items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-[var(--surface-sunken)]"
-        style={{ background: 'rgba(26, 26, 46, 0.04)' }}
+        style={{ background: 'var(--surface-sunken)' }}
       >
         <div className="flex items-center gap-2">
           {isOpen ? (
@@ -187,7 +187,7 @@ function OrderLineItem({
   return (
     <div
       className="rounded-lg border p-2 text-sm"
-      style={{ background: 'rgba(26, 26, 46, 0.05)', borderColor: 'rgba(26, 26, 46, 0.10)' }}
+      style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
     >
       <div className="flex items-center gap-2">
         <div className="flex items-center gap-1 flex-shrink-0">
@@ -237,7 +237,7 @@ function OrderLineItem({
       {expanded && (
         <div
           className="mt-2 space-y-2 border-t pt-2"
-          style={{ borderColor: 'rgba(26, 26, 46, 0.10)' }}
+          style={{ borderColor: 'var(--border-subtle)' }}
         >
           <div>
             <label className="mb-1 block text-xs text-[var(--text-muted)]">Nota (máx. 120 caracteres)</label>
@@ -248,7 +248,7 @@ function OrderLineItem({
               rows={2}
               placeholder="Ej: sin cebolla, término medio…"
               className="w-full resize-none rounded-lg border px-2 py-1 text-xs text-[var(--text-strong)] placeholder:text-[var(--text-muted)] focus:outline-none focus:ring-1 focus:ring-[#FF6B35]/40"
-              style={{ background: 'rgba(26, 26, 46, 0.07)', borderColor: 'rgba(26, 26, 46, 0.12)' }}
+              style={{ background: 'var(--surface-sunken)', borderColor: 'var(--border-subtle)' }}
             />
             <p className="text-right text-xs text-[var(--text-muted)]">{line.note.length}/120</p>
           </div>
@@ -313,7 +313,7 @@ function OrderSummaryPanel({
         </div>
       )}
 
-      <div className="mt-3 border-t pt-3" style={{ borderColor: 'rgba(26, 26, 46, 0.10)' }}>
+      <div className="mt-3 border-t pt-3" style={{ borderColor: 'var(--border-subtle)' }}>
         <div className="flex items-center justify-between text-sm font-semibold text-[var(--text-strong)]">
           <span>Total</span>
           <span>{total}</span>
@@ -331,7 +331,7 @@ function OrderSummaryPanel({
         <button
           onClick={onBack}
           className="w-full rounded-xl border py-2 text-sm font-medium text-[var(--text-muted)] transition hover:bg-[var(--surface-sunken)]"
-          style={{ borderColor: 'rgba(26, 26, 46, 0.14)' }}
+          style={{ borderColor: 'var(--border-subtle)' }}
         >
           Atrás
         </button>
@@ -474,7 +474,7 @@ export default function StepCatalogoVisual({
       {/* ── Right panel — desktop ── */}
       <aside
         className="hidden w-72 flex-shrink-0 border-l p-4 lg:flex lg:flex-col"
-        style={{ borderColor: 'rgba(26, 26, 46, 0.10)', background: 'rgba(26, 26, 46, 0.03)' }}
+        style={{ borderColor: 'var(--border-subtle)', background: 'var(--surface-sunken)' }}
       >
         <OrderSummaryPanel
           lines={lines}
@@ -489,8 +489,8 @@ export default function StepCatalogoVisual({
       <div
         className="fixed bottom-0 left-0 right-0 z-10 border-t lg:hidden"
         style={{
-          background: '#1C1C2E',
-          borderColor: 'rgba(26, 26, 46, 0.10)',
+          background: 'var(--surface-card)',
+          borderColor: 'var(--border-subtle)',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
       >
@@ -522,7 +522,7 @@ export default function StepCatalogoVisual({
           <button
             onClick={onBack}
             className="flex-1 rounded-xl border py-2.5 text-sm font-medium text-[var(--text-muted)] hover:bg-[var(--surface-sunken)]"
-            style={{ borderColor: 'rgba(26, 26, 46, 0.14)', minHeight: 44 }}
+            style={{ borderColor: 'var(--border-subtle)', minHeight: 44 }}
           >
             Atrás
           </button>
@@ -552,7 +552,7 @@ export default function StepCatalogoVisual({
           <div
             className="absolute inset-x-0 bottom-0 max-h-[85vh] flex flex-col rounded-t-2xl border-t shadow-2xl"
             style={{
-              background: '#1C1C2E',
+              background: 'var(--surface-card)',
               borderColor: 'rgba(255,107,53,0.3)',
               paddingBottom: 'env(safe-area-inset-bottom)',
             }}
