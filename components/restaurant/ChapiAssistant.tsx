@@ -141,6 +141,13 @@ export function ChapiAssistant() {
     } catch { /* */ }
   }, [])
 
+  // Persistir la posición desde el ESTADO (no desde el rect del DOM: al soltar,
+  // React aún no aplicó el style nuevo, así se guardaba la posición vieja).
+  useEffect(() => {
+    if (!fabPos) return
+    try { localStorage.setItem('chapi_fab_pos', JSON.stringify(fabPos)) } catch { /* */ }
+  }, [fabPos])
+
   function fabPointerDown(e: React.PointerEvent) {
     const el = fabRef.current
     if (!el) return
@@ -169,11 +176,7 @@ export function ChapiAssistant() {
     const d = dragRef.current
     dragRef.current = null
     movedRef.current = !!d?.moved
-    if (d?.moved && fabRef.current) {
-      const r = fabRef.current.getBoundingClientRect()
-      const pos = { right: Math.round(window.innerWidth - r.right), bottom: Math.round(window.innerHeight - r.bottom) }
-      try { localStorage.setItem('chapi_fab_pos', JSON.stringify(pos)) } catch { /* */ }
-    }
+    // La posición se persiste en un useEffect sobre fabPos (arriba).
     // Reset el flag tras el click que sigue al pointerup (evita abrir al soltar un drag).
     setTimeout(() => { movedRef.current = false }, 0)
   }
